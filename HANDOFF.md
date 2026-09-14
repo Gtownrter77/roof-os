@@ -39,6 +39,7 @@ The permanent Vercel deployment was previously verified with a `200 OK` login ro
 23. Added the initial `apps/field` Expo/React Native field-app shell with camera capture, job-address navigation, and EAS Android APK profile.
 24. Added `AUTOMATION-AGENTS.md` defining four bounded, auditable agents: intake/router, scheduler/follow-up, inspection quality, and office copilot/reporting.
 25. Configured `apps/field/eas.json` for an internal Android APK preview build. The EAS build reached the Expo authentication gate; an Expo login or `EXPO_TOKEN` is required before Expo can produce the APK artifact.
+26. Added `OWNER-MANUAL.md` with setup, daily office workflows, field procedures, migrations, security, automation, APK release, backup, troubleshooting, and release-readiness instructions.
 
 ## Sellable product direction
 
@@ -49,6 +50,8 @@ The recommended commercial path is a responsive mobile pilot followed by a dedic
 See [PRODUCT-VISION.md](PRODUCT-VISION.md) for the complete feature map, architecture, release phases, and pricing direction.
 
 See [MOBILE-FIELD-ARCHITECTURE.md](MOBILE-FIELD-ARCHITECTURE.md), [AUTOMATION-AGENTS.md](AUTOMATION-AGENTS.md), and `apps/field/eas.json` for the mobile and automation implementation details.
+
+See [OWNER-MANUAL.md](OWNER-MANUAL.md) for the detailed owner operating instructions.
 
 To produce the APK after authenticating with Expo:
 
