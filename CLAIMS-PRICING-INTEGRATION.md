@@ -28,6 +28,12 @@ Home Depot results are **retailer reference prices**, not Xactimate/Verisk price
 
 Approved searches can be placed in `retailer_price_watchlist`. A weekly server job refreshes them every Monday, skips snapshots younger than seven days, and enforces the same 100-inquiry-per-workspace monthly budget. This keeps the system current without spending one request per screen view.
 
+## NOAA storm evidence
+
+The authenticated endpoint `GET /api/storms/nws` accepts a workspace UUID and GPS coordinates, queries the official NWS API, stores matching recent weather alerts as `storm_evidence`, and labels every result `candidate`. NOAA evidence is not an automatic date-of-loss determination: the event must be reviewed and corroborated against inspection evidence, carrier records, customer statements, or an authorized historical data source.
+
+Estimate packets remain draft/review states until measurements, storm evidence, and price-book inputs are reviewed. The system must not auto-send a carrier estimate or represent a candidate storm date as proven loss.
+
 ## Prohibited shortcuts
 
 ROOF/OS must not scrape the CapOut blog, copy Verisk/Xactimate codes or price lists, claim to have current market pricing without a dated source, or use an unlicensed sample catalog as an insurance estimate database.
