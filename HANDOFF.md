@@ -78,8 +78,7 @@ The current workspace/activity/Storage implementation and final documentation ar
 
 A refreshed ZIP containing the final workspace/activity/Storage source should be generated after the final commit is pushed.
 - [Final source handoff ZIP](</home/ubuntu/roof-os-final-handoff.zip>)
-  - SHA-256: `543bb63589db4d3ac21de7e2d61e316b54b9a4a9d9d37c986e59438d3a3a6873`
-  - Contains the committed source through `5b67e82`.
+  - Contains the committed source at the final `HEAD`; the delivery response includes its verified SHA-256.
 
 ## Validation status
 
