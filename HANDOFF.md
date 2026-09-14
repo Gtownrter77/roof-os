@@ -62,8 +62,9 @@ Key commits, oldest to newest:
 - `b2873fd` — document permanent Vercel deployment
 - `597d4f4` — add project handoff
 - `7818e60` — persist leads with Supabase RLS
+- `c2a1982` — add workspace security, lead activity, and photo uploads
 
-The current workspace/activity/Storage implementation and final documentation are the next commit to push after this handoff is reviewed.
+The current workspace/activity/Storage implementation and final documentation are committed and pushed in `c2a1982`.
 
 ## ZIP files
 
@@ -75,6 +76,9 @@ The current workspace/activity/Storage implementation and final documentation ar
   - Contains the earlier Supabase authentication handoff.
 
 A refreshed ZIP containing the final workspace/activity/Storage source should be generated after the final commit is pushed.
+- [Final source handoff ZIP](</home/ubuntu/roof-os-final-handoff.zip>)
+  - SHA-256: `f724b6d36132339900a4d012d5d7c99e91cbd8f97958b2e9d489e97a4cb4851b`
+  - Contains the committed source through `c2a1982`.
 
 ## Validation status
 
@@ -106,4 +110,4 @@ npm run build
 npx tsc --noEmit
 ```
 
-Then apply `supabase/migrations/002_workspaces_activity_storage.sql` through the Supabase SQL Editor, verify the results, commit/push the final batch, and refresh the source ZIP from the new `HEAD`.
+Then apply `supabase/migrations/002_workspaces_activity_storage.sql` through the Supabase SQL Editor and complete the Level 3 data/security checks.
