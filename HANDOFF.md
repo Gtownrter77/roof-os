@@ -38,6 +38,7 @@ The permanent Vercel deployment was previously verified with a `200 OK` login ro
 22. Added real appointments and follow-up task schema in `004_appointments_tasks.sql`, a calendar entry form, Supabase appointment reads/writes, and downloadable `.ics` events.
 23. Added the initial `apps/field` Expo/React Native field-app shell with camera capture, job-address navigation, and EAS Android APK profile.
 24. Added `AUTOMATION-AGENTS.md` defining four bounded, auditable agents: intake/router, scheduler/follow-up, inspection quality, and office copilot/reporting.
+25. Configured `apps/field/eas.json` for an internal Android APK preview build. The EAS build reached the Expo authentication gate; an Expo login or `EXPO_TOKEN` is required before Expo can produce the APK artifact.
 
 ## Sellable product direction
 
@@ -48,6 +49,16 @@ The recommended commercial path is a responsive mobile pilot followed by a dedic
 See [PRODUCT-VISION.md](PRODUCT-VISION.md) for the complete feature map, architecture, release phases, and pricing direction.
 
 See [MOBILE-FIELD-ARCHITECTURE.md](MOBILE-FIELD-ARCHITECTURE.md), [AUTOMATION-AGENTS.md](AUTOMATION-AGENTS.md), and `apps/field/eas.json` for the mobile and automation implementation details.
+
+To produce the APK after authenticating with Expo:
+
+```bash
+cd apps/field
+npx eas login
+npx eas build --platform android --profile preview
+```
+
+For CI, set `EXPO_TOKEN` instead of using an interactive login. The expected artifact is an `.apk` from the EAS build page.
 
 ## Important external step still required
 
@@ -82,8 +93,9 @@ Key commits, oldest to newest:
 - `c2a1982` — add workspace security, lead activity, and photo uploads
 - `5b67e82` — finalize production handoff metadata
 - `2cb66df` — define sellable desktop and field app product
+- `dd92762` — add field navigation, calendar, automation foundation, and Expo shell
 
-The current workspace/activity/Storage implementation and product blueprint are committed and pushed in `2cb66df`.
+The current workspace/activity/Storage implementation, field-app shell, calendar layer, navigation links, and automation foundation are committed and pushed in `dd92762`.
 
 ## ZIP files
 
