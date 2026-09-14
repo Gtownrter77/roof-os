@@ -16,6 +16,10 @@ The supplied CapOut links show a viable authorized workflow for uploading insura
 6. Preserve the original source reference, market, effective timestamp, source document hash, and import version on every imported line item.
 7. Require human review before an imported estimate can become `pending_approval` or be sent externally.
 
+## ROOF/OS adapter
+
+The web app now exposes `POST /api/claims/capout`. It requires an authenticated ROOF/OS user, a workspace UUID, and an HTTPS source URL. The server sends the request to CapOut using the server-only `CAPOUT_API_KEY`, then records the returned document ID and provider response in `claims_imports`. The key is never accepted from the browser request and is never returned to the client.
+
 ## Prohibited shortcuts
 
 ROOF/OS must not scrape the CapOut blog, copy Verisk/Xactimate codes or price lists, claim to have current market pricing without a dated source, or use an unlicensed sample catalog as an insurance estimate database.
