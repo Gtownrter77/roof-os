@@ -1,6 +1,10 @@
 // National Weather Service API - Free, no API key required
 
 const NWS_API = 'https://api.weather.gov'
+const NWS_HEADERS = {
+  Accept: 'application/geo+json, application/json',
+  'User-Agent': 'ROOF-OS/1.0 contact@roof-os.local',
+}
 
 export interface WeatherAlert {
   id: string
@@ -21,7 +25,7 @@ export interface Forecast {
 
 export async function getAlerts(state: string = 'GA'): Promise<WeatherAlert[]> {
   try {
-    const response = await fetch(`${NWS_API}/alerts/active?area=${state}`)
+    const response = await fetch(`${NWS_API}/alerts/active?area=${state}`, { headers: NWS_HEADERS })
     if (!response.ok) throw new Error('Failed to fetch alerts')
     const data = await response.json()
     
@@ -44,14 +48,14 @@ export async function getAlerts(state: string = 'GA'): Promise<WeatherAlert[]> {
 export async function getForecast(lat: number = 33.7490, lon: number = -84.3880): Promise<Forecast | null> {
   try {
     // First get the forecast office
-    const pointsRes = await fetch(`${NWS_API}/points/${lat},${lon}`)
+    const pointsRes = await fetch(`${NWS_API}/points/${lat},${lon}`, { headers: NWS_HEADERS })
     if (!pointsRes.ok) throw new Error('Failed to get forecast points')
     const pointsData = await pointsRes.json()
     
     const forecastUrl = pointsData.properties?.forecast
     if (!forecastUrl) throw new Error('No forecast URL found')
     
-    const forecastRes = await fetch(forecastUrl)
+    const forecastRes = await fetch(forecastUrl, { headers: NWS_HEADERS })
     if (!forecastRes.ok) throw new Error('Failed to fetch forecast')
     const forecastData = await forecastRes.json()
     

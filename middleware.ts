@@ -5,7 +5,7 @@ export function middleware(request: NextRequest) {
   const auth = request.cookies.get('auth')?.value || request.headers.get('authorization')
   const isAuthPage = request.nextUrl.pathname.startsWith('/auth')
   const isOnboarding = request.nextUrl.pathname.startsWith('/onboarding')
-  const isPublic = ['/', '/about', '/pricing'].includes(request.nextUrl.pathname)
+  const isPublic = ['/auth/login', '/auth/signup', '/about', '/pricing'].includes(request.nextUrl.pathname)
 
   if (!auth && !isAuthPage && !isPublic && !isOnboarding) {
     return NextResponse.redirect(new URL('/auth/login', request.url))
