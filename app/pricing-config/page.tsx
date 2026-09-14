@@ -44,7 +44,7 @@ export default function PricingConfigPage() {
     'WY': 4.0
   }
 
-  // Simulated daily price updates from Home Depot/Lowe's
+  // Prototype-only local fixtures. This screen is not connected to a supplier feed.
   const generateDailyPrices = () => {
     setLoading(true)
     setTimeout(() => {
@@ -174,7 +174,7 @@ export default function PricingConfigPage() {
         <div className="px-4 py-3 flex items-center">
           <button onClick={() => router.back()} className="text-white mr-3 text-xl">←</button>
           <h1 className="text-xl font-bold">💰 Pricing Configuration</h1>
-          <span className="ml-2 bg-green-500 text-white text-xs px-2 py-0.5 rounded-full animate-pulse">LIVE</span>
+          <span className="ml-2 bg-amber-500 text-white text-xs px-2 py-0.5 rounded-full">PROTOTYPE</span>
         </div>
       </header>
 
@@ -217,7 +217,7 @@ export default function PricingConfigPage() {
               ))}
             </div>
             <div className="mt-2 text-xs text-gray-400 text-center">
-              Prices updated daily from Home Depot/Lowe's
+              Prototype fixture values only — no supplier feed is connected.
             </div>
           </div>
         )}

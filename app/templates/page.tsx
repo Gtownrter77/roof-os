@@ -71,14 +71,14 @@ export default function TemplatesPage() {
       <header className="bg-gradient-to-r from-blue-600 to-green-600 text-white shadow-lg sticky top-0 z-10">
         <div className="px-4 py-3 flex items-center">
           <button onClick={() => router.back()} className="text-white mr-3 text-xl">←</button>
-          <h1 className="text-xl font-bold">📄 Estimate Templates</h1>
-          <span className="ml-2 bg-green-500 text-white text-xs px-2 py-0.5 rounded-full">PRO</span>
+          <h1 className="text-xl font-bold">📄 Estimate Template Prototype</h1>
+          <span className="ml-2 bg-amber-500 text-white text-xs px-2 py-0.5 rounded-full">NOT SHIPPED</span>
         </div>
       </header>
 
       <main className="p-4">
         <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
-          <p className="text-sm text-green-800">📋 Professional estimate templates for every project</p>
+          <p className="text-sm text-amber-800">Prototype fixtures only. Templates are not persisted and cannot create customer estimates.</p>
         </div>
 
         <div className="grid grid-cols-1 gap-3">

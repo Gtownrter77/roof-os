@@ -40,7 +40,7 @@ export default function PhotoEstimatePage() {
   const analyzePhotos = (photoData: string[]) => {
     setLoading(true)
     
-    // AI Analysis Simulation - Extracts measurements and detects materials
+    // Prototype-only simulation. Never use these values for a customer quote.
     setTimeout(() => {
       // Simulated AI vision analysis
       const detected = {
@@ -142,8 +142,8 @@ export default function PhotoEstimatePage() {
       <header className="bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg sticky top-0 z-10">
         <div className="px-4 py-3 flex items-center">
           <button onClick={() => router.back()} className="text-white mr-3 text-xl">←</button>
-          <h1 className="text-xl font-bold">📸 AI Photo Estimate</h1>
-          <span className="ml-2 bg-green-500 text-white text-xs px-2 py-0.5 rounded-full animate-pulse">AI VISION</span>
+          <h1 className="text-xl font-bold">📸 Photo Estimate Prototype</h1>
+          <span className="ml-2 bg-amber-500 text-white text-xs px-2 py-0.5 rounded-full">SIMULATED</span>
         </div>
       </header>
 
@@ -153,7 +153,7 @@ export default function PhotoEstimatePage() {
             <span className="text-3xl mr-3">📸</span>
             <div>
               <h3 className="font-semibold">AI Visual Estimation</h3>
-              <p className="text-xs text-gray-500">Take a photo and AI generates complete estimate</p>
+              <p className="text-xs text-gray-500">Demo-only workflow — no quote or measurement is generated</p>
             </div>
           </div>
         </div>
@@ -217,7 +217,7 @@ export default function PhotoEstimatePage() {
             {estimate && (
               <div className="bg-white rounded-lg shadow-lg p-4 border-2 border-green-500">
                 <div className="flex justify-between items-center mb-3">
-                  <h3 className="font-semibold text-sm">💰 AI Generated Estimate</h3>
+                  <h3 className="font-semibold text-sm">💰 Simulated Estimate Preview</h3>
                   <span className={`text-xs px-2 py-1 rounded ${
                     estimate.priority === 'Urgent' ? 'bg-red-500 text-white' :
                     estimate.priority === 'High' ? 'bg-orange-500 text-white' :
@@ -233,7 +233,8 @@ export default function PhotoEstimatePage() {
                     <span>${item.cost.toFixed(2)}</span>
                   </div>
                 ))}
-                <div className="border-t pt-2 mt-2">
+                  <div className="border-t pt-2 mt-2">
+                    <p className="text-xs text-amber-800 bg-amber-50 p-2 mb-2 rounded">Prototype values only. Do not send, approve, or use for pricing.</p>
                   <div className="flex justify-between text-sm">
                     <span>Materials</span>
                     <span>${estimate.totalMaterials.toFixed(2)}</span>
