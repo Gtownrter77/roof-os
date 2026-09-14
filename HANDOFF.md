@@ -172,3 +172,12 @@ The remaining release blockers are a real authenticated browser CRUD test, savin
 - Owner-managed price books: none saved yet.
 - Team invitation records: none yet.
 - PR #1: open; the latest hardening commit will trigger fresh CI checks.
+
+
+## Final release-readiness update
+
+The latest source commit is `db42c0b`. Local validation passes with and without Supabase environment variables. The source branch is clean and synchronized with GitHub. The public production URL remains available at `https://roof-os-lemon.vercel.app`, with the login route returning 200 and protected routes redirecting unauthenticated users to `/auth/login`.
+
+The PR’s GitHub web, mobile, migration-safety, and preview-comment checks pass. A Vercel preview deployment continues to report a generic failure. The deployment inspector requires authentication to the Vercel work profile; the connected browser session has not exposed that authenticated state, so the provider-side build log cannot be read from this task. A new CI `preview-build` job now reproduces the preview build without deployment-only secrets and will prevent this class of missing-variable failure from returning silently.
+
+Do not merge PR #1 solely on the green GitHub checks while the Vercel deployment check is red. The remaining external step is to open the Vercel deployment inspector while authenticated to the project owner account, read the provider log, and either correct the Vercel project setting or rerun the deployment. No further source-side blocker is known from local or GitHub validation.
