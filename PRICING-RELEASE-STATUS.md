@@ -8,9 +8,9 @@
 
 | Level | Required evidence | Current status |
 | --- | --- | --- |
-| Level 1 — Static | TypeScript, production build, SQL review, secret scan, and diff validation | In progress |
-| Level 2 — Runtime | Authenticated route smoke test, template interaction test, pricing interaction test, and no misleading production claims | In progress |
-| Level 3 — Data/security | Apply migrations 006 and 007; verify RLS across two workspaces; verify price/template version snapshots and approval transitions | Blocked until migrations are applied to the target Supabase project |
+| Level 1 — Static | TypeScript, production build, SQL review, secret scan, and diff validation | **Passed** |
+| Level 2 — Runtime | Production route smoke test, protected-route redirect, and no misleading production claims | **Passed for the prototype guardrails** |
+| Level 3 — Data/security | Apply migrations 006 and 007; verify RLS across two workspaces; verify price/template version snapshots and approval transitions | **Blocked until migrations are applied to the target Supabase project** |
 
 ## What changed in this checkpoint
 
