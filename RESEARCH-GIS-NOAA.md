@@ -20,6 +20,8 @@ The NWS API is open data with reasonable rate limits and requires a descriptive 
 
 Google Earth Engine and Google Maps/Aerial imagery require compliance with Google terms and credentials. The system does not scrape Google Earth. An authorized aerial measurement provider or licensed county imagery can be added later as a higher-confidence measurement source.
 
-## Implementation consequence
+## Nationwide implementation consequence
 
-`GET /api/measurements/property` returns geocoded address, nearby OSM building-footprint candidates, approximate footprint area/perimeter, attribution, and official Cobb verification links. Measurement confidence remains low until an authorized aerial or human-certified measurement is attached.
+`GET /api/measurements/property` returns geocoded address, nearby OSM building-footprint candidates, approximate footprint area/perimeter, attribution, OpenAerialMap imagery metadata when available, and a nationwide ArcGIS parcel-search link. Cobb County links remain only as a local example. Measurement confidence remains low until an authorized aerial or human-certified measurement is attached.
+
+The system is designed for jobs across the United States. Local tax-assessor GIS links should be added by state/county when a jurisdiction is known; there is no single nationwide assessor website. ArcGIS Earth can be used for manual review or an authorized ArcGIS imagery layer can be integrated, but the product must preserve Esri/provider attribution and any required token or license.

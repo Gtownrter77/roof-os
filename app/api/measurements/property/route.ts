@@ -3,6 +3,7 @@ import { createClient } from '../../../../lib/supabase/server'
 
 const NOMINATIM = 'https://nominatim.openstreetmap.org/search'
 const OVERPASS = 'https://overpass-api.de/api/interpreter'
+const OAM_META = 'https://oam-catalog.herokuapp.com/meta'
 const USER_AGENT = 'ROOF-OS/1.0 (contact: admin@roof-os.local)'
 const FEET_PER_METER = 3.28084
 
@@ -41,6 +42,19 @@ export async function GET(request: NextRequest) {
   if (!geocoded[0]) return NextResponse.json({ error: 'Address could not be located.' }, { status: 404 })
   const latitude = Number(geocoded[0].lat); const longitude = Number(geocoded[0].lon)
 
+  const oamUrl = new URL(OAM_META)
+  oamUrl.searchParams.set('bbox', `${longitude - 0.002},${latitude - 0.002},${longitude + 0.002},${latitude + 0.002}`)
+  oamUrl.searchParams.set('has_tiled', 'true')
+  oamUrl.searchParams.set('limit', '10')
+  let openAerialMap: unknown[] = []
+  try {
+    const oamResponse = await fetch(oamUrl, { headers: { 'user-agent': USER_AGENT, accept: 'application/json' }, cache: 'no-store' })
+    if (oamResponse.ok) {
+      const oamPayload = await oamResponse.json()
+      openAerialMap = Array.isArray(oamPayload) ? oamPayload : (oamPayload.results ?? oamPayload.data ?? [])
+    }
+  } catch { openAerialMap = [] }
+
   const query = `[out:json][timeout:15];(way(around:35,${latitude},${longitude})[building];);out geom;`
   const overpassResponse = await fetch(OVERPASS, { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded', 'user-agent': USER_AGENT }, body: new URLSearchParams({ data: query }).toString(), cache: 'no-store' })
   if (!overpassResponse.ok) return NextResponse.json({ error: 'OpenStreetMap footprint lookup failed.' }, { status: 502 })
@@ -51,5 +65,5 @@ export async function GET(request: NextRequest) {
     return { osmId: element.id, buildingType: element.tags?.building ?? 'yes', footprintSqFt: Math.round(measurements.areaSqM * FEET_PER_METER * FEET_PER_METER), perimeterFt: Math.round(measurements.perimeterM * FEET_PER_METER), source: 'OpenStreetMap', confidence: 'low' }
   }).filter((candidate: any) => candidate.footprintSqFt > 0).sort((a: any, b: any) => b.footprintSqFt - a.footprintSqFt)
 
-  return NextResponse.json({ address, geocode: { latitude, longitude, displayName: geocoded[0].display_name }, candidates, interpretation: 'Building footprint is not roof surface area. Roof pitch, overhangs, dormers, valleys, hips, waste, and gutters require aerial/roof measurement or human verification.', verificationLinks: { cobbParcelViewer: 'https://geo-cobbcountyga.hub.arcgis.com/app/e22d8c597b4e4762bcd2caa6127696e4', cobbGisData: 'https://geo-cobbcountyga.hub.arcgis.com/pages/get-data' }, attribution: '© OpenStreetMap contributors' })
+  return NextResponse.json({ address, geocode: { latitude, longitude, displayName: geocoded[0].display_name }, candidates, imagerySources: { openAerialMap: { results: openAerialMap, catalogUrl: oamUrl.toString(), confidence: 'source-dependent', attribution: 'OpenAerialMap imagery is openly licensed per its item metadata; preserve each item’s provider and license.' }, arcgisEarth: { reviewUrl: 'https://www.esri.com/en-us/arcgis/products/arcgis-earth/overview', confidence: 'manual-review', note: 'ArcGIS Earth/ArcGIS imagery requires an authorized Esri account or licensed layer and must retain Esri/provider attribution.' } }, interpretation: 'Building footprint is not roof surface area. Roof pitch, overhangs, dormers, valleys, hips, waste, and gutters require aerial/roof measurement or human verification.', verificationLinks: { officialParcelViewerSearch: 'https://www.arcgis.com/home/search.html?q=parcel%20viewer', cobbExampleParcelViewer: 'https://geo-cobbcountyga.hub.arcgis.com/app/e22d8c597b4e4762bcd2caa6127696e4' }, attribution: '© OpenStreetMap contributors' })
 }
