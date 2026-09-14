@@ -50,10 +50,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$(find supabase/migrations -maxdepth 1 -name '*.sql' | wc -l)" -ge 12
+          test "$(find supabase/migrations -maxdepth 1 -name '*.sql' | wc -l)" -ge 13
           grep -q "enable row level security" supabase/migrations/008_claims_line_items_agent_readiness.sql
           grep -q "enable row level security" supabase/migrations/009_agent_runtime_claims_imports.sql
           grep -q "monthly_limit" supabase/migrations/010_retailer_price_cache.sql
           grep -q "retailer_price_watchlist" supabase/migrations/011_weekly_retailer_refresh.sql
           grep -q "storm_evidence" supabase/migrations/012_inspection_measurements_storms.sql
+          grep -q "drone_captures" supabase/migrations/013_drone_capture_evidence.sql
           if grep -RInE 'CAPOUT_API_KEY=|RAPIDAPI_KEY=|SUPABASE_SERVICE_ROLE_KEY=' --exclude=.env.example --exclude-dir=.git .; then exit 1; fi

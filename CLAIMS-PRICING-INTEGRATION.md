@@ -40,6 +40,10 @@ The endpoint `POST /api/estimates/draft` creates a replacement draft from roof s
 
 The endpoint `GET /api/measurements/property` geocodes an address with Nominatim and queries OpenStreetMap building ways through Overpass. It returns a low-confidence building footprint and perimeter estimate with attribution, plus OpenAerialMap imagery metadata when available and a nationwide ArcGIS parcel-search link. A footprint is not a roof surface measurement: the result cannot infer pitch, overhangs, valleys, hips, waste, or gutter lengths. Local assessor/GIS verification links can be added by jurisdiction; Cobb County is retained only as an example. ROOF/OS must not scrape Google Earth or resell protected county imagery.
 
+## Drone evidence
+
+`POST /api/measurements/drone` records an HTTPS asset from approved storage together with capture time, GPS, altitude, heading, camera, provider, and license metadata. It supports drone photos, video, orthomosaics, OpenAerialMap imagery, and authorized ArcGIS imagery. Every import begins as `unverified`; the record must be reviewed before it can support a certified measurement or estimate. This is an evidence/provenance pipeline, not autonomous drone flight control or a claim that any uploaded image is survey-grade.
+
 ## Prohibited shortcuts
 
 ROOF/OS must not scrape the CapOut blog, copy Verisk/Xactimate codes or price lists, claim to have current market pricing without a dated source, or use an unlicensed sample catalog as an insurance estimate database.
