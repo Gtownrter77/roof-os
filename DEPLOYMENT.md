@@ -12,7 +12,7 @@ Configure `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and the s
 
 ## Migration order
 
-Apply migrations `001` through `013` to the target Supabase project in filename order. Verify RLS using two workspaces before enabling customer-facing estimate or claims-import flows. Migration `008` supplies claims line-item and heartbeat tables; migration `009` supplies claims-import and idempotent agent-run tables; migration `010` supplies the Home Depot reference-price cache and hard 100-inquiry monthly budget; migration `011` supplies the weekly watchlist and worker-only budget reservation; migration `012` supplies inspection measurements, NOAA storm evidence, and estimate review packets; migration `013` supplies drone/aerial capture provenance.
+Apply migrations `001` through `014` to the target Supabase project in filename order. Verify RLS using two workspaces before enabling customer-facing estimate or claims-import flows. Migration `008` supplies claims line-item and heartbeat tables; migration `009` supplies claims-import and idempotent agent-run tables; migration `010` supplies the Home Depot reference-price cache and hard 100-inquiry monthly budget; migration `011` supplies the weekly watchlist and worker-only budget reservation; migration `012` supplies inspection measurements, NOAA storm evidence, and estimate review packets; migration `013` supplies drone/aerial capture provenance; migration `014` supplies the fail-closed Ryan-only system-owner lock.
 
 ## Worker release gate
 
@@ -25,6 +25,10 @@ The web adapter is `POST /api/claims/capout`. It requires an authenticated user,
 The NOAA adapter is `GET /api/storms/nws`. It uses the official NWS API with a descriptive User-Agent and stores only candidate evidence. It must not be used as an automatic date-of-loss attestation.
 
 The drone evidence adapter is `POST /api/measurements/drone`. It records metadata for an approved HTTPS asset; it does not operate a drone, certify an orthomosaic, or upgrade an image to a claim measurement without human review.
+
+## Ryan-only update policy
+
+The application configuration surfaces are protected by `public.is_system_owner()`. Before enabling updates, Ryan must run the one-time activation statement in migration `014` with the UUID of his authenticated Supabase user. Until that row exists, automation rules, price books, price-book items, and retailer watchlists are write-blocked for everyone. On GitHub, protect `main` and require the ROOF OS CI workflow; the only repository administrator currently verified is `Gtownrter77`.
 
 ## Weekly Home Depot refresh
 
