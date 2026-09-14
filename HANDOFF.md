@@ -34,6 +34,10 @@ The permanent Vercel deployment was previously verified with a `200 OK` login ro
 18. Added `PRODUCT-VISION.md`, defining ROOF/OS as a sellable two-surface product: a desktop control plane plus a camera-first phone/tablet field app.
 19. Added `MOBILE-FIELD-ARCHITECTURE.md` with the Expo/React Native stack, offline sync model, photo pipeline, security model, navigation, and release gates.
 20. Added `DATABASE-SCHEMA.md` and `003_status_history_inspection_photos.sql` for durable lead status history, inspection sessions, photo metadata, and RLS.
+21. Added Google Maps and OpenStreetMap navigation deep links from leads without requiring a Maps API key.
+22. Added real appointments and follow-up task schema in `004_appointments_tasks.sql`, a calendar entry form, Supabase appointment reads/writes, and downloadable `.ics` events.
+23. Added the initial `apps/field` Expo/React Native field-app shell with camera capture, job-address navigation, and EAS Android APK profile.
+24. Added `AUTOMATION-AGENTS.md` defining four bounded, auditable agents: intake/router, scheduler/follow-up, inspection quality, and office copilot/reporting.
 
 ## Sellable product direction
 
@@ -42,6 +46,8 @@ The product blueprint now defines the desktop web app as the system of record fo
 The recommended commercial path is a responsive mobile pilot followed by a dedicated Expo/React Native iOS and Android application. The next product implementation priorities are applying the workspace migration, adding a first-class inspection/photo metadata model, building offline upload queues, creating the guided inspection flow, and then scaffolding the dedicated field app.
 
 See [PRODUCT-VISION.md](PRODUCT-VISION.md) for the complete feature map, architecture, release phases, and pricing direction.
+
+See [MOBILE-FIELD-ARCHITECTURE.md](MOBILE-FIELD-ARCHITECTURE.md), [AUTOMATION-AGENTS.md](AUTOMATION-AGENTS.md), and `apps/field/eas.json` for the mobile and automation implementation details.
 
 ## Important external step still required
 

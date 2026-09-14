@@ -8,6 +8,29 @@ const statuses = ['new', 'assigned', 'qualified', 'inspection_scheduled', 'inspe
 type Lead = { id: string; name: string; address: string; status: string; phone?: string | null; email?: string | null }
 type Activity = { id: string; kind: string; body: string; created_at: string }
 
+function openNavigation(address: string, provider: 'google' | 'osm') {
+  const destination = encodeURIComponent(address)
+  const url = provider === 'google'
+    ? `https://www.google.com/maps/dir/?api=1&destination=${destination}`
+    : `https://www.openstreetmap.org/search?query=${destination}`
+  window.open(url, '_blank', 'noopener,noreferrer')
+}
+
+function downloadFollowUpCalendar(lead: Lead) {
+  const start = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+  start.setHours(9, 0, 0, 0)
+  const end = new Date(start.getTime() + 30 * 60 * 1000)
+  const format = (date: Date) => date.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')
+  const escape = (value: string) => value.replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/[,;]/g, '\\$&')
+  const ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//ROOF OS//Follow Up//EN', 'BEGIN:VEVENT', `UID:${lead.id}-follow-up@roof-os`, `DTSTAMP:${format(new Date())}`, `DTSTART:${format(start)}`, `DTEND:${format(end)}`, `SUMMARY:${escape(`Follow up: ${lead.name}`)}`, `LOCATION:${escape(lead.address)}`, `DESCRIPTION:${escape(`ROOF/OS follow-up for ${lead.name}`)}`, 'END:VEVENT', 'END:VCALENDAR'].join('\r\n')
+  const url = URL.createObjectURL(new Blob([ics], { type: 'text/calendar;charset=utf-8' }))
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `${lead.name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-follow-up.ics`
+  link.click()
+  URL.revokeObjectURL(url)
+}
+
 export default function LeadsPage() {
   const router = useRouter()
   const supabase = createClient()
@@ -74,7 +97,7 @@ export default function LeadsPage() {
       {loading && <p className="text-sm text-gray-500">Loading leads…</p>}
       {error && <p className="text-sm text-red-600 mb-3" role="alert">{error}</p>}
       {!loading && !error && leads.length === 0 && <div className="bg-white rounded-lg shadow p-6 text-center text-gray-500">No leads yet. Add your first lead to get started.</div>}
-      {leads.map((lead) => <div key={lead.id} className="bg-white rounded-lg shadow p-4 mb-3"><div className="flex justify-between gap-3"><div><p className="font-semibold">{lead.name}</p><p className="text-sm text-gray-500">{lead.address}</p></div><select aria-label={`Status for ${lead.name}`} value={lead.status} disabled={saving === lead.id} onChange={(event) => updateStatus(lead, event.target.value)} className="h-8 text-xs border rounded px-1">{statuses.map((status) => <option key={status} value={status}>{status.replaceAll('_', ' ')}</option>)}</select></div><button onClick={() => expanded === lead.id ? setExpanded(null) : loadActivity(lead.id)} className="text-blue-600 text-xs mt-3">{expanded === lead.id ? 'Hide activity' : 'View activity & add note'}</button>{expanded === lead.id && <div className="mt-3 border-t pt-3"><div className="flex gap-2"><input aria-label={`Note for ${lead.name}`} value={notes[lead.id] ?? ''} onChange={(event) => setNotes((current) => ({ ...current, [lead.id]: event.target.value }))} placeholder="Add an activity note" className="flex-1 p-2 border rounded text-sm"/><button disabled={saving === lead.id} onClick={() => addNote(lead.id)} className="bg-gray-800 text-white px-3 rounded text-sm">Add</button></div><div className="mt-3 space-y-2">{(activity[lead.id] ?? []).map((item) => <div key={item.id} className="text-xs bg-gray-50 rounded p-2"><span className="font-semibold">{item.kind.replace('_', ' ')}</span> · {item.body}<span className="block text-gray-400 mt-1">{new Date(item.created_at).toLocaleString()}</span></div>)}{activity[lead.id]?.length === 0 && <p className="text-xs text-gray-400">No activity yet.</p>}</div></div>}</div>)}
+      {leads.map((lead) => <div key={lead.id} className="bg-white rounded-lg shadow p-4 mb-3"><div className="flex justify-between gap-3"><div><p className="font-semibold">{lead.name}</p><p className="text-sm text-gray-500">{lead.address}</p></div><select aria-label={`Status for ${lead.name}`} value={lead.status} disabled={saving === lead.id} onChange={(event) => updateStatus(lead, event.target.value)} className="h-8 text-xs border rounded px-1">{statuses.map((status) => <option key={status} value={status}>{status.replaceAll('_', ' ')}</option>)}</select></div><div className="flex flex-wrap gap-2 mt-3"><button onClick={() => openNavigation(lead.address, 'google')} className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded">Navigate Google</button><button onClick={() => openNavigation(lead.address, 'osm')} className="text-xs bg-green-50 text-green-700 px-2 py-1 rounded">Navigate OpenStreetMap</button><button onClick={() => downloadFollowUpCalendar(lead)} className="text-xs bg-purple-50 text-purple-700 px-2 py-1 rounded">Add 7-day follow-up</button></div><button onClick={() => expanded === lead.id ? setExpanded(null) : loadActivity(lead.id)} className="text-blue-600 text-xs mt-3">{expanded === lead.id ? 'Hide activity' : 'View activity & add note'}</button>{expanded === lead.id && <div className="mt-3 border-t pt-3"><div className="flex gap-2"><input aria-label={`Note for ${lead.name}`} value={notes[lead.id] ?? ''} onChange={(event) => setNotes((current) => ({ ...current, [lead.id]: event.target.value }))} placeholder="Add an activity note" className="flex-1 p-2 border rounded text-sm"/><button disabled={saving === lead.id} onClick={() => addNote(lead.id)} className="bg-gray-800 text-white px-3 rounded text-sm">Add</button></div><div className="mt-3 space-y-2">{(activity[lead.id] ?? []).map((item) => <div key={item.id} className="text-xs bg-gray-50 rounded p-2"><span className="font-semibold">{item.kind.replace('_', ' ')}</span> · {item.body}<span className="block text-gray-400 mt-1">{new Date(item.created_at).toLocaleString()}</span></div>)}{activity[lead.id]?.length === 0 && <p className="text-xs text-gray-400">No activity yet.</p>}</div></div>}</div>)}
       <nav className="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around py-2 px-4"><button onClick={() => router.push('/')} className="text-gray-500 text-sm">🏠 Home</button><button onClick={() => router.push('/leads')} className="text-blue-600 text-sm">👤 Leads</button><button onClick={() => router.push('/inspections')} className="text-gray-500 text-sm">🔍 Inspections</button><button onClick={() => router.push('/settings')} className="text-gray-500 text-sm">⚙️ Settings</button></nav>
     </div>
   )
