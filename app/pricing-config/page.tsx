@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
 export default function PricingConfigPage() {
@@ -32,6 +32,15 @@ export default function PricingConfigPage() {
   const [dailyPrices, setDailyPrices] = useState<any>(null)
   const [selectedJobType, setSelectedJobType] = useState('roofing')
   const [customRate, setCustomRate] = useState('')
+  const [saveMessage, setSaveMessage] = useState('')
+
+  useEffect(() => {
+    fetch('/api/pricing/labor-rates').then(async response => {
+      const payload = await response.json()
+      if (response.ok && payload.rates) setLaborRates(prev => Object.fromEntries(Object.entries(prev).map(([key, value]) => [key, { ...value, rate: Number(payload.rates[key] ?? value.rate) }])) as typeof prev)
+      if (payload.warning) setSaveMessage(payload.warning)
+    }).catch(() => setSaveMessage('Could not load saved labor rates.'))
+  }, [])
 
   const stateSalesTax: Record<string, number> = {
     'AL': 4.0, 'AK': 0, 'AZ': 5.6, 'AR': 6.5, 'CA': 7.25, 'CO': 2.9, 'CT': 6.35,
@@ -88,6 +97,13 @@ export default function PricingConfigPage() {
       cleanup: '🧹', inspection: '🔍', consulting: '💡'
     }
     return icons[key] || '🔧'
+  }
+
+  const saveConfiguration = async () => {
+    setSaveMessage('Saving owner-managed labor rates…')
+    const response = await fetch('/api/pricing/labor-rates', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ rates: Object.fromEntries(Object.entries(laborRates).map(([key, value]) => [key, value.rate])), market: selectedState }) })
+    const payload = await response.json()
+    setSaveMessage(response.ok ? `Saved as draft price book ${payload.priceBookId}. Review and activate before use.` : (payload.error ?? 'Could not save labor rates.'))
   }
 
   const getTrendIcon = (trend: string) => {
@@ -232,6 +248,7 @@ export default function PricingConfigPage() {
               </div>
             ))}
           </div>
+          {saveMessage && <p className="mt-3 text-xs text-blue-800 bg-blue-50 rounded p-2">{saveMessage}</p>}
         </div>
 
         {/* Price History */}
@@ -283,7 +300,7 @@ export default function PricingConfigPage() {
           <button className="bg-blue-600 text-white py-2 rounded-lg text-sm font-semibold">
             📄 Export Pricing Guide
           </button>
-          <button className="bg-green-600 text-white py-2 rounded-lg text-sm font-semibold">
+          <button onClick={saveConfiguration} className="bg-green-600 text-white py-2 rounded-lg text-sm font-semibold">
             💾 Save Configuration
           </button>
         </div>
