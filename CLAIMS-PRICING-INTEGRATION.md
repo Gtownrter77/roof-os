@@ -20,6 +20,14 @@ The supplied CapOut links show a viable authorized workflow for uploading insura
 
 The web app now exposes `POST /api/claims/capout`. It requires an authenticated ROOF/OS user, a workspace UUID, and an HTTPS source URL. The server sends the request to CapOut using the server-only `CAPOUT_API_KEY`, then records the returned document ID and provider response in `claims_imports`. The key is never accepted from the browser request and is never returned to the client.
 
+## Home Depot reference pricing
+
+The app also exposes `GET /api/pricing/home-depot`. It uses the user-provided RapidAPI Real-Time Home Depot Data endpoint with the server-only `RAPIDAPI_KEY`, requires an authenticated workspace admin, and supports query, ZIP code, and store ID localization. Results are cached for 24 hours in `retailer_price_snapshots`, and the database reserves at most **100 provider inquiries per workspace per calendar month**. Cache hits do not consume the monthly inquiry budget.
+
+Home Depot results are **retailer reference prices**, not Xactimate/Verisk prices and not insurance-approved rates. They must be mapped into an owner-reviewed price book with a documented market, source URL, retrieval date, and approval before entering a customer or carrier estimate.
+
+Approved searches can be placed in `retailer_price_watchlist`. A weekly server job refreshes them every Monday, skips snapshots younger than seven days, and enforces the same 100-inquiry-per-workspace monthly budget. This keeps the system current without spending one request per screen view.
+
 ## Prohibited shortcuts
 
 ROOF/OS must not scrape the CapOut blog, copy Verisk/Xactimate codes or price lists, claim to have current market pricing without a dated source, or use an unlicensed sample catalog as an insurance estimate database.
