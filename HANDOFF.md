@@ -26,6 +26,8 @@ The repository was reviewed, repaired, and pushed to GitHub. The following chang
 7. Connected the GitHub repository to Vercel for automatic deployments.
 8. Added the Supabase URL and publishable key to Vercel Production environment variables.
 9. Redeployed successfully and verified the permanent Vercel URL.
+10. Configured Supabase Site URL and production callback allowlist for `https://roof-os-lemon.vercel.app`.
+11. Created the secured `public.leads` table with row-level security policies and replaced the hardcoded leads list and simulated lead save flow with authenticated Supabase reads/inserts.
 
 ## Important security notes
 
@@ -39,7 +41,7 @@ The repository was reviewed, repaired, and pushed to GitHub. The following chang
 These areas were intentionally **not** claimed as production-complete:
 
 - Leads are still hardcoded in the UI and need Supabase tables, row-level security, and CRUD procedures.
-- New lead creation currently does not persist to the database.
+- Lead listing and new lead creation now persist to Supabase; edit/delete/status workflows remain.
 - Camera photos currently use browser/local storage rather than Supabase Storage.
 - AI, payment, report export, Home Depot, and other integrations remain simulated or placeholder workflows.
 - Supabase email confirmation and redirect URLs should be checked in the Supabase dashboard for the permanent domain:
@@ -58,7 +60,7 @@ If continuing later, work in small verified batches:
 
 1. Configure Supabase Auth redirect URLs for the Vercel domain.
 2. Create database schema and RLS policies for workspaces, users, leads, inspections, and photos.
-3. Replace leads UI hardcoded data with authenticated Supabase queries and mutations.
+3. Add lead edit/delete/status workflows and workspace-level authorization.
 4. Add Supabase Storage upload flow for inspection photos.
 5. Add provider credentials only when the user explicitly chooses the AI, payments, or external integration providers.
 6. Run build, TypeScript, HTTP, browser, and Vercel deployment checks after each batch.
