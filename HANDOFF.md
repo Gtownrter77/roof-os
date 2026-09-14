@@ -31,6 +31,15 @@ The permanent Vercel deployment was previously verified with a `200 OK` login ro
 15. Prepared workspace and workspace-member tables, new-user workspace provisioning, existing-user backfill, workspace-scoped lead/activity RLS, and private inspection-photo Storage policies.
 16. Replaced browser/localStorage photo saving with private Supabase Storage uploads using workspace-scoped object paths.
 17. Added the reusable `roof-os-production-review` Manus skill for future review, remediation, verification, deployment, and handoff tasks.
+18. Added `PRODUCT-VISION.md`, defining ROOF/OS as a sellable two-surface product: a desktop control plane plus a camera-first phone/tablet field app.
+
+## Sellable product direction
+
+The product blueprint now defines the desktop web app as the system of record for administration, production scheduling, estimating configuration, reporting, billing, integrations, and team oversight. It defines the field app for leads, appointments, guided inspections, camera capture, photo albums, annotations, offline drafts, background uploads, calls, notes, tasks, status updates, crew checklists, check-in/out, and job communication.
+
+The recommended commercial path is a responsive mobile pilot followed by a dedicated Expo/React Native iOS and Android application. The next product implementation priorities are applying the workspace migration, adding a first-class inspection/photo metadata model, building offline upload queues, creating the guided inspection flow, and then scaffolding the dedicated field app.
+
+See [PRODUCT-VISION.md](PRODUCT-VISION.md) for the complete feature map, architecture, release phases, and pricing direction.
 
 ## Important external step still required
 
@@ -64,8 +73,9 @@ Key commits, oldest to newest:
 - `7818e60` — persist leads with Supabase RLS
 - `c2a1982` — add workspace security, lead activity, and photo uploads
 - `5b67e82` — finalize production handoff metadata
+- `2cb66df` — define sellable desktop and field app product
 
-The current workspace/activity/Storage implementation and final documentation are committed and pushed in `c2a1982`.
+The current workspace/activity/Storage implementation and product blueprint are committed and pushed in `2cb66df`.
 
 ## ZIP files
 
@@ -78,7 +88,7 @@ The current workspace/activity/Storage implementation and final documentation ar
 
 A refreshed ZIP containing the final workspace/activity/Storage source should be generated after the final commit is pushed.
 - [Final source handoff ZIP](</home/ubuntu/roof-os-final-handoff.zip>)
-  - Contains the committed source at the final `HEAD`; the delivery response includes its verified SHA-256.
+  - Refresh this archive after the handoff documentation commit below; it should contain the final `HEAD`.
 
 ## Validation status
 
