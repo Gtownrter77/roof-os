@@ -1,0 +1,58 @@
+name: ROOF OS CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://validation.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: validation-only-key
+          CAPOUT_API_KEY: validation-only-key
+          RAPIDAPI_KEY: validation-only-key
+          SUPABASE_SERVICE_ROLE_KEY: validation-only-key
+          CRON_SECRET: validation-only-key
+      - run: npx tsc --noEmit
+
+  mobile:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/field
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/field/package-lock.json
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npx expo config --json > /tmp/expo-config.json
+
+  migration-safety:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check migration order and required policies
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(find supabase/migrations -maxdepth 1 -name '*.sql' | wc -l)" -ge 11
+          grep -q "enable row level security" supabase/migrations/008_claims_line_items_agent_readiness.sql
+          grep -q "enable row level security" supabase/migrations/009_agent_runtime_claims_imports.sql
+          grep -q "monthly_limit" supabase/migrations/010_retailer_price_cache.sql
+          grep -q "retailer_price_watchlist" supabase/migrations/011_weekly_retailer_refresh.sql
+          if grep -RInE 'CAPOUT_API_KEY=|RAPIDAPI_KEY=|SUPABASE_SERVICE_ROLE_KEY=' --exclude=.env.example --exclude-dir=.git .; then exit 1; fi
