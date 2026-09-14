@@ -51,9 +51,10 @@ supabase/migrations/001_leads.sql
 supabase/migrations/002_workspaces_activity_storage.sql
 supabase/migrations/003_status_history_inspection_photos.sql
 supabase/migrations/004_appointments_tasks.sql
+supabase/migrations/005_default_automation_agents.sql
 ```
 
-The migrations are intended to be applied in numeric order. Migration 002 creates workspaces, memberships, activity records, workspace-aware lead access, and the private inspection-photo bucket. Migration 003 adds status history, inspection sessions, photo metadata, and related RLS policies. Migration 004 adds appointments, tasks, automation rules, and agent-run audit records.
+The migrations are intended to be applied in numeric order. Migration 002 creates workspaces, memberships, activity records, workspace-aware lead access, and the private inspection-photo bucket. Migration 003 adds status history, inspection sessions, photo metadata, and related RLS policies. Migration 004 adds appointments, tasks, automation rules, and agent-run audit records. Migration 005 seeds the four default agent configurations and creates deterministic lead-assignment and follow-up task triggers.
 
 Use the [manual migration guide](SUPABASE-MANUAL-MIGRATION.md) for the detailed SQL Editor process. After each migration, inspect the SQL Editor result and confirm that it completed without an error.
 
@@ -253,6 +254,8 @@ Review lost leads, unassigned work, inspection quality failures, agent runs, wor
 
 Review user access, data retention, backups, migration state, deployment history, dependency alerts, Expo credentials, and customer-facing workflows. Test a lead creation, appointment, navigation, photo upload, and export path with a non-production record.
 
+See [OPERATING-CADENCE.md](OPERATING-CADENCE.md) for recommended time windows, completion evidence, weekly decision logging, monthly review controls, and the release routine.
+
 ### Before a major release
 
 Run the web build, TypeScript check, diff check, Expo type check, configuration check, migration review, browser route test, mobile camera smoke test, offline recovery test, and cross-workspace isolation test. Do not release an APK or web deployment that depends on an unapplied database migration unless the affected feature is disabled.
@@ -299,12 +302,12 @@ The local development server is useful for Expo Go and development clients. It i
 
 The product is ready for continued development and controlled pilot work. It is not ready to be marketed as a fully complete commercial field platform until the following items are complete:
 
-1. Apply and verify Supabase migrations 001 through 004.
+1. Apply and verify Supabase migrations 001 through 005.
 2. Complete authenticated CRUD and cross-workspace RLS tests.
 3. Add real mobile Supabase Auth and workspace-aware data access.
 4. Implement SQLite inspection drafts and upload queue recovery.
 5. Link the mobile camera to `inspection_sessions`, `inspection_photos`, and private Storage.
-6. Implement the first deterministic automation workers.
+6. Verify the seeded deterministic automation workers and review their audit records.
 7. Authenticate to Expo and produce a tested APK.
 8. Run device tests on representative Android phones and tablets.
 9. Add crash reporting, privacy policy, support contact, data export, and retention controls.

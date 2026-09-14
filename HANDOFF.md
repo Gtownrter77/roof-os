@@ -40,6 +40,8 @@ The permanent Vercel deployment was previously verified with a `200 OK` login ro
 24. Added `AUTOMATION-AGENTS.md` defining four bounded, auditable agents: intake/router, scheduler/follow-up, inspection quality, and office copilot/reporting.
 25. Configured `apps/field/eas.json` for an internal Android APK preview build. The EAS build reached the Expo authentication gate; an Expo login or `EXPO_TOKEN` is required before Expo can produce the APK artifact.
 26. Added `OWNER-MANUAL.md` with setup, daily office workflows, field procedures, migrations, security, automation, APK release, backup, troubleshooting, and release-readiness instructions.
+27. Added `005_default_automation_agents.sql`, which seeds four workspace agent rules and creates idempotent first-response and status-based follow-up tasks assigned to the lead owner.
+28. Added `OPERATING-CADENCE.md` with scheduled daily, weekly, monthly, and release routines derived from the owner checklist.
 
 ## Sellable product direction
 
@@ -51,7 +53,7 @@ See [PRODUCT-VISION.md](PRODUCT-VISION.md) for the complete feature map, archite
 
 See [MOBILE-FIELD-ARCHITECTURE.md](MOBILE-FIELD-ARCHITECTURE.md), [AUTOMATION-AGENTS.md](AUTOMATION-AGENTS.md), and `apps/field/eas.json` for the mobile and automation implementation details.
 
-See [OWNER-MANUAL.md](OWNER-MANUAL.md) for the detailed owner operating instructions.
+See [OWNER-MANUAL.md](OWNER-MANUAL.md) for the detailed owner operating instructions and [OPERATING-CADENCE.md](OPERATING-CADENCE.md) for the scheduled routines.
 
 To produce the APK after authenticating with Expo:
 
@@ -96,9 +98,10 @@ Key commits, oldest to newest:
 - `c2a1982` — add workspace security, lead activity, and photo uploads
 - `5b67e82` — finalize production handoff metadata
 - `2cb66df` — define sellable desktop and field app product
-- `dd92762` — add field navigation, calendar, automation foundation, and Expo shell
+  - `dd92762` — add field navigation, calendar, automation foundation, and Expo shell
+  - `8b98433` — add detailed owner manual
 
-The current workspace/activity/Storage implementation, field-app shell, calendar layer, navigation links, and automation foundation are committed and pushed in `dd92762`.
+The current workspace/activity/Storage implementation, field-app shell, calendar layer, navigation links, automation configuration, and owner routines are committed and pushed in the latest `HEAD`.
 
 ## ZIP files
 
@@ -125,9 +128,9 @@ git diff --check
 
 The three-level verification status is:
 
-- **Level 1 — Static:** passed locally.
+- **Level 1 — Static:** passed locally, including web build, TypeScript checks, Expo type check/config, and Expo web export.
 - **Level 2 — Runtime:** prior production route verification passed; rerun after the final Vercel deployment.
-- **Level 3 — Data/security:** pending execution of `002_workspaces_activity_storage.sql` and cross-workspace tests.
+- **Level 3 — Data/security:** pending execution of migrations `002` through `005` and cross-workspace tests.
 
 ## Security notes
 
