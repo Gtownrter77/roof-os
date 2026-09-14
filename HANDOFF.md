@@ -32,6 +32,8 @@ The permanent Vercel deployment was previously verified with a `200 OK` login ro
 16. Replaced browser/localStorage photo saving with private Supabase Storage uploads using workspace-scoped object paths.
 17. Added the reusable `roof-os-production-review` Manus skill for future review, remediation, verification, deployment, and handoff tasks.
 18. Added `PRODUCT-VISION.md`, defining ROOF/OS as a sellable two-surface product: a desktop control plane plus a camera-first phone/tablet field app.
+19. Added `MOBILE-FIELD-ARCHITECTURE.md` with the Expo/React Native stack, offline sync model, photo pipeline, security model, navigation, and release gates.
+20. Added `DATABASE-SCHEMA.md` and `003_status_history_inspection_photos.sql` for durable lead status history, inspection sessions, photo metadata, and RLS.
 
 ## Sellable product direction
 
