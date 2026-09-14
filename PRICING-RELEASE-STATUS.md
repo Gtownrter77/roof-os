@@ -21,3 +21,11 @@ Migration 007 does not claim to provide live pricing. A supplier feed, approved 
 ## Release blockers
 
 The feature cannot ship until a real price source is selected and verified, the estimate editor writes durable records, the deterministic pricing engine is implemented, customer approval is recorded, and the three-level gate passes with evidence. The photo-estimate demo must remain disabled for customer quoting until measurements and materials come from a verified workflow.
+
+## Insurance claims boundary
+
+ROOF/OS does **not** currently contain Xactimate line items, Xactimate codes, or a licensed current claims price list. Xactimate and its pricing data are Verisk products with proprietary, localized data. ROOF/OS must not copy or imply equivalence to that catalog without an appropriate licensed integration or a customer-provided authorized export.
+
+Migration 008 adds a claims-safe internal line-item model with trade, unit, coverage type, labor/material/equipment flags, tax and depreciation flags, market, effective dates, source type, and price-book references. It intentionally contains no fabricated “current” prices. A real claims release requires a licensed provider, verified supplier feed, or owner-managed price import with provenance and effective dates.
+
+The four automation agents are currently **configured, not production-ready workers**. Agents 1 and 2 have deterministic database foundations; Agent 3 has documented rules but no live inspection event worker; Agent 4 remains disabled pending the inspection/report approval runtime. Migration 008 adds heartbeat records so all four can be proven healthy before shipment.

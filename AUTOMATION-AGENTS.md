@@ -45,6 +45,12 @@ ROOF/OS should use four bounded automation agents. Each agent is an auditable wo
 - Enforce idempotency with a unique event key and retry status.
 - Never auto-send customer communications, sign contracts, approve estimates, or submit payments without an explicit human approval rule.
 
+## Shipment readiness status
+
+The four agent keys are seeded in `automation_rules`, but they are not yet four running production workers. Agent 1 has a database-backed follow-up trigger foundation; Agent 2 shares that deterministic trigger foundation; Agent 3 has documented rules but no worker or inspection-completion event handler; Agent 4 is intentionally disabled until the inspection schema, report approval state, and a trusted worker are live. Migration 008 adds `agent_worker_heartbeats` so readiness can be proven with a recent authenticated heartbeat rather than inferred from a configuration row.
+
+An agent is **ship-ready** only when its rule is enabled as intended, its worker has a healthy heartbeat within the configured freshness window, its idempotent run path writes an `agent_runs` record, its failure path creates a review task, and its workspace-isolation test passes. Until those conditions are demonstrated, the agent must remain labeled configured or pilot-only.
+
 ## Recommended first implementation
 
 Start with Agents 1–3 because they provide immediate operational value without requiring a model. Add Agent 4 after the inspection schema and photo metadata are live. The free/open-source path is deterministic TypeScript plus optional Ollama; it does not require paid agent APIs, but it does require a persistent host if Ollama is used continuously.
