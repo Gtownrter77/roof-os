@@ -40,6 +40,13 @@ export async function POST(request: NextRequest) {
   const nwsResponse = await fetch(nwsUrl, { headers: { accept: 'application/geo+json', 'user-agent': USER_AGENT }, cache: 'no-store' })
   const nwsPayload = nwsResponse.ok ? await nwsResponse.json() : { features: [] }
   const stormCandidateCount = (nwsPayload.features ?? []).filter((feature: any) => /hail|tornado|thunderstorm|wind|hurricane|tropical|flood|ice|winter storm|derecho/i.test(`${feature.properties?.event ?? ''} ${feature.properties?.headline ?? ''}`)).length
+  const { data: workspaceId } = await supabase.rpc('current_workspace_id')
+  const { data: activePriceBook } = workspaceId
+    ? await supabase.from('price_books').select('id,name,effective_at,local_tax_rate,tax_source').eq('workspace_id', workspaceId).eq('source', 'owner-managed').eq('status', 'active').order('effective_at', { ascending: false }).limit(1).maybeSingle()
+    : { data: null }
+  const pricing = activePriceBook
+    ? { status: 'active', priceBookId: activePriceBook.id, name: activePriceBook.name, effectiveAt: activePriceBook.effective_at, localTaxRate: Number(activePriceBook.local_tax_rate), taxSource: activePriceBook.tax_source ?? 'owner-entered local rate' }
+    : { status: 'unavailable', localTaxRate: null, taxSource: null }
 
-  return NextResponse.json({ report: { title: `ROOF/OS Inspection Report — ${address}`, status: 'needs_review', generatedAt: new Date().toISOString(), address, geocode: { latitude, longitude, displayName: geocoded[0].display_name }, evidence: { photoCount, footprintSqFt, stormCandidateCount, measurementSource: 'manual quantities supplied by user; unverified' }, quantities: { roofSquares, gutterLf }, sources: { footprint: '© OpenStreetMap contributors', storms: nwsUrl, parcelVerification: 'https://www.arcgis.com/home/search.html?q=parcel%20viewer' }, requiredReview: ['Confirm property and parcel', 'Review photos and footprint against aerial/drone evidence', 'Verify roof/gutter quantities', 'Review NOAA candidates as corroborating evidence only', 'Attach approved price book', 'Human approval before external use'] } })
+  return NextResponse.json({ report: { title: `ROOF/OS Inspection Report — ${address}`, status: 'needs_review', generatedAt: new Date().toISOString(), address, geocode: { latitude, longitude, displayName: geocoded[0].display_name }, evidence: { photoCount, footprintSqFt, stormCandidateCount, measurementSource: 'manual quantities supplied by user; unverified' }, quantities: { roofSquares, gutterLf }, pricing, sources: { footprint: '© OpenStreetMap contributors', storms: nwsUrl, parcelVerification: 'https://www.arcgis.com/home/search.html?q=parcel%20viewer' }, requiredReview: ['Confirm property and parcel', 'Review photos and footprint against aerial/drone evidence', 'Verify roof/gutter quantities', 'Review NOAA candidates as corroborating evidence only', 'Attach or confirm an approved price book', 'Human approval before external use'] } })
 }

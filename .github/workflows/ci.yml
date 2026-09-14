@@ -60,4 +60,5 @@ jobs:
           grep -q "storm_evidence" supabase/migrations/012_inspection_measurements_storms.sql
           grep -q "drone_captures" supabase/migrations/013_drone_capture_evidence.sql
           grep -q "is_system_owner" supabase/migrations/014_system_owner_lock.sql
+          grep -q "local_tax_rate" supabase/migrations/015_owner_price_book_local_tax.sql
           if grep -RInE 'CAPOUT_API_KEY=|RAPIDAPI_KEY=|SUPABASE_SERVICE_ROLE_KEY=' --exclude=.env.example --exclude-dir=.git --exclude-dir=.github .; then exit 1; fi

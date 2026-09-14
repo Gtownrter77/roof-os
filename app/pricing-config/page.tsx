@@ -8,6 +8,7 @@ export default function PricingConfigPage() {
   const [loading, setLoading] = useState(false)
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date())
   const [salesTax, setSalesTax] = useState(7.5)
+  const [taxSource, setTaxSource] = useState('Owner-entered combined local rate')
   const [selectedState, setSelectedState] = useState('GA')
   const [laborRates, setLaborRates] = useState({
     roofing: { rate: 65, unit: 'sq', description: 'Roofing installation per square' },
@@ -38,6 +39,9 @@ export default function PricingConfigPage() {
     fetch('/api/pricing/labor-rates').then(async response => {
       const payload = await response.json()
       if (response.ok && payload.rates) setLaborRates(prev => Object.fromEntries(Object.entries(prev).map(([key, value]) => [key, { ...value, rate: Number(payload.rates[key] ?? value.rate) }])) as typeof prev)
+      if (response.ok && Number.isFinite(Number(payload.localTaxRate))) setSalesTax(Number(payload.localTaxRate))
+      if (response.ok && typeof payload.taxSource === 'string' && payload.taxSource) setTaxSource(payload.taxSource)
+      if (response.ok && payload.priceBook?.effective_at) setLastUpdate(new Date(payload.priceBook.effective_at))
       if (payload.warning) setSaveMessage(payload.warning)
     }).catch(() => setSaveMessage('Could not load saved labor rates.'))
   }, [])
@@ -100,10 +104,11 @@ export default function PricingConfigPage() {
   }
 
   const saveConfiguration = async () => {
-    setSaveMessage('Saving owner-managed labor rates…')
-    const response = await fetch('/api/pricing/labor-rates', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ rates: Object.fromEntries(Object.entries(laborRates).map(([key, value]) => [key, value.rate])), market: selectedState }) })
+    setSaveMessage('Saving owner-managed labor rates and local tax…')
+    const response = await fetch('/api/pricing/labor-rates', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ rates: Object.fromEntries(Object.entries(laborRates).map(([key, value]) => [key, value.rate])), market: selectedState, localTaxRate: salesTax, taxSource }) })
     const payload = await response.json()
-    setSaveMessage(response.ok ? `Saved as draft price book ${payload.priceBookId}. Review and activate before use.` : (payload.error ?? 'Could not save labor rates.'))
+    if (response.ok) setLastUpdate(new Date())
+    setSaveMessage(response.ok ? `Saved labor rates and ${payload.localTaxRate}% local tax as draft price book ${payload.priceBookId}. Review and activate before use.` : (payload.error ?? 'Could not save pricing configuration.'))
   }
 
   const getTrendIcon = (trend: string) => {
@@ -175,19 +180,20 @@ export default function PricingConfigPage() {
           </p>
         </div>
 
-        {/* Sales Tax */}
+        {/* Local Tax */}
         <div className="bg-white rounded-lg shadow-lg p-4 mb-4 border border-purple-200">
           <h3 className="font-semibold text-sm mb-3 flex items-center">
-            <span className="text-xl mr-2">🧾</span> Sales Tax Configuration
+            <span className="text-xl mr-2">🧾</span> Local Tax Configuration
           </h3>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-gray-500">State</label>
+              <label className="text-xs text-gray-500">State reference</label>
               <select
                 value={selectedState}
                 onChange={(e) => {
                   setSelectedState(e.target.value)
                   setSalesTax(stateSalesTax[e.target.value] || 0)
+                  setTaxSource(`${e.target.value} state reference — replace with the combined local rate before approval`)
                 }}
                 className="w-full p-2 border rounded-lg text-sm"
               >
@@ -199,7 +205,7 @@ export default function PricingConfigPage() {
               </select>
             </div>
             <div>
-              <label className="text-xs text-gray-500">Sales Tax Rate</label>
+              <label className="text-xs text-gray-500">Combined local tax rate</label>
               <div className="flex items-center gap-2">
                 <input
                   type="number"
@@ -207,14 +213,25 @@ export default function PricingConfigPage() {
                   onChange={(e) => setSalesTax(parseFloat(e.target.value) || 0)}
                   className="w-full p-2 border rounded-lg text-sm"
                   step="0.1"
+                  min="0"
+                  max="100"
                 />
                 <span className="text-sm font-bold">%</span>
               </div>
             </div>
           </div>
+          <label className="block mt-3 text-xs text-gray-500">Tax jurisdiction / source
+            <input
+              value={taxSource}
+              onChange={(e) => setTaxSource(e.target.value)}
+              maxLength={200}
+              className="mt-1 w-full p-2 border rounded-lg text-sm"
+              placeholder="Example: Cobb County, GA — owner-verified combined rate"
+            />
+          </label>
           <div className="mt-2 p-2 bg-purple-50 rounded">
             <p className="text-xs text-purple-800">
-              💡 Current sales tax: <strong>{salesTax}%</strong> • Applied to all material costs
+              💡 Current local tax: <strong>{salesTax}%</strong> • Saved with the owner-managed price book and used only after that book is active
             </p>
           </div>
         </div>
