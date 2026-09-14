@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
 export default function PricingConfigPage() {
@@ -44,74 +44,9 @@ export default function PricingConfigPage() {
     'WY': 4.0
   }
 
-  // Prototype-only local fixtures. This screen is not connected to a supplier feed.
   const generateDailyPrices = () => {
-    setLoading(true)
-    setTimeout(() => {
-      const today = new Date()
-      const prices = {
-        shingles: {
-          base: 42.97,
-          current: (42.97 + (Math.random() - 0.5) * 4).toFixed(2),
-          change: ((Math.random() - 0.5) * 3).toFixed(2),
-          trend: Math.random() > 0.5 ? 'up' : 'down'
-        },
-        siding: {
-          base: 2.97,
-          current: (2.97 + (Math.random() - 0.5) * 0.5).toFixed(2),
-          change: ((Math.random() - 0.5) * 0.4).toFixed(2),
-          trend: Math.random() > 0.5 ? 'up' : 'down'
-        },
-        windows: {
-          base: 299.97,
-          current: (299.97 + (Math.random() - 0.5) * 20).toFixed(2),
-          change: ((Math.random() - 0.5) * 15).toFixed(2),
-          trend: Math.random() > 0.5 ? 'up' : 'down'
-        },
-        doors: {
-          base: 499.97,
-          current: (499.97 + (Math.random() - 0.5) * 30).toFixed(2),
-          change: ((Math.random() - 0.5) * 25).toFixed(2),
-          trend: Math.random() > 0.5 ? 'up' : 'down'
-        },
-        gutters: {
-          base: 6.97,
-          current: (6.97 + (Math.random() - 0.5) * 1).toFixed(2),
-          change: ((Math.random() - 0.5) * 0.8).toFixed(2),
-          trend: Math.random() > 0.5 ? 'up' : 'down'
-        },
-        lumber: {
-          base: 5.97,
-          current: (5.97 + (Math.random() - 0.5) * 2).toFixed(2),
-          change: ((Math.random() - 0.5) * 1.5).toFixed(2),
-          trend: Math.random() > 0.5 ? 'up' : 'down'
-        },
-        insulation: {
-          base: 49.97,
-          current: (49.97 + (Math.random() - 0.5) * 5).toFixed(2),
-          change: ((Math.random() - 0.5) * 4).toFixed(2),
-          trend: Math.random() > 0.5 ? 'up' : 'down'
-        },
-        paint: {
-          base: 39.97,
-          current: (39.97 + (Math.random() - 0.5) * 4).toFixed(2),
-          change: ((Math.random() - 0.5) * 3).toFixed(2),
-          trend: Math.random() > 0.5 ? 'up' : 'down'
-        }
-      }
-
-      setDailyPrices(prices)
-      setLastUpdate(today)
-      
-      // Add to history
-      setPriceHistory([{
-        date: today.toLocaleDateString(),
-        prices: prices,
-        laborRates: laborRates
-      }, ...priceHistory.slice(0, 6)])
-
-      setLoading(false)
-    }, 1500)
+    setLoading(false)
+    setDailyPrices(null)
   }
 
   const updateLaborRate = (jobType: string, rate: string) => {
@@ -155,11 +90,6 @@ export default function PricingConfigPage() {
     return icons[key] || '🔧'
   }
 
-  useEffect(() => {
-    // Auto-update prices on load
-    generateDailyPrices()
-  }, [])
-
   const getTrendIcon = (trend: string) => {
     return trend === 'up' ? '📈' : '📉'
   }
@@ -191,7 +121,7 @@ export default function PricingConfigPage() {
               disabled={loading}
               className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold disabled:opacity-50"
             >
-              {loading ? '⏳ Updating...' : '🔄 Update Prices'}
+              {loading ? '⏳ Loading...' : '🔄 Connect a price source'}
             </button>
           </div>
         </div>
@@ -217,10 +147,17 @@ export default function PricingConfigPage() {
               ))}
             </div>
             <div className="mt-2 text-xs text-gray-400 text-center">
-              Prototype fixture values only — no supplier feed is connected.
+              Imported source values only — every value must carry a source, market, and effective date.
             </div>
           </div>
         )}
+
+        <div className="bg-amber-50 rounded-lg shadow-sm p-4 mb-4 border border-amber-200">
+          <h3 className="font-semibold text-sm mb-2">Current claims pricing is not connected</h3>
+          <p className="text-xs text-amber-900 leading-5">
+            No fabricated prices are shown here. Connect an authorized CapOut/ESX import, licensed provider, verified supplier feed, or owner-managed price book before using this screen for an insurance estimate. Imported values must retain source, market, effective date, and review status.
+          </p>
+        </div>
 
         {/* Sales Tax */}
         <div className="bg-white rounded-lg shadow-lg p-4 mb-4 border border-purple-200">
