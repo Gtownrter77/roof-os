@@ -33,3 +33,7 @@ The four automation agents are currently **configured, not production-ready work
 ## Agent and claims gate result
 
 The static gate passed for migration 008, agent-key coverage, RLS declarations, and secret scanning. The runtime smoke gate passed for redirect behavior and absence of false claims. The live data gate did not pass: no Supabase migration runner, CapOut API key, imported authorized sample claim, healthy worker heartbeat, or two-workspace isolation evidence is available in this environment. Therefore the four agents and claims pricing capability are **not approved for shipment**.
+
+## Weekly retailer reference refresh
+
+The system now supports an approved Home Depot watchlist refreshed weekly on Mondays at 04:00 UTC. Results are cached for seven days and limited to 100 provider inquiries per workspace per calendar month. These are retailer reference prices only; they are not Xactimate/Verisk rates and do not become insurance estimate prices without owner review, market attribution, effective date, and approval.
