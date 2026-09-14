@@ -29,3 +29,7 @@ ROOF/OS does **not** currently contain Xactimate line items, Xactimate codes, or
 Migration 008 adds a claims-safe internal line-item model with trade, unit, coverage type, labor/material/equipment flags, tax and depreciation flags, market, effective dates, source type, and price-book references. It intentionally contains no fabricated “current” prices. A real claims release requires a licensed provider, verified supplier feed, or owner-managed price import with provenance and effective dates.
 
 The four automation agents are currently **configured, not production-ready workers**. Agents 1 and 2 have deterministic database foundations; Agent 3 has documented rules but no live inspection event worker; Agent 4 remains disabled pending the inspection/report approval runtime. Migration 008 adds heartbeat records so all four can be proven healthy before shipment.
+
+## Agent and claims gate result
+
+The static gate passed for migration 008, agent-key coverage, RLS declarations, and secret scanning. The runtime smoke gate passed for redirect behavior and absence of false claims. The live data gate did not pass: no Supabase migration runner, CapOut API key, imported authorized sample claim, healthy worker heartbeat, or two-workspace isolation evidence is available in this environment. Therefore the four agents and claims pricing capability are **not approved for shipment**.
