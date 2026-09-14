@@ -36,6 +36,10 @@ Estimate packets remain draft/review states until measurements, storm evidence, 
 
 The endpoint `POST /api/estimates/draft` creates a replacement draft from roof squares and gutter linear feet, but deliberately leaves all prices null and sets the packet to `needs_price_review`. It is a workflow scaffold, not an insurance estimate generator. A packet can only become externally usable after measurement, storm, price-book, and human approval checks are completed.
 
+## Free property-geometry fallback
+
+The endpoint `GET /api/measurements/property` geocodes an address with Nominatim and queries OpenStreetMap building ways through Overpass. It returns a low-confidence building footprint and perimeter estimate with attribution. A footprint is not a roof surface measurement: the result cannot infer pitch, overhangs, valleys, hips, waste, or gutter lengths. The response links the official Cobb County Parcel Viewer and GIS data page for human parcel verification. Cobb County states that current building footprints and high-resolution imagery are distributed through its data-sales program, so ROOF/OS must not scrape Google Earth or resell protected county imagery.
+
 ## Prohibited shortcuts
 
 ROOF/OS must not scrape the CapOut blog, copy Verisk/Xactimate codes or price lists, claim to have current market pricing without a dated source, or use an unlicensed sample catalog as an insurance estimate database.
