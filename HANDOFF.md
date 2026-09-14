@@ -181,3 +181,16 @@ The latest source commit is `db42c0b`. Local validation passes with and without 
 The PR’s GitHub web, mobile, migration-safety, and preview-comment checks pass. A Vercel preview deployment continues to report a generic failure. The deployment inspector requires authentication to the Vercel work profile; the connected browser session has not exposed that authenticated state, so the provider-side build log cannot be read from this task. A new CI `preview-build` job now reproduces the preview build without deployment-only secrets and will prevent this class of missing-variable failure from returning silently.
 
 Do not merge PR #1 solely on the green GitHub checks while the Vercel deployment check is red. The remaining external step is to open the Vercel deployment inspector while authenticated to the project owner account, read the provider log, and either correct the Vercel project setting or rerun the deployment. No further source-side blocker is known from local or GitHub validation.
+
+
+## Feature completion audit and remediation
+
+The prior audit correctly found that estimate templates and supplements were prototypes, the task screen was browser-local, measurements were reviewable footprint candidates rather than certified roof measurements, and building codes were state/category fixtures rather than ZIP-specific jurisdiction lookups. This pass began remediation:
+
+- Migration 018 and `/api/supplements` now persist supplement candidates and review decisions under workspace RLS.
+- `/supplement` now saves reviewable candidates instead of using random local-only detection.
+- `/api/estimate-templates` now persists draft templates, versions, and items using the existing estimate schema.
+- `/templates` now saves selected templates as draft records and clearly retains price-book/review gating.
+- `/tasks` now reads and updates persisted Supabase tasks, including trigger-created follow-ups.
+
+Measurements remain intentionally review-gated: the property API provides geocoded OpenStreetMap building-footprint candidates and OpenAerialMap metadata, not certified roof-surface quantities. Building codes remain a hardcoded state/category reference and are not yet a ZIP-to-jurisdiction authoritative lookup. Automatic reminder delivery and LLM-based supplement inference remain separate implementation tasks.
