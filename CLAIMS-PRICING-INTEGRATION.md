@@ -34,6 +34,8 @@ The authenticated endpoint `GET /api/storms/nws` accepts a workspace UUID and GP
 
 Estimate packets remain draft/review states until measurements, storm evidence, and price-book inputs are reviewed. The system must not auto-send a carrier estimate or represent a candidate storm date as proven loss.
 
+The endpoint `POST /api/estimates/draft` creates a replacement draft from roof squares and gutter linear feet, but deliberately leaves all prices null and sets the packet to `needs_price_review`. It is a workflow scaffold, not an insurance estimate generator. A packet can only become externally usable after measurement, storm, price-book, and human approval checks are completed.
+
 ## Prohibited shortcuts
 
 ROOF/OS must not scrape the CapOut blog, copy Verisk/Xactimate codes or price lists, claim to have current market pricing without a dated source, or use an unlicensed sample catalog as an insurance estimate database.
