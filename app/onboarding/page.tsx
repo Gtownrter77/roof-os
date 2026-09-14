@@ -13,6 +13,7 @@ export default function OnboardingPage() {
     state: 'GA',
     role: 'owner'
   })
+  const [error, setError] = useState('')
 
   const steps = [
     { 
@@ -38,6 +39,11 @@ export default function OnboardingPage() {
   ]
 
   const handleNext = () => {
+    if (step === 2 && !form.companyName.trim()) {
+      setError('Enter your company name to continue.')
+      return
+    }
+    setError('')
     if (step < 4) {
       setStep(step + 1)
     } else {
@@ -135,19 +141,19 @@ export default function OnboardingPage() {
           <div className="space-y-4">
             <h2 className="text-xl font-bold">Your Role</h2>
             <div className="grid grid-cols-2 gap-3">
-              <button className={`p-4 border-2 rounded-lg text-center ${form.role === 'owner' ? 'border-blue-500 bg-blue-50' : 'border-gray-200'}`}>
+              <button type="button" onClick={() => setForm({...form, role: 'owner'})} className={`p-4 border-2 rounded-lg text-center ${form.role === 'owner' ? 'border-blue-500 bg-blue-50' : 'border-gray-200'}`}>
                 <span className="text-2xl block">👔</span>
                 <span className="text-sm font-medium">Owner</span>
               </button>
-              <button className={`p-4 border-2 rounded-lg text-center ${form.role === 'manager' ? 'border-blue-500 bg-blue-50' : 'border-gray-200'}`}>
+              <button type="button" onClick={() => setForm({...form, role: 'manager'})} className={`p-4 border-2 rounded-lg text-center ${form.role === 'manager' ? 'border-blue-500 bg-blue-50' : 'border-gray-200'}`}>
                 <span className="text-2xl block">📋</span>
                 <span className="text-sm font-medium">Manager</span>
               </button>
-              <button className={`p-4 border-2 rounded-lg text-center ${form.role === 'inspector' ? 'border-blue-500 bg-blue-50' : 'border-gray-200'}`}>
+              <button type="button" onClick={() => setForm({...form, role: 'inspector'})} className={`p-4 border-2 rounded-lg text-center ${form.role === 'inspector' ? 'border-blue-500 bg-blue-50' : 'border-gray-200'}`}>
                 <span className="text-2xl block">🔍</span>
                 <span className="text-sm font-medium">Inspector</span>
               </button>
-              <button className={`p-4 border-2 rounded-lg text-center ${form.role === 'sales' ? 'border-blue-500 bg-blue-50' : 'border-gray-200'}`}>
+              <button type="button" onClick={() => setForm({...form, role: 'sales'})} className={`p-4 border-2 rounded-lg text-center ${form.role === 'sales' ? 'border-blue-500 bg-blue-50' : 'border-gray-200'}`}>
                 <span className="text-2xl block">📞</span>
                 <span className="text-sm font-medium">Sales</span>
               </button>
@@ -187,6 +193,7 @@ export default function OnboardingPage() {
         {/* Content */}
         <div className="min-h-[300px]">
           {renderStep()}
+          {error && <p className="text-sm text-red-600 mt-4" role="alert">{error}</p>}
         </div>
 
         {/* Navigation */}

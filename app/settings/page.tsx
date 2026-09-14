@@ -12,7 +12,10 @@ export default function SettingsPage() {
     responseTime: 15,
     timezone: 'America/New_York',
     state: 'GA',
+    companyName: '',
+    phone: '',
   })
+  const [saved, setSaved] = useState(false)
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
@@ -116,17 +119,17 @@ export default function SettingsPage() {
             <div className="space-y-3">
               <div>
                 <label className="text-sm">Company Name</label>
-                <input type="text" className="w-full mt-1 p-2 border rounded-lg" placeholder="Your Roofing Co." />
+                <input type="text" value={settings.companyName} onChange={(e) => setSettings({...settings, companyName: e.target.value})} className="w-full mt-1 p-2 border rounded-lg" placeholder="Your Roofing Co." />
               </div>
               <div>
                 <label className="text-sm">Phone</label>
-                <input type="tel" className="w-full mt-1 p-2 border rounded-lg" placeholder="(555) 123-4567" />
+                <input type="tel" value={settings.phone} onChange={(e) => setSettings({...settings, phone: e.target.value})} className="w-full mt-1 p-2 border rounded-lg" placeholder="(555) 123-4567" />
               </div>
             </div>
           </div>
 
-          <button className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold">
-            💾 Save Settings
+          <button onClick={() => { setSaved(true); window.setTimeout(() => setSaved(false), 2500) }} className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold">
+            {saved ? '✅ Settings saved' : '💾 Save Settings'}
           </button>
         </div>
       </main>
