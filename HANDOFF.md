@@ -63,6 +63,7 @@ Key commits, oldest to newest:
 - `597d4f4` — add project handoff
 - `7818e60` — persist leads with Supabase RLS
 - `c2a1982` — add workspace security, lead activity, and photo uploads
+- `5b67e82` — finalize production handoff metadata
 
 The current workspace/activity/Storage implementation and final documentation are committed and pushed in `c2a1982`.
 
@@ -77,8 +78,8 @@ The current workspace/activity/Storage implementation and final documentation ar
 
 A refreshed ZIP containing the final workspace/activity/Storage source should be generated after the final commit is pushed.
 - [Final source handoff ZIP](</home/ubuntu/roof-os-final-handoff.zip>)
-  - SHA-256: `f724b6d36132339900a4d012d5d7c99e91cbd8f97958b2e9d489e97a4cb4851b`
-  - Contains the committed source through `c2a1982`.
+  - SHA-256: `543bb63589db4d3ac21de7e2d61e316b54b9a4a9d9d37c986e59438d3a3a6873`
+  - Contains the committed source through `5b67e82`.
 
 ## Validation status
 
