@@ -17,7 +17,13 @@ export default function NewLeadPage() {
     setError('')
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.replace('/auth/login'); return }
-    const { error: insertError } = await supabase.from('leads').insert({ ...form, owner_id: user.id })
+    const { data: workspaceId, error: workspaceError } = await supabase.rpc('current_workspace_id')
+    if (workspaceError || !workspaceId) {
+      setError(workspaceError?.message ?? 'No workspace is available for this account.')
+      setSaving(false)
+      return
+    }
+    const { error: insertError } = await supabase.from('leads').insert({ ...form, owner_id: user.id, workspace_id: workspaceId })
     if (insertError) {
       setError(insertError.message)
       setSaving(false)

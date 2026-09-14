@@ -1,71 +1,102 @@
-# ROOF/OS Handoff
+# ROOF/OS Final Handoff
 
 **Handoff date:** 2026-09-14
 
-## Current live website
+## Current production site
 
-ROOF/OS is permanently deployed on the free Vercel Hobby plan:
+- **Production URL:** https://roof-os-lemon.vercel.app
+- **Hosting:** Vercel Hobby
+- **Vercel project:** `roof-os`
+- **Source:** GitHub `Gtownrter77/roof-os`, branch `main`
+- **Supabase project:** `xksumagfbegdlapwysps`
 
-- Production URL: https://roof-os-lemon.vercel.app
-- Vercel project: `roof-os`
-- Hosting: Vercel Hobby
-- Source: GitHub `Gtownrter77/roof-os`, branch `main`
+The permanent Vercel deployment was previously verified with a `200 OK` login route and redirects from protected routes to `/auth/login`. GitHub `main` is connected to automatic Vercel production deployments.
 
-The latest Vercel deployment was verified as **Ready**. The login route returned `200 OK`, and unauthenticated requests to `/` redirected to `/auth/login`.
+## Completed features
 
-## Completed in this session
-
-The repository was reviewed, repaired, and pushed to GitHub. The following changes are complete:
-
-1. Fixed production standalone asset serving and documented the original review.
-2. Restored Tailwind/PostCSS processing and corrected route navigation.
-3. Replaced the demo authentication cookie with Supabase email authentication.
-4. Added Supabase magic-link login and real account creation flows.
-5. Added `/auth/callback` for Supabase authorization-code session exchange.
+1. Repaired the Next.js production build and standalone asset serving.
+2. Restored Tailwind/PostCSS styling and route navigation.
+3. Replaced the demo auth cookie with Supabase email authentication.
+4. Added Supabase magic-link login and account creation.
+5. Added `/auth/callback` authorization-code session exchange.
 6. Updated middleware to refresh and validate Supabase sessions server-side.
-7. Connected the GitHub repository to Vercel for automatic deployments.
-8. Added the Supabase URL and publishable key to Vercel Production environment variables.
-9. Redeployed successfully and verified the permanent Vercel URL.
-10. Configured Supabase Site URL and production callback allowlist for `https://roof-os-lemon.vercel.app`.
-11. Created the secured `public.leads` table with row-level security policies and replaced the hardcoded leads list and simulated lead save flow with authenticated Supabase reads/inserts.
+7. Connected GitHub `main` to the free Vercel Hobby project.
+8. Added Supabase URL and publishable key to Vercel Production environment variables.
+9. Configured the Supabase Site URL and callback allowlist for the Vercel domain.
+10. Created the initial `public.leads` table and owner-based RLS policies.
+11. Replaced the hardcoded leads list with authenticated Supabase reads.
+12. Replaced simulated lead saving with real Supabase insertion.
+13. Implemented lead status updates with persisted status-change activity events.
+14. Implemented persisted activity notes for leads.
+15. Prepared workspace and workspace-member tables, new-user workspace provisioning, existing-user backfill, workspace-scoped lead/activity RLS, and private inspection-photo Storage policies.
+16. Replaced browser/localStorage photo saving with private Supabase Storage uploads using workspace-scoped object paths.
+17. Added the reusable `roof-os-production-review` Manus skill for future review, remediation, verification, deployment, and handoff tasks.
 
-## Important security notes
+## Important external step still required
 
-- The Supabase publishable key is safe for browser use, but it must remain separate from any secret/service-role key.
-- `.env.local` is ignored and was not included in GitHub or the job ZIP.
-- No Supabase database password or service-role key was provided or stored.
-- If the provided publishable key is ever replaced, update Vercel Production variables and redeploy.
+The workspace and Storage migration is committed as:
 
-## Remaining simulated or incomplete areas
+```text
+supabase/migrations/002_workspaces_activity_storage.sql
+```
 
-These areas were intentionally **not** claimed as production-complete:
+It was validated locally and is ready to run, but it was **not applied to Supabase** because the authenticated Supabase dashboard session expired during the SQL Editor step. Until it is applied, the workspace-aware lead status/activity and photo upload code should be treated as pending integration rather than fully production-verified.
 
-- Leads are still hardcoded in the UI and need Supabase tables, row-level security, and CRUD procedures.
-- Lead listing and new lead creation now persist to Supabase; edit/delete/status workflows remain.
-- Camera photos currently use browser/local storage rather than Supabase Storage.
-- AI, payment, report export, Home Depot, and other integrations remain simulated or placeholder workflows.
-- Supabase email confirmation and redirect URLs should be checked in the Supabase dashboard for the permanent domain:
-  `https://roof-os-lemon.vercel.app/auth/callback`
+Follow the exact instructions in:
 
-## Important commits
+```text
+SUPABASE-MANUAL-MIGRATION.md
+```
 
-- `b2873fd` — document permanent Vercel deployment
-- `af0bdeb` — connect Supabase email authentication
-- `945ee14` — serve standalone static assets and document review
+After applying the migration, complete the documented authenticated CRUD, Storage, and cross-workspace RLS checks.
+
+## GitHub commits
+
+Key commits, oldest to newest:
+
+- `27d90fc` — restore auth flow and enforce build validation
+- `d207c27` — persist onboarding settings and refresh lockfile
 - `6092151` — restore Tailwind styling and route navigation
+- `945ee14` — serve standalone static assets and document review
+- `af0bdeb` — connect Supabase email authentication
+- `b2873fd` — document permanent Vercel deployment
+- `597d4f4` — add project handoff
+- `7818e60` — persist leads with Supabase RLS
 
-## Next recommended work
+The current workspace/activity/Storage implementation and final documentation are the next commit to push after this handoff is reviewed.
 
-If continuing later, work in small verified batches:
+## ZIP files
 
-1. Configure Supabase Auth redirect URLs for the Vercel domain.
-2. Create database schema and RLS policies for workspaces, users, leads, inspections, and photos.
-3. Add lead edit/delete/status workflows and workspace-level authorization.
-4. Add Supabase Storage upload flow for inspection photos.
-5. Add provider credentials only when the user explicitly chooses the AI, payments, or external integration providers.
-6. Run build, TypeScript, HTTP, browser, and Vercel deployment checks after each batch.
+- [Current job handoff ZIP](</home/ubuntu/roof-os-job-handoff.zip>)
+  - SHA-256: `160a3e2b8775203f67c54a3c8c10ee9927b89f729298656876d3c1a9b6e7e1ba`
+  - Contains the committed source through `7818e60`.
+- [Supabase authentication job ZIP](</home/ubuntu/roof-os-supabase-auth-job.zip>)
+  - SHA-256: `fcda3d10e395ac3ea261cac31991846398a4bc59803d9d22a5da2fbf77a5bd6a`
+  - Contains the earlier Supabase authentication handoff.
 
-## How to resume
+A refreshed ZIP containing the final workspace/activity/Storage source should be generated after the final commit is pushed.
+
+## Validation status
+
+The current source batch passes:
+
+```text
+npm run build
+npx tsc --noEmit
+git diff --check
+```
+
+The three-level verification status is:
+
+- **Level 1 — Static:** passed locally.
+- **Level 2 — Runtime:** prior production route verification passed; rerun after the final Vercel deployment.
+- **Level 3 — Data/security:** pending execution of `002_workspaces_activity_storage.sql` and cross-workspace tests.
+
+## Security notes
+
+The Supabase publishable key is appropriate for browser use. Never commit `.env.local`, database passwords, service-role keys, or generated `.next` output. The inspection-photo bucket is designed to be private and uses paths beginning with `<workspace_id>/<user_id>/`.
+
+## Resume commands
 
 ```bash
 gh repo clone Gtownrter77/roof-os
@@ -75,4 +106,4 @@ npm run build
 npx tsc --noEmit
 ```
 
-The latest source is already on GitHub. Do not commit `.env.local`, Supabase service-role keys, database passwords, or generated build directories.
+Then apply `supabase/migrations/002_workspaces_activity_storage.sql` through the Supabase SQL Editor, verify the results, commit/push the final batch, and refresh the source ZIP from the new `HEAD`.
