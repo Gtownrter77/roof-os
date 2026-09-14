@@ -52,7 +52,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$(find supabase/migrations -maxdepth 1 -name '*.sql' | wc -l)" -ge 14
+          test "$(find supabase/migrations -maxdepth 1 -name '*.sql' | wc -l)" -ge 17
           grep -q "enable row level security" supabase/migrations/008_claims_line_items_agent_readiness.sql
           grep -q "enable row level security" supabase/migrations/009_agent_runtime_claims_imports.sql
           grep -q "monthly_limit" supabase/migrations/010_retailer_price_cache.sql
@@ -61,4 +61,7 @@ jobs:
           grep -q "drone_captures" supabase/migrations/013_drone_capture_evidence.sql
           grep -q "is_system_owner" supabase/migrations/014_system_owner_lock.sql
           grep -q "local_tax_rate" supabase/migrations/015_owner_price_book_local_tax.sql
+          grep -q "agent_runs" supabase/migrations/016_align_agent_runs_runtime_contract.sql
+          grep -q "workspace_invitations" supabase/migrations/017_team_invites_atomic_price_books.sql
+          grep -q "save_owner_price_book" supabase/migrations/017_team_invites_atomic_price_books.sql
           if grep -RInE 'CAPOUT_API_KEY=|RAPIDAPI_KEY=|SUPABASE_SERVICE_ROLE_KEY=' --exclude=.env.example --exclude-dir=.git --exclude-dir=.github .; then exit 1; fi

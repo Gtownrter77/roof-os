@@ -3,6 +3,8 @@ import { createClient } from '../../../../lib/supabase/server'
 
 const DEFAULT_RATES = { roofing: 65, siding: 55, windows: 75, doors: 85, gutters: 45, decking: 60, drywall: 40, painting: 35, electrical: 95, plumbing: 90, hvac: 100, demo: 50, cleanup: 35, inspection: 75, consulting: 120 }
 
+type RateKey = keyof typeof DEFAULT_RATES
+
 async function ownerClient() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -18,7 +20,7 @@ export async function GET() {
   const { data: priceBook, error } = await supabase.from('price_books').select('id,name,market,source,effective_at,status,local_tax_rate,tax_source,price_book_items(sku,unit,unit_price,description)').eq('workspace_id', workspaceId).eq('source', 'owner-managed').in('status', ['draft', 'active']).order('effective_at', { ascending: false }).limit(1).maybeSingle()
   if (error) return NextResponse.json({ error: 'Could not load the owner-managed price book.', detail: error.message }, { status: 502 })
   const rates = { ...DEFAULT_RATES }
-  for (const item of priceBook?.price_book_items ?? []) if (item.sku.startsWith('LABOR-')) rates[item.sku.slice(6) as keyof typeof DEFAULT_RATES] = Number(item.unit_price)
+  for (const item of priceBook?.price_book_items ?? []) if (item.sku.startsWith('LABOR-')) rates[item.sku.slice(6) as RateKey] = Number(item.unit_price)
   return NextResponse.json({ rates, localTaxRate: Number(priceBook?.local_tax_rate ?? 0), taxSource: priceBook?.tax_source ?? '', priceBook, source: priceBook ? 'owner-managed' : 'defaults', editable: true })
 }
 
@@ -35,11 +37,8 @@ export async function PUT(request: NextRequest) {
   if (!Number.isFinite(localTaxRate) || localTaxRate < 0 || localTaxRate > 100) return NextResponse.json({ error: 'The local tax percentage must be a number from 0 to 100.' }, { status: 400 })
   const taxSource = typeof body.taxSource === 'string' ? body.taxSource.trim() : ''
   if (taxSource.length > 200) return NextResponse.json({ error: 'The tax jurisdiction or source must be 200 characters or fewer.' }, { status: 400 })
-  const effectiveAt = body.effectiveAt ?? new Date().toISOString()
-  const { data: priceBook, error: bookError } = await supabase.from('price_books').insert({ workspace_id: workspaceId, name: 'ROOF/OS Owner Labor Rates and Local Tax', market: body.market ?? 'owner-defined market', source: 'owner-managed', effective_at: effectiveAt, local_tax_rate: localTaxRate, tax_source: taxSource || 'owner-entered local rate', status: 'draft', created_by: user.id }).select('id').single()
-  if (bookError) return NextResponse.json({ error: 'Price-book save blocked. Apply migration 015 and activate Ryan as system owner after migration 014.', detail: bookError.message }, { status: 403 })
-  const items = Object.entries(rates).map(([key, value]) => ({ price_book_id: priceBook.id, sku: `LABOR-${key}`, description: `${key} labor`, unit: key === 'gutters' ? 'LF' : key === 'roofing' || key === 'siding' || key === 'decking' || key === 'drywall' || key === 'painting' ? 'SQ' : 'HR', unit_price: Number(value), source_url: 'owner-managed', captured_at: new Date().toISOString() }))
-  const { error: itemError } = await supabase.from('price_book_items').insert(items)
-  if (itemError) return NextResponse.json({ error: 'Price book created but labor items failed to save.', detail: itemError.message }, { status: 502 })
-  return NextResponse.json({ saved: true, priceBookId: priceBook.id, status: 'draft', localTaxRate, taxSource: taxSource || 'owner-entered local rate', warning: 'This owner-managed price book remains draft until reviewed and activated.' })
+  const items = Object.entries(rates).map(([key, value]) => ({ sku: `LABOR-${key}`, description: `${key} labor`, unit: key === 'gutters' ? 'LF' : key === 'roofing' || key === 'siding' || key === 'decking' || key === 'drywall' || key === 'painting' ? 'SQ' : 'HR', unit_price: Number(value) }))
+  const { data: priceBookId, error } = await supabase.rpc('save_owner_price_book', { p_workspace_id: workspaceId, p_name: 'ROOF/OS Owner Labor Rates and Local Tax', p_market: body.market ?? 'owner-defined market', p_effective_at: body.effectiveAt ?? new Date().toISOString(), p_local_tax_rate: localTaxRate, p_tax_source: taxSource || 'owner-entered local rate', p_created_by: user.id, p_items: items })
+  if (error) return NextResponse.json({ error: 'Price-book save blocked. Apply migration 017 and confirm Ryan is the system owner.', detail: error.message }, { status: 403 })
+  return NextResponse.json({ saved: true, priceBookId, status: 'draft', localTaxRate, taxSource: taxSource || 'owner-entered local rate', warning: 'This owner-managed price book remains draft until reviewed and activated.' })
 }

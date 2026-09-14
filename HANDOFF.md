@@ -147,3 +147,28 @@ npx tsc --noEmit
 ```
 
 Then apply `supabase/migrations/002_workspaces_activity_storage.sql` through the Supabase SQL Editor and complete the Level 3 data/security checks.
+
+
+## 2026-09-14 hardening update
+
+The live Supabase project `xksumagfbegdlapwysps` has migrations 001 through 017 applied. Ryan’s authenticated account (`rlongmbox@gmail.com`) is the workspace owner and the system owner. Migration 016 aligns the existing `agent_runs` table with the worker runtime contract. Migration 017 adds auditable workspace invitations and an atomic owner price-book save function.
+
+The five highest-risk gaps identified and addressed in this hardening pass were:
+
+1. **Partial owner price-book writes:** the pricing API could leave an empty price-book header when item insertion failed. It now uses the transactional `save_owner_price_book` RPC.
+2. **Missing invitation persistence and authorization:** the new `workspace_invitations` table and `/api/team/invitations` endpoint validate email and role, restrict creation to workspace admins, prevent self-invites, and expose pending records. Email delivery and acceptance still require a provider/flow implementation.
+3. **Runtime schema drift:** `agent_runs` was created by migration 004 with an older shape than the worker expected. Migration 016 adds the missing runtime columns and status support.
+4. **Magic-link retry storm:** the login page now disables repeated requests for 60 seconds and presents a visible countdown after success or a rate-limit error.
+5. **Insufficient migration CI coverage:** CI now requires migrations through 017 and checks the runtime, invite, and atomic price-book safeguards.
+
+The remaining release blockers are a real authenticated browser CRUD test, saving Ryan’s actual labor rates and local tax into a draft price book, reviewing and activating that draft, and completing invitation email delivery/acceptance before treating team invites as production-ready.
+
+### Current live verification
+
+- Required core tables: present.
+- Ryan owner/system-owner match: verified.
+- Price-book tax columns: present.
+- Agent runtime columns: present.
+- Owner-managed price books: none saved yet.
+- Team invitation records: none yet.
+- PR #1: open; the latest hardening commit will trigger fresh CI checks.
