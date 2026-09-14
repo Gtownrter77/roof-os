@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 export function middleware(request: NextRequest) {
-  const auth = request.cookies.get('auth') || request.headers.get('authorization')
+  const auth = request.cookies.get('auth')?.value || request.headers.get('authorization')
   const isAuthPage = request.nextUrl.pathname.startsWith('/auth')
   const isOnboarding = request.nextUrl.pathname.startsWith('/onboarding')
   const isPublic = ['/', '/about', '/pricing'].includes(request.nextUrl.pathname)
