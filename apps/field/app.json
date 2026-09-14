@@ -6,7 +6,10 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "ios": { "supportsTablet": true, "bundleIdentifier": "com.roofos.field" },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.roofos.field"
+    },
     "android": {
       "package": "com.roofos.field",
       "adaptiveIcon": {
@@ -17,7 +20,17 @@
       },
       "predictiveBackGestureEnabled": false
     },
-    "web": { "favicon": "./assets/favicon.png" },
-    "plugins": ["expo-secure-store", "expo-sqlite"]
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-secure-store",
+      "expo-sqlite"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "202d01ce-9f0f-4f67-ba11-986dc6ae26f8"
+      }
+    }
   }
 }
