@@ -53,6 +53,12 @@ The weekly meeting should produce a short written decision log. Store it as an o
 
 The owner should archive the monthly review with the date, reviewer, findings, corrective actions, and responsible person. A recurring problem should become a product issue or documented process change.
 
+## Five-completion checkpoint
+
+After every five completed implementation items, the operator must pause and checkpoint the work. At that checkpoint, update the affected files and documentation, run the relevant validation commands, commit the changes, and push the commit to GitHub `main` unless a protected release process requires another branch. Record the commit hash and any unresolved issue before starting the next group of five completions.
+
+This rule applies to code changes, database migrations, configuration changes, and operational documentation. A completion means one user-requested or planned item that has been implemented and verified; routine inspection steps do not count as completions.
+
 ## Release routine
 
 Before any production web deployment or APK distribution:
