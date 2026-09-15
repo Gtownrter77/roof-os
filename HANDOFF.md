@@ -147,3 +147,7 @@ npx tsc --noEmit
 ```
 
 Then apply `supabase/migrations/002_workspaces_activity_storage.sql` through the Supabase SQL Editor and complete the Level 3 data/security checks.
+
+## 2026-09-15 Vercel deployment repair
+
+The authenticated Vercel build log identified the preview failure as `Cannot find module 'expo-status-bar'` from `apps/field/App.tsx`. The root Next.js TypeScript configuration was compiling the separate Expo field app during the web deployment. The fix is to exclude `apps/field` from the root `tsconfig.json`; the field app retains its own package manifest and lockfile for mobile builds. Validation passed with the documented Supabase build variables: `npm run build`, `npx tsc --noEmit`, and `git diff --check`. The fix is ready to push to GitHub `main`; Vercel should automatically start a new production deployment and preview deployment from the pushed commit. The public production URL remains https://roof-os-lemon.vercel.app.
