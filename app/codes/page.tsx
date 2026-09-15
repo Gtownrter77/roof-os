@@ -10,6 +10,7 @@ export default function CodesPage() {
   const [selectedCategory, setSelectedCategory] = useState('Roofing')
   const [results, setResults] = useState<any>(null)
   const [searchQuery, setSearchQuery] = useState('')
+  const [zipCode, setZipCode] = useState('')
 
   const states = [
     'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA',
@@ -163,8 +164,20 @@ export default function CodesPage() {
     }
   }
 
-  const searchCodes = () => {
+  const searchCodes = async () => {
     setLoading(true)
+    if (zipCode.trim()) {
+      try {
+        const response = await fetch(`/api/building-codes?zip=${encodeURIComponent(zipCode)}&category=${encodeURIComponent(selectedCategory)}`)
+        const result = await response.json()
+        setResults(response.ok ? result : { error: result.error ?? 'ZIP lookup failed.' })
+      } catch {
+        setResults({ error: 'ZIP lookup failed. Check the network and try again.' })
+      } finally {
+        setLoading(false)
+      }
+      return
+    }
     setTimeout(() => {
       const stateData = codeDatabase[selectedState as keyof typeof codeDatabase]
       if (stateData) {
@@ -211,7 +224,7 @@ export default function CodesPage() {
         <div className="px-4 py-3 flex items-center">
           <button onClick={() => router.back()} className="text-white mr-3 text-xl">←</button>
           <h1 className="text-xl font-bold">📋 Building Codes</h1>
-          <span className="ml-2 bg-green-500 text-white text-xs px-2 py-0.5 rounded-full animate-pulse">50 STATES</span>
+          <span className="ml-2 bg-amber-500 text-white text-xs px-2 py-0.5 rounded-full">ZIP + REVIEW</span>
         </div>
       </header>
 
@@ -239,7 +252,13 @@ export default function CodesPage() {
 
         {/* State & Category Selector */}
         <div className="bg-white rounded-lg shadow-lg p-4 mb-4 border border-blue-200">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3">
+            <div>
+              <label className="text-xs text-gray-500">ZIP code lookup</label>
+              <input value={zipCode} onChange={(e) => setZipCode(e.target.value)} placeholder="Enter ZIP to resolve locality" className="w-full p-2 border rounded-lg text-sm" />
+              <p className="text-xs text-gray-400 mt-1">ZIP lookup identifies the locality and state code family; verify local amendments before use.</p>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs text-gray-500">State</label>
               <select
@@ -261,6 +280,7 @@ export default function CodesPage() {
               </select>
             </div>
           </div>
+          </div>
           <button
             onClick={searchCodes}
             disabled={loading}
@@ -276,6 +296,22 @@ export default function CodesPage() {
             {results.error ? (
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-center">
                 <p className="text-yellow-800">{results.error}</p>
+              </div>
+            ) : results.jurisdiction ? (
+              <div className="space-y-3">
+                <div className="bg-white rounded-lg shadow-lg p-4 border-l-4 border-indigo-500">
+                  <p className="text-xs text-gray-500">Resolved jurisdiction</p>
+                  <p className="font-bold">{results.jurisdiction.city}, {results.jurisdiction.state} {results.jurisdiction.zip}</p>
+                  <p className="text-xs text-gray-500">Category: {results.jurisdiction.category}</p>
+                  <p className="text-xs text-amber-700 mt-2">{results.warning}</p>
+                </div>
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg shadow-lg p-4 border border-blue-200">
+                  <p className="text-xs text-gray-500">Code family</p>
+                  <p className="font-bold">{results.code.code}</p>
+                  <p className="text-xs text-gray-600">{results.code.edition}</p>
+                  <ul className="text-sm text-gray-700 list-disc pl-5 mt-2">{results.code.requirements.map((requirement: string) => <li key={requirement}>{requirement}</li>)}</ul>
+                </div>
+                <div className="bg-white rounded-lg shadow p-4 text-xs text-gray-500">Locality source: {results.provenance.localitySource}. Code source: <a className="text-blue-600 underline" href={results.provenance.codeSource} target="_blank" rel="noreferrer">ICC adoption reference</a>. Retrieved {new Date(results.provenance.retrievedAt).toLocaleString()}.</div>
               </div>
             ) : results.searchResults ? (
               <div className="space-y-3">

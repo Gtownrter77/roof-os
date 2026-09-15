@@ -22,6 +22,7 @@ export default function ExteriorPage() {
   })
 
   const [estimate, setEstimate] = useState<any>(null)
+  const [saveMessage, setSaveMessage] = useState('')
 
   const gutterTypes = [
     'Seamless Aluminum',
@@ -104,6 +105,16 @@ export default function ExteriorPage() {
 
   const formatCurrency = (num: number) => {
     return '$' + num.toFixed(2)
+  }
+
+  const saveMeasurement = async () => {
+    const response = await fetch('/api/measurements/manual', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ gutterLf: measurements.linearFeet, notes: 'Exterior estimator manual capture; roof geometry requires separate review.' }),
+    })
+    const result = await response.json()
+    setSaveMessage(response.ok ? `Saved measurement ${result.measurement.id}; it remains unverified until review.` : (result.error ?? 'Could not save measurement.'))
   }
 
   return (
@@ -251,12 +262,16 @@ export default function ExteriorPage() {
           )}
         </div>
 
+        {saveMessage && <p className="text-sm text-blue-700 mb-3" role="status">{saveMessage}</p>}
         <button
           onClick={calculateEstimate}
           disabled={loading}
           className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 text-white py-3 rounded-lg font-semibold disabled:opacity-50"
         >
           {loading ? '⏳ Calculating...' : '📊 Auto Estimate Exterior'}
+        </button>
+        <button onClick={() => void saveMeasurement()} className="w-full mt-2 border border-blue-600 text-blue-700 py-3 rounded-lg font-semibold">
+          Save Measurement for Review
         </button>
 
         {estimate && (

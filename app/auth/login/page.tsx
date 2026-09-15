@@ -1,8 +1,10 @@
 'use client'
 
-import { FormEvent, useState } from 'react'
+import { FormEvent, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '../../../lib/supabase/client'
+
+const COOLDOWN_SECONDS = 60
 
 export default function LoginPage() {
   const router = useRouter()
@@ -11,18 +13,31 @@ export default function LoginPage() {
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [cooldown, setCooldown] = useState(0)
+
+  useEffect(() => {
+    if (!cooldown) return
+    const timer = window.setInterval(() => setCooldown((seconds) => Math.max(0, seconds - 1)), 1000)
+    return () => window.clearInterval(timer)
+  }, [cooldown])
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    if (cooldown > 0) return
     setLoading(true)
     setMessage('')
     setError('')
     const { error: signInError } = await supabase.auth.signInWithOtp({
-      email,
+      email: email.trim(),
       options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
     })
-    if (signInError) setError(signInError.message)
-    else setMessage('Check your email for a secure sign-in link.')
+    if (signInError) {
+      setError(signInError.message)
+      if (/rate limit|too many|429/i.test(signInError.message)) setCooldown(COOLDOWN_SECONDS)
+    } else {
+      setMessage('Check your email for a secure sign-in link.')
+      setCooldown(COOLDOWN_SECONDS)
+    }
     setLoading(false)
   }
 
@@ -36,7 +51,7 @@ export default function LoginPage() {
         <input id="email" type="email" required value={email} onChange={(event) => setEmail(event.target.value)} className="w-full p-3 border rounded-lg mb-4" placeholder="you@company.com" />
         {message && <p className="text-sm text-green-700 mb-3" role="status">{message}</p>}
         {error && <p className="text-sm text-red-600 mb-3" role="alert">{error}</p>}
-        <button type="submit" disabled={loading} className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold disabled:opacity-60">{loading ? 'Sending link…' : 'Send sign-in link'}</button>
+        <button type="submit" disabled={loading || cooldown > 0} className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold disabled:opacity-60">{loading ? 'Sending link…' : cooldown > 0 ? `Try again in ${cooldown}s` : 'Send sign-in link'}</button>
         <button type="button" onClick={() => router.push('/auth/signup')} className="w-full text-blue-600 text-sm mt-4">Create an account</button>
       </form>
     </div>

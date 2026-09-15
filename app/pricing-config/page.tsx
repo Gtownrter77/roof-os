@@ -1,13 +1,14 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
 export default function PricingConfigPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date())
-  const [salesTax, setSalesTax] = useState(7.5)
+  const [taxRates, setTaxRates] = useState({ state: 0, county: 0, city: 0, specialDistrict: 0 })
+  const [taxSource, setTaxSource] = useState('Owner-entered jurisdiction rates')
   const [selectedState, setSelectedState] = useState('GA')
   const [laborRates, setLaborRates] = useState({
     roofing: { rate: 65, unit: 'sq', description: 'Roofing installation per square' },
@@ -32,6 +33,28 @@ export default function PricingConfigPage() {
   const [dailyPrices, setDailyPrices] = useState<any>(null)
   const [selectedJobType, setSelectedJobType] = useState('roofing')
   const [customRate, setCustomRate] = useState('')
+  const [saveMessage, setSaveMessage] = useState('')
+  const [materialQuery, setMaterialQuery] = useState('')
+  const [materials, setMaterials] = useState<any[]>([])
+
+  useEffect(() => {
+    fetch('/api/pricing/labor-rates').then(async response => {
+      const payload = await response.json()
+      if (response.ok && payload.rates) setLaborRates(prev => Object.fromEntries(Object.entries(prev).map(([key, value]) => [key, { ...value, rate: Number(payload.rates[key] ?? value.rate) }])) as typeof prev)
+      if (response.ok && payload.taxRates) setTaxRates({ state: Number(payload.taxRates.state ?? 0), county: Number(payload.taxRates.county ?? 0), city: Number(payload.taxRates.city ?? 0), specialDistrict: Number(payload.taxRates.specialDistrict ?? 0) })
+      if (response.ok && typeof payload.taxSource === 'string' && payload.taxSource) setTaxSource(payload.taxSource)
+      if (response.ok && payload.priceBook?.effective_at) setLastUpdate(new Date(payload.priceBook.effective_at))
+      if (payload.warning) setSaveMessage(payload.warning)
+    }).catch(() => setSaveMessage('Could not load saved labor rates.'))
+  }, [])
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => fetch(`/api/materials?q=${encodeURIComponent(materialQuery)}`).then(async response => {
+      const payload = await response.json()
+      if (response.ok) setMaterials(payload.materials ?? [])
+    }).catch(() => setMaterials([])), 250)
+    return () => window.clearTimeout(timer)
+  }, [materialQuery])
 
   const stateSalesTax: Record<string, number> = {
     'AL': 4.0, 'AK': 0, 'AZ': 5.6, 'AR': 6.5, 'CA': 7.25, 'CO': 2.9, 'CT': 6.35,
@@ -88,6 +111,14 @@ export default function PricingConfigPage() {
       cleanup: '🧹', inspection: '🔍', consulting: '💡'
     }
     return icons[key] || '🔧'
+  }
+
+  const saveConfiguration = async () => {
+    setSaveMessage('Saving owner-managed labor rates and local tax…')
+    const response = await fetch('/api/pricing/labor-rates', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ rates: Object.fromEntries(Object.entries(laborRates).map(([key, value]) => [key, value.rate])), market: selectedState, taxRates, taxSource }) })
+    const payload = await response.json()
+    if (response.ok) setLastUpdate(new Date())
+    setSaveMessage(response.ok ? `Saved labor rates and ${payload.localTaxRate}% combined jurisdiction tax as draft price book ${payload.priceBookId}. Review and activate before use.` : (payload.error ?? 'Could not save pricing configuration.'))
   }
 
   const getTrendIcon = (trend: string) => {
@@ -159,19 +190,20 @@ export default function PricingConfigPage() {
           </p>
         </div>
 
-        {/* Sales Tax */}
+        {/* Local Tax */}
         <div className="bg-white rounded-lg shadow-lg p-4 mb-4 border border-purple-200">
           <h3 className="font-semibold text-sm mb-3 flex items-center">
-            <span className="text-xl mr-2">🧾</span> Sales Tax Configuration
+            <span className="text-xl mr-2">🧾</span> Local Tax Configuration
           </h3>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-gray-500">State</label>
+              <label className="text-xs text-gray-500">State reference</label>
               <select
                 value={selectedState}
                 onChange={(e) => {
                   setSelectedState(e.target.value)
-                  setSalesTax(stateSalesTax[e.target.value] || 0)
+                  setTaxRates(prev => ({ ...prev, state: stateSalesTax[e.target.value] || 0 }))
+                  setTaxSource(`${e.target.value} state reference — verify county and municipal rates before approval`)
                 }}
                 className="w-full p-2 border rounded-lg text-sm"
               >
@@ -183,24 +215,34 @@ export default function PricingConfigPage() {
               </select>
             </div>
             <div>
-              <label className="text-xs text-gray-500">Sales Tax Rate</label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  value={salesTax}
-                  onChange={(e) => setSalesTax(parseFloat(e.target.value) || 0)}
-                  className="w-full p-2 border rounded-lg text-sm"
-                  step="0.1"
-                />
-                <span className="text-sm font-bold">%</span>
-              </div>
+              <label className="text-xs text-gray-500">State tax rate</label>
+              <input type="number" value={taxRates.state} onChange={e => setTaxRates({ ...taxRates, state: parseFloat(e.target.value) || 0 })} className="w-full p-2 border rounded-lg text-sm" step="0.0001" min="0" max="100" />
             </div>
           </div>
+          <div className="grid grid-cols-3 gap-2 mt-3">
+            {([['county','County'],['city','City / municipality'],['specialDistrict','Special district']] as const).map(([key, label]) => <label key={key} className="text-xs text-gray-500">{label}<input type="number" value={taxRates[key]} onChange={e => setTaxRates({ ...taxRates, [key]: parseFloat(e.target.value) || 0 })} className="w-full mt-1 p-2 border rounded-lg text-sm" step="0.0001" min="0" max="100" /></label>)}
+          </div>
+          <label className="block mt-3 text-xs text-gray-500">Tax jurisdiction / source
+            <input
+              value={taxSource}
+              onChange={(e) => setTaxSource(e.target.value)}
+              maxLength={200}
+              className="mt-1 w-full p-2 border rounded-lg text-sm"
+              placeholder="Example: Cobb County, GA — owner-verified combined rate"
+            />
+          </label>
           <div className="mt-2 p-2 bg-purple-50 rounded">
             <p className="text-xs text-purple-800">
-              💡 Current sales tax: <strong>{salesTax}%</strong> • Applied to all material costs
+              Current combined tax: <strong>{Object.values(taxRates).reduce((sum, rate) => sum + rate, 0).toFixed(4)}%</strong> • Saved as separate jurisdiction rates
             </p>
           </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-lg p-4 mb-4 border border-green-200">
+          <h3 className="font-semibold text-sm mb-2">Expanded material catalog</h3>
+          <p className="text-xs text-gray-500 mb-3">Search GAF, VELUX, fasteners, ventilation, decking, gutters, disposal, and other catalog metadata. Prices remain source-verified reference data.</p>
+          <input value={materialQuery} onChange={e => setMaterialQuery(e.target.value)} className="w-full p-2 border rounded-lg text-sm" placeholder="Search materials, brands, colors, or sizes" />
+          <div className="mt-3 max-h-64 overflow-y-auto space-y-2">{materials.slice(0, 30).map(material => <div key={material.id} className="border rounded p-2"><div className="flex justify-between gap-2"><span className="text-sm font-medium">{[material.brand, material.product_name, material.variant].filter(Boolean).join(' — ')}</span><span className="text-xs text-gray-500">{material.unit}</span></div><p className="text-xs text-gray-500">{material.category} / {material.subcategory ?? 'general'}{material.color_options?.length ? ` • ${material.color_options.join(', ')}` : ''}</p></div>)}</div>
         </div>
 
         {/* Labor Rates */}
@@ -232,6 +274,7 @@ export default function PricingConfigPage() {
               </div>
             ))}
           </div>
+          {saveMessage && <p className="mt-3 text-xs text-blue-800 bg-blue-50 rounded p-2">{saveMessage}</p>}
         </div>
 
         {/* Price History */}
@@ -283,7 +326,7 @@ export default function PricingConfigPage() {
           <button className="bg-blue-600 text-white py-2 rounded-lg text-sm font-semibold">
             📄 Export Pricing Guide
           </button>
-          <button className="bg-green-600 text-white py-2 rounded-lg text-sm font-semibold">
+          <button onClick={saveConfiguration} className="bg-green-600 text-white py-2 rounded-lg text-sm font-semibold">
             💾 Save Configuration
           </button>
         </div>
