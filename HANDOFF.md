@@ -194,3 +194,24 @@ The prior audit correctly found that estimate templates and supplements were pro
 - `/tasks` now reads and updates persisted Supabase tasks, including trigger-created follow-ups.
 
 Measurements remain intentionally review-gated: the property API provides geocoded OpenStreetMap building-footprint candidates and OpenAerialMap metadata, not certified roof-surface quantities. Building codes remain a hardcoded state/category reference and are not yet a ZIP-to-jurisdiction authoritative lookup. Automatic reminder delivery and LLM-based supplement inference remain separate implementation tasks.
+
+
+## State of the Union — 2026-09-15
+
+### Release position
+The release branch is `release/inspection-report-labor-rates`. GitHub Actions for web, mobile, preview build, and migration safety passed on the latest release commit. The open release PR remains unstable because the Vercel preview status failed. The exact Vercel build log could not be retrieved in this environment because the Vercel CLI requires account authentication; its GitHub status only reports deployment failure and provides deployment ID `dpl_Fj8hjdLBQfVrE54t7qDq6EkXUs79`. The local `pnpm build` succeeds with Next.js 15.5.25, indicating that the remaining Vercel issue is likely deployment configuration, project settings, or environment-specific rather than a reproducible source compilation error.
+
+### Current capabilities and boundaries
+ROOF/OS has workspace-scoped inspections, GPS and measurement persistence, review-gated reports, owner labor rates, local-tax persistence, estimate templates, supplements, building-code lookup, aerial and storm evidence boundaries, bounded agent contracts, retailer price snapshots, and a weekly Home Depot reference-price worker. The system-owner lock remains the governing write boundary. Only Ryan Michael Long is authorized to activate protected system updates.
+
+Retailer data remains reference pricing. It is not a licensed Xactimate or Verisk price list and must not be represented as one. Prices used in estimates require a source, market or ZIP code, retrieval timestamp, effective date, and owner review. Photo analysis alone is not currently a customer-ready insurance estimate.
+
+### This implementation checkpoint
+Migration `019_material_catalog_workspace_settings.sql` adds a structured catalog covering GAF Timberline HDZ and Royal Sovereign shingles, designer shingles, starter and ridge-cap products, synthetic felt, ice and water shield, Cobra 3 ridge vents, box and bathroom vents, pipe boots by size, drip edge, gutter apron, step-flashing variants, coil nails, staples, button caps, NP1, OSB, VELUX skylights, gutters, dumpster rentals, and delivery fees. Catalog rows intentionally contain product metadata rather than fabricated current prices.
+
+The new authenticated material API supports search by product, brand, product line, and variant. The pricing configuration screen now exposes that catalog and separate state, county, city, and special-district tax inputs. The owner pricing API persists those jurisdiction rates while retaining a computed combined rate for compatibility.
+
+Workspace settings now persist weekly, manual-only, or disabled price refresh; default language; default ZIP code; preferred brands; and catalog-only versus catalog-plus-retailer search. The Settings screen provides a manual refresh action for the active Home Depot watchlist. The scheduled worker honors the workspace refresh setting and skips manual-only or disabled workspaces.
+
+### Remaining shipment blockers
+Migration 019 must be applied to the target Supabase project. Production Supabase variables, `RAPIDAPI_KEY`, `CRON_SECRET`, and the service-role key must be configured in the deployment environment. Vercel must be re-run after those settings are checked. A real authorized claims-price import or licensed provider is still required before insurance pricing can be called current. Level 3 workspace isolation, worker heartbeat, provider-response, and approval-transition evidence remain outstanding.
