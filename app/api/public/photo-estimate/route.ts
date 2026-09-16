@@ -21,31 +21,44 @@ function polygonAreaSqM(coords: Array<[number, number]>) {
   return Math.abs(area) / 2
 }
 
+function visionTarget() {
+  const url = process.env.LLAMA_VISION_URL || process.env.LLAMA_API_URL
+  const key = process.env.LLAMA_API_KEY || process.env.GROQ_API_KEY || ''
+  const model = process.env.LLAMA_VISION_MODEL || 'llama-4-scout'
+  if (url) return { url: url.replace(/\/$/, '') + (url.includes('/chat/completions') ? '' : '/v1/chat/completions'), key, model, vendor: 'llama' }
+  if (process.env.GROQ_API_KEY) return { url: 'https://api.groq.com/openai/v1/chat/completions', key: process.env.GROQ_API_KEY, model: process.env.LLAMA_VISION_MODEL || 'meta-llama/llama-4-scout-17b-16e-instruct', vendor: 'groq-llama' }
+  if (process.env.XAI_API_KEY) return { url: 'https://api.x.ai/v1/chat/completions', key: process.env.XAI_API_KEY, model: process.env.XAI_VISION_MODEL || 'grok-4', vendor: 'xai-fallback' }
+  return null
+}
+
 async function visionAddress(image: string) {
-  const key = process.env.XAI_API_KEY
-  if (!key) return { address: '', note: 'XAI_API_KEY missing' }
-  const res = await fetch('https://api.x.ai/v1/chat/completions', {
+  const target = visionTarget()
+  if (!target) return { address: '', note: 'No Llama endpoint configured. Set LLAMA_VISION_URL or GROQ_API_KEY.' }
+  const res = await fetch(target.url, {
     method: 'POST',
-    headers: { authorization: `Bearer ${key}`, 'content-type': 'application/json' },
+    headers: {
+      'content-type': 'application/json',
+      ...(target.key ? { authorization: `Bearer ${target.key}` } : {}),
+    },
     body: JSON.stringify({
-      model: process.env.XAI_VISION_MODEL || 'grok-4',
+      model: target.model,
       messages: [{
         role: 'user',
         content: [
-          { type: 'text', text: 'House photo, often MLS. JSON only {"address":"street city state zip"} or {"address":""}.' },
+          { type: 'text', text: 'House photo, often MLS. JSON only {"address":"street city state zip"} or {"address":""}. Do not invent a street number.' },
           { type: 'image_url', image_url: { url: image, detail: 'high' } },
         ],
       }],
     }),
   })
-  if (!res.ok) return { address: '', note: 'vision failed' }
+  if (!res.ok) return { address: '', note: `${target.vendor} vision HTTP ${res.status}` }
   const payload = await res.json()
   const text = payload.choices?.[0]?.message?.content ?? ''
   const match = text.match(/\{[\s\S]*\}/)
   if (!match) return { address: '', note: text.slice(0, 160) }
   try {
     const parsed = JSON.parse(match[0])
-    return { address: String(parsed.address || ''), note: 'vision draft' }
+    return { address: String(parsed.address || ''), note: `${target.vendor} draft` }
   } catch {
     return { address: '', note: 'vision parse failed' }
   }
@@ -90,7 +103,7 @@ export async function POST(request: NextRequest) {
     address = vision.address
     visionNote = vision.note
   }
-  if (!address) return NextResponse.json({ error: 'No address from photo. Vision key missing or photo did not resolve.' }, { status: 422 })
+  if (!address) return NextResponse.json({ error: 'No address from photo.', detail: visionNote }, { status: 422 })
 
   try {
     const measured = await measure(address)
@@ -109,11 +122,10 @@ export async function POST(request: NextRequest) {
       measure: {
         footprintSqFt: measured.footprintSqFt,
         planViewSquares: sq,
-        source: 'OpenStreetMap via existing /api/measurements/property method',
+        source: 'OpenStreetMap',
         confidence: 'low',
         note: 'Footprint is not roof surface. Pitch not applied.',
       },
-      rates: { better: RATE_BETTER, best: RATE_BEST, restoration: RATE_RESTORE, unit: 'USD per plan-view square', book: 'market reference not owner book' },
       estimates,
       send: false,
     })
