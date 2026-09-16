@@ -46,6 +46,7 @@ alter table public.agent_runs enable row level security;
 
 create policy claims_imports_select on public.claims_imports for select using (public.is_workspace_member(workspace_id));
 create policy claims_imports_write on public.claims_imports for all using (public.is_workspace_admin(workspace_id) and auth.uid() = created_by) with check (public.is_workspace_admin(workspace_id) and auth.uid() = created_by);
+drop policy if exists agent_runs_select on public.agent_runs;
 create policy agent_runs_select on public.agent_runs for select using (public.is_workspace_member(workspace_id));
 
 -- Workers use a narrowly scoped server-side credential after validating workspace ownership.

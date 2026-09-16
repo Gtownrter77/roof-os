@@ -70,7 +70,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$(find supabase/migrations -maxdepth 1 -name '*.sql' | wc -l)" -ge 19
+          test "$(find supabase/migrations -maxdepth 1 -name '*.sql' | wc -l)" -ge 21
           grep -q "enable row level security" supabase/migrations/008_claims_line_items_agent_readiness.sql
           grep -q "enable row level security" supabase/migrations/009_agent_runtime_claims_imports.sql
           grep -q "monthly_limit" supabase/migrations/010_retailer_price_cache.sql
@@ -84,5 +84,10 @@ jobs:
           grep -q "save_owner_price_book" supabase/migrations/017_team_invites_atomic_price_books.sql
           grep -q "supplements" supabase/migrations/018_supplement_review_records.sql
           grep -q "material_catalog" supabase/migrations/019_material_catalog_workspace_settings.sql
+          grep -q "agent_runs_workspace_agent_event_key" supabase/migrations/021_agent_runs_idempotency_contract.sql
+          grep -q "drop policy if exists agent_runs_select" supabase/migrations/009_agent_runtime_claims_imports.sql
           grep -q "isCronPath" middleware.ts
+          grep -q "safeNextPath" app/auth/callback/route.ts app/auth/login/page.tsx lib/safe-next.ts
+          grep -q "Workspace administrator access is required" app/api/claims/capout/route.ts
+          grep -q "signed URL for an authorized ROOF/OS inspection asset" app/api/claims/capout/route.ts
           if grep -RInE 'CAPOUT_API_KEY=|RAPIDAPI_KEY=|SUPABASE_SERVICE_ROLE_KEY=' --exclude=.env.example --exclude-dir=.git --exclude-dir=.github .; then exit 1; fi
