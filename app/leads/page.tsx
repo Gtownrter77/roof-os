@@ -1,46 +1,20 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '../../lib/supabase/client'
 
-const statuses = ['new', 'assigned', 'qualified', 'inspection_scheduled', 'inspected', 'report_pending', 'report_approved', 'won', 'lost']
+const statuses = ['all', 'new', 'assigned', 'qualified', 'inspection_scheduled', 'inspected', 'report_pending', 'report_approved', 'won', 'lost']
 type Lead = { id: string; name: string; address: string; status: string; phone?: string | null; email?: string | null }
-type Activity = { id: string; kind: string; body: string; created_at: string }
-
-function openNavigation(address: string, provider: 'google' | 'osm') {
-  const destination = encodeURIComponent(address)
-  const url = provider === 'google'
-    ? `https://www.google.com/maps/dir/?api=1&destination=${destination}`
-    : `https://www.openstreetmap.org/search?query=${destination}`
-  window.open(url, '_blank', 'noopener,noreferrer')
-}
-
-function downloadFollowUpCalendar(lead: Lead) {
-  const start = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-  start.setHours(9, 0, 0, 0)
-  const end = new Date(start.getTime() + 30 * 60 * 1000)
-  const format = (date: Date) => date.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')
-  const escape = (value: string) => value.replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/[,;]/g, '\\$&')
-  const ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//ROOF OS//Follow Up//EN', 'BEGIN:VEVENT', `UID:${lead.id}-follow-up@roof-os`, `DTSTAMP:${format(new Date())}`, `DTSTART:${format(start)}`, `DTEND:${format(end)}`, `SUMMARY:${escape(`Follow up: ${lead.name}`)}`, `LOCATION:${escape(lead.address)}`, `DESCRIPTION:${escape(`ROOF/OS follow-up for ${lead.name}`)}`, 'END:VEVENT', 'END:VCALENDAR'].join('\r\n')
-  const url = URL.createObjectURL(new Blob([ics], { type: 'text/calendar;charset=utf-8' }))
-  const link = document.createElement('a')
-  link.href = url
-  link.download = `${lead.name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-follow-up.ics`
-  link.click()
-  URL.revokeObjectURL(url)
-}
 
 export default function LeadsPage() {
   const router = useRouter()
   const supabase = createClient()
   const [leads, setLeads] = useState<Lead[]>([])
-  const [activity, setActivity] = useState<Record<string, Activity[]>>({})
-  const [notes, setNotes] = useState<Record<string, string>>({})
-  const [expanded, setExpanded] = useState<string | null>(null)
+  const [query, setQuery] = useState('')
+  const [status, setStatus] = useState('all')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [saving, setSaving] = useState('')
 
   useEffect(() => {
     let active = true
@@ -53,52 +27,32 @@ export default function LeadsPage() {
       else setLeads(data ?? [])
       setLoading(false)
     }
-    loadLeads()
+    void loadLeads()
     return () => { active = false }
   }, [router, supabase])
 
-  async function loadActivity(leadId: string) {
-    setExpanded(leadId)
-    const { data, error: queryError } = await supabase.from('lead_activity').select('id,kind,body,created_at').eq('lead_id', leadId).order('created_at', { ascending: false })
-    if (queryError) setError(queryError.message)
-    else setActivity((current) => ({ ...current, [leadId]: data ?? [] }))
-  }
-
-  async function updateStatus(lead: Lead, status: string) {
-    setSaving(lead.id)
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { router.replace('/auth/login'); return }
-    const { error: updateError } = await supabase.from('leads').update({ status, updated_at: new Date().toISOString() }).eq('id', lead.id)
-    if (updateError) setError(updateError.message)
-    else {
-      await supabase.from('lead_activity').insert({ lead_id: lead.id, workspace_id: (await supabase.rpc('current_workspace_id')).data, user_id: user.id, kind: 'status_change', body: `Status changed from ${lead.status} to ${status}` })
-      setLeads((current) => current.map((item) => item.id === lead.id ? { ...item, status } : item))
-      await loadActivity(lead.id)
-    }
-    setSaving('')
-  }
-
-  async function addNote(leadId: string) {
-    const body = notes[leadId]?.trim()
-    if (!body) return
-    setSaving(leadId)
-    const { data: { user } } = await supabase.auth.getUser()
-    const { data: workspaceId } = await supabase.rpc('current_workspace_id')
-    if (!user || !workspaceId) { setError('No workspace is available for this account.'); setSaving(''); return }
-    const { error: insertError } = await supabase.from('lead_activity').insert({ lead_id: leadId, workspace_id: workspaceId, user_id: user.id, kind: 'note', body })
-    if (insertError) setError(insertError.message)
-    else { setNotes((current) => ({ ...current, [leadId]: '' })); await loadActivity(leadId) }
-    setSaving('')
-  }
+  const visible = useMemo(() => {
+    const needle = query.trim().toLowerCase()
+    return leads.filter((lead) => (status === 'all' || lead.status === status) && (!needle || [lead.name, lead.address, lead.phone, lead.email].some((value) => (value || '').toLowerCase().includes(needle))))
+  }, [leads, query, status])
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 pb-20">
-      <div className="flex items-center justify-between mb-4"><div><button onClick={() => router.push('/')} className="text-blue-600 text-sm mb-2">← Dashboard</button><h1 className="text-2xl font-bold">👤 Leads</h1></div><button onClick={() => router.push('/leads/new')} className="bg-blue-600 text-white px-3 py-2 rounded-lg text-sm font-semibold">+ New lead</button></div>
+    <div className="min-h-screen bg-gray-50 p-4 pb-24">
+      <div className="flex items-center justify-between mb-4">
+        <div><button onClick={() => router.push('/')} className="text-blue-600 text-sm mb-2">← Dashboard</button><h1 className="text-2xl font-bold">Leads</h1></div>
+        <button onClick={() => router.push('/leads/new')} className="bg-blue-600 text-white px-3 py-2 rounded-lg text-sm font-semibold">+ New lead</button>
+      </div>
+      <div className="flex gap-2 mb-4">
+        <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search name, address, phone" className="flex-1 p-2 border rounded text-sm" />
+        <select value={status} onChange={(e) => setStatus(e.target.value)} className="border rounded px-2 text-sm">{statuses.map((item) => <option key={item} value={item}>{item.replaceAll('_', ' ')}</option>)}</select>
+      </div>
       {loading && <p className="text-sm text-gray-500">Loading leads…</p>}
-      {error && <p className="text-sm text-red-600 mb-3" role="alert">{error}</p>}
-      {!loading && !error && leads.length === 0 && <div className="bg-white rounded-lg shadow p-6 text-center text-gray-500">No leads yet. Add your first lead to get started.</div>}
-      {leads.map((lead) => <div key={lead.id} className="bg-white rounded-lg shadow p-4 mb-3"><div className="flex justify-between gap-3"><div><p className="font-semibold">{lead.name}</p><p className="text-sm text-gray-500">{lead.address}</p></div><select aria-label={`Status for ${lead.name}`} value={lead.status} disabled={saving === lead.id} onChange={(event) => updateStatus(lead, event.target.value)} className="h-8 text-xs border rounded px-1">{statuses.map((status) => <option key={status} value={status}>{status.replaceAll('_', ' ')}</option>)}</select></div><div className="flex flex-wrap gap-2 mt-3"><button onClick={() => openNavigation(lead.address, 'google')} className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded">Navigate Google</button><button onClick={() => openNavigation(lead.address, 'osm')} className="text-xs bg-green-50 text-green-700 px-2 py-1 rounded">Navigate OpenStreetMap</button><button onClick={() => downloadFollowUpCalendar(lead)} className="text-xs bg-purple-50 text-purple-700 px-2 py-1 rounded">Add 7-day follow-up</button></div><button onClick={() => expanded === lead.id ? setExpanded(null) : loadActivity(lead.id)} className="text-blue-600 text-xs mt-3">{expanded === lead.id ? 'Hide activity' : 'View activity & add note'}</button>{expanded === lead.id && <div className="mt-3 border-t pt-3"><div className="flex gap-2"><input aria-label={`Note for ${lead.name}`} value={notes[lead.id] ?? ''} onChange={(event) => setNotes((current) => ({ ...current, [lead.id]: event.target.value }))} placeholder="Add an activity note" className="flex-1 p-2 border rounded text-sm"/><button disabled={saving === lead.id} onClick={() => addNote(lead.id)} className="bg-gray-800 text-white px-3 rounded text-sm">Add</button></div><div className="mt-3 space-y-2">{(activity[lead.id] ?? []).map((item) => <div key={item.id} className="text-xs bg-gray-50 rounded p-2"><span className="font-semibold">{item.kind.replace('_', ' ')}</span> · {item.body}<span className="block text-gray-400 mt-1">{new Date(item.created_at).toLocaleString()}</span></div>)}{activity[lead.id]?.length === 0 && <p className="text-xs text-gray-400">No activity yet.</p>}</div></div>}</div>)}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around py-2 px-4"><button onClick={() => router.push('/')} className="text-gray-500 text-sm">🏠 Home</button><button onClick={() => router.push('/leads')} className="text-blue-600 text-sm">👤 Leads</button><button onClick={() => router.push('/inspections')} className="text-gray-500 text-sm">🔍 Inspections</button><button onClick={() => router.push('/settings')} className="text-gray-500 text-sm">⚙️ Settings</button></nav>
+      {error && <p className="text-sm text-red-600 mb-3">{error}</p>}
+      {visible.map((lead) => (
+        <button key={lead.id} onClick={() => router.push(`/leads/${lead.id}`)} className="w-full text-left bg-white rounded-lg shadow p-4 mb-3">
+          <div className="flex justify-between gap-3"><div><p className="font-semibold">{lead.name}</p><p className="text-sm text-gray-500">{lead.address}</p></div><span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded h-fit">{lead.status.replaceAll('_', ' ')}</span></div>
+        </button>
+      ))}
     </div>
   )
 }
