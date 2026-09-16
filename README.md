@@ -1,45 +1,59 @@
 # ROOF/OS
 
-Workspace-scoped roofing operations system: office control plane (Next.js) plus camera-first field app (`apps/field`).
+Software for a roofing company that actually lives in the field.
 
-**Live app:** https://roof-os-lemon.vercel.app  
-**Source:** https://github.com/Gtownrter77/roof-os
+Office runs the pipeline. The phone takes the pictures. The roof keeps a record after you get paid.
 
-## What is real today
+Live site: https://roof-os-lemon.vercel.app
 
-- Supabase email magic-link auth and session middleware
-- Workspace-scoped leads, tasks, inspections, estimates, supplements, price books
-- Owner labor rates and local tax persistence
-- Retailer reference pricing (Home Depot snapshots). Not Xactimate / Verisk.
-- Field app shell in `apps/field` (Expo). APK still needs an Expo token.
+## What this is
+
+A workspace for one shop.
+
+- Leads and job files
+- Calendar and tasks
+- Inspections and photos tied to the property
+- Owner price books and tax rates you control
+- A Roof Passport and warranty checklist so the job does not disappear at final payment
+
+It is built for a small roofing company first. Not a call center. Not a fake Xactimate.
+
+## What works today
+
+- Sign in with a magic link
+- Add a lead, open the record, schedule an inspection
+- Take photos that attach to that inspection
+- Draft an inspection report that still needs your review
+- Save labor rates and local tax in your price book
+- Home Depot numbers as a reference only. You approve before anything hits an estimate
 
 ## What is not ready
 
-- Insurance estimates from photos alone
-- Licensed claims price lists
-- ZIP-to-jurisdiction legal code lookup (state-family reference only)
-- Team invitation email delivery / acceptance
-- Most `/quantum`, `/genetic`, `/vr`, `/ar` style routes — UI shells, not products
+- Insurance prices pulled from a photo
+- Licensed carrier price lists
+- Invite email that just works with no extra setup
+- A finished phone app you can download from a store
 
-Read [STATE-OF-THE-UNION.md](STATE-OF-THE-UNION.md) for the audit.
+If a screen looks like science class, ignore it. That is leftover experiment UI.
 
-## Local setup
+## Run it on your machine
 
 ```bash
 cp .env.example .env.local
-# fill real Supabase URL + anon key
+# paste your Supabase URL and anon key
 npm ci
 npm run dev
 ```
 
-Apply SQL in `supabase/migrations/` in order against the target project.
+SQL files live in `supabase/migrations/`. Run them in order on your Supabase project or the new screens will have nowhere to save.
 
 ```bash
 npm run build
-npx tsc --noEmit
 ```
 
-## Field app
+## Phone app
+
+The field shell is in `apps/field`. It is Expo. A store build still needs an Expo login.
 
 ```bash
 cd apps/field
@@ -48,8 +62,14 @@ npx eas login
 npx eas build --platform android --profile preview
 ```
 
-## Security rules
+## House rules
 
-- Never commit `.env.local` or `SUPABASE_SERVICE_ROLE_KEY`
-- Cron jobs must send `Authorization: Bearer $CRON_SECRET`
-- Retailer prices are reference-only and require owner review before estimate use
+- Do not commit secrets. Ever.
+- Cron jobs need `Authorization: Bearer` plus your cron secret.
+- Store prices are a reference. They are not a bid until you say so.
+
+## Where to read more
+
+- Product direction: `PRODUCT-VISION.md`
+- How to operate it: `OWNER-MANUAL.md`
+- What is real vs leftover: `STATE-OF-THE-UNION.md`

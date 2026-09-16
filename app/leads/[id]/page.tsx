@@ -106,9 +106,11 @@ export default function LeadDetailPage() {
             <select aria-label="Lead status" value={lead.status} disabled={saving} onChange={(e) => void updateStatus(e.target.value)} className="mt-3 border rounded px-2 py-1 text-sm">
               {STATUSES.map((status) => <option key={status} value={status}>{status.replaceAll('_', ' ')}</option>)}
             </select>
-            <div className="flex gap-2 mt-3">
+            <div className="flex gap-2 mt-3 flex-wrap">
               <a className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded" href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(lead.address)}`} target="_blank" rel="noreferrer">Navigate</a>
               {lead.phone && <a className="text-xs bg-green-50 text-green-700 px-2 py-1 rounded" href={`tel:${lead.phone}`}>Call</a>}
+              <button onClick={() => router.push(`/ready/${lead.id}`)} className="text-xs bg-gray-900 text-white px-2 py-1 rounded">Job ready?</button>
+              <button onClick={() => router.push(`/passport/${lead.id}`)} className="text-xs bg-indigo-50 text-indigo-700 px-2 py-1 rounded">Roof Passport</button>
             </div>
           </div>
           <div className="bg-white rounded-lg shadow p-4 mb-4 space-y-2">
