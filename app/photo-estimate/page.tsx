@@ -2,297 +2,115 @@
 
 import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import { createClient } from '../../lib/supabase/client'
+import { createWorker } from 'tesseract.js'
+
+type Photo = { file: File; preview: string; id: string }
 
 export default function PhotoEstimatePage() {
   const router = useRouter()
-  const [loading, setLoading] = useState(false)
-  const [photos, setPhotos] = useState<string[]>([])
-  const [analysis, setAnalysis] = useState<any>(null)
-  const [estimate, setEstimate] = useState<any>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const supabase = createClient()
+  const inputRef = useRef<HTMLInputElement>(null)
+  const [photos, setPhotos] = useState<Photo[]>([])
+  const [address, setAddress] = useState('')
+  const [roofSquares, setRoofSquares] = useState('')
+  const [gutterLf, setGutterLf] = useState('')
+  const [photoIds, setPhotoIds] = useState<string[]>([])
+  const [message, setMessage] = useState('')
+  const [error, setError] = useState('')
+  const [working, setWorking] = useState(false)
+  const [ocrWorking, setOcrWorking] = useState(false)
+  const [workflow, setWorkflow] = useState<any>(null)
+  const [eaveLf, setEaveLf] = useState('')
+  const [rafterLf, setRafterLf] = useState('')
+  const [pitch, setPitch] = useState('')
+  const [roofType, setRoofType] = useState<'hip' | 'gable' | 'other'>('hip')
+  const [wasteFactor, setWasteFactor] = useState('0.10')
+  const [soffitWidthFt, setSoffitWidthFt] = useState('1')
+  const [fasciaWidthFt, setFasciaWidthFt] = useState('0.5')
 
-  const takePhoto = () => {
-    if (fileInputRef.current) {
-      fileInputRef.current.click()
-    }
+  function chooseFiles(event: React.ChangeEvent<HTMLInputElement>) {
+    const selected = Array.from(event.target.files ?? []).filter((file) => file.type.startsWith('image/'))
+    setPhotos((current) => [...current, ...selected.map((file) => ({ file, preview: URL.createObjectURL(file), id: crypto.randomUUID() }))])
+    event.target.value = ''
   }
 
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files
-    if (files) {
-      const newPhotos: string[] = []
-      Array.from(files).forEach(file => {
-        const reader = new FileReader()
-        reader.onload = (event) => {
-          if (event.target?.result) {
-            newPhotos.push(event.target.result as string)
-            if (newPhotos.length === files.length) {
-              setPhotos([...photos, ...newPhotos])
-              analyzePhotos([...photos, ...newPhotos])
-            }
-          }
-        }
-        reader.readAsDataURL(file)
-      })
-    }
-  }
-
-  const analyzePhotos = (photoData: string[]) => {
-    setLoading(true)
-    
-    // Prototype-only simulation. Never use these values for a customer quote.
-    setTimeout(() => {
-      // Simulated AI vision analysis
-      const detected = {
-        roof: {
-          detected: true,
-          material: ['Asphalt Shingle', 'Metal', 'Tile'][Math.floor(Math.random() * 3)],
-          condition: ['Good', 'Fair', 'Poor', 'Needs Replacement'][Math.floor(Math.random() * 4)],
-          estimatedArea: Math.floor(Math.random() * 1500) + 500,
-          slope: `${Math.floor(Math.random() * 6) + 3}/12`,
-          visibleDamage: Math.random() > 0.5 ? 'Hail damage detected' : 'Normal wear',
-        },
-        siding: {
-          detected: Math.random() > 0.3,
-          material: ['Vinyl', 'HardiePlank', 'Wood', 'Brick'][Math.floor(Math.random() * 4)],
-          condition: ['Good', 'Fair', 'Poor'][Math.floor(Math.random() * 3)],
-          estimatedArea: Math.floor(Math.random() * 800) + 200,
-        },
-        windows: {
-          detected: Math.random() > 0.2,
-          count: Math.floor(Math.random() * 10) + 2,
-          type: ['Double Hung', 'Casement', 'Slider'][Math.floor(Math.random() * 3)],
-          condition: ['Good', 'Fair', 'Poor'][Math.floor(Math.random() * 3)],
-        },
-        doors: {
-          detected: Math.random() > 0.3,
-          count: Math.floor(Math.random() * 3) + 1,
-          type: ['Entry', 'French', 'Sliding'][Math.floor(Math.random() * 3)],
-        },
-        gutters: {
-          detected: Math.random() > 0.4,
-          condition: ['Good', 'Fair', 'Poor', 'Missing sections'][Math.floor(Math.random() * 4)],
-          estimatedLength: Math.floor(Math.random() * 200) + 50,
-        },
-        deck: {
-          detected: Math.random() > 0.5,
-          material: ['Composite', 'Wood', 'PVC'][Math.floor(Math.random() * 3)],
-          condition: ['Good', 'Fair', 'Poor'][Math.floor(Math.random() * 3)],
-          estimatedSize: Math.floor(Math.random() * 400) + 100,
-        },
-        confidence: {
-          roof: Math.floor(Math.random() * 30) + 70,
-          siding: Math.floor(Math.random() * 30) + 60,
-          windows: Math.floor(Math.random() * 30) + 65,
-          doors: Math.floor(Math.random() * 30) + 60,
-          gutters: Math.floor(Math.random() * 30) + 55,
-          deck: Math.floor(Math.random() * 30) + 50,
-        },
-        recommendations: [
-          'Schedule professional inspection for roof',
-          'Consider replacing damaged shingles',
-          'Clean gutters and downspouts',
-          'Check for water damage around windows',
-          'Inspect deck for structural integrity',
-        ],
-        estimatedTotal: Math.floor(Math.random() * 15000) + 5000,
-        priority: ['Low', 'Medium', 'High', 'Urgent'][Math.floor(Math.random() * 4)],
+  async function findAddressInPhotos() {
+    if (!photos.length) { setError('Add a photo containing a visible address first.'); return }
+    setOcrWorking(true); setError(''); setMessage('Reading visible text from the photo…')
+    const worker = await createWorker('eng')
+    try {
+      const results: string[] = []
+      for (const photo of photos.slice(0, 3)) {
+        const result = await worker.recognize(photo.file)
+        if (result.data.text.trim()) results.push(result.data.text.trim())
       }
-      
-      setAnalysis(detected)
-      generateEstimate(detected)
-      setLoading(false)
-    }, 3000)
+      const candidate = results.join(' ').replace(/\s+/g, ' ').trim()
+      setAddress(candidate)
+      setMessage(candidate ? 'Address candidate found from visible photo text. Confirm or edit it before continuing.' : 'No readable address text was found. Enter or confirm the property address manually.')
+    } catch (err) { setError(err instanceof Error ? err.message : 'Photo text recognition failed.') }
+    finally { await worker.terminate(); setOcrWorking(false) }
   }
 
-  const generateEstimate = (detected: any) => {
-    const roofCost = detected.roof.estimatedArea * (detected.roof.material === 'Metal' ? 8 : 5)
-    const sidingCost = detected.siding.detected ? detected.siding.estimatedArea * 6 : 0
-    const windowsCost = detected.windows.detected ? detected.windows.count * 600 : 0
-    const doorsCost = detected.doors.detected ? detected.doors.count * 800 : 0
-    const guttersCost = detected.gutters.detected ? detected.gutters.estimatedLength * 12 : 0
-    const deckCost = detected.deck.detected ? detected.deck.estimatedSize * 25 : 0
-    
-    const totalMaterials = roofCost + sidingCost + windowsCost + doorsCost + guttersCost + deckCost
-    const labor = totalMaterials * 0.4
-    const overhead = totalMaterials * 0.15
-    const profit = (totalMaterials + labor + overhead) * 0.10
-    const grandTotal = totalMaterials + labor + overhead + profit
-
-    setEstimate({
-      breakdown: [
-        { item: 'Roof', cost: roofCost, detected: true },
-        { item: 'Siding', cost: sidingCost, detected: detected.siding.detected },
-        { item: 'Windows', cost: windowsCost, detected: detected.windows.detected },
-        { item: 'Doors', cost: doorsCost, detected: detected.doors.detected },
-        { item: 'Gutters', cost: guttersCost, detected: detected.gutters.detected },
-        { item: 'Deck', cost: deckCost, detected: detected.deck.detected },
-      ],
-      totalMaterials,
-      labor,
-      overhead,
-      profit,
-      grandTotal,
-      priority: detected.priority,
-    })
+  async function uploadPhotos() {
+    if (!photos.length) throw new Error('Add at least one roof/property photo.')
+    const { data: { user } } = await supabase.auth.getUser()
+    const { data: workspaceId } = await supabase.rpc('current_workspace_id')
+    if (!user || !workspaceId) throw new Error('Sign in with a workspace before uploading.')
+    const ids: string[] = []
+    for (const photo of photos) {
+      const path = `${workspaceId}/${user.id}/photo-estimate/${photo.id}.${photo.file.name.split('.').pop()?.toLowerCase() || 'jpg'}`
+      const { error: uploadError } = await supabase.storage.from('inspection-photos').upload(path, photo.file, { contentType: photo.file.type, upsert: false })
+      if (uploadError) throw new Error(uploadError.message)
+      ids.push(path)
+    }
+    return ids
   }
 
-  return (
-    <div className="min-h-screen bg-gray-50 pb-20">
-      <header className="bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg sticky top-0 z-10">
-        <div className="px-4 py-3 flex items-center">
-          <button onClick={() => router.back()} className="text-white mr-3 text-xl">←</button>
-          <h1 className="text-xl font-bold">📸 Photo Estimate Prototype</h1>
-          <span className="ml-2 bg-amber-500 text-white text-xs px-2 py-0.5 rounded-full">SIMULATED</span>
-        </div>
-      </header>
+  async function buildPacket() {
+    setWorking(true); setError(''); setMessage('')
+    try {
+      const ids = photoIds.length ? photoIds : await uploadPhotos()
+      setPhotoIds(ids)
+      if (!address.trim()) throw new Error('Enter or confirm the property address before evidence lookup.')
+      const response = await fetch('/api/photo-estimate', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ address, roofSquares: Number(roofSquares || 0), gutterLf: Number(gutterLf || 0), photoIds: ids }) })
+      const payload = await response.json()
+      if (!response.ok) throw new Error(payload.detail || payload.error || 'Could not build the review packet.')
+      setWorkflow(payload.workflow)
+      setMessage('Review packet created. Verify every finding before any customer delivery.')
+    } catch (err) { setError(err instanceof Error ? err.message : 'Workflow failed.') }
+    setWorking(false)
+  }
 
-      <main className="p-4">
-        <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg shadow-lg p-4 mb-4 border border-purple-200">
-          <div className="flex items-center">
-            <span className="text-3xl mr-3">📸</span>
-            <div>
-              <h3 className="font-semibold">AI Visual Estimation</h3>
-              <p className="text-xs text-gray-500">Demo-only workflow — no quote or measurement is generated</p>
-            </div>
-          </div>
-        </div>
+  async function saveFieldVerification(approved: boolean) {
+    if (!workflow?.id) return
+    setWorking(true); setError(''); setMessage('')
+    try {
+      const response = await fetch(`/api/photo-estimate/verify?workflowId=${encodeURIComponent(workflow.id)}`, { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ eaveLf: Number(eaveLf), rafterLf: Number(rafterLf), pitch: Number(pitch), roofType, wasteFactor: Number(wasteFactor), soffitWidthFt: Number(soffitWidthFt), fasciaWidthFt: Number(fasciaWidthFt), approved }) })
+      const payload = await response.json()
+      if (!response.ok) throw new Error(payload.detail || payload.error || 'Could not save field verification.')
+      setWorkflow((current: any) => ({ ...current, ...payload.workflow }))
+      setMessage(approved ? 'Technician verification saved. The packet is approved for controlled customer-packet creation.' : 'Field measurements saved for review.')
+    } catch (err) { setError(err instanceof Error ? err.message : 'Verification failed.') }
+    setWorking(false)
+  }
 
-        <input
-          type="file"
-          ref={fileInputRef}
-          accept="image/*"
-          multiple
-          capture="environment"
-          className="hidden"
-          onChange={handlePhotoUpload}
-        />
-
-        <button
-          onClick={takePhoto}
-          disabled={loading}
-          className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-4 rounded-lg font-semibold text-lg disabled:opacity-50 flex items-center justify-center"
-        >
-          {loading ? '⏳ AI Analyzing...' : '📸 Take Photo for Estimate'}
-        </button>
-
-        {photos.length > 0 && (
-          <div className="mt-4 grid grid-cols-2 gap-2">
-            {photos.map((img, i) => (
-              <img key={i} src={img} alt={`Photo ${i+1}`} className="w-full h-32 object-cover rounded" />
-            ))}
-          </div>
-        )}
-
-        {analysis && (
-          <div className="mt-4 space-y-4 animate-fadeIn">
-            <div className="bg-white rounded-lg shadow-lg p-4 border-2 border-purple-500">
-              <h3 className="font-semibold text-sm mb-3 flex items-center">
-                <span className="text-xl mr-2">🧠</span> AI Analysis Results
-              </h3>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="bg-gray-50 p-2 rounded">
-                  <p className="text-xs text-gray-500">Roof</p>
-                  <p className="font-bold text-sm">{analysis.roof.material} • {analysis.roof.condition}</p>
-                  <p className="text-xs text-gray-400">{analysis.roof.estimatedArea} sq ft</p>
-                </div>
-                <div className="bg-gray-50 p-2 rounded">
-                  <p className="text-xs text-gray-500">Siding</p>
-                  <p className="font-bold text-sm">{analysis.siding.detected ? `${analysis.siding.material} • ${analysis.siding.condition}` : 'Not detected'}</p>
-                </div>
-                <div className="bg-gray-50 p-2 rounded">
-                  <p className="text-xs text-gray-500">Windows</p>
-                  <p className="font-bold text-sm">{analysis.windows.detected ? `${analysis.windows.count} • ${analysis.windows.type}` : 'Not detected'}</p>
-                </div>
-                <div className="bg-gray-50 p-2 rounded">
-                  <p className="text-xs text-gray-500">Doors</p>
-                  <p className="font-bold text-sm">{analysis.doors.detected ? `${analysis.doors.count} • ${analysis.doors.type}` : 'Not detected'}</p>
-                </div>
-              </div>
-              <div className="mt-3 p-2 bg-yellow-50 rounded">
-                <p className="text-xs text-yellow-800">📋 {analysis.recommendations[0]}</p>
-              </div>
-            </div>
-
-            {estimate && (
-              <div className="bg-white rounded-lg shadow-lg p-4 border-2 border-green-500">
-                <div className="flex justify-between items-center mb-3">
-                  <h3 className="font-semibold text-sm">💰 Simulated Estimate Preview</h3>
-                  <span className={`text-xs px-2 py-1 rounded ${
-                    estimate.priority === 'Urgent' ? 'bg-red-500 text-white' :
-                    estimate.priority === 'High' ? 'bg-orange-500 text-white' :
-                    estimate.priority === 'Medium' ? 'bg-yellow-500 text-white' :
-                    'bg-green-500 text-white'
-                  }`}>
-                    {estimate.priority} Priority
-                  </span>
-                </div>
-                {estimate.breakdown.map((item: any, i: number) => (
-                  <div key={i} className="flex justify-between text-sm border-b py-1">
-                    <span>{item.item} {!item.detected && '(estimated)'}</span>
-                    <span>${item.cost.toFixed(2)}</span>
-                  </div>
-                ))}
-                  <div className="border-t pt-2 mt-2">
-                    <p className="text-xs text-amber-800 bg-amber-50 p-2 mb-2 rounded">Prototype values only. Do not send, approve, or use for pricing.</p>
-                  <div className="flex justify-between text-sm">
-                    <span>Materials</span>
-                    <span>${estimate.totalMaterials.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span>Labor</span>
-                    <span>${estimate.labor.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span>Overhead</span>
-                    <span>${estimate.overhead.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span>Profit</span>
-                    <span>${estimate.profit.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between text-lg font-bold pt-2 border-t">
-                    <span>Grand Total</span>
-                    <span className="text-green-600">${estimate.grandTotal.toFixed(2)}</span>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div className="grid grid-cols-2 gap-2">
-              <button className="bg-purple-600 text-white py-2 rounded-lg text-sm font-semibold">
-                📄 Generate Report
-              </button>
-              <button className="bg-pink-600 text-white py-2 rounded-lg text-sm font-semibold">
-                ✉️ Send Estimate
-              </button>
-            </div>
-          </div>
-        )}
-      </main>
-
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around py-2 px-4">
-        <button onClick={() => router.push('/')} className="flex flex-col items-center text-gray-400">
-          <span className="text-xl">🏠</span>
-          <span className="text-xs">Home</span>
-        </button>
-        <button onClick={() => router.push('/photo-estimate')} className="flex flex-col items-center text-purple-600">
-          <span className="text-xl">📸</span>
-          <span className="text-xs">Photo AI</span>
-        </button>
-        <button onClick={() => router.push('/ai-wizard')} className="flex flex-col items-center text-gray-400">
-          <span className="text-xl">🧙</span>
-          <span className="text-xs">Wizard</span>
-        </button>
-        <button onClick={() => router.push('/voice-ai')} className="flex flex-col items-center text-gray-400">
-          <span className="text-xl">🎤</span>
-          <span className="text-xs">Voice</span>
-        </button>
-        <button onClick={() => router.push('/settings')} className="flex flex-col items-center text-gray-400">
-          <span className="text-xl">⚙️</span>
-          <span className="text-xs">Settings</span>
-        </button>
-      </nav>
+  return <div className="min-h-screen bg-gray-50 p-4 pb-24">
+    <button onClick={() => router.back()} className="text-blue-600 mb-4">← Back</button>
+    <h1 className="text-2xl font-bold">Photo → Estimate Review</h1>
+    <p className="text-sm text-gray-600 mt-1 mb-4">Upload evidence first. The system assembles address, property, storm, measurement, pricing, and report candidates. A technician must verify the packet before it can be sent.</p>
+    <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-900 mb-4"><b>Important:</b> OCR can read visible address text; it cannot prove a roof photo’s location. Confirm the property and quantities before approval.</div>
+    <input ref={inputRef} type="file" accept="image/*" capture="environment" multiple className="hidden" onChange={chooseFiles} />
+    <button onClick={() => inputRef.current?.click()} className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold">{photos.length ? `Add photos (${photos.length})` : 'Take or upload photos'}</button>
+    {photos.length > 0 && <><div className="grid grid-cols-3 gap-2 mt-3">{photos.map((photo) => <img key={photo.id} src={photo.preview} alt="Uploaded roof evidence" className="h-24 w-full object-cover rounded" />)}</div><button onClick={() => void findAddressInPhotos()} disabled={ocrWorking} className="w-full mt-3 bg-purple-600 text-white py-2 rounded-lg disabled:opacity-60">{ocrWorking ? 'Reading photo text…' : 'Find address text in photo'}</button></>}
+    <div className="bg-white rounded-lg shadow p-4 mt-4 space-y-3">
+      <h2 className="font-semibold">Property confirmation</h2>
+      <label className="block text-sm">Address to verify<input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Confirm the property address" className="w-full p-3 border rounded mt-1" /></label>
+      <div className="grid grid-cols-2 gap-3"><label className="block text-sm">Roof squares<input value={roofSquares} onChange={(e) => setRoofSquares(e.target.value)} inputMode="decimal" placeholder="Optional" className="w-full p-3 border rounded mt-1" /></label><label className="block text-sm">Gutter LF<input value={gutterLf} onChange={(e) => setGutterLf(e.target.value)} inputMode="decimal" placeholder="Optional" className="w-full p-3 border rounded mt-1" /></label></div>
+      <button onClick={() => void buildPacket()} disabled={working} className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold disabled:opacity-60">{working ? 'Uploading and building review packet…' : 'Build review packet'}</button>
     </div>
-  )
+    {error && <p className="text-red-700 bg-red-50 p-3 rounded mt-4 text-sm">{error}</p>}
+    {message && <p className="text-green-700 bg-green-50 p-3 rounded mt-4 text-sm">{message}</p>}
+    {workflow && <div className="bg-white rounded-lg shadow p-4 mt-4"><h2 className="font-bold">{workflow.report?.title}</h2><p className="text-sm mt-2">Status: <b>{workflow.status}</b></p><p className="text-sm">Property footprint assist: {workflow.report?.propertyEvidence?.footprintSqFt || 0} sq ft, low confidence</p><p className="text-sm">Storm candidates: {workflow.storm_candidates?.length || 0}; these are corroborating candidates, not a proven loss date.</p><p className="text-sm mt-3">Estimate: {workflow.estimate?.status}; no prices are inserted unless an approved price book is present.</p><div className="mt-3 border-t pt-3"><h3 className="font-semibold">Technician field verification</h3><p className="text-xs text-gray-600 mb-2">Measure eaves and one rafter, confirm pitch and roof type, then approve or send back for correction.</p><div className="grid grid-cols-2 gap-2"><input value={eaveLf} onChange={(e) => setEaveLf(e.target.value)} placeholder="Eaves LF" className="p-2 border rounded" /><input value={rafterLf} onChange={(e) => setRafterLf(e.target.value)} placeholder="Rafter LF" className="p-2 border rounded" /><input value={pitch} onChange={(e) => setPitch(e.target.value)} placeholder="Pitch rise / 12" className="p-2 border rounded" /><select value={roofType} onChange={(e) => setRoofType(e.target.value as 'hip' | 'gable' | 'other')} className="p-2 border rounded"><option value="hip">Hip</option><option value="gable">Gable</option><option value="other">Other</option></select><input value={soffitWidthFt} onChange={(e) => setSoffitWidthFt(e.target.value)} placeholder="Soffit width (ft)" className="p-2 border rounded" /><input value={fasciaWidthFt} onChange={(e) => setFasciaWidthFt(e.target.value)} placeholder="Fascia width (ft)" className="p-2 border rounded" /></div><p className="text-xs text-gray-500 mt-1">Examples: soffit 1, 1.5, or 2 ft. Fascia can be entered as 0.5 ft for 6 inches, or a custom decimal.</p><select value={wasteFactor} onChange={(e) => setWasteFactor(e.target.value)} className="w-full p-2 border rounded mt-2"><option value="0.10">10% waste</option><option value="0.15">15% waste</option><option value="0">0% waste</option></select><div className="grid grid-cols-2 gap-2 mt-2"><button onClick={() => void saveFieldVerification(false)} disabled={working} className="bg-amber-500 text-white py-2 rounded disabled:opacity-60">Save measurements</button><button onClick={() => void saveFieldVerification(true)} disabled={working} className="bg-green-600 text-white py-2 rounded disabled:opacity-60">Approve report</button></div></div><div className="mt-3 bg-amber-50 p-3 rounded text-sm">Approval records the technician, timestamp, eave/rafter measurements, slope multiplier, roof type, waste factor, editable soffit/fascia widths, and calculated squares. Customer email and digital signature remain separate controlled steps.</div></div>}
+  </div>
 }
