@@ -70,7 +70,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$(find supabase/migrations -maxdepth 1 -name '*.sql' | wc -l)" -ge 18
+          test "$(find supabase/migrations -maxdepth 1 -name '*.sql' | wc -l)" -ge 19
           grep -q "enable row level security" supabase/migrations/008_claims_line_items_agent_readiness.sql
           grep -q "enable row level security" supabase/migrations/009_agent_runtime_claims_imports.sql
           grep -q "monthly_limit" supabase/migrations/010_retailer_price_cache.sql
@@ -83,4 +83,6 @@ jobs:
           grep -q "workspace_invitations" supabase/migrations/017_team_invites_atomic_price_books.sql
           grep -q "save_owner_price_book" supabase/migrations/017_team_invites_atomic_price_books.sql
           grep -q "supplements" supabase/migrations/018_supplement_review_records.sql
+          grep -q "material_catalog" supabase/migrations/019_material_catalog_workspace_settings.sql
+          grep -q "isCronPath" middleware.ts
           if grep -RInE 'CAPOUT_API_KEY=|RAPIDAPI_KEY=|SUPABASE_SERVICE_ROLE_KEY=' --exclude=.env.example --exclude-dir=.git --exclude-dir=.github .; then exit 1; fi

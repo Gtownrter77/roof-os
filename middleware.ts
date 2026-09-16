@@ -2,7 +2,22 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { getSupabaseEnv } from './lib/supabase/env'
 
+function isCronPath(pathname: string) {
+  return pathname.startsWith('/api/cron/')
+}
+
+function isPublicPath(pathname: string) {
+  return pathname === '/about' || pathname === '/pricing' || pathname.startsWith('/auth')
+}
+
 export async function middleware(request: NextRequest) {
+  const pathname = request.nextUrl.pathname
+
+  // Vercel Cron is unauthenticated at the session layer. The route still requires CRON_SECRET.
+  if (isCronPath(pathname)) {
+    return NextResponse.next({ request })
+  }
+
   let response = NextResponse.next({ request })
   const { url, anonKey } = getSupabaseEnv()
   const supabase = createServerClient(
@@ -23,13 +38,12 @@ export async function middleware(request: NextRequest) {
   )
 
   const { data: { user } } = await supabase.auth.getUser()
-  const pathname = request.nextUrl.pathname
   const isAuthPage = pathname.startsWith('/auth')
-  const isOnboarding = pathname.startsWith('/onboarding')
-  const isPublic = ['/about', '/pricing'].includes(pathname)
 
-  if (!user && !isAuthPage && !isPublic && !isOnboarding) {
-    return NextResponse.redirect(new URL('/auth/login', request.url))
+  if (!user && !isPublicPath(pathname)) {
+    const login = new URL('/auth/login', request.url)
+    login.searchParams.set('next', pathname)
+    return NextResponse.redirect(login)
   }
 
   if (user && isAuthPage && pathname !== '/auth/callback') {
@@ -40,5 +54,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|public|icon-).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|icon-).*)'],
 }
