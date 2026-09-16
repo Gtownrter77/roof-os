@@ -18,12 +18,33 @@ export function createAgentRuntime(config: RuntimeConfig) {
   }
 
   async function run(event: AgentEvent, handler: () => Promise<{ status: Exclude<AgentStatus, 'queued' | 'running'>; output?: Record<string, unknown>; errorMessage?: string; approvalState?: 'not_required' | 'pending' | 'approved' | 'rejected' }>) {
+    const { data: workspace, error: workspaceError } = await supabase
+      .from('workspaces')
+      .select('id')
+      .eq('id', event.workspaceId)
+      .maybeSingle()
+    if (workspaceError) throw workspaceError
+    if (!workspace) throw new Error(`Unknown workspace: ${event.workspaceId}`)
     const base = { workspace_id: event.workspaceId, agent_key: event.agentKey, event_key: event.eventKey, trigger: event.trigger, input_reference: event.inputReference }
     const { data: existing } = await supabase.from('agent_runs').select('id,status,output').match({ workspace_id: event.workspaceId, agent_key: event.agentKey, event_key: event.eventKey }).maybeSingle()
     if (existing?.status === 'succeeded' || existing?.status === 'needs_review') return existing
+    if (existing?.status === 'running') return existing
 
-    const { data: started, error: startError } = await supabase.from('agent_runs').upsert({ ...base, status: 'running', started_at: new Date().toISOString(), attempt: existing ? 2 : 1 }, { onConflict: 'workspace_id,agent_key,event_key' }).select('id').single()
-    if (startError) throw startError
+    let started: { id: string } | null = null
+    if (existing) {
+      const { data, error } = await supabase.from('agent_runs').update({ status: 'running', started_at: new Date().toISOString(), attempt: 2 }).eq('id', existing.id).eq('status', existing.status).select('id').maybeSingle()
+      if (error) throw error
+      started = data
+    } else {
+      const { data, error } = await supabase.from('agent_runs').insert({ ...base, status: 'running', started_at: new Date().toISOString(), attempt: 1 }).select('id').maybeSingle()
+      if (error && error.code !== '23505') throw error
+      if (!data) {
+        const { data: claimed } = await supabase.from('agent_runs').select('id,status,output').match({ workspace_id: event.workspaceId, agent_key: event.agentKey, event_key: event.eventKey }).maybeSingle()
+        return claimed
+      }
+      started = data
+    }
+    if (!started) return existing
 
     try {
       const result = await handler()

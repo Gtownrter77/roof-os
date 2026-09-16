@@ -9,7 +9,7 @@ import { Alert, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput
 const colors = { ink: '#102033', blue: '#1769e0', pale: '#eef5ff', green: '#138a5b', border: '#dbe4ef', muted: '#607086', white: '#ffffff' }
 const db = SQLite.openDatabaseSync('roofos-field.db')
 type Draft = { id: number; address: string; photoCount: number; status: string; updatedAt: string }
-function ensureDatabase() { db.execSync(`CREATE TABLE IF NOT EXISTS inspection_drafts (id INTEGER PRIMARY KEY AUTOINCREMENT, address TEXT NOT NULL DEFAULT '', photo_count INTEGER NOT NULL DEFAULT 0, status TEXT NOT NULL DEFAULT 'draft', updated_at TEXT NOT NULL); CREATE TABLE IF NOT EXISTS inspection_measurements_local (id INTEGER PRIMARY KEY AUTOINCREMENT, draft_id INTEGER, roof_squares REAL NOT NULL, gutter_lf REAL NOT NULL, latitude REAL, longitude REAL, confidence TEXT NOT NULL DEFAULT 'unverified', captured_at TEXT NOT NULL);`) }
+function ensureDatabase() { db.execSync(`CREATE TABLE IF NOT EXISTS inspection_drafts (id INTEGER PRIMARY KEY AUTOINCREMENT, address TEXT NOT NULL DEFAULT '', photo_count INTEGER NOT NULL DEFAULT 0, status TEXT NOT NULL DEFAULT 'draft', updated_at TEXT NOT NULL); CREATE TABLE IF NOT EXISTS inspection_measurements_local (id INTEGER PRIMARY KEY AUTOINCREMENT, draft_id INTEGER, roof_squares REAL NOT NULL, gutter_lf REAL NOT NULL, latitude REAL, longitude REAL, confidence TEXT NOT NULL DEFAULT 'unverified', captured_at TEXT NOT NULL); CREATE TABLE IF NOT EXISTS inspection_photo_queue (id INTEGER PRIMARY KEY AUTOINCREMENT, draft_id INTEGER NOT NULL, local_uri TEXT NOT NULL, captured_at TEXT NOT NULL, sync_status TEXT NOT NULL DEFAULT 'queued');`) }
 
 export default function App() {
   const [address, setAddress] = useState('')
@@ -28,26 +28,28 @@ export default function App() {
     } catch { setNotice('Offline storage is unavailable. Do not close the app until the draft is saved.') }
   }, [])
 
-  function saveDraft(nextAddress = address, nextPhotos = photos) {
+  function saveDraft(nextAddress = address, nextPhotos = photos): number | null {
     try {
       ensureDatabase()
       const now = new Date().toISOString()
       if (draft) {
         db.runSync('UPDATE inspection_drafts SET address = ?, photo_count = ?, updated_at = ? WHERE id = ?', nextAddress, nextPhotos, now, draft.id)
         setDraft({ ...draft, address: nextAddress, photoCount: nextPhotos, updatedAt: now })
+        return draft.id
       } else {
         const result = db.runSync('INSERT INTO inspection_drafts (address, photo_count, status, updated_at) VALUES (?, ?, ?, ?)', nextAddress, nextPhotos, 'draft', now)
         setDraft({ id: result.lastInsertRowId, address: nextAddress, photoCount: nextPhotos, status: 'draft', updatedAt: now })
+        return result.lastInsertRowId
       }
       setNotice('Draft saved on this device. It is queued for sync when the workspace connection is configured.')
-    } catch { setNotice('Could not save the draft locally. Keep the app open and try again.') }
+    } catch { setNotice('Could not save the draft locally. Keep the app open and try again.'); return null }
   }
 
   async function startCamera() {
     const permission = await ImagePicker.requestCameraPermissionsAsync()
     if (!permission.granted) { Alert.alert('Camera permission needed', 'Allow camera access to capture inspection evidence.'); return }
     const result = await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], quality: 0.8 })
-    if (!result.canceled) { const nextPhotos = photos + result.assets.length; setPhotos(nextPhotos); saveDraft(address, nextPhotos); setNotice(`${result.assets.length} photo${result.assets.length === 1 ? '' : 's'} added and draft saved locally.`) }
+    if (!result.canceled) { const draftId = saveDraft(address, photos + result.assets.length); if (!draftId) return; ensureDatabase(); const capturedAt = new Date().toISOString(); result.assets.forEach((asset) => db.runSync('INSERT INTO inspection_photo_queue (draft_id, local_uri, captured_at, sync_status) VALUES (?, ?, ?, ?)', draftId, asset.uri, capturedAt, 'queued')); const nextPhotos = db.getFirstSync<{ count: number }>('SELECT COUNT(*) as count FROM inspection_photo_queue WHERE draft_id = ?', draftId)?.count ?? photos + result.assets.length; setPhotos(nextPhotos); setNotice(`${result.assets.length} photo${result.assets.length === 1 ? '' : 's'} added to the offline upload queue.`) }
   }
 
   async function captureLocation() {
@@ -62,7 +64,7 @@ export default function App() {
   function saveMeasurements() {
     const squares = Number(roofSquares); const gutters = Number(gutterLf)
     if (!Number.isFinite(squares) || squares <= 0 || !Number.isFinite(gutters) || gutters < 0) { setNotice('Enter valid roof squares and gutter linear feet.'); return }
-    saveDraft(); ensureDatabase(); db.runSync('INSERT INTO inspection_measurements_local (draft_id, roof_squares, gutter_lf, latitude, longitude, confidence, captured_at) VALUES (?, ?, ?, ?, ?, ?, ?)', draft?.id ?? null, squares, gutters, location?.latitude ?? null, location?.longitude ?? null, 'unverified', new Date().toISOString()); setNotice('Measurements saved as manual, unverified inputs. Aerial-provider values must replace or corroborate them before estimate approval.')
+    const draftId = saveDraft(); if (!draftId) return; ensureDatabase(); db.runSync('INSERT INTO inspection_measurements_local (draft_id, roof_squares, gutter_lf, latitude, longitude, confidence, captured_at) VALUES (?, ?, ?, ?, ?, ?, ?)', draftId, squares, gutters, location?.latitude ?? null, location?.longitude ?? null, 'unverified', new Date().toISOString()); setNotice('Measurements saved as manual, unverified inputs. Aerial-provider values must replace or corroborate them before estimate approval.')
   }
 
   function openReportBuilder() {

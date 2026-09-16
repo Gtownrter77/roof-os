@@ -36,6 +36,10 @@ export async function PATCH(request: NextRequest) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Authentication required.' }, { status: 401 })
+  const { data: workspaceId } = await supabase.rpc('current_workspace_id')
+  if (!workspaceId) return NextResponse.json({ error: 'No workspace is configured.' }, { status: 400 })
+  const { data: isAdmin, error: roleError } = await supabase.rpc('is_workspace_admin', { target_workspace: workspaceId })
+  if (roleError || !isAdmin) return NextResponse.json({ error: 'Workspace administrator access is required for supplement review.' }, { status: 403 })
   let body: { id?: string; status?: string }
   try { body = await request.json() } catch { return NextResponse.json({ error: 'Invalid JSON body.' }, { status: 400 }) }
   if (!body.id || !['approved','rejected','needs_review'].includes(body.status ?? '')) return NextResponse.json({ error: 'A valid supplement id and status are required.' }, { status: 400 })
