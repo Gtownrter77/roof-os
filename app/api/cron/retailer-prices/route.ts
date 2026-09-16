@@ -17,10 +17,15 @@ export async function GET(request: NextRequest) {
   const supabase = createClient(supabaseUrl, serviceRoleKey, { auth: { autoRefreshToken: false, persistSession: false } })
   const { data: watchlist, error: watchlistError } = await supabase.from('retailer_price_watchlist').select('id, workspace_id, query, zipcode, store_id').eq('active', true)
   if (watchlistError) return NextResponse.json({ error: 'Could not load pricing watchlist.', detail: watchlistError.message }, { status: 502 })
+  const workspaceIds = [...new Set((watchlist ?? []).map(item => item.workspace_id))]
+  const { data: settings } = await supabase.from('workspace_settings').select('workspace_id,price_refresh_frequency').in('workspace_id', workspaceIds)
+  const frequencyByWorkspace = new Map((settings ?? []).map(item => [item.workspace_id, item.price_refresh_frequency]))
 
   const month = `${new Date().toISOString().slice(0, 7)}-01`
   const results: Array<Record<string, unknown>> = []
   for (const item of watchlist ?? []) {
+    const frequency = frequencyByWorkspace.get(item.workspace_id) ?? 'weekly'
+    if (frequency !== 'weekly') { results.push({ watchlistId: item.id, status: frequency === 'manual' ? 'manual_only' : 'disabled' }); continue }
     const { data: cached } = await supabase.from('retailer_price_snapshots').select('id').eq('workspace_id', item.workspace_id).eq('provider', 'home_depot').eq('query', item.query).gt('expires_at', new Date().toISOString()).limit(1).maybeSingle()
     if (cached) { results.push({ watchlistId: item.id, status: 'cached' }); continue }
 

@@ -1,5 +1,6 @@
 import './globals.css'
 import type { Metadata } from 'next'
+import Navigation from '../components/Navigation'
 
 export const metadata: Metadata = {
   title: 'ROOF/OS',
@@ -13,7 +14,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="bg-gray-50">{children}</body>
+      <body className="bg-gray-50 pb-16">
+        {children}
+        <Navigation />
+      </body>
     </html>
   )
 }
