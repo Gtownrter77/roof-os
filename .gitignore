@@ -6,3 +6,8 @@ node_modules
 .env.*.local
 *.tar.gz
 *.demo-backup
+*.apk
+.DS_Store
+apps/field/.expo
+apps/field/dist
+coverage

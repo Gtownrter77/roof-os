@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '../../../lib/supabase/server'
 
 const SOURCE = 'https://www.iccsafe.org/about-icc/overview-of-the-icc/international-code-adoptions/'
 const STATE_CODES: Record<string, { code: string; edition: string; notes: string[] }> = {
@@ -10,6 +11,10 @@ const STATE_CODES: Record<string, { code: string; edition: string; notes: string
 }
 
 export async function GET(request: NextRequest) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Authentication required.' }, { status: 401 })
+
   const zip = request.nextUrl.searchParams.get('zip')?.trim() ?? ''
   const category = request.nextUrl.searchParams.get('category')?.trim() || 'Roofing'
   if (!/^\d{5}(?:-\d{4})?$/.test(zip)) return NextResponse.json({ error: 'Enter a valid five-digit ZIP code.' }, { status: 400 })
@@ -20,5 +25,25 @@ export async function GET(request: NextRequest) {
   if (!place) return NextResponse.json({ error: 'No locality was returned for that ZIP code.' }, { status: 404 })
   const state = place['state abbreviation'] as string
   const reference = STATE_CODES[state] ?? { code: `${state} building-code reference`, edition: 'Verify current state and local adoption', notes: ['No state-specific record is configured yet.', 'Confirm the local authority before relying on this result.'] }
-  return NextResponse.json({ jurisdiction: { zip: zip.slice(0, 5), city: place['place name'], state, stateName: place.state, countyCandidates: locality.places.map((item: Record<string, string>) => item['place name']), category }, code: { ...reference, requirements: [`${category} requirements require local-authority confirmation for ${place['place name']}, ${state}.`, ...reference.notes] }, provenance: { localitySource: 'Zippopotam.us ZIP locality service', codeSource: SOURCE, retrievedAt: new Date().toISOString(), confidence: 'jurisdiction-resolved; code content requires human verification' }, warning: 'This lookup identifies the ZIP locality and state code family. It is not legal advice and must be checked against the local permitting authority before use.' })
+  return NextResponse.json({
+    jurisdiction: {
+      zip: zip.slice(0, 5),
+      city: place['place name'],
+      state,
+      stateName: place.state,
+      countyCandidates: locality.places.map((item: Record<string, string>) => item['place name']),
+      category,
+    },
+    code: {
+      ...reference,
+      requirements: [`${category} requirements require local-authority confirmation for ${place['place name']}, ${state}.`, ...reference.notes],
+    },
+    provenance: {
+      localitySource: 'Zippopotam.us ZIP locality service',
+      codeSource: SOURCE,
+      retrievedAt: new Date().toISOString(),
+      confidence: 'jurisdiction-resolved; code content requires human verification',
+    },
+    warning: 'This lookup identifies the ZIP locality and state code family. It is not legal advice and must be checked against the local permitting authority before use.',
+  })
 }
