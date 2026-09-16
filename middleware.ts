@@ -7,7 +7,7 @@ function isCronPath(pathname: string) {
 }
 
 function isPublicPath(pathname: string) {
-  return pathname === '/about' || pathname === '/pricing' || pathname === '/offer' || pathname === '/request-estimate' || pathname === '/legal' || pathname.startsWith('/auth') || pathname.startsWith('/api/public/')
+  return pathname === '/about' || pathname === '/pricing' || pathname === '/offer' || pathname === '/request-estimate' || pathname === '/snap' || pathname === '/legal' || pathname.startsWith('/auth') || pathname.startsWith('/api/public/')
 }
 
 export async function middleware(request: NextRequest) {
