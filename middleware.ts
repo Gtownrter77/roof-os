@@ -46,7 +46,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(login)
   }
 
-  if (user && isAuthPage && pathname !== '/auth/callback') {
+  if (user && isAuthPage && pathname !== '/auth/callback' && pathname !== '/auth/reset') {
     return NextResponse.redirect(new URL('/', request.url))
   }
 
