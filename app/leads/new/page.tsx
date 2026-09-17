@@ -15,12 +15,21 @@ export default function NewLeadPage() {
     e.preventDefault()
     setSaving(true); setError('')
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { router.replace('/auth/login'); return }
+    if (!user) { setSaving(false); router.replace(`/auth/login?next=${encodeURIComponent('/leads/new')}`); return }
+    const name = form.name.trim()
+    const address = form.address.trim()
+    if (!name || !address) { setError('Name and address are required.'); setSaving(false); return }
     const { data: workspaceId, error: workspaceError } = await supabase.rpc('current_workspace_id')
     if (workspaceError || !workspaceId) { setError(workspaceError?.message ?? 'No workspace is available.'); setSaving(false); return }
-    const { data, error: insertError } = await supabase.from('leads').insert({ name: form.name.trim(), address: form.address.trim(), phone: form.phone || null, email: form.email || null, source: form.source || 'manual', notes: form.notes || null, owner_id: user.id, workspace_id: workspaceId, status: 'new' }).select('id').single()
-    if (insertError || !data) { setError(insertError?.message ?? 'Lead was not created.'); setSaving(false); return }
-    await supabase.from('lead_activity').insert({ lead_id: data.id, workspace_id: workspaceId, user_id: user.id, kind: 'note', body: form.notes || `Lead created from ${form.source || 'manual'}` })
+    const { data, error: insertError } = await supabase.from('leads').insert({ name, address, phone: form.phone.trim() || null, email: form.email.trim() || null, source: form.source.trim() || 'manual', notes: form.notes.trim() || null, owner_id: user.id, workspace_id: workspaceId, status: 'new' }).select('id').single()
+    if (insertError || !data) {
+      const detail = insertError?.message ?? ''
+      setError(detail.includes('tasks_automation_key_unique_idx') || detail.includes('ON CONFLICT')
+        ? 'Lead automation is not initialized in this workspace. Ask an administrator to apply the latest Supabase migrations.'
+        : detail || 'Lead was not created.'); setSaving(false); return
+    }
+    const { error: activityError } = await supabase.from('lead_activity').insert({ lead_id: data.id, workspace_id: workspaceId, user_id: user.id, kind: 'note', body: form.notes.trim() || `Lead created from ${form.source.trim() || 'manual'}` })
+    if (activityError) { setError(`Lead created, but the activity note was not saved: ${activityError.message}`); setSaving(false); return }
     router.push(`/leads/${data.id}`)
   }
 

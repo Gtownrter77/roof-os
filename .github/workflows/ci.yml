@@ -85,6 +85,7 @@ jobs:
           grep -q "supplements" supabase/migrations/018_supplement_review_records.sql
           grep -q "material_catalog" supabase/migrations/019_material_catalog_workspace_settings.sql
           grep -q "agent_runs_workspace_agent_event_key" supabase/migrations/021_agent_runs_idempotency_contract.sql
+          grep -q "tasks_automation_key_unique_idx" supabase/migrations/024_lead_followup_conflict_target.sql
           grep -q "drop policy if exists agent_runs_select" supabase/migrations/009_agent_runtime_claims_imports.sql
           grep -q "isCronPath" middleware.ts
           grep -q "safeNextPath" app/auth/callback/route.ts app/auth/login/page.tsx lib/safe-next.ts

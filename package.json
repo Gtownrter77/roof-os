@@ -8,7 +8,9 @@
     "start": "mkdir -p .next/standalone/.next && cp -R .next/static .next/standalone/.next/static && node .next/standalone/server.js",
     "lint": "next lint",
     "test:photo-estimate-flow": "node scripts/photo-estimate-flow-test.mjs",
-    "verify:security": "node scripts/security-check.mjs"
+    "verify:security": "node scripts/security-check.mjs",
+    "verify:production-env": "node scripts/production-env-check.mjs",
+    "verify:mobile": "node scripts/mobile-release-check.mjs && npm --prefix apps/field run validate"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.2",
