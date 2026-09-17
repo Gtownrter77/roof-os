@@ -25,7 +25,7 @@ It is built for a small roofing company first. Not a call center. Not a fake Xac
 - Take photos that attach to that inspection
 - Draft an inspection report that still needs your review
 - Save labor rates and local tax in your price book
-- Home Depot numbers as a reference only. You approve before anything hits an estimate
+- Live Home Depot and Lowe's retailer reference pricing, refreshed weekly by default or on demand; you approve before anything hits an estimate
 
 ## What is not ready
 
@@ -66,7 +66,7 @@ npx eas build --platform android --profile preview
 
 - Do not commit secrets. Ever.
 - Cron jobs need `Authorization: Bearer` plus your cron secret.
-- Store prices are a reference. They are not a bid until you say so.
+- Home Depot and Lowe's prices are live retailer references with source, market/ZIP, retrieval time, and effective-date provenance. They are formatted for Xactimate-friendly workflows, but are not licensed Xactimate or carrier rates and are not a bid until you approve them.
 
 ## Where to read more
 
