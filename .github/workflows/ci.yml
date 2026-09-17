@@ -27,6 +27,7 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: validation-only-key
           CRON_SECRET: validation-only-key
       - run: npx tsc --noEmit
+      - run: npm run test:receptionist
 
   mobile:
     runs-on: ubuntu-latest
@@ -87,6 +88,9 @@ jobs:
           grep -q "agent_runs_workspace_agent_event_key" supabase/migrations/021_agent_runs_idempotency_contract.sql
           grep -q "photo_estimate_workflows" supabase/migrations/022_photo_estimate_workflows.sql
           grep -q "lowes" supabase/migrations/025_lowes_retailer_provider.sql
+          grep -q "receptionist_sessions" supabase/migrations/029_receptionist_core.sql
+          grep -q "receptionist_consents" supabase/migrations/029_receptionist_core.sql
+          grep -q "receptionist_payment_links" supabase/migrations/029_receptionist_core.sql
           grep -q "drop policy if exists agent_runs_select" supabase/migrations/009_agent_runtime_claims_imports.sql
           grep -q "isCronPath" middleware.ts
           grep -q "safeNextPath" app/auth/callback/route.ts app/auth/login/page.tsx lib/safe-next.ts
