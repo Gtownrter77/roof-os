@@ -2,7 +2,8 @@
   "expo": {
     "name": "ROOF/OS Field",
     "slug": "roof-os-field",
-    "version": "0.2.0",
+    "scheme": "roofos",
+    "version": "0.2.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
