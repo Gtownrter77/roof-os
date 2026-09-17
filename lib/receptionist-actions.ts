@@ -23,15 +23,16 @@ export async function bookAppointment(input: { workspaceId: string; leadId: stri
   const supabase = createAdminClient()
   const start = new Date(input.startsAt)
   if (Number.isNaN(start.getTime())) throw new Error('A valid appointment start time is required')
-  const end = new Date(start.getTime() + 30 * 60 * 1000)
-  const { data: existingEvent } = await supabase.from('receptionist_events').select('payload').eq('workspace_id', input.workspaceId).eq('event_key', input.idempotencyKey).limit(1).maybeSingle()
-  if (existingEvent?.payload && typeof existingEvent.payload === 'object' && 'appointmentId' in existingEvent.payload) return existingEvent.payload
-  const { data: conflicts, error: conflictError } = await supabase.from('appointments').select('id').eq('workspace_id', input.workspaceId).neq('status', 'cancelled').lt('starts_at', end.toISOString()).gt('ends_at', start.toISOString()).limit(10)
-  if (conflictError) throw conflictError
-  if (conflicts?.length) throw new Error('That appointment window is no longer available')
-  const { data: appointment, error } = await supabase.from('appointments').insert({ workspace_id: input.workspaceId, lead_id: input.leadId, title: input.title, appointment_type: 'inspection', starts_at: start.toISOString(), ends_at: end.toISOString(), location: input.address || null, notes: 'Booked by ROOF/OS AI receptionist.', created_by: process.env.RECEPTIONIST_OWNER_ID }).select('id,title,appointment_type,starts_at,ends_at,location,status').single()
-  if (error) throw error
-  await supabase.from('receptionist_events').insert({ workspace_id: input.workspaceId, event_key: input.idempotencyKey, event_type: 'appointment.booked', provider: 'receptionist', payload: { appointmentId: appointment.id, leadId: input.leadId } })
+  const { data: appointment, error } = await supabase.rpc('book_receptionist_appointment', {
+    p_workspace_id: input.workspaceId,
+    p_lead_id: input.leadId,
+    p_title: input.title,
+    p_starts_at: start.toISOString(),
+    p_location: input.address || null,
+    p_created_by: process.env.RECEPTIONIST_OWNER_ID,
+    p_idempotency_key: input.idempotencyKey,
+  })
+  if (error) throw new Error(error.code === '23P01' ? 'That appointment window is no longer available' : error.message)
   return appointment
 }
 
