@@ -42,7 +42,7 @@ export default function App() {
 
   useEffect(() => {
     ensureDatabase()
-    if (!supabase) { setBooting(false); return }
+    if (!supabase) { setError('Mobile Supabase environment is not configured. Add EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY to the Expo/EAS build environment, then rebuild the app.'); setBooting(false); return }
     supabase.auth.getSession().then(({ data }) => { setSession(data.session); setBooting(false) })
     const { data } = supabase.auth.onAuthStateChange((_event, next) => setSession(next))
     return () => data.subscription.unsubscribe()
@@ -70,7 +70,7 @@ export default function App() {
   }
 
   async function signIn() {
-    if (!supabase) { setError('Configure EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY before signing in.'); return }
+    if (!supabase) { setError('Mobile Supabase environment is not configured. Add EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY to the Expo/EAS build environment, then rebuild the app.'); return }
     if (!email.trim() || password.length < 6) { setError('Enter a valid email and a password with at least 6 characters.'); return }
     setAuthBusy(true); setError('')
     const { error: authError } = await supabase.auth.signInWithPassword({ email: email.trim(), password })

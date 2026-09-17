@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 
 const ui = readFileSync('app/photo-estimate/page.tsx', 'utf8')
 const api = readFileSync('app/api/photo-estimate/verify/route.ts', 'utf8')
-const migration = readFileSync('supabase/migrations/023_photo_refresh_decisions.sql', 'utf8')
+const migration = readFileSync('supabase/migrations/024_photo_refresh_decisions.sql', 'utf8')
 
 assert.ok(ui.includes('Request photo refresh'))
 assert.ok(ui.includes('Verify measurements'))
