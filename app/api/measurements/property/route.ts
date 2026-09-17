@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '../../../../lib/supabase/server'
+import { fetchWithTimeout, isUuid, requireWorkspaceMember } from '../../../../lib/api-security'
 
 const NOMINATIM = 'https://nominatim.openstreetmap.org/search'
 const OVERPASS = 'https://overpass-api.de/api/interpreter'
@@ -29,14 +30,16 @@ export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams
   const workspaceId = params.get('workspaceId')
   const address = params.get('address')?.trim()
-  if (!workspaceId || !/^[0-9a-f-]{36}$/i.test(workspaceId)) return NextResponse.json({ error: 'workspaceId must be a valid workspace UUID.' }, { status: 400 })
+  if (!isUuid(workspaceId)) return NextResponse.json({ error: 'workspaceId must be a valid workspace UUID.' }, { status: 400 })
+  const membership = await requireWorkspaceMember(supabase, user.id, workspaceId)
+  if (membership.response) return membership.response
   if (!address || address.length > 240) return NextResponse.json({ error: 'address is required.' }, { status: 400 })
 
   const geocodeUrl = new URL(NOMINATIM)
   geocodeUrl.searchParams.set('q', address)
   geocodeUrl.searchParams.set('format', 'jsonv2')
   geocodeUrl.searchParams.set('limit', '1')
-  const geocodeResponse = await fetch(geocodeUrl, { headers: { 'user-agent': USER_AGENT, accept: 'application/json' }, cache: 'no-store' })
+  const geocodeResponse = await fetchWithTimeout(geocodeUrl, { headers: { 'user-agent': USER_AGENT, accept: 'application/json' }, cache: 'no-store' })
   if (!geocodeResponse.ok) return NextResponse.json({ error: 'Address lookup failed.' }, { status: 502 })
   const geocoded = await geocodeResponse.json()
   if (!geocoded[0]) return NextResponse.json({ error: 'Address could not be located.' }, { status: 404 })
@@ -48,7 +51,7 @@ export async function GET(request: NextRequest) {
   oamUrl.searchParams.set('limit', '10')
   let openAerialMap: unknown[] = []
   try {
-    const oamResponse = await fetch(oamUrl, { headers: { 'user-agent': USER_AGENT, accept: 'application/json' }, cache: 'no-store' })
+    const oamResponse = await fetchWithTimeout(oamUrl, { headers: { 'user-agent': USER_AGENT, accept: 'application/json' }, cache: 'no-store' })
     if (oamResponse.ok) {
       const oamPayload = await oamResponse.json()
       openAerialMap = Array.isArray(oamPayload) ? oamPayload : (oamPayload.results ?? oamPayload.data ?? [])
@@ -56,7 +59,7 @@ export async function GET(request: NextRequest) {
   } catch { openAerialMap = [] }
 
   const query = `[out:json][timeout:15];(way(around:35,${latitude},${longitude})[building];);out geom;`
-  const overpassResponse = await fetch(OVERPASS, { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded', 'user-agent': USER_AGENT }, body: new URLSearchParams({ data: query }).toString(), cache: 'no-store' })
+  const overpassResponse = await fetchWithTimeout(OVERPASS, { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded', 'user-agent': USER_AGENT }, body: new URLSearchParams({ data: query }).toString(), cache: 'no-store' })
   if (!overpassResponse.ok) return NextResponse.json({ error: 'OpenStreetMap footprint lookup failed.' }, { status: 502 })
   const overpass = await overpassResponse.json()
   const candidates = (overpass.elements ?? []).map((element: any) => {

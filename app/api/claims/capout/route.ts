@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '../../../../lib/supabase/server'
 import { getSupabaseEnv } from '../../../../lib/supabase/env'
+import { fetchWithTimeout, isUuid, parseProviderBody, readJson, requireWorkspaceMember } from '../../../../lib/api-security'
 
 const CAPOUT_API = 'https://api.capout.ai'
 const CAPOUT_TIMEOUT_MS = 15_000
@@ -34,16 +35,16 @@ export async function POST(request: NextRequest) {
   const apiKey = process.env.CAPOUT_API_KEY
   if (!apiKey) return NextResponse.json({ error: 'CapOut integration is not configured.' }, { status: 503 })
 
-  let body: RequestBody
-  try { body = await request.json() } catch { return NextResponse.json({ error: 'Invalid JSON body.' }, { status: 400 }) }
-  if (!body.workspaceId || !/^[0-9a-f-]{36}$/i.test(body.workspaceId)) {
-    return NextResponse.json({ error: 'workspaceId must be a valid workspace UUID.' }, { status: 400 })
-  }
+  const parsed = await readJson(request)
+  if (parsed.error) return NextResponse.json({ error: parsed.error }, { status: 400 })
+  const body = parsed.body as RequestBody
+  if (!isUuid(body.workspaceId)) return NextResponse.json({ error: 'workspaceId must be a valid workspace UUID.' }, { status: 400 })
+  const member = await requireWorkspaceMember(supabase, user.id, body.workspaceId)
+  if (member.response) return member.response
   if (!body.sourceUrl || body.sourceUrl.length > 2048 || !isAuthorizedStorageUrl(body.sourceUrl)) {
     return NextResponse.json({ error: 'sourceUrl must be a signed URL for an authorized ROOF/OS inspection asset.' }, { status: 400 })
   }
 
-  // Authorization is explicit and happens before the provider is contacted.
   const { data: membership, error: membershipError } = await supabase
     .from('workspace_members')
     .select('role')
@@ -70,22 +71,19 @@ export async function POST(request: NextRequest) {
 
   let response: Response
   try {
-    response = await fetch(`${CAPOUT_API}/upload`, {
+    response = await fetchWithTimeout(`${CAPOUT_API}/upload`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', 'capout-api-key': apiKey },
       body: JSON.stringify({ url: body.sourceUrl }),
       cache: 'no-store',
-      signal: AbortSignal.timeout(CAPOUT_TIMEOUT_MS),
-    })
+    }, CAPOUT_TIMEOUT_MS)
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Provider request failed.'
     await markImportFailed(supabase, importRecord.id, message)
     return NextResponse.json({ error: 'CapOut upload could not be reached.', importId: importRecord.id }, { status: 502 })
   }
 
-  const text = await response.text()
-  let result: unknown
-  try { result = JSON.parse(text) } catch { result = { message: text.slice(0, 500) } }
+  const result = parseProviderBody(await response.text())
   if (!response.ok) {
     await markImportFailed(supabase, importRecord.id, 'CapOut rejected the upload.')
     return NextResponse.json({ error: 'CapOut upload failed.', importId: importRecord.id, provider: result }, { status: 502 })
@@ -97,16 +95,7 @@ export async function POST(request: NextRequest) {
     external_document_id: typeof providerResult.document_id === 'string' ? providerResult.document_id : null,
     metadata: { source: 'signed_inspection_storage_url', providerResult },
   }).eq('id', importRecord.id).select('id, workspace_id, status, external_document_id, source_sha256').single()
-  if (updateError || !updatedImport) {
-    return NextResponse.json({ error: 'CapOut accepted the upload, but ROOF/OS could not update the import state.', importId: importRecord.id }, { status: 502 })
-  }
+  if (updateError || !updatedImport) return NextResponse.json({ error: 'CapOut accepted the upload, but ROOF/OS could not update the import state.', importId: importRecord.id }, { status: 502 })
 
-  return NextResponse.json({
-    provider: 'capout',
-    workspaceId: body.workspaceId,
-    market: body.market ?? null,
-    submittedBy: user.id,
-    import: updatedImport,
-    providerResult: result,
-  }, { status: 202 })
+  return NextResponse.json({ provider: 'capout', workspaceId: body.workspaceId, market: body.market ?? null, submittedBy: user.id, import: updatedImport, providerResult: result }, { status: 202 })
 }
