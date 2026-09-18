@@ -7,6 +7,32 @@ if (!config.includes('Content-Security-Policy') || !config.includes('X-Content-T
   throw new Error('Required security headers are missing from next.config.ts')
 }
 
+const definerHardening = readFileSync(join(root, 'supabase', 'migrations', '031_security_definer_least_privilege.sql'), 'utf8')
+for (const functionName of [
+  'current_workspace_id',
+  'is_system_owner',
+  'is_workspace_admin',
+  'is_workspace_member',
+  'handle_new_user_workspace',
+  'create_default_lead_followup',
+  'record_lead_status_change',
+  'seed_default_automation_rules',
+  'book_receptionist_appointment',
+]) {
+  if (!definerHardening.includes(functionName)) throw new Error(`Least-privilege migration does not cover ${functionName}`)
+}
+if (!definerHardening.includes('to service_role')) throw new Error('Worker-only function grant is missing from least-privilege migration')
+
+const activeWorkspace = readFileSync(join(root, 'supabase', 'migrations', '032_active_workspace_selection.sql'), 'utf8')
+if (!activeWorkspace.includes('user_active_workspaces') || !activeWorkspace.includes('create policy user_active_workspaces_insert')) {
+  throw new Error('Explicit active workspace selection migration is incomplete')
+}
+
+const storageHardening = readFileSync(join(root, 'supabase', 'migrations', '033_storage_owner_path_hardening.sql'), 'utf8')
+if (!storageHardening.includes('(storage.foldername(name))[2] = auth.uid()::text')) {
+  throw new Error('Storage owner-path write guard is missing')
+}
+
 const routes = []
 function walk(dir) {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {

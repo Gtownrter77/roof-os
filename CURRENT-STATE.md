@@ -1,92 +1,92 @@
 # ROOF/OS Current State
 
-**Evidence date:** 2026-09-18 UTC  
-**Repository:** `https://github.com/Gtownrter77/roof-os`  
-**Evidence basis:** direct Git inspection, GitHub CLI/API metadata, local build/security/runtime checks, and repository source review. Documentation claims are not treated as proof.
+**Evidence date:** 2026-09-18 UTC
 
-## Executive status
+**Repository:** `Gtownrter77/roof-os`
 
-The repository is **not yet VERIFIED production-ready** under the master mission standard. The hardening release was rebased onto current `origin/main`, passed all local and remote gates, and was merged as `58a87f4`. Live Supabase cross-workspace behavior, storage authorization, real invitation delivery/acceptance, production cron execution, and end-to-end authenticated feature behavior remain unproven in this environment.
+**Release-candidate baseline:** `86de783` plus this working-tree remediation
 
-## Git and workspace inventory
+**Production URL:** <https://roof-os-lemon.vercel.app>
 
-| Item | Verified result |
-|---|---|
-| Local repository copies | One Git repository found: `/home/ubuntu/roof-os` |
-| Current branch | `fix/vercel-expo-build-boundary` |
-| Current commit | `58a87f4 Merge verified release hardening` on `origin/main` |
-| Upstream | `origin/fix/vercel-expo-build-boundary` |
-| Current branch status | Reconciled hardening branch clean and pushed; PR merged into `origin/main` |
-| Local `main` | Stale at `c34e49d`; it is one commit ahead of the old remote comparison point and 31 commits behind current `origin/main` by the recorded divergence calculation |
-| Current branch divergence | Equal to its upstream at the time of inventory |
-| Stashes | None found |
-| Worktrees | Only `/home/ubuntu/roof-os` |
-| Tags | No release tags were reported by the inventory command |
-| Uncommitted changes | None at the final inventory checkpoint |
-| Detached HEAD | Not present |
-| Unfinished merge/rebase | None at the final inventory checkpoint |
+**Supabase project:** `xksumagfbegdlapwysps`
 
-The machine search found no second ROOF/OS or Storm-related Git repository under the searched workspace locations. Remote branches contain additional work that is not present in the current local branch; those branches were preserved and not deleted.
+## Evidence standard
 
-## GitHub reality
+This is the authoritative current-state record for the present release candidate. Historical handoff documents remain useful history but are not proof. A status is assigned only from observed source, executed checks, live Supabase inspection, or HTTP behavior.
 
-`origin/main` is currently `58a87f4`, the verified hardening merge commit. The source repair branch remains preserved at `origin/fix/vercel-expo-build-boundary`.
+| Status | Meaning |
+| --- | --- |
+| **VERIFIED** | Actual behavior was exercised and the expected result observed. |
+| **PARTIAL** | Some layers are proven, but the full UI/API/auth/RLS/production chain is incomplete. |
+| **FAILED** | A defect was observed and is not corrected in the current candidate. |
+| **BLOCKED** | A required external access or account is unavailable in this task. |
+| **UNKNOWN** | No adequate test evidence was available. |
+| **NOT IMPLEMENTED** | The capability is absent or only an experiment/configuration rather than a working feature. |
 
-PR #18 is **MERGED** at <https://github.com/Gtownrter77/roof-os/pull/18>. Its final six checks all succeeded: web, mobile, preview-build, migration-safety, Vercel deployment, and Vercel Preview Comments.
+## What was found and recovered
 
-Other open PRs include #8, #9, #11, #15, and #16. Their branches contain independent work such as footprint/product-surface changes, photo-estimate workflow changes, Lowe’s OAuth, invitation/live hardening work, and AI receptionist work. They were not merged automatically because the master mission requires review of branch differences before merging.
+The supplied archive was a handoff package rather than the authoritative repository. A fresh GitHub clone found `main` clean at `86de783`, with no local-only commits, stashes, detached HEAD, or incomplete merge/rebase. Multiple preserved remote branches and open pull requests exist; none was merged automatically.
 
-## Work that exists outside the current branch
+Live Supabase migration history contained applied invitation and receptionist migrations absent from `main` source. The known source files for migration 028 (invitation acceptance) and migrations 029–030 (receptionist schema and atomic booking) were recovered verbatim from their preserved remote branches. Existing historical migration filenames were not renamed, including duplicate 021–023 prefixes.
 
-Remote branches with additional commits relative to `origin/main` include, among others:
+## Changes in this release candidate
 
-- `origin/manus/leading-edge-batch-1-20260917`
-- `origin/manus/ai-receptionist-20260917`
-- `origin/manus/simple-auth-20260917`
-- `origin/manus/lowes-oauth-pr`
-- `origin/manus/photo-estimate-hardening-20260916`
-- `origin/hardening-pass-2`
-- `origin/feat/mobile-field-shippable-pilot`
-- `origin/fix/sotu-hardening`
-- `origin/fix/crm-onto-main`
-- `origin/fix/crm-five-weak-links`
-- `origin/feat/footprint-first-10`
-- `origin/integration/unified-roof-os`
+The live database now contains three forward migrations applied during this task:
 
-These branches remain intact. Their existence does not prove that their features are integrated or production-ready.
+1. **Security-definer least privilege.** Public and anonymous execution was revoked from all eleven audited `SECURITY DEFINER` helpers. Trigger/setup helpers are not browser callable, and the receptionist booking procedure is restricted to `service_role`.
+2. **Explicit active-workspace selection.** `user_active_workspaces` stores a user's selected workspace under self-only RLS. `current_workspace_id()` honors the selection only when the user retains membership, with a deterministic compatibility fallback for single-workspace users. The web UI now exposes a selector only to authenticated users with two or more workspaces.
+3. **Storage ownership enforcement.** The private inspection-photo bucket policy now requires members to write only to `<workspace_id>/<their_user_id>/...`. Workspace administrators retain permitted workspace management visibility.
 
-## Security findings
+The checked-out source now includes the recovered migration files and forward migration sources 031–033. `tsconfig.tsbuildinfo` is ignored to avoid committing generated local build metadata.
 
-The current hardening branch includes patched Next.js/PostCSS dependencies, browser security headers, Next.js 16 proxy convention, shared workspace-membership checks across nine protected routes, bounded JSON input, upstream timeouts, provider-response truncation, and release/security/audit checks. Reconciled verification passed `npm audit` with zero reported vulnerabilities, the release check, security check, build, typecheck, mobile typecheck/config validation, and diff validation.
+## Three-level verification
 
-The secret audit found references to environment-variable names in expected locations such as `.env.example`, CI, deployment documentation, route code, and worker documentation. It did not print or identify secret values. No committed secret value was established by this audit.
+### Level 1 — static and build
 
-## Level 3 status
+`git diff --check`, web TypeScript, release security checks, production dependency audit, production Next.js build, field TypeScript, and Expo configuration validation all passed. The web production dependency audit reported zero high-severity vulnerabilities. The field package's general audit reports ten moderate development-toolchain findings under Expo; they are tracked as maintenance risk rather than treated as a release pass.
 
-| Area | Status | Evidence / blocker |
-|---|---|---|
-| Web build and type safety | VERIFIED locally | Production build and typecheck passed |
-| Security headers and unauthenticated redirects | VERIFIED locally | Standalone runtime smoke test passed |
-| API workspace guard coverage | PARTIAL | Static route coverage and security tests pass; real two-user database isolation is not proven here |
-| Supabase RLS across workspaces | UNKNOWN | Requires authenticated users and live database test environment |
-| Storage upload/download authorization | UNKNOWN | Requires live Supabase storage tests for two workspaces |
-| Production Vercel deployment | PARTIAL | Merged main deployed successfully; live login page loaded and unauthenticated `/leads` redirected to login; authenticated feature behavior remains unverified |
-| Production Supabase migrations | UNKNOWN | Current live migration state was not re-established during this inventory |
-| Cron execution/retry/idempotency | PARTIAL | Code and CI checks exist; real Vercel Cron execution and provider failure/retry evidence remain unproven |
-| External integrations | PARTIAL | Timeout/error handling exists; live success, auth failure, rate-limit, duplicate, and unavailable-provider tests remain incomplete |
-| Automation agents | PARTIAL/UNKNOWN | Runtime contracts exist; each production worker heartbeat and restart/idempotency chain is not proven |
-| Invitations | PARTIAL | Database/API work exists on branches/PRs; complete delivery, acceptance, identity, and membership lifecycle is not proven |
-| Building-code data | PARTIAL | ZIP/state reference behavior exists; authoritative jurisdiction/current-source proof is absent |
-| Prototype routes | NOT IMPLEMENTED as production features | Existing docs identify routes such as `/quantum`, `/genetic`, `/vr`, and portions of `/photo-estimate` as shells/prototypes |
+### Level 2 — runtime
 
-## Fixes already made
+A standalone local production server returned `200` for `/auth/login` with the expected security headers, redirected unauthenticated `/leads` to login with `307`, and rejected an unauthenticated cron request with `401`. The public Vercel service returned the same `200` login, protected-route redirect, and unauthenticated cron rejection behavior.
 
-The latest hardening commit addressed the five previously selected weaknesses: dependency vulnerabilities, missing security headers, repeated workspace authorization risk, unbounded request/provider behavior, and weak release gates. It also updated the handoff and was pushed to the repair branch.
+### Level 3 — live Supabase behavior
 
-## Remaining blockers
+Live privilege checks verify that anonymous execution is denied for every audited definer helper. Authenticated execution of the receptionist booking function is denied, whereas service-role execution is permitted. A synthetic nonmember session saw zero leads, inspection sessions, inspection photos, and private Storage objects, and obtained no active workspace. A permitted owner-path Storage insert succeeded inside a transaction that was rolled back; an otherwise-identical foreign-user path insert failed with a row-level-security violation. Active-workspace persistence also succeeded inside a rolled-back authenticated transaction.
 
-The remaining blockers are live two-user RLS/storage/approval tests, confirmation of Supabase migration state, real cron and integration failure-path tests, complete invitation lifecycle verification, and authenticated production feature verification. The sandbox has no live Supabase credentials or CLI, so these cannot be honestly completed from this session without the user’s authenticated browser or service authorization.
+## Level 3 scoreboard
 
-## Next defensible task
+| Capability | Status | Evidence and remaining boundary |
+| --- | --- | --- |
+| Repository baseline and release source | **VERIFIED** | Fresh clone clean and synchronized with `origin/main`; recovered applied migration sources are additive. |
+| Web build and type safety | **VERIFIED** | Production build and TypeScript succeeded. |
+| Field compile/config | **VERIFIED** | Field TypeScript and Expo config validation succeeded. |
+| Web production dependency risk | **VERIFIED** | `npm audit --omit=dev --audit-level=high` found zero vulnerabilities. |
+| Field dependency risk | **PARTIAL** | Expo development toolchain reports ten moderate transitive findings. |
+| Public login and unauthenticated protected routes | **VERIFIED** | Live Vercel login `200`; `/leads` `307` to login. |
+| Security headers | **VERIFIED** | Local and live login responses contained CSP, HSTS, frame denial, MIME, referrer, and permissions policies. |
+| Cron unauthenticated failure | **VERIFIED** | Local and live cron paths return `401` without the bearer secret. |
+| Cron scheduled execution and provider outcomes | **PARTIAL** | Schedule is configured; successful invocation, retry, rate limit, timeout, and provider-unavailable execution are unproven. |
+| SECURITY DEFINER exposure | **VERIFIED** | Anonymous execution denied; worker-only booking function restricted to `service_role`. |
+| Active workspace selection | **PARTIAL** | Persistence and membership-gated selection tested; live project has no multi-workspace user for a switch test. |
+| Leads and inspection RLS isolation | **PARTIAL** | A nonmember session was denied all visible rows; two real user/two workspace tests are absent. |
+| Private Storage path authorization | **PARTIAL** | Permitted and forbidden paths were exercised in rolled-back transactions; two real-user read/download tests are absent. |
+| Owner/system configuration controls | **PARTIAL** | Schema/policies and authorized owner data are present; direct user-interface approval tests remain absent. |
+| Invitations | **PARTIAL** | Live acceptance function source is recovered and authenticated-only; no delivery, real acceptance, or membership lifecycle test was run. |
+| Price books and retailer reference pricing | **PARTIAL** | Schema and guarded code exist; no live provider success/failure/rate-limit test or customer pricing claim is validated. |
+| Measurement and building-code guidance | **PARTIAL** | The code intentionally describes review-gated footprint/reference behavior; authoritative jurisdiction or certified-measurement evidence is absent. |
+| Photo estimate approvals | **PARTIAL** | Source and RLS policy inspection show an admin guard; real actor-based approval tests are absent. |
+| Automation agents | **NOT IMPLEMENTED** | Configuration/runtime tables exist, but no four-worker heartbeat, retry, idempotency, restart-recovery chain was observed. |
+| Receptionist, payments, and external messaging | **NOT IMPLEMENTED** | Live tables/functions exist but the checked-out main application does not contain the supporting production routes or verified provider flows. |
+| Mobile field application | **PARTIAL** | Source compiles; device, authentication, sync, upload, and signed APK verification remain unproven. |
+| Experimental/prototype screens | **NOT IMPLEMENTED** as production features | Routes such as `/quantum`, `/genetic`, `/vr`, and related experiments remain outside the verified product surface. |
+| Direct Vercel project configuration/environment review | **BLOCKED** | The enabled Vercel connector returns no accessible team/project context in this task. |
 
-Review the diff between `origin/main` and `origin/fix/vercel-expo-build-boundary`, reconcile the hardening changes onto current `main` without discarding either side’s work, rerun the full verification suite, then push the reconciled branch and re-check PR/Vercel status. Do not merge unrelated open PRs until their diffs and Level 3 evidence are separately reviewed.
+## Remaining blockers before full commercial readiness
+
+The current candidate is suitable for continued internal pilot use, but it is **not VERIFIED as a full commercial production release**. Required evidence still includes a real two-user/two-workspace RLS and Storage test, authenticated browser CRUD with a magic-link callback, invitation delivery and acceptance, cron success/failure/retry evidence, live provider tests, a multi-workspace selector test, mobile device and APK tests, and Vercel environment-variable/project inspection. No database migration or background worker change can replace those runtime proofs.
+
+The authenticated browser and Vercel project configuration checks are currently blocked because My Browser is disabled and the active Vercel connector exposes no project team. No customer communications, payments, credential rotation, license purchase, or destructive data operation was performed.
+
+## Historical notes
+
+Earlier `HANDOFF.md`, `STATE-OF-THE-UNION.md`, and other project documents preserve prior work claims. Refer to this document and `LEVEL3-SCOREBOARD.json` for the present evidence-based status.
