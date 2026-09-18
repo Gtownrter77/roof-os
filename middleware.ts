@@ -7,13 +7,12 @@ function isCronPath(pathname: string) {
 }
 
 function isPublicPath(pathname: string) {
-  return pathname === '/about' || pathname === '/pricing' || pathname.startsWith('/auth')
+  return pathname === '/about' || pathname === '/pricing' || pathname === '/offer' || pathname === '/request-estimate' || pathname === '/snap' || pathname === '/legal' || pathname.startsWith('/auth') || pathname.startsWith('/api/public/')
 }
 
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname
 
-  // Vercel Cron is unauthenticated at the session layer. The route still requires CRON_SECRET.
   if (isCronPath(pathname)) {
     return NextResponse.next({ request })
   }

@@ -46,17 +46,19 @@ export default function Home() {
           <button onClick={() => router.push('/warranty')} className="bg-white rounded-lg shadow p-3 text-center"><p className="text-2xl font-bold">{counts.warranties}</p><p className="text-xs text-gray-500">Warranties due</p></button>
         </div>
         <div className="grid grid-cols-2 gap-3">
+          <button onClick={() => router.push('/start')} className="bg-gray-900 text-white rounded-lg shadow p-4 font-semibold">First 10</button>
           <button onClick={() => router.push('/brief')} className="bg-blue-600 text-white rounded-lg shadow p-4 font-semibold">Owner brief</button>
           <button onClick={() => router.push('/leads/new')} className="bg-white border rounded-lg shadow p-4 font-semibold">New lead</button>
-          <button onClick={() => router.push('/warranty')} className="bg-white border rounded-lg shadow p-4 font-semibold">Warranties</button>
-          <button onClick={() => router.push('/inspections')} className="bg-white border rounded-lg shadow p-4 font-semibold">Inspections</button>
+          <button onClick={() => router.push('/map')} className="bg-white border rounded-lg shadow p-4 font-semibold">Map desk</button>
+          <button onClick={() => router.push('/estimate')} className="bg-white border rounded-lg shadow p-4 font-semibold">Draft estimate</button>
+          <button onClick={() => router.push('/os')} className="bg-white border rounded-lg shadow p-4 font-semibold">Whole path</button>
         </div>
         <div className="bg-white rounded-lg shadow p-4">
           <div className="flex justify-between items-center mb-3"><h2 className="font-semibold">Recent properties</h2><button onClick={() => router.push('/leads')} className="text-blue-600 text-sm">See all</button></div>
           {loading && <p className="text-sm text-gray-500">Loading…</p>}
           {error && <p className="text-sm text-red-600">{error}</p>}
           {recentLeads.map((lead) => (
-            <button key={lead.id} onClick={() => router.push(`/passport/${lead.id}`)} className="w-full flex justify-between items-center py-2 border-b last:border-0 text-left">
+            <button key={lead.id} onClick={() => router.push(`/leads/${lead.id}`)} className="w-full flex justify-between items-center py-2 border-b last:border-0 text-left">
               <div><p className="text-sm font-medium">{lead.name}</p><p className="text-xs text-gray-500">{lead.address}</p></div>
               <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded">{lead.status.replaceAll('_', ' ')}</span>
             </button>
