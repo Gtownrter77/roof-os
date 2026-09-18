@@ -6,7 +6,7 @@
 
 ## Executive status
 
-The repository is **not yet VERIFIED production-ready** under the master mission standard. The hardening branch has now been rebased onto current `origin/main`; the reconciled local checks pass. Live Supabase cross-workspace behavior, storage authorization, real invitation delivery/acceptance, production cron execution, and end-to-end production feature behavior remain unproven in this environment.
+The repository is **not yet VERIFIED production-ready** under the master mission standard. The hardening release was rebased onto current `origin/main`, passed all local and remote gates, and was merged as `58a87f4`. Live Supabase cross-workspace behavior, storage authorization, real invitation delivery/acceptance, production cron execution, and end-to-end authenticated feature behavior remain unproven in this environment.
 
 ## Git and workspace inventory
 
@@ -14,9 +14,9 @@ The repository is **not yet VERIFIED production-ready** under the master mission
 |---|---|
 | Local repository copies | One Git repository found: `/home/ubuntu/roof-os` |
 | Current branch | `fix/vercel-expo-build-boundary` |
-| Current commit | Reconciled hardening commit, to be recorded after the final push |
+| Current commit | `58a87f4 Merge verified release hardening` on `origin/main` |
 | Upstream | `origin/fix/vercel-expo-build-boundary` |
-| Current branch status | Clean before this report checkpoint; branch is being updated with the reconciled release |
+| Current branch status | Reconciled hardening branch clean and pushed; PR merged into `origin/main` |
 | Local `main` | Stale at `c34e49d`; it is one commit ahead of the old remote comparison point and 31 commits behind current `origin/main` by the recorded divergence calculation |
 | Current branch divergence | Equal to its upstream at the time of inventory |
 | Stashes | None found |
@@ -30,9 +30,9 @@ The machine search found no second ROOF/OS or Storm-related Git repository under
 
 ## GitHub reality
 
-`origin/main` is currently `9a32eea`, a merge of the top-five modernization branch. The current hardening branch is being rebased onto that commit before its next verified push.
+`origin/main` is currently `58a87f4`, the verified hardening merge commit. The source repair branch remains preserved at `origin/fix/vercel-expo-build-boundary`.
 
-PR #18 is open at <https://github.com/Gtownrter77/roof-os/pull/18>. Its previous Vercel status and Vercel Preview Comments check succeeded; a fresh status must be checked after the reconciled push.
+PR #18 is **MERGED** at <https://github.com/Gtownrter77/roof-os/pull/18>. Its final six checks all succeeded: web, mobile, preview-build, migration-safety, Vercel deployment, and Vercel Preview Comments.
 
 Other open PRs include #8, #9, #11, #15, and #16. Their branches contain independent work such as footprint/product-surface changes, photo-estimate workflow changes, Lowe’s OAuth, invitation/live hardening work, and AI receptionist work. They were not merged automatically because the master mission requires review of branch differences before merging.
 
@@ -70,7 +70,7 @@ The secret audit found references to environment-variable names in expected loca
 | API workspace guard coverage | PARTIAL | Static route coverage and security tests pass; real two-user database isolation is not proven here |
 | Supabase RLS across workspaces | UNKNOWN | Requires authenticated users and live database test environment |
 | Storage upload/download authorization | UNKNOWN | Requires live Supabase storage tests for two workspaces |
-| Production Vercel preview build | PARTIAL | Vercel check succeeded for PR #18; actual feature behavior and current production deployment remain unverified |
+| Production Vercel deployment | PARTIAL | Merged main deployed successfully; live login page loaded and unauthenticated `/leads` redirected to login; authenticated feature behavior remains unverified |
 | Production Supabase migrations | UNKNOWN | Current live migration state was not re-established during this inventory |
 | Cron execution/retry/idempotency | PARTIAL | Code and CI checks exist; real Vercel Cron execution and provider failure/retry evidence remain unproven |
 | External integrations | PARTIAL | Timeout/error handling exists; live success, auth failure, rate-limit, duplicate, and unavailable-provider tests remain incomplete |
@@ -85,7 +85,7 @@ The latest hardening commit addressed the five previously selected weaknesses: d
 
 ## Remaining blockers
 
-The remaining blockers are live two-user RLS/storage/approval tests, confirmation of Supabase migration state, real cron and integration failure-path tests, complete invitation lifecycle verification, and production feature verification through the deployed application rather than source or screenshots. PR #18 must be rechecked after the reconciled push.
+The remaining blockers are live two-user RLS/storage/approval tests, confirmation of Supabase migration state, real cron and integration failure-path tests, complete invitation lifecycle verification, and authenticated production feature verification. The sandbox has no live Supabase credentials or CLI, so these cannot be honestly completed from this session without the user’s authenticated browser or service authorization.
 
 ## Next defensible task
 
