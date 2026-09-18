@@ -1,0 +1,117 @@
+{
+  "evidence_date": "2026-09-18T08:34:00Z",
+  "repository": "Gtownrter77/roof-os",
+  "baseline_commit": "86de78355d0d1ee994185c7064f424d632971792",
+  "supabase_project": "xksumagfbegdlapwysps",
+  "production_url": "https://roof-os-lemon.vercel.app",
+  "status_definitions": {
+    "VERIFIED": "Observed behavior passed the stated test.",
+    "PARTIAL": "Some layers are proven; complete operational evidence is incomplete.",
+    "FAILED": "A defect was observed and remains unresolved.",
+    "BLOCKED": "Required external access is unavailable in this task.",
+    "UNKNOWN": "No adequate evidence was available.",
+    "NOT_IMPLEMENTED": "No verified working implementation exists."
+  },
+  "features": [
+    {
+      "feature": "web_build_and_type_safety",
+      "status": "VERIFIED",
+      "evidence": "npm run typecheck and npm run build passed.",
+      "test": "Local production build and TypeScript check.",
+      "production_test": "Not applicable to build compilation.",
+      "security_test": "npm run release-check and npm run verify:security passed.",
+      "files_changed": [],
+      "commit": "pending"
+    },
+    {
+      "feature": "public_login_and_protected_routes",
+      "status": "VERIFIED",
+      "evidence": "Production /auth/login returned 200 and unauthenticated /leads returned 307 to login.",
+      "test": "Public HTTPS requests.",
+      "production_test": "Pass at roof-os-lemon.vercel.app before candidate push.",
+      "security_test": "Observed CSP, HSTS, frame, MIME, referrer, and permissions headers.",
+      "files_changed": [],
+      "commit": "pending"
+    },
+    {
+      "feature": "security_definer_least_privilege",
+      "status": "VERIFIED",
+      "evidence": "Live privilege query confirms anon access denied for eleven audited helpers; booking is service-role only.",
+      "test": "Live has_function_privilege query after applying migration 031.",
+      "production_test": "Live Supabase project updated successfully.",
+      "security_test": "Supabase public function-exposure advisory reduced from ten anonymous findings to zero.",
+      "files_changed": ["supabase/migrations/031_security_definer_least_privilege.sql"],
+      "commit": "pending"
+    },
+    {
+      "feature": "active_workspace_selection",
+      "status": "PARTIAL",
+      "evidence": "RLS-backed selection record and membership-gated resolver were exercised in a rolled-back owner transaction.",
+      "test": "Live authenticated transaction persisted then resolved active workspace.",
+      "production_test": "Not yet deployed; multi-workspace UI test awaits a user with two memberships.",
+      "security_test": "Synthetic nonmember resolved no workspace and could not insert a selection.",
+      "files_changed": ["components/WorkspaceSwitcher.tsx", "app/layout.tsx", "supabase/migrations/032_active_workspace_selection.sql"],
+      "commit": "pending"
+    },
+    {
+      "feature": "private_inspection_storage_path_authorization",
+      "status": "PARTIAL",
+      "evidence": "Live owner path insert permitted and foreign-user path insert rejected under RLS; both were nonpersistent transaction tests.",
+      "test": "Live authenticated rolled-back insert transactions.",
+      "production_test": "No real second-user upload/download test yet.",
+      "security_test": "Synthetic nonmember observed zero private Storage objects.",
+      "files_changed": ["supabase/migrations/033_storage_owner_path_hardening.sql"],
+      "commit": "pending"
+    },
+    {
+      "feature": "invite_lifecycle",
+      "status": "PARTIAL",
+      "evidence": "Applied migration 028 source recovered and authenticated-only execution confirmed.",
+      "test": "Function ACL inspection only.",
+      "production_test": "Email delivery and real acceptance flow not tested.",
+      "security_test": "Anonymous execution denied.",
+      "files_changed": ["supabase/migrations/028_invitation_acceptance_transaction.sql"],
+      "commit": "pending"
+    },
+    {
+      "feature": "receptionist_worker_boundary",
+      "status": "NOT_IMPLEMENTED",
+      "evidence": "Live schema/function source recovered, but current main lacks the corresponding production routes and worker integration.",
+      "test": "Source and ACL inspection.",
+      "production_test": "No provider workflow tested.",
+      "security_test": "Booking function now unavailable to anonymous and authenticated browser roles.",
+      "files_changed": ["supabase/migrations/029_receptionist_core.sql", "supabase/migrations/030_receptionist_atomic_booking.sql", "supabase/migrations/031_security_definer_least_privilege.sql"],
+      "commit": "pending"
+    },
+    {
+      "feature": "automation_agents",
+      "status": "NOT_IMPLEMENTED",
+      "evidence": "Configuration and runtime tables exist, but no live worker heartbeat/retry/recovery chain was observed.",
+      "test": "Source and live table inspection.",
+      "production_test": "No worker deployment evidence.",
+      "security_test": "Not applicable pending a worker implementation.",
+      "files_changed": [],
+      "commit": "pending"
+    },
+    {
+      "feature": "vercel_configuration_visibility",
+      "status": "BLOCKED",
+      "evidence": "The enabled connector returned no accessible team/project context.",
+      "test": "Vercel Git context inspection.",
+      "production_test": "Public HTTP behavior observed; environment settings not observable.",
+      "security_test": "Not available.",
+      "files_changed": [],
+      "commit": "pending"
+    }
+  ],
+  "remaining_blockers": [
+    "Real two-user/two-workspace RLS and private Storage tests",
+    "Authenticated browser CRUD and magic-link callback test",
+    "Invitation email delivery and full acceptance lifecycle",
+    "Cron success, timeout, duplicate, retry, provider-error, and rate-limit tests",
+    "External pricing provider integration tests",
+    "Multi-workspace selector browser test",
+    "Mobile device, offline recovery, and signed APK tests",
+    "Vercel project environment-variable and deployment configuration access"
+  ]
+}
