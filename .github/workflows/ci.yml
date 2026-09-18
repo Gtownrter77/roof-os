@@ -89,9 +89,14 @@ jobs:
           grep -q "agent_runs_workspace_agent_event_key" supabase/migrations/021_agent_runs_idempotency_contract.sql
           grep -q "photo_estimate_workflows" supabase/migrations/022_photo_estimate_workflows.sql
           grep -q "lowes" supabase/migrations/025_lowes_retailer_provider.sql
+          grep -q "is_workspace_admin" supabase/migrations/026_supplement_review_admin_guard.sql
+          grep -q "photo_estimate_workflows_update" supabase/migrations/027_photo_estimate_admin_guard.sql
+          grep -q "accept_workspace_invitation" supabase/migrations/028_invitation_acceptance_transaction.sql
           grep -q "drop policy if exists agent_runs_select" supabase/migrations/009_agent_runtime_claims_imports.sql
           grep -q "isCronPath" proxy.ts
           grep -q "safeNextPath" app/auth/callback/route.ts app/auth/login/page.tsx lib/safe-next.ts
           grep -q "Workspace administrator access is required" app/api/claims/capout/route.ts
           grep -q "signed URL for an authorized ROOF/OS inspection asset" app/api/claims/capout/route.ts
+          test -f app/api/team/invitations/accept/route.ts
+          grep -q "accept_workspace_invitation" app/api/team/invitations/accept/route.ts
           if grep -RInE 'CAPOUT_API_KEY=|RAPIDAPI_KEY=|SUPABASE_SERVICE_ROLE_KEY=' --exclude=.env.example --exclude-dir=.git --exclude-dir=.github .; then exit 1; fi
