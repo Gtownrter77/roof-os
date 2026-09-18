@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '../../../../lib/supabase/server'
+import { readJson, requireWorkspaceMember } from '../../../../lib/api-security'
 
 const DEFAULT_RATES = { roofing: 65, siding: 55, windows: 75, doors: 85, gutters: 45, decking: 60, drywall: 40, painting: 35, electrical: 95, plumbing: 90, hvac: 100, demo: 50, cleanup: 35, inspection: 75, consulting: 120 }
 type RateKey = keyof typeof DEFAULT_RATES
@@ -17,6 +18,8 @@ export async function GET() {
   const { supabase, user, workspaceId } = await ownerClient()
   if (!user) return NextResponse.json({ error: 'Authentication required.' }, { status: 401 })
   if (!workspaceId) return NextResponse.json({ rates: DEFAULT_RATES, taxRates: { state: 0, county: 0, city: 0, specialDistrict: 0 }, localTaxRate: 0, taxSource: '', source: 'defaults', editable: false, warning: 'No workspace is configured.' })
+  const membership = await requireWorkspaceMember(supabase, user.id, workspaceId)
+  if (membership.response) return membership.response
   const { data: priceBook, error } = await supabase.from('price_books').select('id,name,market,source,effective_at,status,local_tax_rate,state_tax_rate,county_tax_rate,city_tax_rate,special_district_tax_rate,tax_source,price_book_items(sku,unit,unit_price,description)').eq('workspace_id', workspaceId).eq('source', 'owner-managed').in('status', ['draft', 'active']).order('effective_at', { ascending: false }).limit(1).maybeSingle()
   if (error) return NextResponse.json({ error: 'Could not load the owner-managed price book.', detail: error.message }, { status: 502 })
   const rates = { ...DEFAULT_RATES }
@@ -29,8 +32,11 @@ export async function PUT(request: NextRequest) {
   const { supabase, user, workspaceId } = await ownerClient()
   if (!user) return NextResponse.json({ error: 'Authentication required.' }, { status: 401 })
   if (!workspaceId) return NextResponse.json({ error: 'No workspace is configured.' }, { status: 400 })
-  let body: { rates?: Record<string, number>; market?: string; effectiveAt?: string; localTaxRate?: number; taxSource?: string; taxRates?: Partial<TaxRates> }
-  try { body = await request.json() } catch { return NextResponse.json({ error: 'Invalid JSON body.' }, { status: 400 }) }
+  const membership = await requireWorkspaceMember(supabase, user.id, workspaceId)
+  if (membership.response) return membership.response
+  const parsed = await readJson(request)
+  if (parsed.error) return NextResponse.json({ error: parsed.error }, { status: 400 })
+  const body = parsed.body as { rates?: Record<string, number>; market?: string; effectiveAt?: string; localTaxRate?: number; taxSource?: string; taxRates?: Partial<TaxRates> }
   const rates = body.rates ?? {}
   const valid = Object.entries(rates).every(([key, value]) => key in DEFAULT_RATES && Number.isFinite(Number(value)) && Number(value) >= 0)
   if (!valid) return NextResponse.json({ error: 'Rates must be non-negative numbers using approved labor categories.' }, { status: 400 })
