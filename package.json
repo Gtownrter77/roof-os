@@ -10,6 +10,7 @@
     "release-check": "node scripts/release-check.mjs",
     "audit": "npm audit --omit=dev --audit-level=high",
     "lint": "tsc --noEmit",
+    "test:mobile-offline-sync": "node scripts/mobile-offline-sync-test.mjs",
     "test:photo-estimate-flow": "node scripts/photo-estimate-flow-test.mjs",
     "verify:security": "node scripts/security-check.mjs"
   },
