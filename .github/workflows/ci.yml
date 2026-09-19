@@ -92,6 +92,8 @@ jobs:
           grep -q "is_workspace_admin" supabase/migrations/026_supplement_review_admin_guard.sql
           grep -q "photo_estimate_workflows_update" supabase/migrations/027_photo_estimate_admin_guard.sql
           grep -q "accept_workspace_invitation" supabase/migrations/028_invitation_acceptance_transaction.sql
+          grep -q "query month must be the current UTC month" supabase/migrations/035_retailer_quota_hardening.sql
+          grep -q "monthly limit is fixed at 100" supabase/migrations/035_retailer_quota_hardening.sql
           grep -q "drop policy if exists agent_runs_select" supabase/migrations/009_agent_runtime_claims_imports.sql
           grep -q "isCronPath" proxy.ts
           grep -q "safeNextPath" app/auth/callback/route.ts app/auth/login/page.tsx lib/safe-next.ts

@@ -23,6 +23,11 @@ for (const functionName of [
 }
 if (!definerHardening.includes('to service_role')) throw new Error('Worker-only function grant is missing from least-privilege migration')
 
+const quotaHardening = readFileSync(join(root, 'supabase', 'migrations', '035_retailer_quota_hardening.sql'), 'utf8')
+if (!quotaHardening.includes("query month must be the current UTC month") || !quotaHardening.includes("monthly limit is fixed at 100")) {
+  throw new Error('Retailer quota hardening migration does not enforce current-month and fixed-limit boundaries')
+}
+
 const activeWorkspace = readFileSync(join(root, 'supabase', 'migrations', '032_active_workspace_selection.sql'), 'utf8')
 if (!activeWorkspace.includes('user_active_workspaces') || !activeWorkspace.includes('create policy user_active_workspaces_insert')) {
   throw new Error('Explicit active workspace selection migration is incomplete')
