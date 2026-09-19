@@ -6,13 +6,13 @@ alter table public.inspection_photos add column if not exists client_id text;
 
 create unique index if not exists inspection_sessions_workspace_client_uidx
   on public.inspection_sessions (workspace_id, client_id)
-  where client_id is not null;
+;
 create unique index if not exists inspection_measurements_workspace_client_uidx
   on public.inspection_measurements (workspace_id, client_id)
-  where client_id is not null;
+;
 create unique index if not exists inspection_photos_workspace_client_uidx
   on public.inspection_photos (workspace_id, client_id)
-  where client_id is not null;
+;
 
 create index if not exists inspection_measurements_inspection_created_idx
   on public.inspection_measurements (inspection_id, created_by, captured_at desc);
