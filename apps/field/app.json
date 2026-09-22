@@ -3,15 +3,21 @@
     "name": "ROOF/OS Field",
     "slug": "roof-os-field",
     "version": "0.1.0",
+    "scheme": "roofosfield",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.roofos.field"
+      "bundleIdentifier": "com.roofos.field",
+      "infoPlist": {
+        "NSCameraUsageDescription": "ROOF/OS uses the camera to capture inspection evidence.",
+        "NSLocationWhenInUseUsageDescription": "ROOF/OS uses location to record where field measurements were captured."
+      }
     },
     "android": {
       "package": "com.roofos.field",
+      "permissions": ["CAMERA", "ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION"],
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
