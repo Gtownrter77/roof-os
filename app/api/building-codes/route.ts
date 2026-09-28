@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '../../../lib/supabase/server'
+import { fetchWithTimeout } from '../../../lib/api-security'
 
 const SOURCE = 'https://www.iccsafe.org/about-icc/overview-of-the-icc/international-code-adoptions/'
 const STATE_CODES: Record<string, { code: string; edition: string; notes: string[] }> = {
@@ -18,9 +19,12 @@ export async function GET(request: NextRequest) {
   const zip = request.nextUrl.searchParams.get('zip')?.trim() ?? ''
   const category = request.nextUrl.searchParams.get('category')?.trim() || 'Roofing'
   if (!/^\d{5}(?:-\d{4})?$/.test(zip)) return NextResponse.json({ error: 'Enter a valid five-digit ZIP code.' }, { status: 400 })
-  const response = await fetch(`https://api.zippopotam.us/us/${zip.slice(0, 5)}`, { headers: { accept: 'application/json' }, cache: 'no-store' })
+  if (category.length > 80) return NextResponse.json({ error: 'Category must be 80 characters or fewer.' }, { status: 400 })
+  const response = await fetchWithTimeout(`https://api.zippopotam.us/us/${zip.slice(0, 5)}`, { headers: { accept: 'application/json' }, cache: 'no-store' }, 5_000).catch(() => null)
+  if (!response) return NextResponse.json({ error: 'ZIP locality lookup is temporarily unavailable.' }, { status: 503 })
   if (!response.ok) return NextResponse.json({ error: 'ZIP code could not be resolved.' }, { status: 404 })
-  const locality = await response.json()
+  const locality = await response.json().catch(() => null) as { places?: Array<Record<string, string>> } | null
+  if (!locality || !Array.isArray(locality.places)) return NextResponse.json({ error: 'ZIP locality service returned an invalid response.' }, { status: 502 })
   const place = locality.places?.[0]
   if (!place) return NextResponse.json({ error: 'No locality was returned for that ZIP code.' }, { status: 404 })
   const state = place['state abbreviation'] as string

@@ -8,6 +8,7 @@
     "start": "mkdir -p .next/standalone/.next && cp -R .next/static .next/standalone/.next/static && node .next/standalone/server.js",
     "typecheck": "tsc --noEmit",
     "release-check": "node scripts/release-check.mjs",
+    "test:api-security": "node scripts/api-security-test.mjs",
     "audit": "npm audit --omit=dev --audit-level=high",
     "lint": "tsc --noEmit",
     "test:mobile-offline-sync": "node scripts/mobile-offline-sync-test.mjs",

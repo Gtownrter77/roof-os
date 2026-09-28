@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import type { SupabaseClient } from '@supabase/supabase-js'
+export { readJson } from './read-json'
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
@@ -34,18 +35,6 @@ export async function requireWorkspaceMember(
   if (error) return { response: NextResponse.json({ error: 'Workspace authorization could not be verified.' }, { status: 503 }) }
   if (!data) return { response: forbidden() }
   return { workspaceId }
-}
-
-export async function readJson(request: Request, maxBytes = 64 * 1024) {
-  const contentLength = Number(request.headers.get('content-length') ?? 0)
-  if (contentLength > maxBytes) return { error: 'Request body is too large.' as const }
-  try {
-    const body = await request.json()
-    if (body === null || typeof body !== 'object' || Array.isArray(body)) return { error: 'JSON body must be an object.' as const }
-    return { body: body as Record<string, unknown> }
-  } catch {
-    return { error: 'Invalid JSON body.' as const }
-  }
 }
 
 export async function fetchWithTimeout(input: RequestInfo | URL, init: RequestInit = {}, timeoutMs = 10_000) {

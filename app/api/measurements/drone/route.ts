@@ -7,7 +7,7 @@ export async function POST(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Authentication required.' }, { status: 401 })
   const parsed = await readJson(request)
-  if (parsed.error) return NextResponse.json({ error: parsed.error }, { status: 400 })
+  if ('error' in parsed) return NextResponse.json({ error: parsed.error }, { status: parsed.status })
   const body = parsed.body
   const workspaceId = typeof body.workspaceId === 'string' ? body.workspaceId : ''
   const assetUrl = typeof body.assetUrl === 'string' ? body.assetUrl : ''

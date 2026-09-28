@@ -1,17 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '../../../../../lib/supabase/server'
+import { readJson } from '../../../../../lib/api-security'
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Authentication required.' }, { status: 401 })
 
-  let body: { invitationId?: string }
-  try {
-    body = await request.json()
-  } catch {
-    return NextResponse.json({ error: 'Invalid JSON body.' }, { status: 400 })
-  }
+  const parsedBody = await readJson(request)
+  if ('error' in parsedBody) return NextResponse.json({ error: parsedBody.error }, { status: parsedBody.status })
+  const body = parsedBody.body as { invitationId?: string }
 
   const invitationId = body.invitationId?.trim()
   if (!invitationId || !/^[0-9a-f-]{36}$/i.test(invitationId)) {
