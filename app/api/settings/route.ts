@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '../../../lib/supabase/server'
+import { readJson } from '../../../lib/api-security'
 
 const defaults = { price_refresh_frequency: 'weekly', default_language: 'en-US', default_zipcode: '', preferred_brands: {}, material_search_mode: 'catalog_and_retailer' }
 
@@ -24,8 +25,9 @@ export async function PUT(request: NextRequest) {
   const { supabase, user, workspaceId } = await context()
   if (!user) return NextResponse.json({ error: 'Authentication required.' }, { status: 401 })
   if (!workspaceId) return NextResponse.json({ error: 'No workspace is configured.' }, { status: 400 })
-  let body: Record<string, unknown>
-  try { body = await request.json() } catch { return NextResponse.json({ error: 'Invalid JSON body.' }, { status: 400 }) }
+  const parsedBody = await readJson(request)
+  if ('error' in parsedBody) return NextResponse.json({ error: parsedBody.error }, { status: parsedBody.status })
+  const body = parsedBody.body as Record<string, unknown>
   const frequency = String(body.price_refresh_frequency ?? 'weekly')
   const language = String(body.default_language ?? 'en-US')
   const zipcode = String(body.default_zipcode ?? '').trim()

@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getLowesAccessToken, LOWES_PRODUCT_SEARCH_URL } from '../../../../lib/lowes'
+import { fetchWithTimeout } from '../../../../lib/api-security'
 
 const HOME_DEPOT_HOST = 'real-time-home-depot-data.p.rapidapi.com'
 const MONTHLY_LIMIT = 100
+const MAX_WATCHLIST_ITEMS = 10
+export const maxDuration = 60
 
 type WatchlistItem = { id: string; workspace_id: string; provider: 'home_depot' | 'lowes'; query: string; zipcode: string | null; store_id: string | null }
 
@@ -18,8 +21,9 @@ export async function GET(request: NextRequest) {
   if (!supabaseUrl || !serviceRoleKey) return NextResponse.json({ error: 'Weekly pricing refresh is not configured.' }, { status: 503 })
 
   const supabase = createClient(supabaseUrl, serviceRoleKey, { auth: { autoRefreshToken: false, persistSession: false } })
-  const { data: watchlist, error: watchlistError } = await supabase.from('retailer_price_watchlist').select('id, workspace_id, provider, query, zipcode, store_id').eq('active', true)
+  const { data: watchlist, error: watchlistError } = await supabase.from('retailer_price_watchlist').select('id, workspace_id, provider, query, zipcode, store_id').eq('active', true).order('id').limit(MAX_WATCHLIST_ITEMS + 1)
   if (watchlistError) return NextResponse.json({ error: 'Could not load pricing watchlist.', detail: watchlistError.message }, { status: 502 })
+  if ((watchlist ?? []).length > MAX_WATCHLIST_ITEMS) return NextResponse.json({ error: `Weekly refresh is capped at ${MAX_WATCHLIST_ITEMS} active watchlist items per run. Reduce the list before retrying.` }, { status: 503 })
   const workspaceIds = [...new Set((watchlist ?? []).map(item => item.workspace_id))]
   const { data: settings } = workspaceIds.length ? await supabase.from('workspace_settings').select('workspace_id,price_refresh_frequency').in('workspace_id', workspaceIds) : { data: [] }
   const frequencyByWorkspace = new Map((settings ?? []).map(item => [item.workspace_id, item.price_refresh_frequency]))
@@ -32,7 +36,7 @@ export async function GET(request: NextRequest) {
     if (frequency !== 'weekly') { results.push({ watchlistId: item.id, status: frequency === 'manual' ? 'manual_only' : 'disabled' }); continue }
     if (item.provider === 'home_depot' && !rapidApiKey) { results.push({ watchlistId: item.id, provider: item.provider, status: 'provider_not_configured' }); continue }
     if (item.provider === 'lowes' && !lowesToken) {
-      const oauth = await getLowesAccessToken()
+      const oauth = await getLowesAccessToken().catch(() => ({ token: null, error: 'Lowe\'s OAuth token request timed out or failed.' }))
       if (!oauth.token) { results.push({ watchlistId: item.id, provider: item.provider, status: 'provider_not_configured', detail: oauth.error }); continue }
       lowesToken = oauth.token
     }
@@ -58,7 +62,8 @@ export async function GET(request: NextRequest) {
       if (item.store_id) apiUrl.searchParams.set('store_id', item.store_id)
       headers = { 'x-rapidapi-host': HOME_DEPOT_HOST, 'x-rapidapi-key': rapidApiKey!, 'content-type': 'application/json' }
     }
-    const response = await fetch(apiUrl, { headers, cache: 'no-store' })
+    const response = await fetchWithTimeout(apiUrl, { headers, cache: 'no-store' }, 5_000).catch(() => null)
+    if (!response) { results.push({ watchlistId: item.id, provider: item.provider, status: 'provider_timeout' }); continue }
     const text = await response.text()
     let payload: unknown
     try { payload = JSON.parse(text) } catch { payload = { message: text.slice(0, 500) } }

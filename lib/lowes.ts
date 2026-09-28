@@ -14,12 +14,20 @@ export async function getLowesAccessToken() {
   const credentials = await getCredentials()
   if (!credentials) return { token: null, error: 'Lowe\'s OAuth credentials are not configured.' }
 
-  const response = await fetch(LOWES_TOKEN_URL, {
-    method: 'POST',
-    headers: { 'content-type': 'application/x-www-form-urlencoded', accept: 'application/json' },
-    body: new URLSearchParams({ grant_type: 'client_credentials', client_id: credentials.clientId, client_secret: credentials.clientSecret }).toString(),
-    cache: 'no-store',
-  })
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 5_000)
+  let response: Response
+  try {
+    response = await fetch(LOWES_TOKEN_URL, {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded', accept: 'application/json' },
+      body: new URLSearchParams({ grant_type: 'client_credentials', client_id: credentials.clientId, client_secret: credentials.clientSecret }).toString(),
+      cache: 'no-store',
+      signal: controller.signal,
+    })
+  } finally {
+    clearTimeout(timeout)
+  }
   const text = await response.text()
   let payload: unknown
   try { payload = JSON.parse(text) } catch { payload = { message: text.slice(0, 500) } }
