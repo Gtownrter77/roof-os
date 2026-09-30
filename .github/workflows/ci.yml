@@ -31,6 +31,7 @@ jobs:
       - run: npm run release-check
       - run: npm run verify:security
       - run: npm run test:api-security
+      - run: npm run test:auth-flow
       - run: npm run test:mobile-offline-sync
       - run: npm run test:photo-estimate-flow
       - run: npm run test:measurement-estimate-authority

@@ -9,6 +9,7 @@
     "typecheck": "tsc --noEmit",
     "release-check": "node scripts/release-check.mjs",
     "test:api-security": "node scripts/api-security-test.mjs",
+    "test:auth-flow": "node scripts/auth-flow-test.mjs",
     "audit": "npm audit --omit=dev --audit-level=high",
     "lint": "tsc --noEmit",
     "test:mobile-offline-sync": "node scripts/mobile-offline-sync-test.mjs",

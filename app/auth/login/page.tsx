@@ -8,7 +8,7 @@ import { safeNextPath } from '../../../lib/safe-next'
 
 const SUCCESSFUL_SEND_COOLDOWN_SECONDS = 60
 
-type SignInMode = 'link' | 'code'
+type SignInMode = 'password' | 'link' | 'code'
 
 function LoginForm() {
   const router = useRouter()
@@ -16,8 +16,9 @@ function LoginForm() {
   const next = safeNextPath(search.get('next'), typeof window === 'undefined' ? 'https://invalid.local' : window.location.origin)
   const supabase = createClient()
   const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [code, setCode] = useState('')
-  const [mode, setMode] = useState<SignInMode>('link')
+  const [mode, setMode] = useState<SignInMode>('password')
   const [codeSent, setCodeSent] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
@@ -46,6 +47,36 @@ function LoginForm() {
     setCode('')
     setMessage('')
     setError('')
+  }
+
+  async function signInWithPassword() {
+    if (loading) return
+    const normalizedEmail = email.trim()
+    if (!normalizedEmail || !password) {
+      setError('Enter your email address and password.')
+      return
+    }
+
+    setLoading(true)
+    setMessage('')
+    setError('')
+    try {
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: normalizedEmail,
+        password,
+      })
+      if (signInError) {
+        setError('Email or password was not accepted. Check both fields and try again.')
+        return
+      }
+
+      router.replace(next)
+      router.refresh()
+    } catch {
+      setError('Password sign-in is temporarily unavailable. Please try again.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   async function sendSignInEmail() {
@@ -133,9 +164,12 @@ function LoginForm() {
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    if (mode === 'code' && codeSent) await verifyEmailCode()
+    if (mode === 'password') await signInWithPassword()
+    else if (mode === 'code' && codeSent) await verifyEmailCode()
     else await sendSignInEmail()
   }
+
+  const submitCooldown = mode === 'password' ? 0 : mode === 'code' && codeSent ? verifyCooldown : sendCooldown
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -143,7 +177,8 @@ function LoginForm() {
         <h1 className="text-xl font-bold text-center">Welcome to ROOF/OS</h1>
         <p className="text-sm text-gray-500 text-center mt-1 mb-6">Sign in securely with your work email.</p>
 
-        <div className="grid grid-cols-2 gap-2 mb-5" role="group" aria-label="Sign-in method">
+        <div className="grid grid-cols-3 gap-2 mb-5" role="group" aria-label="Sign-in method">
+          <button type="button" onClick={() => changeMode('password')} aria-pressed={mode === 'password'} className={`py-2 rounded-lg border text-sm ${mode === 'password' ? 'bg-blue-50 border-blue-600 text-blue-700' : 'border-gray-300 text-gray-600'}`}>Password</button>
           <button type="button" onClick={() => changeMode('link')} aria-pressed={mode === 'link'} className={`py-2 rounded-lg border text-sm ${mode === 'link' ? 'bg-blue-50 border-blue-600 text-blue-700' : 'border-gray-300 text-gray-600'}`}>Email link</button>
           <button type="button" onClick={() => changeMode('code')} aria-pressed={mode === 'code'} className={`py-2 rounded-lg border text-sm ${mode === 'code' ? 'bg-blue-50 border-blue-600 text-blue-700' : 'border-gray-300 text-gray-600'}`}>6-digit code</button>
         </div>
@@ -164,6 +199,23 @@ function LoginForm() {
           className="w-full p-3 border rounded-lg mb-4"
           placeholder="you@company.com"
         />
+
+        {mode === 'password' && (
+          <>
+            <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="password">Password</label>
+            <input
+              id="password"
+              type="password"
+              required
+              maxLength={128}
+              autoComplete="current-password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              className="w-full p-3 border rounded-lg mb-4"
+              placeholder="Enter your password"
+            />
+          </>
+        )}
 
         {mode === 'code' && codeSent && (
           <>
@@ -191,12 +243,13 @@ function LoginForm() {
 
         <button
           type="submit"
-          disabled={loading || (mode === 'code' && codeSent ? verifyCooldown > 0 : sendCooldown > 0)}
+          disabled={loading || submitCooldown > 0}
           className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold disabled:opacity-60"
         >
           {loading
-            ? mode === 'code' && codeSent ? 'Verifying code…' : 'Sending email…'
-            : mode === 'code' && codeSent ? verifyCooldown > 0 ? `Try code again in ${verifyCooldown}s` : 'Verify 6-digit code'
+            ? mode === 'password' ? 'Signing in…' : mode === 'code' && codeSent ? 'Verifying code…' : 'Sending email…'
+            : mode === 'password' ? 'Sign in with password'
+              : mode === 'code' && codeSent ? verifyCooldown > 0 ? `Try code again in ${verifyCooldown}s` : 'Verify 6-digit code'
               : sendCooldown > 0 ? `Request again in ${sendCooldown}s`
                 : mode === 'code' ? 'Send 6-digit code' : 'Send sign-in link'}
         </button>
