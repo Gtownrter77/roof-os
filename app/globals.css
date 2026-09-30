@@ -154,6 +154,10 @@
 }
 
 @layer base {
+  html {
+    background: #f7f8fa;
+  }
+
   * {
     @apply border-border outline-ring/50;
   }
