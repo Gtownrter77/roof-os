@@ -7,6 +7,10 @@ import { createWorker } from 'tesseract.js'
 
 type Photo = { file: File; preview: string; id: string }
 
+const MAX_PHOTOS = 50
+const MAX_PHOTO_BYTES = 30 * 1024 * 1024
+const MIME_EXTENSIONS: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' }
+
 export default function PhotoEstimatePage() {
   const router = useRouter()
   const supabase = createClient()
@@ -16,6 +20,7 @@ export default function PhotoEstimatePage() {
   const [roofSquares, setRoofSquares] = useState('')
   const [gutterLf, setGutterLf] = useState('')
   const [photoIds, setPhotoIds] = useState<string[]>([])
+  const [inspectionId, setInspectionId] = useState('')
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [working, setWorking] = useState(false)
@@ -30,9 +35,31 @@ export default function PhotoEstimatePage() {
   const [fasciaWidthFt, setFasciaWidthFt] = useState('0.5')
 
   function chooseFiles(event: React.ChangeEvent<HTMLInputElement>) {
-    const selected = Array.from(event.target.files ?? []).filter((file) => file.type.startsWith('image/'))
-    setPhotos((current) => [...current, ...selected.map((file) => ({ file, preview: URL.createObjectURL(file), id: crypto.randomUUID() }))])
+    const selected = Array.from(event.target.files ?? [])
     event.target.value = ''
+    const supported = selected.filter((file) => Object.hasOwn(MIME_EXTENSIONS, file.type) && file.size > 0)
+    const unsupportedCount = selected.length - supported.length
+    const next = [...photos]
+    let totalBytes = next.reduce((sum, photo) => sum + photo.file.size, 0)
+    let limitReached = false
+    for (const file of supported) {
+      if (next.length >= MAX_PHOTOS || totalBytes + file.size > MAX_PHOTO_BYTES) {
+        limitReached = true
+        continue
+      }
+      totalBytes += file.size
+      next.push({ file, preview: URL.createObjectURL(file), id: crypto.randomUUID() })
+    }
+    setPhotos(next)
+    if (unsupportedCount || limitReached) {
+      setError(`Only JPEG, PNG, and WebP photos are supported, up to ${MAX_PHOTOS} photos and 30 MB total.`)
+    } else {
+      setError('')
+    }
+    if (workflow && next.length > photos.length) {
+      setWorkflow(null)
+      setMessage('Additional photos selected. Build a new review packet to include them.')
+    }
   }
 
   async function findAddressInPhotos() {
@@ -52,28 +79,62 @@ export default function PhotoEstimatePage() {
     finally { await worker.terminate(); setOcrWorking(false) }
   }
 
-  async function uploadPhotos() {
+  async function uploadPhotos(): Promise<{ ids: string[]; inspectionId: string }> {
     if (!photos.length) throw new Error('Add at least one roof/property photo.')
     const { data: { user } } = await supabase.auth.getUser()
     const { data: workspaceId } = await supabase.rpc('current_workspace_id')
     if (!user || !workspaceId) throw new Error('Sign in with a workspace before uploading.')
-    const ids: string[] = []
-    for (const photo of photos) {
-      const path = `${workspaceId}/${user.id}/photo-estimate/${photo.id}.${photo.file.name.split('.').pop()?.toLowerCase() || 'jpg'}`
-      const { error: uploadError } = await supabase.storage.from('inspection-photos').upload(path, photo.file, { contentType: photo.file.type, upsert: false })
-      if (uploadError) throw new Error(uploadError.message)
-      ids.push(path)
+
+    let activeInspectionId = inspectionId
+    if (!activeInspectionId) {
+      const { data: inspection, error: inspectionError } = await supabase
+        .from('inspection_sessions')
+        .insert({ workspace_id: workspaceId, created_by: user.id, status: 'in_progress' })
+        .select('id')
+        .single()
+      if (inspectionError || !inspection) throw new Error('Could not start an inspection session for these photos.')
+      activeInspectionId = inspection.id
+      setInspectionId(activeInspectionId)
     }
-    return ids
+
+    const ids = [...photoIds]
+    for (const photo of photos) {
+      if (ids.includes(photo.id)) continue
+      const extension = MIME_EXTENSIONS[photo.file.type]
+      if (!extension) throw new Error('Only JPEG, PNG, and WebP photos are supported.')
+      const objectId = crypto.randomUUID()
+      const path = `${workspaceId}/${user.id}/${activeInspectionId}/${objectId}.${extension}`
+      const { error: uploadError } = await supabase.storage.from('inspection-photos').upload(path, photo.file, { contentType: photo.file.type, upsert: false })
+      if (uploadError) throw new Error('A photo could not be uploaded. Please retry.')
+      const { error: metadataError } = await supabase.from('inspection_photos').insert({
+        id: photo.id,
+        inspection_id: activeInspectionId,
+        workspace_id: workspaceId,
+        uploaded_by: user.id,
+        bucket_id: 'inspection-photos',
+        object_path: path,
+        mime_type: photo.file.type,
+        file_size_bytes: photo.file.size,
+        upload_status: 'uploaded',
+      })
+      if (metadataError) {
+        await supabase.storage.from('inspection-photos').remove([path]).catch(() => undefined)
+        throw new Error('Photo metadata could not be saved. Please retry.')
+      }
+      ids.push(photo.id)
+      setPhotoIds([...ids])
+    }
+    return { ids, inspectionId: activeInspectionId }
   }
 
   async function buildPacket() {
     setWorking(true); setError(''); setMessage('')
     try {
-      const ids = photoIds.length ? photoIds : await uploadPhotos()
-      setPhotoIds(ids)
       if (!address.trim()) throw new Error('Enter or confirm the property address before evidence lookup.')
-      const response = await fetch('/api/photo-estimate', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ address, roofSquares: Number(roofSquares || 0), gutterLf: Number(gutterLf || 0), photoIds: ids }) })
+      const uploaded = photoIds.length && inspectionId ? { ids: photoIds, inspectionId } : await uploadPhotos()
+      setPhotoIds(uploaded.ids)
+      setInspectionId(uploaded.inspectionId)
+      const response = await fetch('/api/photo-estimate', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ address, roofSquares: Number(roofSquares || 0), gutterLf: Number(gutterLf || 0), photoIds: uploaded.ids, inspectionId: uploaded.inspectionId }) })
       const payload = await response.json()
       if (!response.ok) throw new Error(payload.detail || payload.error || 'Could not build the review packet.')
       setWorkflow(payload.workflow)
@@ -100,7 +161,7 @@ export default function PhotoEstimatePage() {
     <h1 className="text-2xl font-bold">Photo → Estimate Review</h1>
     <p className="text-sm text-gray-600 mt-1 mb-4">Upload evidence first. The system assembles address, property, storm, measurement, pricing, and report candidates. A technician must verify the packet before it can be sent.</p>
     <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-900 mb-4"><b>Important:</b> OCR can read visible address text; it cannot prove a roof photo’s location. Confirm the property and quantities before approval.</div>
-    <input ref={inputRef} type="file" accept="image/*" capture="environment" multiple className="hidden" onChange={chooseFiles} />
+    <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp" capture="environment" multiple className="hidden" onChange={chooseFiles} />
     <button onClick={() => inputRef.current?.click()} className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold">{photos.length ? `Add photos (${photos.length})` : 'Take or upload photos'}</button>
     {photos.length > 0 && <><div className="grid grid-cols-3 gap-2 mt-3">{photos.map((photo) => <img key={photo.id} src={photo.preview} alt="Uploaded roof evidence" className="h-24 w-full object-cover rounded" />)}</div><button onClick={() => void findAddressInPhotos()} disabled={ocrWorking} className="w-full mt-3 bg-purple-600 text-white py-2 rounded-lg disabled:opacity-60">{ocrWorking ? 'Reading photo text…' : 'Find address text in photo'}</button></>}
     <div className="bg-white rounded-lg shadow p-4 mt-4 space-y-3">
