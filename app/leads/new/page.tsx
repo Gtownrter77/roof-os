@@ -15,7 +15,7 @@ export default function NewLeadPage() {
     e.preventDefault()
     setSaving(true); setError('')
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { router.replace('/auth/login'); return }
+    if (!user) { setError('Saving real leads still needs a signed-in workspace. Screens are open for building.'); setSaving(false); return }
     const { data: workspaceId, error: workspaceError } = await supabase.rpc('current_workspace_id')
     if (workspaceError || !workspaceId) { setError(workspaceError?.message ?? 'No workspace is available.'); setSaving(false); return }
     const { data, error: insertError } = await supabase.from('leads').insert({ name: form.name.trim(), address: form.address.trim(), phone: form.phone || null, email: form.email || null, source: form.source || 'manual', notes: form.notes || null, owner_id: user.id, workspace_id: workspaceId, status: 'new' }).select('id').single()
