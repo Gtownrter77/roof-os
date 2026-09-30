@@ -1,14 +1,15 @@
+# v0 sandbox internal files
+__v0_runtime_loader.js
+__v0_devtools.tsx
+__v0_jsx-dev-runtime.ts
+.snowflake/
+.v0-trash/
+.vercel/
+
+# Environment variables
+.env*.local
+
+# Common ignores
 node_modules
-.next
-.vercel
-tsconfig.tsbuildinfo
-.env
-.env.local
-.env.*.local
-*.tar.gz
-*.demo-backup
-*.apk
+.next/
 .DS_Store
-apps/field/.expo
-apps/field/dist
-coverage
