@@ -10,6 +10,8 @@ export async function GET() {
   if (!user) return NextResponse.json({ error: 'Authentication required.' }, { status: 401 })
   const { data: workspaceId, error: workspaceError } = await supabase.rpc('current_workspace_id')
   if (workspaceError || !workspaceId) return NextResponse.json({ error: 'No workspace is configured.' }, { status: 400 })
+  const { data: isAdmin } = await supabase.rpc('is_workspace_admin', { target_workspace: workspaceId })
+  if (!isAdmin) return NextResponse.json({ error: 'Workspace administrator access is required to view invitations.' }, { status: 403 })
   const { data, error } = await supabase.from('workspace_invitations').select('id,email,role,status,expires_at,created_at').eq('workspace_id', workspaceId).order('created_at', { ascending: false }).limit(100)
   if (error) return NextResponse.json({ error: 'Could not load invitations.', detail: error.message }, { status: 502 })
   return NextResponse.json({ invitations: data ?? [] })

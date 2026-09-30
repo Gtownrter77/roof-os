@@ -414,28 +414,7 @@ export default function InsuranceIntelPage() {
         )}
       </main>
 
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around py-2 px-4">
-        <button onClick={() => router.push('/')} className="flex flex-col items-center text-gray-400">
-          <span className="text-xl">🏠</span>
-          <span className="text-xs">Home</span>
-        </button>
-        <button onClick={() => router.push('/insurance-intel')} className="flex flex-col items-center text-blue-600">
-          <span className="text-xl">📋</span>
-          <span className="text-xs">Intel</span>
-        </button>
-        <button onClick={() => router.push('/logistics')} className="flex flex-col items-center text-gray-400">
-          <span className="text-xl">🚛</span>
-          <span className="text-xs">Logistics</span>
-        </button>
-        <button onClick={() => router.push('/codes')} className="flex flex-col items-center text-gray-400">
-          <span className="text-xl">📋</span>
-          <span className="text-xs">Codes</span>
-        </button>
-        <button onClick={() => router.push('/settings')} className="flex flex-col items-center text-gray-400">
-          <span className="text-xl">⚙️</span>
-          <span className="text-xs">Settings</span>
-        </button>
-      </nav>
+      
     </div>
   )
 }

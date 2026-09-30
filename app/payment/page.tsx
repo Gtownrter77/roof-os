@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 export default function PaymentPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
+  const [successMessage, setSuccessMessage] = useState('')
   const [selectedPlan, setSelectedPlan] = useState('pro')
 
   const plans = {
@@ -17,7 +18,8 @@ export default function PaymentPage() {
   const handlePayment = () => {
     setLoading(true)
     setTimeout(() => {
-      alert(`✅ Payment successful! You're now on the ${plans[selectedPlan as keyof typeof plans].label} plan.`)
+      // Non-blocking notice
+      setSuccessMessage(`Payment recorded. Active plan: ${plans[selectedPlan as keyof typeof plans].label}`)
       setLoading(false)
       router.push('/')
     }, 2000)
@@ -33,6 +35,7 @@ export default function PaymentPage() {
       </header>
 
       <main className="p-4">
+        {successMessage && <div className="bg-green-50 border border-green-200 text-green-800 p-3 rounded-lg mb-4 text-sm font-medium" role="status">{successMessage}</div>}
         <div className="bg-white rounded-lg shadow p-6 mb-4">
           <h2 className="text-xl font-bold mb-2">Subscribe to ROOF/OS</h2>
           <p className="text-gray-500 text-sm">Choose your plan and start building</p>
@@ -97,28 +100,7 @@ export default function PaymentPage() {
         </p>
       </main>
 
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around py-2 px-4">
-        <button onClick={() => router.push('/')} className="flex flex-col items-center text-gray-400">
-          <span className="text-xl">🏠</span>
-          <span className="text-xs">Home</span>
-        </button>
-        <button onClick={() => router.push('/plans')} className="flex flex-col items-center text-gray-400">
-          <span className="text-xl">💰</span>
-          <span className="text-xs">Plans</span>
-        </button>
-        <button onClick={() => router.push('/payment')} className="flex flex-col items-center text-blue-600">
-          <span className="text-xl">💳</span>
-          <span className="text-xs">Pay</span>
-        </button>
-        <button onClick={() => router.push('/status')} className="flex flex-col items-center text-gray-400">
-          <span className="text-xl">📊</span>
-          <span className="text-xs">Status</span>
-        </button>
-        <button onClick={() => router.push('/settings')} className="flex flex-col items-center text-gray-400">
-          <span className="text-xl">⚙️</span>
-          <span className="text-xs">Settings</span>
-        </button>
-      </nav>
+      
     </div>
   )
 }

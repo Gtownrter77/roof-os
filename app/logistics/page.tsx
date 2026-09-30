@@ -12,6 +12,7 @@ export default function LogisticsPage() {
   const [selectedDumpster, setSelectedDumpster] = useState<any>(null)
   const [selectedPortaJohn, setSelectedPortaJohn] = useState<any>(null)
   const [orderTotal, setOrderTotal] = useState(0)
+  const [logisticsNotice, setLogisticsNotice] = useState('')
 
   // Dumpster rental database with pricing and capacity
   const dumpsterProviders = [
@@ -311,7 +312,7 @@ export default function LogisticsPage() {
 
   const orderNow = () => {
     if (!selectedDumpster && !selectedPortaJohn) {
-      alert('Please select at least one item')
+      setLogisticsNotice('Please select at least one item.')
       return
     }
     
@@ -332,7 +333,7 @@ export default function LogisticsPage() {
     message += `💰 Total: $${orderTotal}\n`
     message += `📞 Providers will contact you within 24 hours.`
     
-    alert(message)
+    setLogisticsNotice(message.replace(/\n/g, ' • '))
     setSelectedDumpster(null)
     setSelectedPortaJohn(null)
     setOrderTotal(0)
@@ -349,6 +350,7 @@ export default function LogisticsPage() {
       </header>
 
       <main className="p-4">
+        {logisticsNotice && <div className="bg-blue-50 border border-blue-200 text-blue-900 p-3 rounded-lg mb-4 text-sm font-medium" role="status">{logisticsNotice}</div>}
         {/* Search */}
         <div className="bg-white rounded-lg shadow-lg p-4 mb-4 border border-blue-200">
           <div className="flex gap-2">
@@ -554,28 +556,7 @@ export default function LogisticsPage() {
         )}
       </main>
 
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around py-2 px-4">
-        <button onClick={() => router.push('/')} className="flex flex-col items-center text-gray-400">
-          <span className="text-xl">🏠</span>
-          <span className="text-xs">Home</span>
-        </button>
-        <button onClick={() => router.push('/logistics')} className="flex flex-col items-center text-blue-600">
-          <span className="text-xl">🚛</span>
-          <span className="text-xs">Logistics</span>
-        </button>
-        <button onClick={() => router.push('/homedepot')} className="flex flex-col items-center text-gray-400">
-          <span className="text-xl">🏪</span>
-          <span className="text-xs">HD</span>
-        </button>
-        <button onClick={() => router.push('/templates')} className="flex flex-col items-center text-gray-400">
-          <span className="text-xl">📄</span>
-          <span className="text-xs">Templates</span>
-        </button>
-        <button onClick={() => router.push('/settings')} className="flex flex-col items-center text-gray-400">
-          <span className="text-xl">⚙️</span>
-          <span className="text-xs">Settings</span>
-        </button>
-      </nav>
+      
     </div>
   )
 }

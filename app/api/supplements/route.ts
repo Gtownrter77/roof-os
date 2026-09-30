@@ -46,7 +46,7 @@ export async function PATCH(request: NextRequest) {
   if ('error' in parsedBody) return NextResponse.json({ error: parsedBody.error }, { status: parsedBody.status })
   const body = parsedBody.body as { id?: string; status?: string }
   if (!body.id || !['approved','rejected','needs_review'].includes(body.status ?? '')) return NextResponse.json({ error: 'A valid supplement id and status are required.' }, { status: 400 })
-  const { data, error } = await supabase.from('supplements').update({ status: body.status, reviewed_by: body.status === 'needs_review' ? null : user.id, reviewed_at: body.status === 'needs_review' ? null : new Date().toISOString(), updated_at: new Date().toISOString() }).eq('id', body.id).select('id,status,reviewed_at').single()
+  const { data, error } = await supabase.from('supplements').update({ status: body.status, reviewed_by: body.status === 'needs_review' ? null : user.id, reviewed_at: body.status === 'needs_review' ? null : new Date().toISOString(), updated_at: new Date().toISOString() }).eq('id', body.id).eq('workspace_id', workspaceId).select('id,status,reviewed_at').single()
   if (error) return NextResponse.json({ error: 'Could not update supplement.', detail: error.message }, { status: 502 })
   return NextResponse.json({ supplement: data })
 }
