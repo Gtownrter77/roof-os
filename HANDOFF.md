@@ -313,3 +313,15 @@ Source review confirms email-link and 6-digit email OTP flows, callback result v
 ### Verification boundary and next action
 
 **Production authentication is only partially verified.** The route and code-level checks above pass, but a real production magic-link/OTP delivery, successful callback/session establishment, and authenticated protected-workflow test were not performed. Do not claim end-to-end production login is verified. The remaining action is to run that test with an authorized test account and confirm the resulting authenticated workspace flow; no user credentials were requested or used in this checkpoint.
+
+
+## 2026-09-30 D.3 production schema and Gemini readiness
+
+- Production Supabase project `Roof OS` was active and healthy. Before the fix, the migration ledger ended at `035_retailer_quota_hardening`, and `public.photo_estimate_workflows` was missing the four D.3 persistence columns.
+- Applied `supabase/migrations/036_photo_estimate_ai_analysis.sql` as migration `photo_estimate_ai_analysis` (ledger version `20260930165224`). A read-only schema query confirmed `ai_analysis jsonb`, `ai_analyzed_at timestamptz`, `ai_model_version text`, and `ai_content_hash text` now exist and are nullable. This was additive schema DDL; no workflow data was changed.
+- Configured `GEMINI_API_KEY` in Vercel as a sensitive, production-only environment variable. Its value is not recorded in this repository or handoff. This setting will be consumed by the next production deployment.
+- Source change on this branch sends the Gemini key in Google's documented `x-goog-api-key` header instead of a URL query parameter; the endpoint regression test now asserts both behaviors.
+- Production smoke checks observed `/auth/login` returning 200 with security headers, unauthenticated `/leads` redirecting to login, and an invalid callback rejecting a hostile `next` target with `Cache-Control: no-store` and a safe `next=/`. An unauthenticated analysis POST was redirected by the auth proxy.
+- Local checks passed: photo-estimate flow, AI endpoint/auth regression, all 11 AI contract tests, TypeScript typecheck, security check, and release check (9 protected routes, headers, secret scan). `git diff --check` passed.
+- Source backup: `backup/pre-d3-migration-20260930` at `9f32401553e77c74a9814573113824ed75564270`.
+- **Not verified by design:** the user directed us to skip login. No authenticated workspace-admin flow was attempted, and no photo or live AI request was sent. After the header patch reaches production, a signed-in admin run remains the end-to-end proof for D.3.
