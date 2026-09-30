@@ -125,9 +125,7 @@ export default function InsurancePage() {
     setCallLog([{ name, number, time: now }, ...callLog])
     
     // Open phone dialer
-    if (confirm(`Call ${name} at ${number}?`)) {
-      window.location.href = `tel:${number}`
-    }
+    window.location.href = `tel:${number}`
   }
 
   const filteredCompanies = insuranceCompanies.filter(company => 
@@ -229,28 +227,7 @@ export default function InsurancePage() {
         )}
       </main>
 
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around py-2 px-4">
-        <button onClick={() => router.push('/')} className="flex flex-col items-center text-gray-400">
-          <span className="text-xl">🏠</span>
-          <span className="text-xs">Home</span>
-        </button>
-        <button onClick={() => router.push('/insurance')} className="flex flex-col items-center text-green-600">
-          <span className="text-xl">📞</span>
-          <span className="text-xs">Insurance</span>
-        </button>
-        <button onClick={() => router.push('/templates')} className="flex flex-col items-center text-gray-400">
-          <span className="text-xl">📄</span>
-          <span className="text-xs">Templates</span>
-        </button>
-        <button onClick={() => router.push('/sketch')} className="flex flex-col items-center text-gray-400">
-          <span className="text-xl">✏️</span>
-          <span className="text-xs">Sketch</span>
-        </button>
-        <button onClick={() => router.push('/settings')} className="flex flex-col items-center text-gray-400">
-          <span className="text-xl">⚙️</span>
-          <span className="text-xs">Settings</span>
-        </button>
-      </nav>
+      
     </div>
   )
 }
