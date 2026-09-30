@@ -45,6 +45,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'sourceUrl must be a signed URL for an authorized ROOF/OS inspection asset.' }, { status: 400 })
   }
 
+  // Workspace access and administrative role verification
   const { data: membership, error: membershipError } = await supabase
     .from('workspace_members')
     .select('role')
