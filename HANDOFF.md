@@ -281,3 +281,35 @@ The explicit admin-only analysis UI and focused regression assertions are now te
 Passed checks: `npm run typecheck`, `npm run test:photo-estimate-flow`, `node scripts/security-check.mjs`, `node scripts/ai-vision-endpoint-test.mjs`, `node scripts/auth-flow-test.mjs`, `node scripts/ai-vision-contract-test.mjs` (11 assertions), and `git diff --check`.
 
 The D.3 call is explicit user-triggered only; packet creation does not invoke Gemini. The browser checks workspace-admin status for UI visibility, and the server remains authoritative. No live Gemini request was made.
+
+
+## 2026-09-30 production authentication verification checkpoint
+
+### Repository/recovery state
+
+- The former `rebuild/roof-os-recovery` branch was merged through PR #30 (merge commit `c68faf4e4b80aaa7e0555c1e47920f929c8049b2`) and is no longer a remote branch. PR #32 was also merged into `main`.
+- Current verified baseline: `main` at `852048a0925b24f5a92aee3b7554254bdac0b934`; local and remote `main` matched before this documentation checkpoint.
+- Current-task remote backup: `backup/auth-verification-20260930` at `852048a0925b24f5a92aee3b7554254bdac0b934` (remote SHA verified before edits).
+- The historical path `/home/ubuntu/roof-os-backup-temp` is absent in this sandbox. Work resumed from the existing clean `Gtownrter77/roof-os` clone at `/home/ubuntu/roof-os`, based on the verified current `main`; no source code was changed for this checkpoint.
+
+### Authentication evidence — 2026-09-30
+
+Passed locally from the current `main` source:
+
+- `node scripts/auth-flow-test.mjs` — PASS (OTP, callback result types, cooldowns, and safe redirects).
+- `npm run test:api-security` — PASS.
+- `npm run verify:security` — PASS.
+- `npm run typecheck` — PASS.
+- `npm run release-check` — PASS (9 protected routes, security headers, and secret scan).
+- `git diff --check` — PASS.
+
+Read-only production route smoke checks:
+
+- `GET https://roof-os-lemon.vercel.app/auth/login` — HTTP 200.
+- `GET https://roof-os-lemon.vercel.app/leads` without a session — HTTP 307 to `/auth/login?next=%2Fleads`.
+
+Source review confirms email-link and 6-digit email OTP flows, callback result validation, rate-limit cooldown handling, and same-origin `next` path validation. No email was sent and no production sign-in was attempted.
+
+### Verification boundary and next action
+
+**Production authentication is only partially verified.** The route and code-level checks above pass, but a real production magic-link/OTP delivery, successful callback/session establishment, and authenticated protected-workflow test were not performed. Do not claim end-to-end production login is verified. The remaining action is to run that test with an authorized test account and confirm the resulting authenticated workspace flow; no user credentials were requested or used in this checkpoint.
