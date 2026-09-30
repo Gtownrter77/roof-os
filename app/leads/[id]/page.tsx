@@ -22,12 +22,14 @@ export default function LeadDetailPage() {
   const [saving, setSaving] = useState(false)
 
   async function load() {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { router.replace('/auth/login'); return }
     const [{ data: leadRow, error: leadError }, activityRes] = await Promise.all([
       supabase.from('leads').select('id,name,address,status,phone,email').eq('id', leadId).maybeSingle(),
       supabase.from('lead_activity').select('id,kind,body,created_at').eq('lead_id', leadId).order('created_at', { ascending: false }).limit(50),
     ])
     if (leadError) setError(leadError.message)
-    if (!leadRow) setError((current) => current || 'Lead not found in this workspace.')
+    if (!leadRow) setError('Lead not found in this workspace.')
     setLead(leadRow)
     setActivity(activityRes.data ?? [])
   }

@@ -16,7 +16,7 @@ export default function StormsPage() {
         <p className="font-semibold">Storm Score: 78</p>
         <p className="text-sm text-gray-500">Weather Relevance: 85</p>
       </div>
-      
+
     </div>
   )
 }

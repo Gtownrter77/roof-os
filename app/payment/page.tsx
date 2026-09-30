@@ -100,7 +100,7 @@ export default function PaymentPage() {
         </p>
       </main>
 
-      
+
     </div>
   )
 }

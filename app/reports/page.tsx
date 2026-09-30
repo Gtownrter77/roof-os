@@ -28,6 +28,8 @@ export default function ReportsPage() {
 
   useEffect(() => {
     async function load() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { router.replace('/auth/login'); return }
       const { data, error: queryError } = await supabase.from('inspection_sessions').select('id,status,lead_id,leads(name,address)').order('started_at', { ascending: false }).limit(50)
       if (queryError) setError(queryError.message)
       else setSessions((data ?? []).map(flatten))

@@ -1,10 +1,18 @@
 import assert from "node:assert/strict"
-import {
+import { readFileSync } from "node:fs"
+import ts from "typescript"
+
+const contractSource = readFileSync(new URL("../lib/ai/roof-contract.ts", import.meta.url), "utf8")
+const contractCode = ts.transpileModule(contractSource, {
+  compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext },
+}).outputText
+const contract = await import(`data:text/javascript;base64,${Buffer.from(contractCode).toString("base64")}`)
+const {
   validateRoofAIObservationPacket,
   AIContractValidationError,
   ROOF_AI_CONTRACT_VERSION,
-  ROOF_AI_DISCLAIMER
-} from "../lib/ai/roof-contract.ts"
+  ROOF_AI_DISCLAIMER,
+} = contract
 
 function makeBasePacket() {
   return {

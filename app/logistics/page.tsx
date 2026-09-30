@@ -24,10 +24,10 @@ export default function LogisticsPage() {
       rating: 4.5,
       distance: '1.2 miles',
       dumpsters: [
-        { 
-          size: '10 Yard', 
-          price: 295, 
-          rentalPeriod: '7 days', 
+        {
+          size: '10 Yard',
+          price: 295,
+          rentalPeriod: '7 days',
           capacity: '10 cubic yards',
           weightLimit: '2,000 lbs',
           handles: '3-4 rooms of debris',
@@ -37,10 +37,10 @@ export default function LogisticsPage() {
           rubberWheels: true,
           dimensions: '12ft x 8ft x 4ft'
         },
-        { 
-          size: '15 Yard', 
-          price: 375, 
-          rentalPeriod: '7 days', 
+        {
+          size: '15 Yard',
+          price: 375,
+          rentalPeriod: '7 days',
           capacity: '15 cubic yards',
           weightLimit: '3,000 lbs',
           handles: '5-6 rooms of debris',
@@ -50,10 +50,10 @@ export default function LogisticsPage() {
           rubberWheels: true,
           dimensions: '14ft x 8ft x 5ft'
         },
-        { 
-          size: '20 Yard', 
-          price: 445, 
-          rentalPeriod: '7 days', 
+        {
+          size: '20 Yard',
+          price: 445,
+          rentalPeriod: '7 days',
           capacity: '20 cubic yards',
           weightLimit: '4,000 lbs',
           handles: '7-8 rooms of debris',
@@ -63,10 +63,10 @@ export default function LogisticsPage() {
           rubberWheels: true,
           dimensions: '16ft x 8ft x 6ft'
         },
-        { 
-          size: '30 Yard', 
-          price: 565, 
-          rentalPeriod: '7 days', 
+        {
+          size: '30 Yard',
+          price: 565,
+          rentalPeriod: '7 days',
           capacity: '30 cubic yards',
           weightLimit: '6,000 lbs',
           handles: '10-12 rooms of debris',
@@ -76,10 +76,10 @@ export default function LogisticsPage() {
           rubberWheels: false,
           dimensions: '20ft x 8ft x 7ft'
         },
-        { 
-          size: '40 Yard', 
-          price: 695, 
-          rentalPeriod: '7 days', 
+        {
+          size: '40 Yard',
+          price: 695,
+          rentalPeriod: '7 days',
           capacity: '40 cubic yards',
           weightLimit: '8,000 lbs',
           handles: '15-20 rooms of debris',
@@ -99,10 +99,10 @@ export default function LogisticsPage() {
       rating: 4.3,
       distance: '2.5 miles',
       dumpsters: [
-        { 
-          size: '10 Yard', 
-          price: 285, 
-          rentalPeriod: '7 days', 
+        {
+          size: '10 Yard',
+          price: 285,
+          rentalPeriod: '7 days',
           capacity: '10 cubic yards',
           weightLimit: '2,000 lbs',
           handles: '3-4 rooms',
@@ -112,10 +112,10 @@ export default function LogisticsPage() {
           rubberWheels: true,
           dimensions: '12ft x 8ft x 4ft'
         },
-        { 
-          size: '20 Yard', 
-          price: 425, 
-          rentalPeriod: '7 days', 
+        {
+          size: '20 Yard',
+          price: 425,
+          rentalPeriod: '7 days',
           capacity: '20 cubic yards',
           weightLimit: '4,000 lbs',
           handles: '7-8 rooms',
@@ -125,10 +125,10 @@ export default function LogisticsPage() {
           rubberWheels: true,
           dimensions: '16ft x 8ft x 6ft'
         },
-        { 
-          size: '30 Yard', 
-          price: 545, 
-          rentalPeriod: '7 days', 
+        {
+          size: '30 Yard',
+          price: 545,
+          rentalPeriod: '7 days',
           capacity: '30 cubic yards',
           weightLimit: '6,000 lbs',
           handles: '10-12 rooms',
@@ -148,10 +148,10 @@ export default function LogisticsPage() {
       rating: 4.7,
       distance: '3.1 miles',
       dumpsters: [
-        { 
-          size: '12 Yard', 
-          price: 315, 
-          rentalPeriod: '7 days', 
+        {
+          size: '12 Yard',
+          price: 315,
+          rentalPeriod: '7 days',
           capacity: '12 cubic yards',
           weightLimit: '2,500 lbs',
           handles: '4-5 rooms',
@@ -161,10 +161,10 @@ export default function LogisticsPage() {
           rubberWheels: true,
           dimensions: '13ft x 8ft x 4.5ft'
         },
-        { 
-          size: '18 Yard', 
-          price: 395, 
-          rentalPeriod: '7 days', 
+        {
+          size: '18 Yard',
+          price: 395,
+          rentalPeriod: '7 days',
           capacity: '18 cubic yards',
           weightLimit: '3,500 lbs',
           handles: '6-7 rooms',
@@ -174,10 +174,10 @@ export default function LogisticsPage() {
           rubberWheels: true,
           dimensions: '15ft x 8ft x 5.5ft'
         },
-        { 
-          size: '25 Yard', 
-          price: 495, 
-          rentalPeriod: '7 days', 
+        {
+          size: '25 Yard',
+          price: 495,
+          rentalPeriod: '7 days',
           capacity: '25 cubic yards',
           weightLimit: '5,000 lbs',
           handles: '8-10 rooms',
@@ -201,37 +201,37 @@ export default function LogisticsPage() {
       rating: 4.4,
       distance: '1.5 miles',
       units: [
-        { 
-          type: 'Standard', 
-          price: 125, 
-          rentalPeriod: '7 days', 
+        {
+          type: 'Standard',
+          price: 125,
+          rentalPeriod: '7 days',
           capacity: '50 uses/day',
           includes: ['Hand sanitizer', 'Toilet paper', 'Deodorizer'],
           recommended: false,
           size: '3ft x 3ft x 7ft'
         },
-        { 
-          type: 'Deluxe', 
-          price: 175, 
-          rentalPeriod: '7 days', 
+        {
+          type: 'Deluxe',
+          price: 175,
+          rentalPeriod: '7 days',
           capacity: '75 uses/day',
           includes: ['Hand sanitizer', 'Toilet paper', 'Deodorizer', 'Hand washing station', 'Mirror'],
           recommended: true,
           size: '4ft x 4ft x 7ft'
         },
-        { 
-          type: 'ADA Accessible', 
-          price: 225, 
-          rentalPeriod: '7 days', 
+        {
+          type: 'ADA Accessible',
+          price: 225,
+          rentalPeriod: '7 days',
           capacity: '50 uses/day',
           includes: ['Hand sanitizer', 'Toilet paper', 'Deodorizer', 'Wheelchair accessible', 'Grab bars'],
           recommended: false,
           size: '5ft x 5ft x 7ft'
         },
-        { 
-          type: 'Luxury Trailer', 
-          price: 450, 
-          rentalPeriod: '7 days', 
+        {
+          type: 'Luxury Trailer',
+          price: 450,
+          rentalPeriod: '7 days',
           capacity: '100 uses/day',
           includes: ['Running water', 'Flush toilet', 'Sink', 'Mirror', 'Lighting', 'Climate control'],
           recommended: false,
@@ -247,28 +247,28 @@ export default function LogisticsPage() {
       rating: 4.2,
       distance: '2.8 miles',
       units: [
-        { 
-          type: 'Standard', 
-          price: 115, 
-          rentalPeriod: '7 days', 
+        {
+          type: 'Standard',
+          price: 115,
+          rentalPeriod: '7 days',
           capacity: '50 uses/day',
           includes: ['Hand sanitizer', 'Toilet paper'],
           recommended: true,
           size: '3ft x 3ft x 7ft'
         },
-        { 
-          type: 'Deluxe', 
-          price: 165, 
-          rentalPeriod: '7 days', 
+        {
+          type: 'Deluxe',
+          price: 165,
+          rentalPeriod: '7 days',
           capacity: '75 uses/day',
           includes: ['Hand sanitizer', 'Toilet paper', 'Hand washing station'],
           recommended: false,
           size: '4ft x 4ft x 7ft'
         },
-        { 
-          type: 'ADA Accessible', 
-          price: 210, 
-          rentalPeriod: '7 days', 
+        {
+          type: 'ADA Accessible',
+          price: 210,
+          rentalPeriod: '7 days',
           capacity: '50 uses/day',
           includes: ['Hand sanitizer', 'Toilet paper', 'Wheelchair accessible'],
           recommended: false,
@@ -315,7 +315,7 @@ export default function LogisticsPage() {
       setLogisticsNotice('Please select at least one item.')
       return
     }
-    
+
     let message = '✅ Order placed successfully!\n\n'
     if (selectedDumpster) {
       message += `📦 Dumpster: ${selectedDumpster.dumpster.size} from ${selectedDumpster.provider.name}\n`
@@ -332,7 +332,7 @@ export default function LogisticsPage() {
     }
     message += `💰 Total: $${orderTotal}\n`
     message += `📞 Providers will contact you within 24 hours.`
-    
+
     setLogisticsNotice(message.replace(/\n/g, ' • '))
     setSelectedDumpster(null)
     setSelectedPortaJohn(null)
@@ -403,7 +403,7 @@ export default function LogisticsPage() {
                   </div>
                   <div className="mt-2 space-y-2">
                     {provider.dumpsters.map((dumpster: any) => (
-                      <div 
+                      <div
                         key={dumpster.size}
                         onClick={() => selectDumpster(provider, dumpster)}
                         className={`border-2 rounded-lg p-3 cursor-pointer transition ${
@@ -471,7 +471,7 @@ export default function LogisticsPage() {
                   </div>
                   <div className="mt-2 space-y-2">
                     {provider.units.map((unit: any) => (
-                      <div 
+                      <div
                         key={unit.type}
                         onClick={() => selectPortaJohn(provider, unit)}
                         className={`border-2 rounded-lg p-3 cursor-pointer transition ${
@@ -556,7 +556,7 @@ export default function LogisticsPage() {
         )}
       </main>
 
-      
+
     </div>
   )
 }
