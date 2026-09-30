@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { AIContractValidationError, ROOF_AI_CONTRACT_VERSION, ROOF_AI_DISCLAIMER, validateRoofAIObservationPacket } from '../../../../lib/ai/roof-contract'
+import { createGeminiGenerateContentRequest } from '../../../../lib/ai/gemini-request.mjs'
 import { isUuid, readJson, requireWorkspaceMember } from '../../../../lib/api-security'
 import { getSupabaseEnv } from '../../../../lib/supabase/env'
 import { createClient } from '../../../../lib/supabase/server'
@@ -293,7 +294,6 @@ export async function POST(request: NextRequest) {
     const apiKey = process.env.GEMINI_API_KEY?.trim()
     if (!apiKey) return jsonError('AI analysis is not configured on this server.', 503)
 
-    const endpoint = new URL(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ID}:generateContent`)
     const contents = {
       contents: [{
         role: 'user',
@@ -304,17 +304,11 @@ export async function POST(request: NextRequest) {
       }],
       generationConfig: { responseMimeType: 'application/json', temperature: 0.1, maxOutputTokens: 8192 },
     }
+    const providerRequest = createGeminiGenerateContentRequest(MODEL_ID, apiKey, contents)
 
     const timeoutMs = Math.min(PROVIDER_TIMEOUT_MS, deadline - Date.now())
     if (timeoutMs <= 0) throw new RouteError(504, 'AI analysis timed out. Please try again.')
-    const provider = await fetchTextWithinTimeout(endpoint.toString(), {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'x-goog-api-key': apiKey,
-      },
-      body: JSON.stringify(contents),
-    }, timeoutMs, MAX_PROVIDER_RESPONSE_BYTES)
+    const provider = await fetchTextWithinTimeout(providerRequest.url, providerRequest.init, timeoutMs, MAX_PROVIDER_RESPONSE_BYTES)
 
     if (!provider.response.ok) {
       if (provider.response.status === 429) throw new RouteError(503, 'AI analysis is temporarily rate-limited. Please try again later.')
