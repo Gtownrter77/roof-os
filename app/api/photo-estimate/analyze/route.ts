@@ -294,7 +294,6 @@ export async function POST(request: NextRequest) {
     if (!apiKey) return jsonError('AI analysis is not configured on this server.', 503)
 
     const endpoint = new URL(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ID}:generateContent`)
-    endpoint.searchParams.set('key', apiKey)
     const contents = {
       contents: [{
         role: 'user',
@@ -310,7 +309,10 @@ export async function POST(request: NextRequest) {
     if (timeoutMs <= 0) throw new RouteError(504, 'AI analysis timed out. Please try again.')
     const provider = await fetchTextWithinTimeout(endpoint.toString(), {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: {
+        'content-type': 'application/json',
+        'x-goog-api-key': apiKey,
+      },
       body: JSON.stringify(contents),
     }, timeoutMs, MAX_PROVIDER_RESPONSE_BYTES)
 
