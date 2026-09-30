@@ -78,11 +78,11 @@ function validStoragePath(photo: PhotoRow, workspaceId: string) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.(?:jpe?g|png|webp)$/i.test(parts[3])
 }
 
-async function readBoundedBody(response: Response, maxBytes: number): Promise<Buffer> {
+async function readBoundedBody(response: Response, maxBytes: number, tooLargeMessage: string, tooLargeStatus = 413): Promise<Buffer> {
   const lengthHeader = response.headers.get('content-length')
   if (lengthHeader && /^\d+$/.test(lengthHeader) && Number(lengthHeader) > maxBytes) {
     await response.body?.cancel().catch(() => undefined)
-    throw new RouteError(413, 'The selected photos exceed the 30 MB total limit.')
+    throw new RouteError(tooLargeStatus, tooLargeMessage)
   }
   if (!response.body) throw new RouteError(502, 'A photo or AI response could not be read.')
   const reader = response.body.getReader()
@@ -95,7 +95,7 @@ async function readBoundedBody(response: Response, maxBytes: number): Promise<Bu
       size += value.byteLength
       if (size > maxBytes) {
         await reader.cancel().catch(() => undefined)
-        throw new RouteError(413, 'The selected photos exceed the 30 MB total limit.')
+        throw new RouteError(tooLargeStatus, tooLargeMessage)
       }
       chunks.push(value)
     }
@@ -113,7 +113,7 @@ async function fetchBytesWithinBudget(url: string, remainingBytes: number, deadl
   try {
     const response = await fetch(url, { signal: controller.signal, cache: 'no-store' })
     if (!response.ok) throw new RouteError(502, 'A selected photo could not be retrieved from private storage.')
-    return await readBoundedBody(response, remainingBytes)
+    return await readBoundedBody(response, remainingBytes, 'The selected photos exceed the 30 MB total limit.')
   } catch (error) {
     if (error instanceof RouteError) throw error
     if (controller.signal.aborted) throw new RouteError(504, 'Photo analysis timed out while retrieving images. Please try again.')
@@ -128,7 +128,7 @@ async function fetchTextWithinTimeout(url: string, init: RequestInit, timeoutMs:
   const timer = setTimeout(() => controller.abort(), timeoutMs)
   try {
     const response = await fetch(url, { ...init, signal: controller.signal, cache: 'no-store' })
-    const body = await readBoundedBody(response, responseLimit)
+    const body = await readBoundedBody(response, responseLimit, 'The AI provider response exceeded the allowed size.', 502)
     return { response, text: body.toString('utf8') }
   } catch (error) {
     if (error instanceof RouteError) throw error
@@ -184,6 +184,9 @@ export async function POST(request: NextRequest) {
     if (!isUuid(workspaceId)) return jsonError('An active workspace is required.', 403)
     const membership = await requireWorkspaceMember(supabase, user.id, workspaceId)
     if (membership.response) return membership.response
+    const { data: isAdmin, error: roleError } = await supabase.rpc('is_workspace_admin', { target_workspace: workspaceId })
+    if (roleError) return jsonError('Workspace authorization could not be verified.', 503)
+    if (!isAdmin) return jsonError('Workspace administrator access is required to save AI analysis.', 403)
 
     const parsed = await readJson(request, 8 * 1024)
     if ('error' in parsed) return jsonError(parsed.error, parsed.status)
@@ -228,12 +231,6 @@ export async function POST(request: NextRequest) {
     }
 
     const authorizedRows = orderedRows as PhotoRow[]
-    const photosNotOwnedByUser = authorizedRows.some((photo) => photo.uploaded_by !== user.id)
-    if (photosNotOwnedByUser) {
-      const { data: isAdmin, error: adminError } = await supabase.rpc('is_workspace_admin', { target_workspace: workspaceId })
-      if (adminError) return jsonError('Photo storage authorization could not be verified.', 503)
-      if (!isAdmin) return jsonError('You may analyze only photos you uploaded unless you are a workspace administrator.', 403)
-    }
 
     let declaredTotal = 0
     const expectedMimeTypes = new Map<string, string>()

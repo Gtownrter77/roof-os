@@ -1,0 +1,77 @@
+import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
+
+const route = readFileSync(new URL('../app/api/photo-estimate/analyze/route.ts', import.meta.url), 'utf8')
+const workflowSchema = readFileSync(new URL('../supabase/migrations/021_photo_estimate_workflows.sql', import.meta.url), 'utf8')
+const photoSchema = readFileSync(new URL('../supabase/migrations/003_status_history_inspection_photos.sql', import.meta.url), 'utf8')
+const storagePolicy = readFileSync(new URL('../supabase/migrations/033_storage_owner_path_hardening.sql', import.meta.url), 'utf8')
+const aiColumns = readFileSync(new URL('../supabase/migrations/036_photo_estimate_ai_analysis.sql', import.meta.url), 'utf8')
+const updateGuard = readFileSync(new URL('../supabase/migrations/027_photo_estimate_admin_guard.sql', import.meta.url), 'utf8')
+
+// The route contract comes from the existing D.2 schema: workflow source IDs
+// are text[] photo UUIDs; photo rows carry the private bucket/object metadata.
+assert.ok(workflowSchema.includes('source_photo_ids text[]'))
+assert.ok(photoSchema.includes('id uuid primary key'))
+assert.ok(photoSchema.includes('inspection_id uuid not null'))
+assert.ok(photoSchema.includes('uploaded_by uuid not null'))
+assert.ok(photoSchema.includes('object_path text not null'))
+assert.ok(photoSchema.includes('mime_type text not null'))
+assert.ok(photoSchema.includes('file_size_bytes bigint'))
+assert.ok(aiColumns.includes('ai_analysis jsonb'))
+assert.ok(aiColumns.includes('ai_analyzed_at timestamptz'))
+assert.ok(aiColumns.includes('ai_model_version text'))
+assert.ok(aiColumns.includes('ai_content_hash text'))
+assert.ok(updateGuard.includes('public.is_workspace_admin(workspace_id)'))
+
+// Auth and workspace scope must be checked before workflow lookup or storage/provider access.
+const membershipCheck = route.indexOf('requireWorkspaceMember(supabase, user.id, workspaceId)')
+const adminCheck = route.indexOf("supabase.rpc('is_workspace_admin', { target_workspace: workspaceId })")
+const workflowLookup = route.indexOf(".from('photo_estimate_workflows')")
+const signedRead = route.indexOf('createSignedUrl(photo.object_path, 60)')
+const providerRequest = route.indexOf('generativelanguage.googleapis.com')
+assert.ok(route.includes('supabase.auth.getUser()'))
+assert.ok(membershipCheck >= 0 && adminCheck > membershipCheck && workflowLookup > adminCheck)
+assert.ok(adminCheck < signedRead && adminCheck < providerRequest, 'RLS admin permission is established before storage reads or provider calls')
+assert.ok(route.includes(".eq('id', workflowId)\n      .eq('workspace_id', workspaceId)"))
+assert.ok(route.includes(".eq('workspace_id', workspaceId)\n      .eq('bucket_id', BUCKET)"))
+assert.ok(route.includes('workflowRow.inspection_id && photo.inspection_id !== workflowRow.inspection_id'))
+assert.ok(route.includes("if (photo.bucket_id !== BUCKET || !validStoragePath(photo, workspaceId))"))
+assert.ok(route.includes('parts[0] !== workspaceId || parts[1] !== photo.uploaded_by || parts[2] !== photo.inspection_id'))
+assert.ok(route.includes('storage.from(BUCKET).createSignedUrl(photo.object_path, 60)'))
+assert.ok(route.includes('signedUrl.origin !== supabaseOrigin'))
+assert.ok(route.includes('fetchBytesWithinBudget(signedUrl.toString(), remaining, deadline)'))
+assert.ok(storagePolicy.includes("bucket_id = 'inspection-photos'"))
+assert.ok(storagePolicy.includes('(storage.foldername(name))[2] = auth.uid()::text'))
+assert.ok(storagePolicy.includes('public.is_workspace_admin((storage.foldername(name))[1]::uuid)'))
+
+// Enforce count, cumulative actual bytes, supported types and binary signatures.
+assert.ok(route.includes('const MAX_PHOTOS = 50'))
+assert.ok(route.includes('const MAX_TOTAL_BYTES = 30 * 1024 * 1024'))
+assert.ok(route.includes('photoIds.length > MAX_PHOTOS'))
+assert.ok(route.includes('size > maxBytes'))
+assert.ok(route.includes("'image/jpeg', 'image/png', 'image/webp'"))
+assert.ok(route.includes("bytes.toString('ascii', 8, 12) === 'WEBP'"))
+assert.ok(route.includes('workflowRow.source_photo_ids'))
+
+// Canonical SHA-256, cache bypass, strict D.2 validation and provider wire contract.
+assert.ok(route.includes("createHash('sha256').update(bytes).digest('hex')"))
+assert.ok(route.includes('photos.map((photo) => photo.hash).sort()'))
+assert.ok(route.includes('if (!forceRefresh && workflowRow.ai_content_hash === contentHash'))
+assert.ok(route.includes('if (!isUuid(workflowId))'))
+assert.ok(route.includes('validateRoofAIObservationPacket(candidatePacket, preparedPhotos.length)'))
+assert.ok(route.includes("responseMimeType: 'application/json'"))
+assert.ok(route.includes('inline_data: { mime_type: photo.mimeType'))
+assert.ok(route.includes("candidate.finishReason !== 'STOP'"))
+assert.ok(route.includes('fetchTextWithinTimeout(endpoint.toString()'))
+assert.ok(route.includes('AI analysis timed out. Please try again.'))
+assert.ok(route.includes('rejectUnsafeClaims(analysis)'))
+assert.ok(route.includes('Do not produce dimensions, areas, roof squares, quantities, linear feet'))
+
+// No persistence of technician, estimate, insurance, or workflow state fields.
+const updateMatch = route.match(/\.update\(\{([\s\S]*?)\n\s*\}\)\s*\n\s*\.eq\('id'/)
+assert.ok(updateMatch, 'AI workflow update exists')
+const updatedColumns = [...updateMatch[1].matchAll(/^\s*([a-z_]+):/gm)].map((match) => match[1])
+assert.deepEqual(updatedColumns, ['ai_analysis', 'ai_analyzed_at', 'ai_model_version', 'ai_content_hash', 'updated_at'])
+assert.ok(!route.includes('detail: error.message'))
+
+console.log('ai-vision-endpoint-test: PASS (schema, RLS, storage scope, limits, cache, Gemini, and AI-only persistence)')
