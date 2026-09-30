@@ -1,0 +1,32 @@
+import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
+import ts from 'typescript'
+const source = readFileSync(new URL('../lib/ai/geometry-contract.ts', import.meta.url), 'utf8')
+const code = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext } }).outputText
+const contract = await import(`data:text/javascript;base64,${Buffer.from(code).toString('base64')}`)
+const { validateGeometrySuggestion, GeometryContractValidationError, GEOMETRY_CONTRACT_VERSION } = contract
+const base = () => ({ contract_version: GEOMETRY_CONTRACT_VERSION, image_width: 1000, image_height: 800, source_image_reference: 'inspection-photo:test', planes: [{ id: 'plane_1', vertices: [{ x: 100, y: 100 }, { x: 600, y: 100 }, { x: 600, y: 500 }, { x: 100, y: 500 }], suggested_pitch: 'appears standard', confidence: 'medium' }], edges: [{ id: 'edge_1', start: { x: 100, y: 500 }, end: { x: 600, y: 500 }, classification: 'eave', confidence: 'medium' }], objects: [{ id: 'object_1', type: 'chimney', position: { x: 400, y: 300 }, confidence: 'low' }], warnings: [] })
+assert.equal(validateGeometrySuggestion(base()).planes.length, 1)
+assert.throws(() => validateGeometrySuggestion({ ...base(), planes: [{ ...base().planes[0], vertices: [{ x: 100, y: 100 }, { x: 600, y: 500 }, { x: 600, y: 100 }, { x: 100, y: 500 }] }] }), GeometryContractValidationError)
+assert.throws(() => validateGeometrySuggestion({ ...base(), planes: [{ ...base().planes[0], vertices: [{ x: 100, y: 100 }, { y: 500 }, { x: 600, y: 500 }] }] }), GeometryContractValidationError)
+assert.throws(() => validateGeometrySuggestion({ ...base(), edges: [{ ...base().edges[0], classification: 'invalid-edge' }] }), GeometryContractValidationError)
+assert.throws(() => validateGeometrySuggestion({ ...base(), objects: [{ ...base().objects[0], type: 'satellite' }] }), GeometryContractValidationError)
+assert.throws(() => validateGeometrySuggestion({ ...base(), planes: [{ ...base().planes[0], id: 'same' }], edges: [{ ...base().edges[0], id: 'same' }] }), GeometryContractValidationError)
+const route = readFileSync(new URL('../app/api/measurements/aerial/route.ts', import.meta.url), 'utf8')
+const migration = readFileSync(new URL('../supabase/migrations/037_aerial_geometry_suggestions.sql', import.meta.url), 'utf8')
+assert.ok(route.includes("supabase.auth.getUser()"))
+assert.ok(route.includes('requireWorkspaceMember(supabase, user.id, workspaceId)'))
+assert.ok(route.includes(".eq('workspace_id', workspaceId)"))
+assert.ok(route.includes('createSignedUrl(photo.object_path, 60)'))
+assert.ok(route.includes('inline_data'))
+assert.ok(route.includes('responseMimeType: \'application/json\''))
+assert.ok(route.includes('validateGeometrySuggestion'))
+assert.ok(route.includes('calibration_status'))
+assert.ok(route.includes('review_status'))
+assert.ok(!route.includes('roof_area_sqft'))
+assert.ok(migration.includes('create table if not exists public.aerial_measurements'))
+assert.ok(migration.includes('create table if not exists public.roof_planes'))
+assert.ok(migration.includes('create table if not exists public.roof_edges'))
+assert.ok(migration.includes('create table if not exists public.roof_objects'))
+assert.ok(migration.includes('alter table public.aerial_measurements enable row level security'))
+console.log('aerial-geometry-test: PASS (contract, malformed geometry, enums, workspace guards, calibration gates, and schema checks)')

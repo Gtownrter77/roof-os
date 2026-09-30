@@ -17,6 +17,7 @@
     "test:measurement-estimate-authority": "node scripts/measurement-estimate-authority-test.mjs",
     "test:ai-vision-contract": "node scripts/ai-vision-contract-test.mjs",
     "test:ai-vision-endpoint": "node scripts/ai-vision-endpoint-test.mjs",
+    "test:aerial": "node scripts/aerial-geometry-test.mjs",
     "verify:security": "node scripts/security-check.mjs"
   },
   "dependencies": {
