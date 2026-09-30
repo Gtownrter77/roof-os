@@ -35,7 +35,7 @@ export async function PUT(request: NextRequest) {
   const membership = await requireWorkspaceMember(supabase, user.id, workspaceId)
   if (membership.response) return membership.response
   const parsed = await readJson(request)
-  if (parsed.error) return NextResponse.json({ error: parsed.error }, { status: 400 })
+  if ('error' in parsed) return NextResponse.json({ error: parsed.error }, { status: parsed.status })
   const body = parsed.body as { rates?: Record<string, number>; market?: string; effectiveAt?: string; localTaxRate?: number; taxSource?: string; taxRates?: Partial<TaxRates> }
   const rates = body.rates ?? {}
   const valid = Object.entries(rates).every(([key, value]) => key in DEFAULT_RATES && Number.isFinite(Number(value)) && Number(value) >= 0)

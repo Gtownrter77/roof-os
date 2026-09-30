@@ -18,6 +18,7 @@ jobs:
       - run: npm ci
       - run: npm ci
         working-directory: apps/field
+      - run: npm audit --prefix apps/field --audit-level=moderate
       - run: npm run build
         env:
           NEXT_PUBLIC_SUPABASE_URL: https://validation.supabase.co
@@ -28,6 +29,10 @@ jobs:
           CRON_SECRET: validation-only-key
       - run: npm run typecheck
       - run: npm run release-check
+      - run: npm run verify:security
+      - run: npm run test:api-security
+      - run: npm run test:mobile-offline-sync
+      - run: npm run test:photo-estimate-flow
       - run: npm run audit
 
   mobile:

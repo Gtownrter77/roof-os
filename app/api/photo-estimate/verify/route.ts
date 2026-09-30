@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '../../../../lib/supabase/server'
+import { isUuid, readJson } from '../../../../lib/api-security'
 
 function slopeMultiplier(pitch: number) {
   return Math.sqrt(1 + (pitch / 12) ** 2)
@@ -24,12 +25,14 @@ export async function PATCH(request: NextRequest) {
   const { data: workspaceId } = await supabase.rpc('current_workspace_id')
   if (!workspaceId) return NextResponse.json({ error: 'Workspace required.' }, { status: 403 })
   const workflowId = request.nextUrl.searchParams.get('workflowId')
-  if (!workflowId) return NextResponse.json({ error: 'workflowId is required.' }, { status: 400 })
+  if (!isUuid(workflowId)) return NextResponse.json({ error: 'A valid workflowId is required.' }, { status: 400 })
 
-  let body: VerifyBody
-  try { body = await request.json() } catch { return NextResponse.json({ error: 'Invalid JSON body.' }, { status: 400 }) }
+  const parsedBody = await readJson(request)
+  if ('error' in parsedBody) return NextResponse.json({ error: parsedBody.error }, { status: parsedBody.status })
+  const body = parsedBody.body as VerifyBody
   const action = body.action
   if (action !== 'verify' && action !== 'refresh') return NextResponse.json({ error: 'Choose verify or refresh.' }, { status: 400 })
+  if ((body.notes?.length ?? 0) > 5_000 || (body.roofType?.length ?? 0) > 80) return NextResponse.json({ error: 'Notes or roof type exceeds the supported text length.' }, { status: 400 })
   if (action === 'verify') {
     const { data: isAdmin, error: roleError } = await supabase.rpc('is_workspace_admin', { target_workspace: workspaceId })
     if (roleError || !isAdmin) return NextResponse.json({ error: 'Workspace administrator access is required for estimate approval.' }, { status: 403 })

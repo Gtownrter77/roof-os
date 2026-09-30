@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
   const category = request.nextUrl.searchParams.get('category')?.trim()
   let builder = supabase.from('material_catalog').select('id,category,subcategory,brand,product_line,product_name,variant,unit,coverage_per_unit,color_options,search_terms').eq('active', true).order('category').order('brand').order('product_name').limit(100)
   if (category) builder = builder.eq('category', category)
-  if (query) builder = builder.or(`product_name.ilike.%${query}%,brand.ilike.%${query}%,product_line.ilike.%${query}%,variant.ilike.%${query}%`)
+  if (query) { const sanitized = query.replace(/[,\(\):%_]/g, ' ').trim().slice(0, 80); if (sanitized) { builder = builder.or(`product_name.ilike.%${sanitized}%,brand.ilike.%${sanitized}%,product_line.ilike.%${sanitized}%,variant.ilike.%${sanitized}%`); } }
   const { data, error } = await builder
   if (error) return NextResponse.json({ error: 'Could not search the material catalog.', detail: error.message }, { status: 502 })
   return NextResponse.json({ source: 'catalog_metadata_only', materials: data ?? [], query })

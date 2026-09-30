@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
   if (!apiKey) return NextResponse.json({ error: 'CapOut integration is not configured.' }, { status: 503 })
 
   const parsed = await readJson(request)
-  if (parsed.error) return NextResponse.json({ error: parsed.error }, { status: 400 })
+  if ('error' in parsed) return NextResponse.json({ error: parsed.error }, { status: parsed.status })
   const body = parsed.body as RequestBody
   if (!isUuid(body.workspaceId)) return NextResponse.json({ error: 'workspaceId must be a valid workspace UUID.' }, { status: 400 })
   const member = await requireWorkspaceMember(supabase, user.id, body.workspaceId)
@@ -45,6 +45,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'sourceUrl must be a signed URL for an authorized ROOF/OS inspection asset.' }, { status: 400 })
   }
 
+  // Workspace access and administrative role verification
   const { data: membership, error: membershipError } = await supabase
     .from('workspace_members')
     .select('role')

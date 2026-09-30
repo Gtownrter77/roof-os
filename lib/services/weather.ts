@@ -3,7 +3,17 @@
 const NWS_API = 'https://api.weather.gov'
 const NWS_HEADERS = {
   Accept: 'application/geo+json, application/json',
-  'User-Agent': 'ROOF-OS/1.0 contact@roof-os.local',
+  'User-Agent': 'ROOF-OS/1.0 (https://github.com/Gtownrter77/roof-os)',
+}
+
+async function fetchNws(url: string) {
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 8_000)
+  try {
+    return await fetch(url, { headers: NWS_HEADERS, signal: controller.signal, cache: 'no-store' })
+  } finally {
+    clearTimeout(timeout)
+  }
 }
 
 export interface WeatherAlert {
@@ -25,19 +35,20 @@ export interface Forecast {
 
 export async function getAlerts(state: string = 'GA'): Promise<WeatherAlert[]> {
   try {
-    const response = await fetch(`${NWS_API}/alerts/active?area=${state}`, { headers: NWS_HEADERS })
+    if (!/^[A-Z]{2}$/.test(state)) return []
+    const response = await fetchNws(`${NWS_API}/alerts/active?area=${state}`)
     if (!response.ok) throw new Error('Failed to fetch alerts')
-    const data = await response.json()
+    const data = await response.json() as { features?: Array<{ id?: string; properties?: Record<string, any> }> }
     
-    return data.features?.map((feature: any) => ({
-      id: feature.id,
-      headline: feature.properties.headline || feature.properties.event,
-      description: feature.properties.description || '',
-      severity: feature.properties.severity || 'Unknown',
-      urgency: feature.properties.urgency || 'Unknown',
-      certainty: feature.properties.certainty || 'Unknown',
-      expiresAt: feature.properties.expires,
-      zones: feature.properties.affectedZones || []
+    return (Array.isArray(data.features) ? data.features : []).slice(0, 100).map((feature) => ({
+      id: feature.id ?? '',
+      headline: feature.properties?.headline || feature.properties?.event || 'Weather alert',
+      description: feature.properties?.description || '',
+      severity: feature.properties?.severity || 'Unknown',
+      urgency: feature.properties?.urgency || 'Unknown',
+      certainty: feature.properties?.certainty || 'Unknown',
+      expiresAt: feature.properties?.expires || '',
+      zones: Array.isArray(feature.properties?.affectedZones) ? feature.properties.affectedZones.slice(0, 100) : []
     })) || []
   } catch (error) {
     console.error('Weather API Error:', error)
@@ -47,17 +58,20 @@ export async function getAlerts(state: string = 'GA'): Promise<WeatherAlert[]> {
 
 export async function getForecast(lat: number = 33.7490, lon: number = -84.3880): Promise<Forecast | null> {
   try {
+    if (!Number.isFinite(lat) || lat < -90 || lat > 90 || !Number.isFinite(lon) || lon < -180 || lon > 180) return null
     // First get the forecast office
-    const pointsRes = await fetch(`${NWS_API}/points/${lat},${lon}`, { headers: NWS_HEADERS })
+    const pointsRes = await fetchNws(`${NWS_API}/points/${lat},${lon}`)
     if (!pointsRes.ok) throw new Error('Failed to get forecast points')
-    const pointsData = await pointsRes.json()
+    const pointsData = await pointsRes.json() as { properties?: { forecast?: string } }
     
     const forecastUrl = pointsData.properties?.forecast
     if (!forecastUrl) throw new Error('No forecast URL found')
+    const forecast = new URL(forecastUrl)
+    if (forecast.origin !== NWS_API || !forecast.pathname.startsWith('/gridpoints/')) throw new Error('NWS returned an untrusted forecast URL')
     
-    const forecastRes = await fetch(forecastUrl, { headers: NWS_HEADERS })
+    const forecastRes = await fetchNws(forecast.toString())
     if (!forecastRes.ok) throw new Error('Failed to fetch forecast')
-    const forecastData = await forecastRes.json()
+    const forecastData = await forecastRes.json() as { properties?: { periods?: Array<{ temperature?: number; shortForecast?: string; icon?: string }> } }
     
     const period = forecastData.properties?.periods?.[0]
     if (!period) throw new Error('No forecast period found')
