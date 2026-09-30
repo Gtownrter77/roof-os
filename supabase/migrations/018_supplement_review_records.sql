@@ -22,6 +22,15 @@ create table if not exists public.supplements (
 
 create index if not exists supplements_workspace_status_idx on public.supplements (workspace_id, status, created_at desc);
 alter table public.supplements enable row level security;
+create or replace function public.is_workspace_admin(target_workspace uuid)
+returns boolean language sql stable security definer set search_path = public
+as $$ select exists (
+  select 1 from public.workspace_members
+  where workspace_id = target_workspace
+    and user_id = auth.uid()
+    and role in ('owner', 'admin')
+); $$;
 create policy supplements_select on public.supplements for select using (public.is_workspace_member(workspace_id));
 create policy supplements_insert on public.supplements for insert with check (public.is_workspace_member(workspace_id) and auth.uid() = created_by);
-create policy supplements_update on public.supplements for update using (public.is_workspace_member(workspace_id)) with check (public.is_workspace_member(workspace_id));
+drop policy if exists supplements_update on public.supplements;
+create policy supplements_update on public.supplements for update using (public.is_workspace_admin(workspace_id)) with check (public.is_workspace_admin(workspace_id));

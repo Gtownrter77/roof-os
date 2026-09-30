@@ -16,7 +16,7 @@
 
 The UI now labels local random pricing as `PROTOTYPE`, local photo analysis as `SIMULATED`, and hardcoded estimate templates as `NOT SHIPPED`. Migration 007 adds the durable foundation for workspace-scoped templates, template versions, price books, price-book items, estimates, and estimate line items. Every estimate can retain its template version, price book, formula version, and source snapshots.
 
-Migration 007 does not claim to provide live pricing. A supplier feed, approved import process, or owner-managed price-book ingestion job is still required before the pricing feature can be called current.
+The live pricing surface uses retailer reference data from Home Depot and Lowe's, with a weekly default refresh and an owner-triggered refresh option. The workflow is Xactimate-friendly in its organization and review controls, but retailer data is not licensed Xactimate or carrier pricing and every value must retain source, market/ZIP, retrieval timestamp, effective date, and owner approval.
 
 ## Release blockers
 

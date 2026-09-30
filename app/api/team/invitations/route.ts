@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '../../../../lib/supabase/server'
+import { readJson } from '../../../../lib/api-security'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -9,6 +10,8 @@ export async function GET() {
   if (!user) return NextResponse.json({ error: 'Authentication required.' }, { status: 401 })
   const { data: workspaceId, error: workspaceError } = await supabase.rpc('current_workspace_id')
   if (workspaceError || !workspaceId) return NextResponse.json({ error: 'No workspace is configured.' }, { status: 400 })
+  const { data: isAdmin } = await supabase.rpc('is_workspace_admin', { target_workspace: workspaceId })
+  if (!isAdmin) return NextResponse.json({ error: 'Workspace administrator access is required to view invitations.' }, { status: 403 })
   const { data, error } = await supabase.from('workspace_invitations').select('id,email,role,status,expires_at,created_at').eq('workspace_id', workspaceId).order('created_at', { ascending: false }).limit(100)
   if (error) return NextResponse.json({ error: 'Could not load invitations.', detail: error.message }, { status: 502 })
   return NextResponse.json({ invitations: data ?? [] })
@@ -21,8 +24,9 @@ export async function POST(request: NextRequest) {
   const { data: workspaceId, error: workspaceError } = await supabase.rpc('current_workspace_id')
   if (workspaceError || !workspaceId) return NextResponse.json({ error: 'No workspace is configured.' }, { status: 400 })
 
-  let body: { email?: string; role?: 'admin' | 'member' }
-  try { body = await request.json() } catch { return NextResponse.json({ error: 'Invalid JSON body.' }, { status: 400 }) }
+  const parsedBody = await readJson(request)
+  if ('error' in parsedBody) return NextResponse.json({ error: parsedBody.error }, { status: parsedBody.status })
+  const body = parsedBody.body as { email?: string; role?: 'admin' | 'member' }
   const email = body.email?.trim().toLowerCase() ?? ''
   const role = body.role ?? 'member'
   if (!EMAIL_RE.test(email)) return NextResponse.json({ error: 'A valid invite email is required.' }, { status: 400 })

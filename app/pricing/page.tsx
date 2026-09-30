@@ -126,8 +126,8 @@ export default function PricingPage() {
       <header className="bg-blue-600 text-white shadow-lg sticky top-0 z-10">
         <div className="px-4 py-3 flex items-center">
           <button onClick={() => router.back()} className="text-white mr-3 text-xl">←</button>
-          <h1 className="text-xl font-bold">💰 Xactimate Pricing</h1>
-          <button className="ml-2 bg-green-500 text-white text-xs px-2 py-1 rounded">Live</button>
+          <h1 className="text-xl font-bold">💰 Live Retailer Pricing</h1>
+          <span className="ml-2 bg-green-500 text-white text-xs px-2 py-1 rounded">LIVE REFERENCE</span>
         </div>
       </header>
 
@@ -281,8 +281,11 @@ export default function PricingPage() {
         </div>
 
         <div className="bg-gray-100 rounded-lg p-3 text-center">
-          <p className="text-xs text-gray-500">
-            🔄 Live pricing updates • Based on current market rates • Xactimate compatible
+          <p className="text-xs text-gray-600">
+            Live Home Depot and Lowe&apos;s retailer reference pricing • Updated weekly by default • Refresh on demand • Xactimate-friendly workflow formatting
+          </p>
+          <p className="text-[11px] text-gray-500 mt-1">
+            Prices retain retailer, market/ZIP, retrieval time, effective date, and owner-review status. They are not licensed Xactimate or carrier rates.
           </p>
         </div>
       </main>

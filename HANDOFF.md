@@ -215,3 +215,69 @@ Workspace settings now persist weekly, manual-only, or disabled price refresh; d
 
 ### Remaining shipment blockers
 Migration 019 must be applied to the target Supabase project. Production Supabase variables, `RAPIDAPI_KEY`, `CRON_SECRET`, and the service-role key must be configured in the deployment environment. Vercel must be re-run after those settings are checked. A real authorized claims-price import or licensed provider is still required before insurance pricing can be called current. Level 3 workspace isolation, worker heartbeat, provider-response, and approval-transition evidence remain outstanding.
+
+
+## 2026-09-17 2026 hardening release
+
+The five highest-impact repository weaknesses were addressed without changing customer-facing workflow semantics:
+
+1. **Vulnerable framework dependency chain:** upgraded Next.js to `16.3.5` and PostCSS to the patched `8.5.10` line; `npm audit --omit=dev --audit-level=high` now reports zero vulnerabilities.
+2. **Missing browser security headers:** added CSP, HSTS, frame protection, MIME sniffing protection, referrer policy, permissions policy, and disabled the framework-powered-by header in `next.config.ts`.
+3. **Repeated workspace authorization risk:** added shared UUID and membership checks and applied them to CapOut, property measurements, drone evidence, Home Depot pricing, and NOAA storm routes. Cross-workspace requests fail closed before provider calls or writes.
+4. **Unbounded request/provider behavior:** added 64 KB JSON body limits, object-only JSON validation, 10-second upstream timeouts, and bounded provider response parsing.
+5. **Weak release gates:** added `release-check`, `typecheck`, and `audit` scripts; CI now runs them in addition to the build and migration safety checks. The deprecated Next.js middleware convention was migrated to the Next.js 16 `proxy.ts` convention.
+
+### Three-level verification
+
+- **Level 1 — Static:** passed `npm run build`, `npm run typecheck`, `npm run release-check`, `npm run audit`, `git diff --check`, and migration/secret-hygiene checks.
+- **Level 2 — Runtime:** local standalone server returned `200` for `/auth/login`, emitted all configured security headers, and redirected unauthenticated `/leads` requests to `/auth/login`.
+- **Level 3 — Data/security:** migration policy and secret scans passed; protected workspace routes are statically required to call `requireWorkspaceMember`. Live Supabase CRUD and cross-workspace RLS execution remains dependent on the target project's migrations being applied and authenticated test accounts being available.
+
+
+### Final release verification update
+
+The hardening commit was rebased onto current `origin/main` and expanded to cover eight workspace-scoped API routes, including manual measurements, labor rates, and pricing refresh. Final checks passed: `npm run release-check`, `npm run verify:security`, `npm run build`, `npm run typecheck`, `npm run audit`, root and field reproducibility checks, Expo config validation, migration/secret scans, and standalone runtime smoke tests. The runtime emitted the configured security headers and redirected unauthenticated `/leads` requests to `/auth/login`. Live Supabase cross-workspace CRUD remains an environment-dependent check requiring authenticated test accounts.
+
+
+## 2026-09-30 recovery-branch handoff
+
+**Working directory:** `/home/ubuntu/roof-os-backup-temp`
+**Branch:** `rebuild/roof-os-recovery`
+**Last verified remote HEAD:** `8600fd50f16393cfd647402eb1ad81cf83c21462`
+
+### Already pushed and verified
+
+- D.3 route/RLS compatibility correction: `ae4a0d221b4b5a65cf1b5c0d4f9465eaec4cc1c6`.
+- D.2 photo upload now creates an inspection session and `inspection_photos` metadata rows, and sends UUIDs plus `inspectionId`: `8600fd50f16393cfd647402eb1ad81cf83c21462`.
+- Upload milestone checks passed before this handoff: `npm run typecheck`, `npm run test:photo-estimate-flow`, `node scripts/security-check.mjs`, `node scripts/ai-vision-endpoint-test.mjs`, and `git diff --check`.
+
+### Current uncommitted work — do not assume tested
+
+After syncing and confirming the clean `8600fd5` local/remote baseline, `app/photo-estimate/page.tsx` was edited to add an optional D.3 AI analysis UI:
+
+- A Supabase browser-client role check controls whether the analysis button is shown; the D.3 server route remains authoritative and requires workspace admin.
+- `Analyze roof photos` sends the workflow ID to `/api/photo-estimate/analyze` only when explicitly clicked.
+- `Force fresh analysis` sends `forceRefresh: true` after a result exists.
+- The UI renders the summary, classification, damage observations, warnings, and contract disclaimer as non-authoritative information.
+- Building a review packet does not automatically call Gemini.
+
+This UI edit was **not typechecked, tested, committed, or pushed**. Current expected change is `M app/photo-estimate/page.tsx`. The working tree was clean before the edit; check `git status --short` and `git diff` before resuming.
+
+### Resume safely
+
+1. Stay in `/home/ubuntu/roof-os-backup-temp` and branch `rebuild/roof-os-recovery`; do not create another checkout.
+2. Inspect `git status --short` and the page diff. The resume task is only to complete/test the opt-in analysis UI unless the user changes scope.
+3. Extend `scripts/photo-estimate-flow-test.mjs` with regression assertions that analysis is admin-gated in the UI, starts only from an explicit click, calls `/api/photo-estimate/analyze`, supports `forceRefresh`, and displays the D.2 disclaimer. Keep tests from making provider calls.
+4. Run `npm run typecheck`, `npm run test:photo-estimate-flow`, `node scripts/security-check.mjs`, `node scripts/ai-vision-endpoint-test.mjs`, `node scripts/auth-flow-test.mjs`, `node scripts/ai-vision-contract-test.mjs`, and `git diff --check`.
+5. Show `git status --short`; commit and push only after the checks pass. Immediately verify with `git ls-remote --heads origin rebuild/roof-os-recovery` and record the exact hash.
+
+No live Gemini execution has been verified. Do not claim it was tested; no provider request was made during this in-progress UI edit.
+
+
+## D.3 opt-in UI milestone completed — 2026-09-30
+
+The explicit admin-only analysis UI and focused regression assertions are now tested and pushed. Commit: `7141922553e2bbcb0de8382d046a3034664837fd` on `rebuild/roof-os-recovery`; `git ls-remote --heads` confirmed the exact hash.
+
+Passed checks: `npm run typecheck`, `npm run test:photo-estimate-flow`, `node scripts/security-check.mjs`, `node scripts/ai-vision-endpoint-test.mjs`, `node scripts/auth-flow-test.mjs`, `node scripts/ai-vision-contract-test.mjs` (11 assertions), and `git diff --check`.
+
+The D.3 call is explicit user-triggered only; packet creation does not invoke Gemini. The browser checks workspace-admin status for UI visibility, and the server remains authoritative. No live Gemini request was made.

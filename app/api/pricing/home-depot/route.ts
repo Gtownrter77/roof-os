@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '../../../../lib/supabase/server'
+import { fetchWithTimeout, isUuid, parseProviderBody, requireWorkspaceMember } from '../../../../lib/api-security'
 
 const RAPIDAPI_HOST = 'real-time-home-depot-data.p.rapidapi.com'
 const MONTHLY_LIMIT = 100
@@ -17,7 +18,9 @@ export async function GET(request: NextRequest) {
   const query = params.get('query')?.trim()
   const zipcode = params.get('zipcode')?.trim() || undefined
   const storeId = params.get('storeId')?.trim() || undefined
-  if (!workspaceId || !/^[0-9a-f-]{36}$/i.test(workspaceId)) return NextResponse.json({ error: 'workspaceId must be a valid workspace UUID.' }, { status: 400 })
+  if (!isUuid(workspaceId)) return NextResponse.json({ error: 'workspaceId must be a valid workspace UUID.' }, { status: 400 })
+  const membership = await requireWorkspaceMember(supabase, user.id, workspaceId)
+  if (membership.response) return membership.response
   if (!query || query.length > 120) return NextResponse.json({ error: 'query is required and must be 120 characters or fewer.' }, { status: 400 })
   if (zipcode && !/^\d{5}$/.test(zipcode)) return NextResponse.json({ error: 'zipcode must be five digits.' }, { status: 400 })
   if (storeId && !/^\d{1,12}$/.test(storeId)) return NextResponse.json({ error: 'storeId must contain digits only.' }, { status: 400 })
@@ -38,10 +41,9 @@ export async function GET(request: NextRequest) {
   if (zipcode) apiUrl.searchParams.set('zipcode', zipcode)
   if (storeId) apiUrl.searchParams.set('store_id', storeId)
 
-  const response = await fetch(apiUrl, { headers: { 'x-rapidapi-host': RAPIDAPI_HOST, 'x-rapidapi-key': rapidApiKey, 'content-type': 'application/json' }, cache: 'no-store' })
+  const response = await fetchWithTimeout(apiUrl, { headers: { 'x-rapidapi-host': RAPIDAPI_HOST, 'x-rapidapi-key': rapidApiKey, 'content-type': 'application/json' }, cache: 'no-store' })
   const text = await response.text()
-  let result: unknown
-  try { result = JSON.parse(text) } catch { result = { message: text.slice(0, 500) } }
+  const result = parseProviderBody(text)
   if (!response.ok) return NextResponse.json({ error: 'Home Depot pricing provider failed.', provider: result }, { status: 502 })
 
   const sourceUrl = apiUrl.toString()

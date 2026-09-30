@@ -210,7 +210,7 @@ export default function InsuranceIntelPage() {
       // Parse address for ZIP code
       const zipMatch = address.match(/\b(\d{5})\b/)
       const zip = zipMatch ? zipMatch[1] : null
-      
+
       let city = null
       let permitRequired = false
       let permitInfo = null
@@ -227,7 +227,7 @@ export default function InsuranceIntelPage() {
       // Get state from address
       const stateMatch = address.match(/\b(AL|AK|AZ|AR|CA|CO|CT|DE|FL|GA|HI|ID|IL|IN|IA|KS|KY|LA|ME|MD|MA|MI|MN|MS|MO|MT|NE|NV|NH|NJ|NM|NY|NC|ND|OH|OK|OR|PA|RI|SC|SD|TN|TX|UT|VT|VA|WA|WV|WI|WY)\b/)
       const state = stateMatch ? stateMatch[1] : 'GA'
-      
+
       const appraisalInfo = appraisalLaws[state] || appraisalLaws['GA']
 
       setResults({
@@ -284,8 +284,8 @@ export default function InsuranceIntelPage() {
           <div className="space-y-4 animate-fadeIn">
             {/* Permit Alert */}
             <div className={`rounded-lg shadow-lg p-4 border-2 ${
-              results.permitRequired 
-                ? 'bg-yellow-50 border-yellow-500' 
+              results.permitRequired
+                ? 'bg-yellow-50 border-yellow-500'
                 : 'bg-green-50 border-green-500'
             }`}>
               <div className="flex items-center justify-between">
@@ -301,7 +301,7 @@ export default function InsuranceIntelPage() {
                   </div>
                 </div>
                 {results.permitRequired && results.permitInfo && (
-                  <a 
+                  <a
                     href={`tel:${results.permitInfo.phone}`}
                     className="bg-blue-600 text-white px-3 py-1 rounded text-sm"
                   >
@@ -414,28 +414,7 @@ export default function InsuranceIntelPage() {
         )}
       </main>
 
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around py-2 px-4">
-        <button onClick={() => router.push('/')} className="flex flex-col items-center text-gray-400">
-          <span className="text-xl">🏠</span>
-          <span className="text-xs">Home</span>
-        </button>
-        <button onClick={() => router.push('/insurance-intel')} className="flex flex-col items-center text-blue-600">
-          <span className="text-xl">📋</span>
-          <span className="text-xs">Intel</span>
-        </button>
-        <button onClick={() => router.push('/logistics')} className="flex flex-col items-center text-gray-400">
-          <span className="text-xl">🚛</span>
-          <span className="text-xs">Logistics</span>
-        </button>
-        <button onClick={() => router.push('/codes')} className="flex flex-col items-center text-gray-400">
-          <span className="text-xl">📋</span>
-          <span className="text-xs">Codes</span>
-        </button>
-        <button onClick={() => router.push('/settings')} className="flex flex-col items-center text-gray-400">
-          <span className="text-xl">⚙️</span>
-          <span className="text-xs">Settings</span>
-        </button>
-      </nav>
+
     </div>
   )
 }
