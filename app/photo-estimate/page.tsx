@@ -1,11 +1,18 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '../../lib/supabase/client'
 import { createWorker } from 'tesseract.js'
 
 type Photo = { file: File; preview: string; id: string }
+type AIObservation = {
+  summary: string
+  authority_disclaimer: string
+  roof_classification: { roof_style: string; primary_material: string }
+  damage_observations: Array<{ category: string; severity: string; location_description: string }>
+  warnings: string[]
+}
 
 const MAX_PHOTOS = 50
 const MAX_PHOTO_BYTES = 30 * 1024 * 1024
@@ -13,7 +20,7 @@ const MIME_EXTENSIONS: Record<string, string> = { 'image/jpeg': 'jpg', 'image/pn
 
 export default function PhotoEstimatePage() {
   const router = useRouter()
-  const supabase = createClient()
+  const [supabase] = useState(() => createClient())
   const inputRef = useRef<HTMLInputElement>(null)
   const [photos, setPhotos] = useState<Photo[]>([])
   const [address, setAddress] = useState('')
@@ -26,6 +33,9 @@ export default function PhotoEstimatePage() {
   const [working, setWorking] = useState(false)
   const [ocrWorking, setOcrWorking] = useState(false)
   const [workflow, setWorkflow] = useState<any>(null)
+  const [canRunAI, setCanRunAI] = useState(false)
+  const [adminCheckComplete, setAdminCheckComplete] = useState(false)
+  const [aiAnalysis, setAiAnalysis] = useState<AIObservation | null>(null)
   const [eaveLf, setEaveLf] = useState('')
   const [rafterLf, setRafterLf] = useState('')
   const [pitch, setPitch] = useState('')
@@ -33,6 +43,26 @@ export default function PhotoEstimatePage() {
   const [wasteFactor, setWasteFactor] = useState('0.10')
   const [soffitWidthFt, setSoffitWidthFt] = useState('1')
   const [fasciaWidthFt, setFasciaWidthFt] = useState('0.5')
+
+  useEffect(() => {
+    let active = true
+    async function checkWorkspaceAdmin() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
+        const { data: workspaceId, error: workspaceError } = await supabase.rpc('current_workspace_id')
+        if (workspaceError || !workspaceId) return
+        const { data: isAdmin, error: roleError } = await supabase.rpc('is_workspace_admin', { target_workspace: workspaceId })
+        if (active && !roleError && isAdmin === true) setCanRunAI(true)
+      } catch {
+        // The analysis endpoint independently enforces workspace-admin access.
+      } finally {
+        if (active) setAdminCheckComplete(true)
+      }
+    }
+    void checkWorkspaceAdmin()
+    return () => { active = false }
+  }, [supabase])
 
   function chooseFiles(event: React.ChangeEvent<HTMLInputElement>) {
     const selected = Array.from(event.target.files ?? [])
@@ -58,6 +88,7 @@ export default function PhotoEstimatePage() {
     }
     if (workflow && next.length > photos.length) {
       setWorkflow(null)
+      setAiAnalysis(null)
       setMessage('Additional photos selected. Build a new review packet to include them.')
     }
   }
@@ -138,9 +169,31 @@ export default function PhotoEstimatePage() {
       const payload = await response.json()
       if (!response.ok) throw new Error(payload.detail || payload.error || 'Could not build the review packet.')
       setWorkflow(payload.workflow)
+      setAiAnalysis(null)
       setMessage('Review packet created. Verify every finding before any customer delivery.')
     } catch (err) { setError(err instanceof Error ? err.message : 'Workflow failed.') }
     setWorking(false)
+  }
+
+  async function analyzePhotos(forceRefresh = false) {
+    if (!workflow?.id || !canRunAI || working) return
+    setWorking(true); setError(''); setMessage('')
+    try {
+      const response = await fetch('/api/photo-estimate/analyze', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ workflowId: workflow.id, ...(forceRefresh ? { forceRefresh: true } : {}) }),
+      })
+      const payload = await response.json().catch(() => null)
+      if (!response.ok) throw new Error(payload?.error || 'Photo analysis could not be completed.')
+      if (!payload?.analysis) throw new Error('Photo analysis returned no usable observation packet.')
+      setAiAnalysis(payload.analysis as AIObservation)
+      setMessage(payload.cached ? 'Loaded the saved AI visual observations.' : 'AI visual observations saved for technician review.')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Photo analysis could not be completed.')
+    } finally {
+      setWorking(false)
+    }
   }
 
   async function saveFieldVerification(action: 'verify' | 'refresh') {
@@ -172,6 +225,22 @@ export default function PhotoEstimatePage() {
     </div>
     {error && <p className="text-red-700 bg-red-50 p-3 rounded mt-4 text-sm">{error}</p>}
     {message && <p className="text-green-700 bg-green-50 p-3 rounded mt-4 text-sm">{message}</p>}
+    {workflow && <section className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4" aria-labelledby="ai-observations-title">
+      <h2 id="ai-observations-title" className="font-semibold">AI visual observations (non-authoritative)</h2>
+      <p className="text-xs text-gray-700 mt-1">Analysis is optional and starts only when an administrator requests it. Results are not measurements, pricing, code determinations, or insurance decisions; a technician must independently verify all findings.</p>
+      {canRunAI ? <div className="flex flex-wrap gap-2 mt-3">
+        <button onClick={() => void analyzePhotos(false)} disabled={working} className="bg-blue-700 text-white px-3 py-2 rounded disabled:opacity-60">{working ? 'Analyzing photos…' : 'Analyze roof photos'}</button>
+        {aiAnalysis && <button onClick={() => void analyzePhotos(true)} disabled={working} className="border border-blue-700 text-blue-800 px-3 py-2 rounded disabled:opacity-60">Force fresh analysis</button>}
+      </div> : adminCheckComplete ? <p className="text-xs text-gray-600 mt-2">Workspace administrator access is required to run or refresh AI analysis.</p> : <p className="text-xs text-gray-600 mt-2">Checking workspace permissions…</p>}
+      {aiAnalysis && <div className="mt-3 bg-white rounded p-3 space-y-2">
+        <p className="text-sm">{aiAnalysis.summary}</p>
+        <p className="text-sm"><b>Visual classification:</b> {aiAnalysis.roof_classification.roof_style.replaceAll('_', ' ')}; {aiAnalysis.roof_classification.primary_material.replaceAll('_', ' ')}.</p>
+        <p className="text-sm"><b>Damage observations:</b> {aiAnalysis.damage_observations.length} candidate(s).</p>
+        {aiAnalysis.damage_observations.length > 0 && <ul className="list-disc pl-5 text-sm">{aiAnalysis.damage_observations.map((item, index) => <li key={`${item.category}-${index}`}>{item.category.replaceAll('_', ' ')} — {item.severity}; {item.location_description}</li>)}</ul>}
+        {aiAnalysis.warnings.length > 0 && <ul className="list-disc pl-5 text-xs text-amber-800">{aiAnalysis.warnings.map((warning, index) => <li key={`${warning}-${index}`}>{warning}</li>)}</ul>}
+        <p className="text-xs text-gray-600">{aiAnalysis.authority_disclaimer}</p>
+      </div>}
+    </section>}
     {workflow && <div className="bg-white rounded-lg shadow p-4 mt-4"><h2 className="font-bold">{workflow.report?.title}</h2><p className="text-sm mt-2">Status: <b>{workflow.status}</b></p><p className="text-sm">Property footprint assist: {workflow.report?.propertyEvidence?.footprintSqFt || 0} sq ft, low confidence</p><p className="text-sm">Storm candidates: {workflow.storm_candidates?.length || 0}; these are corroborating candidates, not a proven loss date.</p><p className="text-sm mt-3">Estimate: {workflow.estimate?.status}; no prices are inserted unless an approved price book is present.</p><div className="mt-3 border-t pt-3"><h3 className="font-semibold">Technician field verification</h3><p className="text-xs text-gray-600 mb-2">Review the packet, then choose exactly one action. The server preserves your measurements and does not decide whether they are plausible.</p><div className="grid grid-cols-2 gap-2"><input value={eaveLf} onChange={(e) => setEaveLf(e.target.value)} placeholder="Eaves LF" className="p-2 border rounded" /><input value={rafterLf} onChange={(e) => setRafterLf(e.target.value)} placeholder="Rafter LF" className="p-2 border rounded" /><input value={pitch} onChange={(e) => setPitch(e.target.value)} placeholder="Pitch rise / 12" className="p-2 border rounded" /><select value={roofType} onChange={(e) => setRoofType(e.target.value as 'hip' | 'gable' | 'other')} className="p-2 border rounded"><option value="hip">Hip</option><option value="gable">Gable</option><option value="other">Other</option></select><input value={soffitWidthFt} onChange={(e) => setSoffitWidthFt(e.target.value)} placeholder="Soffit width (ft)" className="p-2 border rounded" /><input value={fasciaWidthFt} onChange={(e) => setFasciaWidthFt(e.target.value)} placeholder="Fascia width (ft)" className="p-2 border rounded" /></div><p className="text-xs text-gray-500 mt-1">The technician owns the measurement decision. Values are preserved as entered.</p><select value={wasteFactor} onChange={(e) => setWasteFactor(e.target.value)} className="w-full p-2 border rounded mt-2"><option value="0.10">10% waste</option><option value="0.15">15% waste</option><option value="0">0% waste</option></select><div className="grid grid-cols-2 gap-2 mt-2"><button onClick={() => void saveFieldVerification('refresh')} disabled={working} className="bg-amber-500 text-white py-2 rounded disabled:opacity-60">Request photo refresh</button><button onClick={() => void saveFieldVerification('verify')} disabled={working} className="bg-green-600 text-white py-2 rounded disabled:opacity-60">Verify measurements</button></div></div><div className="mt-3 bg-amber-50 p-3 rounded text-sm">Verify records the technician, timestamp, measurements, slope multiplier, roof type, waste factor, soffit/fascia widths, and calculated squares. Refresh preserves the existing packet and returns it for new photos.</div></div>}
   </div>
 }
