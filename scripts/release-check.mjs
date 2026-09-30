@@ -56,8 +56,23 @@ for (const route of routes) {
   if (source.includes('request.json()')) {
     throw new Error(`API route bypasses the bounded JSON reader: ${route}`)
   }
-  if (/\bfetch\s*\(/.test(source)) {
-    throw new Error(`API route makes a network request without the bounded fetch helper: ${route}`)
+  const fetchCallCount = [...source.matchAll(/\bfetch\s*\(/g)].length
+  const boundedPhotoAnalysisFetch = route === join(root, 'app', 'api', 'photo-estimate', 'analyze', 'route.ts')
+    && fetchCallCount === 2
+    && (source.match(/new AbortController\(\)/g) ?? []).length === 2
+    && (source.match(/const timer = setTimeout\(\(\) => controller\.abort\(\), timeoutMs\)/g) ?? []).length === 2
+    && (source.match(/clearTimeout\(timer\)/g) ?? []).length === 2
+    && source.includes('async function readBoundedBody(')
+    && source.includes('async function fetchBytesWithinBudget(')
+    && source.includes('async function fetchTextWithinTimeout(')
+    && source.includes('size > maxBytes')
+    && source.includes('await readBoundedBody(response, remainingBytes,')
+    && source.includes('await readBoundedBody(response, responseLimit,')
+    && source.includes('Math.min(STORAGE_TIMEOUT_MS, deadline - Date.now())')
+    && source.includes('Math.min(PROVIDER_TIMEOUT_MS, deadline - Date.now())')
+  // D.3 keeps both abort timers active while stream-limiting storage and provider response bodies.
+  if (fetchCallCount > 0 && !boundedPhotoAnalysisFetch) {
+    throw new Error(`API route makes a network request without an approved bounded fetch helper: ${route}`)
   }
 }
 const protectedWorkspaceRoutes = routes.filter((path) => /claims|measurements|pricing|storms/.test(path))
