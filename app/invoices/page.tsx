@@ -75,28 +75,6 @@ export default function InvoicesPage() {
         </div>
       </main>
 
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around py-2 px-4">
-        <button onClick={() => router.push('/')} className="flex flex-col items-center text-gray-400">
-          <span className="text-xl">🏠</span>
-          <span className="text-xs">Home</span>
-        </button>
-        <button onClick={() => router.push('/invoices')} className="flex flex-col items-center text-blue-600">
-          <span className="text-xl">📊</span>
-          <span className="text-xs">Invoices</span>
-        </button>
-        <button onClick={() => router.push('/sign')} className="flex flex-col items-center text-gray-400">
-          <span className="text-xl">✍️</span>
-          <span className="text-xs">Sign</span>
-        </button>
-        <button onClick={() => router.push('/chat')} className="flex flex-col items-center text-gray-400">
-          <span className="text-xl">💬</span>
-          <span className="text-xs">Chat</span>
-        </button>
-        <button onClick={() => router.push('/settings')} className="flex flex-col items-center text-gray-400">
-          <span className="text-xl">⚙️</span>
-          <span className="text-xs">Settings</span>
-        </button>
-      </nav>
-    </div>
+              </div>
   )
 }
