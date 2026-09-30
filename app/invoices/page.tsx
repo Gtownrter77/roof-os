@@ -75,4 +75,6 @@ export default function InvoicesPage() {
         </div>
       </main>
 
-          </div>\n  )\n}\n
+              </div>
+  )
+}
