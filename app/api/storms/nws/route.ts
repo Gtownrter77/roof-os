@@ -33,10 +33,7 @@ export async function GET(request: NextRequest) {
     confidence: 'candidate',
   }))
 
-  for (const candidate of candidates) {
-    if (!candidate.eventDate) continue
-    await supabase.from('storm_evidence').insert({ workspace_id: workspaceId, provider: 'nws', event_type: candidate.eventType, event_date: candidate.eventDate.slice(0, 10), severity: candidate.severity, confidence: 'candidate', source_url: candidate.sourceUrl, source_payload: candidate, created_by: user.id })
-  }
+  if (candidates.length) {    const urls = candidates.map((c: any) => c.sourceUrl).filter(Boolean);    const { data: existing } = await supabase.from("storm_evidence").select("source_url").eq("workspace_id", workspaceId).in("source_url", urls);    const existingUrls = new Set((existing ?? []).map((e: any) => e.source_url));    const toInsert = candidates.filter((c: any) => c.eventDate && !existingUrls.has(c.sourceUrl)).map((candidate: any) => ({ workspace_id: workspaceId, provider: "nws", event_type: candidate.eventType, event_date: candidate.eventDate.slice(0, 10), severity: candidate.severity, confidence: "candidate", source_url: candidate.sourceUrl, source_payload: candidate, created_by: user.id }));    if (toInsert.length) await supabase.from("storm_evidence").insert(toInsert);  }
 
   return NextResponse.json({ provider: 'nws', candidates, interpretation: 'Candidate weather evidence only. NOAA proximity or an alert does not prove property damage or a date of loss. Human review and corroboration are required.', sourceUrl: url })
 }
