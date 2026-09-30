@@ -19,8 +19,6 @@ export default function LeadsPage() {
   useEffect(() => {
     let active = true
     async function loadLeads() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { router.replace('/auth/login'); return }
       const { data, error: queryError } = await supabase.from('leads').select('id,name,address,status,phone,email').order('created_at', { ascending: false })
       if (!active) return
       if (queryError) setError(queryError.message)

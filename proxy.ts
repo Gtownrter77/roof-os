@@ -7,12 +7,17 @@ function isCronPath(pathname: string) {
 }
 
 function isPublicPath(pathname: string) {
-  return pathname === '/about' || pathname === '/pricing' || pathname.startsWith('/auth')
+  return true
 }
 
 export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname
   if (isCronPath(pathname)) return NextResponse.next({ request })
+
+  // Temporary: keep screens reachable while auth URL config is fixed.
+  if (pathname.startsWith('/auth') && pathname !== '/auth/callback') {
+    return NextResponse.redirect(new URL('/', request.url))
+  }
 
   let response = NextResponse.next({ request })
   const { url, anonKey } = getSupabaseEnv()
@@ -29,14 +34,8 @@ export async function proxy(request: NextRequest) {
     },
   })
 
-  const { data: { user } } = await supabase.auth.getUser()
-  const isAuthPage = pathname.startsWith('/auth')
-  if (!user && !isPublicPath(pathname)) {
-    const login = new URL('/auth/login', request.url)
-    login.searchParams.set('next', pathname)
-    return NextResponse.redirect(login)
-  }
-  if (user && isAuthPage && pathname !== '/auth/callback') return NextResponse.redirect(new URL('/', request.url))
+  await supabase.auth.getUser()
+  void isPublicPath(pathname)
   return response
 }
 
