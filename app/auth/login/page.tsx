@@ -3,18 +3,14 @@
 import { FormEvent, Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '../../../lib/supabase/client'
+import { safeNext } from '../../../lib/safe-next'
 
 const COOLDOWN_SECONDS = 60
-
-function safeNext(value: string | null) {
-  if (!value || !value.startsWith('/') || value.startsWith('//')) return '/'
-  return value
-}
 
 function LoginForm() {
   const router = useRouter()
   const search = useSearchParams()
-  const next = safeNext(search.get('next'))
+  const next = safeNext(search.get('next'), typeof window === 'undefined' ? 'http://localhost' : window.location.origin)
   const supabase = createClient()
   const [email, setEmail] = useState('')
   const [message, setMessage] = useState('')

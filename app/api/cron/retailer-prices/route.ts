@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
   for (const item of watchlist ?? []) {
     const frequency = frequencyByWorkspace.get(item.workspace_id) ?? 'weekly'
     if (frequency !== 'weekly') { results.push({ watchlistId: item.id, status: frequency === 'manual' ? 'manual_only' : 'disabled' }); continue }
-    const { data: cached } = await supabase.from('retailer_price_snapshots').select('id').eq('workspace_id', item.workspace_id).eq('provider', 'home_depot').eq('query', item.query).gt('expires_at', new Date().toISOString()).limit(1).maybeSingle()
+    const { data: cached } = await supabase.from('retailer_price_snapshots').select('id').eq('workspace_id', item.workspace_id).eq('provider', 'home_depot').eq('query', item.query).eq('location_key', `${item.zipcode ?? ''}:${item.store_id ?? ''}`).gt('expires_at', new Date().toISOString()).limit(1).maybeSingle()
     if (cached) { results.push({ watchlistId: item.id, status: 'cached' }); continue }
 
     const { data: reserved, error: reserveError } = await supabase.rpc('reserve_retailer_price_query_worker', { p_workspace_id: item.workspace_id, p_provider: 'home_depot', p_query_month: month, p_monthly_limit: MONTHLY_LIMIT })
@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
     try { payload = JSON.parse(text) } catch { payload = { message: text.slice(0, 500) } }
     if (!response.ok) { results.push({ watchlistId: item.id, status: 'provider_error', code: response.status }); continue }
 
-    const { error: insertError } = await supabase.from('retailer_price_snapshots').insert({ workspace_id: item.workspace_id, provider: 'home_depot', query: item.query, zipcode: item.zipcode, store_id: item.store_id, source_url: apiUrl.toString(), response: payload, expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), created_by: null })
+    const { error: insertError } = await supabase.from('retailer_price_snapshots').upsert({ workspace_id: item.workspace_id, provider: 'home_depot', query: item.query, zipcode: item.zipcode, store_id: item.store_id, source_url: apiUrl.toString(), response: payload, expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), created_by: null }, { onConflict: 'workspace_id,provider,query,location_key' })
     results.push({ watchlistId: item.id, status: insertError ? 'cache_error' : 'refreshed' })
   }
 
