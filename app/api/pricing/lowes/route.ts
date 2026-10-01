@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '../../../../lib/supabase/server'
 import { getLowesAccessToken, LOWES_PRODUCT_SEARCH_URL } from '../../../../lib/lowes'
+import { fetchWithTimeout, parseProviderBody, requireWorkspaceMember } from '../../../../lib/api-security'
 
 const MONTHLY_LIMIT = 100
 
@@ -12,6 +13,8 @@ export async function GET(request: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Authentication required.' }, { status: 401 })
   const { data: workspaceId } = await supabase.rpc('current_workspace_id')
   if (!workspaceId) return NextResponse.json({ error: 'No workspace is configured.' }, { status: 400 })
+  const membership = await requireWorkspaceMember(supabase, user.id, workspaceId)
+  if (membership.response) return membership.response
 
   const params = request.nextUrl.searchParams
   const query = params.get('query')?.trim()
@@ -45,10 +48,9 @@ export async function GET(request: NextRequest) {
   if (zipcode) apiUrl.searchParams.set('zipCode', zipcode)
   if (storeId) apiUrl.searchParams.set('storeNumber', storeId)
 
-  const response = await fetch(apiUrl, { headers: { 'X-Client-Id': clientId, Authorization: `Bearer ${oauth.token}`, accept: 'application/json' }, cache: 'no-store' })
+  const response = await fetchWithTimeout(apiUrl, { headers: { 'X-Client-Id': clientId, Authorization: `Bearer ${oauth.token}`, accept: 'application/json' }, cache: 'no-store' })
   const text = await response.text()
-  let result: unknown
-  try { result = JSON.parse(text) } catch { result = { message: text.slice(0, 500) } }
+  const result = parseProviderBody(text)
   if (!response.ok) return NextResponse.json({ error: 'Lowe\'s pricing provider failed.', provider: result }, { status: 502 })
 
   const { error: cacheError } = await supabase.from('retailer_price_snapshots').insert({ workspace_id: workspaceId, provider: 'lowes', query, zipcode: zipcode ?? null, store_id: storeId ?? null, source_url: apiUrl.toString(), response: result, expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), created_by: user.id })

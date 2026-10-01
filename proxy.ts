@@ -10,46 +10,33 @@ function isPublicPath(pathname: string) {
   return pathname === '/about' || pathname === '/pricing' || pathname.startsWith('/auth')
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname
-
-  // Vercel Cron is unauthenticated at the session layer. The route still requires CRON_SECRET.
-  if (isCronPath(pathname)) {
-    return NextResponse.next({ request })
-  }
+  if (isCronPath(pathname)) return NextResponse.next({ request })
 
   let response = NextResponse.next({ request })
   const { url, anonKey } = getSupabaseEnv()
-  const supabase = createServerClient(
-    url,
-    anonKey,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
-          response = NextResponse.next({ request })
-          cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options))
-        },
+  const supabase = createServerClient(url, anonKey, {
+    cookies: {
+      getAll() {
+        return request.cookies.getAll()
+      },
+      setAll(cookiesToSet) {
+        cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
+        response = NextResponse.next({ request })
+        cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options))
       },
     },
-  )
+  })
 
   const { data: { user } } = await supabase.auth.getUser()
   const isAuthPage = pathname.startsWith('/auth')
-
   if (!user && !isPublicPath(pathname)) {
     const login = new URL('/auth/login', request.url)
     login.searchParams.set('next', pathname)
     return NextResponse.redirect(login)
   }
-
-  if (user && isAuthPage && pathname !== '/auth/callback') {
-    return NextResponse.redirect(new URL('/', request.url))
-  }
-
+  if (user && isAuthPage && pathname !== '/auth/callback') return NextResponse.redirect(new URL('/', request.url))
   return response
 }
 

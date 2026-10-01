@@ -10,109 +10,109 @@ export default function InsurancePage() {
   const [callLog, setCallLog] = useState<any[]>([])
 
   const insuranceCompanies = [
-    { 
-      id: 1, 
-      name: 'Allstate', 
-      claims: '1-800-255-7828', 
+    {
+      id: 1,
+      name: 'Allstate',
+      claims: '1-800-255-7828',
       status: 'Available',
       states: ['All'],
       website: 'allstate.com',
       processingTime: '2-4 days'
     },
-    { 
-      id: 2, 
-      name: 'State Farm', 
-      claims: '1-800-732-5246', 
+    {
+      id: 2,
+      name: 'State Farm',
+      claims: '1-800-732-5246',
       status: 'Available',
       states: ['All'],
       website: 'statefarm.com',
       processingTime: '2-3 days'
     },
-    { 
-      id: 3, 
-      name: 'Progressive', 
-      claims: '1-800-274-4499', 
+    {
+      id: 3,
+      name: 'Progressive',
+      claims: '1-800-274-4499',
       status: 'Available',
       states: ['All'],
       website: 'progressive.com',
       processingTime: '3-5 days'
     },
-    { 
-      id: 4, 
-      name: 'Liberty Mutual', 
-      claims: '1-800-225-2467', 
+    {
+      id: 4,
+      name: 'Liberty Mutual',
+      claims: '1-800-225-2467',
       status: 'Available',
       states: ['All'],
       website: 'libertymutual.com',
       processingTime: '2-5 days'
     },
-    { 
-      id: 5, 
-      name: 'Farmers', 
-      claims: '1-800-435-7764', 
+    {
+      id: 5,
+      name: 'Farmers',
+      claims: '1-800-435-7764',
       status: 'Available',
       states: ['All'],
       website: 'farmers.com',
       processingTime: '3-7 days'
     },
-    { 
-      id: 6, 
-      name: 'GEICO', 
-      claims: '1-800-841-3000', 
+    {
+      id: 6,
+      name: 'GEICO',
+      claims: '1-800-841-3000',
       status: 'Available',
       states: ['All'],
       website: 'geico.com',
       processingTime: '2-3 days'
     },
-    { 
-      id: 7, 
-      name: 'Travelers', 
-      claims: '1-800-252-4633', 
+    {
+      id: 7,
+      name: 'Travelers',
+      claims: '1-800-252-4633',
       status: 'Available',
       states: ['All'],
       website: 'travelers.com',
       processingTime: '3-5 days'
     },
-    { 
-      id: 8, 
-      name: 'Nationwide', 
-      claims: '1-800-421-3535', 
+    {
+      id: 8,
+      name: 'Nationwide',
+      claims: '1-800-421-3535',
       status: 'Available',
       states: ['All'],
       website: 'nationwide.com',
       processingTime: '2-4 days'
     },
-    { 
-      id: 9, 
-      name: 'American Family', 
-      claims: '1-800-692-6326', 
+    {
+      id: 9,
+      name: 'American Family',
+      claims: '1-800-692-6326',
       status: 'Available',
       states: ['All'],
       website: 'amfam.com',
       processingTime: '3-5 days'
     },
-    { 
-      id: 10, 
-      name: 'USAA', 
-      claims: '1-800-531-8111', 
+    {
+      id: 10,
+      name: 'USAA',
+      claims: '1-800-531-8111',
       status: 'Available',
       states: ['All'],
       website: 'usaa.com',
       processingTime: '1-3 days'
     },
-    { 
-      id: 11, 
-      name: 'The Hartford', 
-      claims: '1-800-243-5860', 
+    {
+      id: 11,
+      name: 'The Hartford',
+      claims: '1-800-243-5860',
       status: 'Available',
       states: ['All'],
       website: 'thehartford.com',
       processingTime: '3-6 days'
     },
-    { 
-      id: 12, 
-      name: 'Chubb', 
-      claims: '1-800-252-4678', 
+    {
+      id: 12,
+      name: 'Chubb',
+      claims: '1-800-252-4678',
       status: 'Available',
       states: ['All'],
       website: 'chubb.com',
@@ -123,14 +123,12 @@ export default function InsurancePage() {
   const quickDial = (number: string, name: string) => {
     const now = new Date().toLocaleTimeString()
     setCallLog([{ name, number, time: now }, ...callLog])
-    
+
     // Open phone dialer
-    if (confirm(`Call ${name} at ${number}?`)) {
-      window.location.href = `tel:${number}`
-    }
+    window.location.href = `tel:${number}`
   }
 
-  const filteredCompanies = insuranceCompanies.filter(company => 
+  const filteredCompanies = insuranceCompanies.filter(company =>
     company.name.toLowerCase().includes(search.toLowerCase())
   )
 
@@ -229,28 +227,7 @@ export default function InsurancePage() {
         )}
       </main>
 
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around py-2 px-4">
-        <button onClick={() => router.push('/')} className="flex flex-col items-center text-gray-400">
-          <span className="text-xl">🏠</span>
-          <span className="text-xs">Home</span>
-        </button>
-        <button onClick={() => router.push('/insurance')} className="flex flex-col items-center text-green-600">
-          <span className="text-xl">📞</span>
-          <span className="text-xs">Insurance</span>
-        </button>
-        <button onClick={() => router.push('/templates')} className="flex flex-col items-center text-gray-400">
-          <span className="text-xl">📄</span>
-          <span className="text-xs">Templates</span>
-        </button>
-        <button onClick={() => router.push('/sketch')} className="flex flex-col items-center text-gray-400">
-          <span className="text-xl">✏️</span>
-          <span className="text-xs">Sketch</span>
-        </button>
-        <button onClick={() => router.push('/settings')} className="flex flex-col items-center text-gray-400">
-          <span className="text-xl">⚙️</span>
-          <span className="text-xs">Settings</span>
-        </button>
-      </nav>
+
     </div>
   )
 }
