@@ -388,3 +388,7 @@ Local validation passed: measurement-authority tests (including stale/mismatched
 - Closed PR #8 as stale/superseded after review: it reintroduced migration-version collisions and a broad unreviewed public route surface; its remote branch remains available for a focused redesign.
 - Main branch protection remains enabled with required `web`, `mobile`, and `migration-safety` checks, admin enforcement, conversation resolution, no force-pushes, and no deletions.
 - All integrations in this review were pushed to their source branches before merge; no production credentials or database deployments were performed.
+
+## 2026-10-01 branch-wide CI trigger checkpoint
+
+- Updated `.github/workflows/ci.yml` so every branch push and every pull request target receives the same web, mobile, preview-build, migration-safety, security, and audit coverage; `main` protection still requires the three configured checks.
