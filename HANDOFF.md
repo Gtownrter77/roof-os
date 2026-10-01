@@ -380,3 +380,11 @@ Local validation passed: measurement-authority tests (including stale/mismatched
 - Kept the newer main login implementation from PR #38 because it already contains the safer default-password mode, bounded password input, safe redirect handling, and the existing email-link/code fallback.
 - Preserved PR #17’s distinct additions: `/auth/reset` password update flow, explicit user-chosen signup passwords, and corresponding auth-contract changes.
 - This branch is ready for local verification and GitHub CI; no auth secrets or production credentials were changed.
+
+## 2026-10-01 repository-wide branch review checkpoint
+
+- Merged PR #40 (verified state-of-union documentation), PR #37 (strict technician-approved estimate gate with migration 038), PR #17 (password sign-in/reset flow), and PR #16 (hardened AI receptionist workflows) into `main`; each completed with all required `web`, `mobile`, `preview-build`, `migration-safety`, Vercel, and preview-comment checks passing.
+- Closed PR #9 and PR #11 as superseded: newer photo-estimate/estimate-gate and Lowe’s quota/provider hardening are already on `main`.
+- Closed PR #8 as stale/superseded after review: it reintroduced migration-version collisions and a broad unreviewed public route surface; its remote branch remains available for a focused redesign.
+- Main branch protection remains enabled with required `web`, `mobile`, and `migration-safety` checks, admin enforcement, conversation resolution, no force-pushes, and no deletions.
+- All integrations in this review were pushed to their source branches before merge; no production credentials or database deployments were performed.
