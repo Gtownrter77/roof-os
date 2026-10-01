@@ -1,68 +1,68 @@
-# ROOF/OS State of the Union — 2026-09-15
+# ROOF/OS State of the Union — 2026-10-01
 
 Repo: https://github.com/Gtownrter77/roof-os  
 Production: https://roof-os-lemon.vercel.app  
-Audit commit basis: `5fcff9d` plus `fix/sotu-hardening`
+Initial audit basis (2026-09-15): `5fcff9d` plus `fix/sotu-hardening`
 
 ## Verdict
 
-The core office loop is a real app, not a mock. Auth, RLS-backed persistence, and owner pricing exist. The product is not shippable as a sales-facing estimating platform until licensed claims pricing, invitation delivery, migration 019 on prod, and Vercel env/cron are confirmed.
+The core office loop is a real app, not a mock. Auth, RLS-backed persistence, and owner pricing exist. It is not ready to be represented as a sales-facing estimating platform until licensed claims pricing, invitation email delivery, production Vercel configuration/cron, and cross-workspace isolation are verified. Migration 019 is applied; aerial-geometry migration 037 is not applied in production.
+
+## Verified status — 2026-10-01
+
+- `fix/sotu-hardening` merged as PR #3 on 2026-09-16.
+- The production Supabase migration ledger confirms `019_material_catalog_workspace_settings` is applied. `material_catalog` and `workspace_settings` exist with RLS enabled.
+- Main contains `037_aerial_geometry_suggestions.sql` and the aerial suggestion API. The schema stores proposed roof planes, edges, and objects with confidence and review states. Calibration and technician review gate confirmation; the API says AI suggestions do not create authoritative estimate quantities. Production does **not** have migration 037 applied: `aerial_measurements`, `roof_planes`, `roof_edges`, and `roof_objects` are absent.
+- The migration uses ordinary foreign keys for parent and workspace IDs but does not enforce that each linked inspection, photo, and child geometry row belongs to the same workspace. Add a database-level consistency constraint before applying it.
+- Open PR #37 adds a separate migration also numbered `037`; renumber and reconcile it with main before merge. Review the combined schema and ordering before applying either change.
+- CI runs builds/typechecks, release/security checks, and targeted API-security, auth-flow, photo-estimate, measurement-authority, and AI-vision tests. An aerial-geometry contract script exists but is not wired into CI. A live two-workspace RLS test and browser E2E test were not verified.
+- Invitation creation and acceptance routes/transaction exist; email delivery remains unimplemented.
+- PR #24 (retailer quota safeguards) and PR #31 (master playbook PDF) merged on 2026-10-01 after all six required checks passed on their refreshed branches.
+- Vercel preview checks passed for those PRs, but Production environment variables and the production deployment were not verified in this recheck.
 
 ## Strengths
 
-- Next.js 15 + Supabase SSR auth with `getUser()` on nearly all APIs
-- 19 ordered SQL migrations with RLS and a system-owner lock
-- CI covers web build, field typecheck, and migration presence
-- Honest provenance language on measurements and retailer prices
-- Owner manual and operating cadence exist
+- Next.js 15 with Supabase SSR auth and `getUser()` on nearly all APIs.
+- Ordered Supabase migration history, RLS policies, and a system-owner lock.
+- CI covers web/mobile and preview builds, typechecks, release/security checks, and targeted tests.
+- Measurement and retailer-price provenance is documented; estimates are not represented as Xactimate or carrier-approved pricing.
+- Owner manual and operating cadence exist.
 
-## Weaknesses found
+## Remaining weaknesses
 
-### Closed in `fix/sotu-hardening`
+### Operations
 
-1. **Cron blocked by middleware.** `/api/cron/*` required a user session, so Vercel Cron would 307 to login. Cron paths now skip session auth; the route still requires `CRON_SECRET`.
-2. **Open redirect on auth callback.** `next` accepted any URL. Now only same-origin relative paths.
-3. **`/api/building-codes` had no `getUser()` check.** Auth required.
-4. **`/onboarding` was public.** Auth required like the rest of the app.
-5. **No root README.** Added.
-6. **Dockerfile copied missing `public/` and used Node 18 vs CI Node 22.** Fixed.
-7. **`.env.example` pointed at the live Supabase project ref.** Replaced with a placeholder.
+- Verify Production has `NEXT_PUBLIC_SUPABASE_*`, `SUPABASE_SERVICE_ROLE_KEY`, `RAPIDAPI_KEY`, and `CRON_SECRET`, and verify production cron operation. This recheck lacked authorized Vercel project access.
+- Apply the geometry schema only after migration ordering and workspace-consistency constraints are resolved.
+- Expo APK build credentials/status were not rechecked.
 
-### Still open — ops
+### Product honesty
 
-- Confirm Vercel Production has `NEXT_PUBLIC_SUPABASE_*`, `SUPABASE_SERVICE_ROLE_KEY`, `RAPIDAPI_KEY`, `CRON_SECRET`.
-- Apply migration `019_material_catalog_workspace_settings.sql` on project `xksumagfbegdlapwysps` if not already applied.
-- Vercel preview deploys have failed independently of local `next build`.
-- Expo APK needs `EXPO_TOKEN` / `eas login`.
+- Prior audit identified prototype routes; recheck their current contents before presenting them as production features, and label prototypes in navigation.
+- Building-code results were previously found to use a hardcoded state family rather than a legal jurisdiction source; do not describe them as permit-ready.
+- OSM footprints and AI-generated roof geometry are suggestions, not certified measurements. Calibration and technician review are required; production geometry tables are not deployed.
+- Invitation acceptance exists, but invitation email delivery does not.
+- Licensed claims pricing remains unverified; retailer prices are not claims pricing.
 
-### Still open — product honesty
+### Security and verification
 
-- 50+ routes. Many (`/quantum`, `/genetic`, `/vr`, `/ar`, `/photo-estimate`) are shells. They inflate surface area and confuse what customers can actually do.
-- Building codes resolve ZIP → city/state, then a hardcoded state family. Not a legal jurisdiction file.
-- Measurements are OSM footprint candidates, not certified roof squares.
-- No automated tests beyond `tsc` and string greps in CI.
-- Invitation create API exists; email send/accept does not.
-- `lib/supabase.ts` still creates a module-scope client; prefer `lib/supabase/client.ts` and `server.ts` only.
-- Dead vars in `package.json` era: `NEXTAUTH_*` was leftover and is removed from `.env.example`.
+- Run a two-workspace RLS isolation test for leads, photos, price books, and geometry.
+- Add a browser-based smoke test for login redirect, authenticated dashboard, and unauthenticated API responses.
+- Keep service-role credentials server-side and continue secret scanning.
+- Prior audit flagged a root-license gap and a module-scope Supabase client; their current status was not rechecked here.
+- Treat this as internal operations software until the isolation and production checks above pass.
 
-### Still open — security posture
+## Follow-up order
 
-- Service-role usage in cron/worker is correct only if the key never ships to the client. Keep scanning CI for committed secrets.
-- No license at repo root (field app has one).
-- Hobby Vercel + public GitHub means treat this as internal ops software until RLS isolation is Level-3 tested across two workspaces.
-
-## Fix order (do these next)
-
-1. Merge `fix/sotu-hardening` after CI is green.
-2. In Vercel: set cron secret, service role, RapidAPI key; redeploy production.
-3. Run migration 019 in Supabase SQL editor; confirm `material_catalog` and workspace settings.
-4. Two-account RLS test: user A cannot read user B leads/photos/price books.
-5. Hide or label prototype routes in nav so the product tells the truth.
-6. Implement invite accept + email, or remove the invite button from the UI.
-7. Add one Playwright smoke: login redirect, authenticated dashboard, 401 on APIs without cookies.
+1. Reconcile PR #37 with main, renumber its migration, add same-workspace integrity constraints, and validate the geometry schema.
+2. Verify Vercel Production environment variables and cron operation with authorized project access; preview success does not establish production readiness.
+3. Run two-workspace RLS isolation and add browser E2E coverage.
+4. Implement invitation email delivery while retaining the existing acceptance transaction.
+5. Clearly label prototype routes and avoid claims that AI geometry, footprint estimates, building-code lookups, or retailer prices are authoritative.
 
 ## Do not claim
 
 - Photo analysis produces a customer-ready insurance estimate.
 - Home Depot / RapidAPI numbers are Xactimate or carrier-approved.
 - Building-code results are permit-ready.
+- AI-generated geometry or OSM footprints are certified roof measurements.
