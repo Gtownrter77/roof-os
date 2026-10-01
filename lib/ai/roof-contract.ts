@@ -1,9 +1,9 @@
 /**
  * ROOF/OS AI Visual Observation Contract v1.0.0
- * 
+ *
  * CORE ARCHITECTURAL INVARIANT:
  * AI observes. ROOF/OS validates. Geometry calculates. Technician verifies. Estimator prices.
- * 
+ *
  * This structure represents non-authoritative visual detections extracted from photos.
  * It contains ZERO certified dimensions, ZERO calculated square footages, and ZERO pricing/coverage determinations.
  */
@@ -475,7 +475,7 @@ export function validateRoofAIObservationPacket(data: unknown, photoCount?: numb
     assertEnum(item.roof_visibility, ['full', 'partial', 'minimal', 'none'] as const, `${p}.roof_visibility`)
     assertEnum(item.quality, ['clear', 'blurry', 'glare', 'underexposed', 'overexposed', 'low_resolution'] as const, `${p}.quality`)
     assertEnum(item.perspective, ['ground_level', 'ladder_level', 'roof_level', 'aerial', 'excessive_angle'] as const, `${p}.perspective`)
-    
+
     assertArray(item.obstructions, `${p}.obstructions`)
     for (let j = 0; j < item.obstructions.length; j++) {
       assertEnum(item.obstructions[j], ['trees_foliage', 'power_lines', 'shadows', 'snow_ice', 'equipment', 'none'] as const, `${p}.obstructions[${j}]`)
@@ -495,7 +495,7 @@ export function validateRoofAIObservationPacket(data: unknown, photoCount?: numb
 
   assertEnum(rc.roof_style, ['gable', 'hip', 'gambrel', 'mansard', 'shed', 'flat', 'complex_combination', 'none_visible', 'indeterminate'] as const, 'roof_classification.roof_style')
   assertEnum(rc.primary_material, ['architectural_shingle', '3_tab_shingle', 'metal_standing_seam', 'metal_corrugated', 'clay_tile', 'concrete_tile', 'slate', 'wood_shake', 'modified_bitumen', 'tpo_pvc_membrane', 'built_up_roof', 'other', 'indeterminate'] as const, 'roof_classification.primary_material')
-  
+
   if (rc.secondary_material !== null) {
     assertEnum(rc.secondary_material, ['architectural_shingle', '3_tab_shingle', 'metal_standing_seam', 'metal_corrugated', 'clay_tile', 'concrete_tile', 'slate', 'wood_shake', 'modified_bitumen', 'tpo_pvc_membrane', 'built_up_roof', 'other', 'indeterminate'] as const, 'roof_classification.secondary_material')
   }
@@ -526,7 +526,7 @@ export function validateRoofAIObservationPacket(data: unknown, photoCount?: numb
     assertEnum(f.facet_type, ['main_pitch', 'dormer', 'porch', 'shed', 'addition', 'other'] as const, `${p}.facet_type`)
     assertEnum(f.orientation, ['north', 'south', 'east', 'west', 'northeast', 'northwest', 'southeast', 'southwest', 'indeterminate'] as const, `${p}.orientation`)
     assertEnum(f.pitch_class, ['flat', 'low_slope', 'standard', 'steep', 'extreme', 'indeterminate'] as const, `${p}.pitch_class`)
-    
+
     assertString(f.apparent_pitch, `${p}.apparent_pitch`, 100)
     if (AUTHORITATIVE_PITCH_TERMS.test(f.apparent_pitch)) {
       throw new AIContractValidationError(`${p}.apparent_pitch`, 'Authoritative pitch claims forbidden in apparent_pitch')

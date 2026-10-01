@@ -373,3 +373,10 @@ Local validation passed: measurement-authority tests (including stale/mismatched
 - Preserved the receptionist routes, atomic booking migration, Twilio/Stripe/OpenAI adapters, runbook, realtime voice contract, and follow-up cron.
 - Added the required runtime dependencies (`openai`, `stripe`, and `twilio`) without retaining the stale Next.js 15 pin from the feature branch.
 - Production provider configuration remains environment-driven; no provider credentials were changed.
+
+## 2026-10-01 simple-auth integration checkpoint
+
+- Reconciled PR #17 with the post-PR #37 `main` baseline.
+- Kept the newer main login implementation from PR #38 because it already contains the safer default-password mode, bounded password input, safe redirect handling, and the existing email-link/code fallback.
+- Preserved PR #17’s distinct additions: `/auth/reset` password update flow, explicit user-chosen signup passwords, and corresponding auth-contract changes.
+- This branch is ready for local verification and GitHub CI; no auth secrets or production credentials were changed.
