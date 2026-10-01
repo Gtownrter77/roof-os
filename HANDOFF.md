@@ -408,3 +408,8 @@ Local validation passed: measurement-authority tests (including stale/mismatched
 - At the code checkpoint, PR checks had 1 success and 9 pending, no failures; recheck after the handoff-doc push before merging.
 - Remaining Golden Report product gates (do not describe the report as customer-ready): capture a technician’s name/license and actual signature; record owner/manager approval before delivery; add per-photo usability/coverage and technician-confirmed observation review; connect NOAA Storm Events Database records (not NWS alerts); add verified jurisdiction-code citations, supported supplements, and homeowner Q&A. Keep each field **Unknown** until its source is implemented and verified.
 - Next: check PR #43 CI; fix any failures and push a new verified checkpoint. After CI is green, merge only within the already requested main-update scope; then verify the deployed report route and record actual production/database evidence when authorized access is available.
+
+
+## User-directed checkpoint law — mandatory for future work
+
+**After every completed and verified code, test, or documentation batch, commit and push immediately; verify local and remote SHAs match; update this handoff with evidence and the next action. Do not wait until task end. Never merge while required CI checks are pending or failing.** The full rule is `UPDATE-CHECKPOINT-LAW.md`, linked from the top of `README.md`.

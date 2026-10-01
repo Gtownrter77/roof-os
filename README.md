@@ -1,5 +1,11 @@
 # ROOF/OS
 
+## **MANDATORY CHECKPOINT LAW — EVERY COMPLETED WORK BATCH**
+
+> **After every completed and verified code, test, or documentation batch—not at the end of the task—commit and push the work to its correct GitHub branch or PR. Verify that the remote SHA exactly matches the local commit, then update `HANDOFF.md` with evidence and the next action. Never leave more than one completed batch only in the sandbox. Never merge while required checks are pending or failing.**
+
+The full rule is in [`UPDATE-CHECKPOINT-LAW.md`](UPDATE-CHECKPOINT-LAW.md).
+
 Software for a roofing company that actually lives in the field.
 
 Office runs the pipeline. The phone takes the pictures. The roof keeps a record after you get paid.
