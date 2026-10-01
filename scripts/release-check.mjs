@@ -24,6 +24,11 @@ for (const functionName of [
 }
 if (!definerHardening.includes('to service_role')) throw new Error('Worker-only function grant is missing from least-privilege migration')
 
+const quotaHardening = readFileSync(join(root, 'supabase', 'migrations', '035_retailer_quota_hardening.sql'), 'utf8')
+if (!quotaHardening.includes("query month must be the current UTC month") || !quotaHardening.includes("monthly limit is fixed at 100")) {
+  throw new Error('Retailer quota hardening migration does not enforce current-month and fixed-limit boundaries')
+}
+
 const activeWorkspace = readFileSync(join(root, 'supabase', 'migrations', '032_active_workspace_selection.sql'), 'utf8')
 if (!activeWorkspace.includes('user_active_workspaces') || !activeWorkspace.includes('create policy user_active_workspaces_insert')) {
   throw new Error('Explicit active workspace selection migration is incomplete')
@@ -70,8 +75,17 @@ for (const route of routes) {
     && source.includes('await readBoundedBody(response, responseLimit,')
     && source.includes('Math.min(STORAGE_TIMEOUT_MS, deadline - Date.now())')
     && source.includes('Math.min(PROVIDER_TIMEOUT_MS, deadline - Date.now())')
+  const boundedAerialGeometryFetch = route === join(root, 'app', 'api', 'measurements', 'aerial', 'route.ts')
+    && fetchCallCount === 2
+    && (source.match(/new AbortController\(\)/g) ?? []).length === 2
+    && (source.match(/const timer = setTimeout\(\(\) => controller\.abort\(\),/g) ?? []).length === 2
+    && (source.match(/clearTimeout\(timer\)/g) ?? []).length === 2
+    && source.includes('async function boundedBytes(')
+    && source.includes('async function fetchBounded(')
+    && source.includes('async function providerText(')
+    && source.includes('size > maxBytes')
   // D.3 keeps both abort timers active while stream-limiting storage and provider response bodies.
-  if (fetchCallCount > 0 && !boundedPhotoAnalysisFetch) {
+  if (fetchCallCount > 0 && !boundedPhotoAnalysisFetch && !boundedAerialGeometryFetch) {
     throw new Error(`API route makes a network request without an approved bounded fetch helper: ${route}`)
   }
 }

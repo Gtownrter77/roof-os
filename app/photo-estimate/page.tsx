@@ -43,6 +43,7 @@ export default function PhotoEstimatePage() {
   const [wasteFactor, setWasteFactor] = useState('0.10')
   const [soffitWidthFt, setSoffitWidthFt] = useState('1')
   const [fasciaWidthFt, setFasciaWidthFt] = useState('0.5')
+  const [verifiedGutterLf, setVerifiedGutterLf] = useState('')
 
   useEffect(() => {
     let active = true
@@ -89,6 +90,7 @@ export default function PhotoEstimatePage() {
     if (workflow && next.length > photos.length) {
       setWorkflow(null)
       setAiAnalysis(null)
+      setVerifiedGutterLf('')
       setMessage('Additional photos selected. Build a new review packet to include them.')
     }
   }
@@ -170,6 +172,7 @@ export default function PhotoEstimatePage() {
       if (!response.ok) throw new Error(payload.detail || payload.error || 'Could not build the review packet.')
       setWorkflow(payload.workflow)
       setAiAnalysis(null)
+      setVerifiedGutterLf('')
       setMessage('Review packet created. Verify every finding before any customer delivery.')
     } catch (err) { setError(err instanceof Error ? err.message : 'Workflow failed.') }
     setWorking(false)
@@ -198,9 +201,16 @@ export default function PhotoEstimatePage() {
 
   async function saveFieldVerification(action: 'verify' | 'refresh') {
     if (!workflow?.id) return
+    if (action === 'verify' && !verifiedGutterLf.trim()) {
+      setError('Enter the technician-measured gutter length, or enter 0 if there are no gutters.')
+      return
+    }
     setWorking(true); setError(''); setMessage('')
     try {
-      const response = await fetch(`/api/photo-estimate/verify?workflowId=${encodeURIComponent(workflow.id)}`, { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action, eaveLf: Number(eaveLf), rafterLf: Number(rafterLf), pitch: Number(pitch), roofType, wasteFactor: Number(wasteFactor), soffitWidthFt: Number(soffitWidthFt), fasciaWidthFt: Number(fasciaWidthFt), notes: action === 'refresh' ? 'Technician requested a fresh photo set.' : undefined }) })
+      const verification = action === 'verify'
+        ? { eaveLf: Number(eaveLf), rafterLf: Number(rafterLf), pitch: Number(pitch), roofType, wasteFactor: Number(wasteFactor), soffitWidthFt: Number(soffitWidthFt), fasciaWidthFt: Number(fasciaWidthFt), gutterLf: Number(verifiedGutterLf) }
+        : { notes: 'Technician requested a fresh photo set.' }
+      const response = await fetch(`/api/photo-estimate/verify?workflowId=${encodeURIComponent(workflow.id)}`, { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action, ...verification }) })
       const payload = await response.json()
       if (!response.ok) throw new Error(payload.detail || payload.error || 'Could not save field verification.')
       setWorkflow((current: any) => ({ ...current, ...payload.workflow }))
@@ -221,6 +231,7 @@ export default function PhotoEstimatePage() {
       <h2 className="font-semibold">Property confirmation</h2>
       <label className="block text-sm">Address to verify<input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Confirm the property address" className="w-full p-3 border rounded mt-1" /></label>
       <div className="grid grid-cols-2 gap-3"><label className="block text-sm">Roof squares<input value={roofSquares} onChange={(e) => setRoofSquares(e.target.value)} inputMode="decimal" placeholder="Optional" className="w-full p-3 border rounded mt-1" /></label><label className="block text-sm">Gutter LF<input value={gutterLf} onChange={(e) => setGutterLf(e.target.value)} inputMode="decimal" placeholder="Optional" className="w-full p-3 border rounded mt-1" /></label></div>
+      <p className="text-xs text-gray-600">These initial quantities are unverified candidates. Estimate drafts use only the quantities entered again and approved in technician verification below.</p>
       <button onClick={() => void buildPacket()} disabled={working} className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold disabled:opacity-60">{working ? 'Uploading and building review packet…' : 'Build review packet'}</button>
     </div>
     {error && <p className="text-red-700 bg-red-50 p-3 rounded mt-4 text-sm">{error}</p>}
@@ -241,6 +252,6 @@ export default function PhotoEstimatePage() {
         <p className="text-xs text-gray-600">{aiAnalysis.authority_disclaimer}</p>
       </div>}
     </section>}
-    {workflow && <div className="bg-white rounded-lg shadow p-4 mt-4"><h2 className="font-bold">{workflow.report?.title}</h2><p className="text-sm mt-2">Status: <b>{workflow.status}</b></p><p className="text-sm">Property footprint assist: {workflow.report?.propertyEvidence?.footprintSqFt || 0} sq ft, low confidence</p><p className="text-sm">Storm candidates: {workflow.storm_candidates?.length || 0}; these are corroborating candidates, not a proven loss date.</p><p className="text-sm mt-3">Estimate: {workflow.estimate?.status}; no prices are inserted unless an approved price book is present.</p><div className="mt-3 border-t pt-3"><h3 className="font-semibold">Technician field verification</h3><p className="text-xs text-gray-600 mb-2">Review the packet, then choose exactly one action. The server preserves your measurements and does not decide whether they are plausible.</p><div className="grid grid-cols-2 gap-2"><input value={eaveLf} onChange={(e) => setEaveLf(e.target.value)} placeholder="Eaves LF" className="p-2 border rounded" /><input value={rafterLf} onChange={(e) => setRafterLf(e.target.value)} placeholder="Rafter LF" className="p-2 border rounded" /><input value={pitch} onChange={(e) => setPitch(e.target.value)} placeholder="Pitch rise / 12" className="p-2 border rounded" /><select value={roofType} onChange={(e) => setRoofType(e.target.value as 'hip' | 'gable' | 'other')} className="p-2 border rounded"><option value="hip">Hip</option><option value="gable">Gable</option><option value="other">Other</option></select><input value={soffitWidthFt} onChange={(e) => setSoffitWidthFt(e.target.value)} placeholder="Soffit width (ft)" className="p-2 border rounded" /><input value={fasciaWidthFt} onChange={(e) => setFasciaWidthFt(e.target.value)} placeholder="Fascia width (ft)" className="p-2 border rounded" /></div><p className="text-xs text-gray-500 mt-1">The technician owns the measurement decision. Values are preserved as entered.</p><select value={wasteFactor} onChange={(e) => setWasteFactor(e.target.value)} className="w-full p-2 border rounded mt-2"><option value="0.10">10% waste</option><option value="0.15">15% waste</option><option value="0">0% waste</option></select><div className="grid grid-cols-2 gap-2 mt-2"><button onClick={() => void saveFieldVerification('refresh')} disabled={working} className="bg-amber-500 text-white py-2 rounded disabled:opacity-60">Request photo refresh</button><button onClick={() => void saveFieldVerification('verify')} disabled={working} className="bg-green-600 text-white py-2 rounded disabled:opacity-60">Verify measurements</button></div></div><div className="mt-3 bg-amber-50 p-3 rounded text-sm">Verify records the technician, timestamp, measurements, slope multiplier, roof type, waste factor, soffit/fascia widths, and calculated squares. Refresh preserves the existing packet and returns it for new photos.</div></div>}
+    {workflow && <div className="bg-white rounded-lg shadow p-4 mt-4"><h2 className="font-bold">{workflow.report?.title}</h2><p className="text-sm mt-2">Status: <b>{workflow.status}</b></p><p className="text-sm">Property footprint assist: {workflow.report?.propertyEvidence?.footprintSqFt || 0} sq ft, low confidence</p><p className="text-sm">Storm candidates: {workflow.storm_candidates?.length || 0}; these are corroborating candidates, not a proven loss date.</p><p className="text-sm mt-3">Estimate: {workflow.estimate?.status}; no prices are inserted unless an approved price book is present.</p><div className="mt-3 border-t pt-3"><h3 className="font-semibold">Technician field verification</h3><p className="text-xs text-gray-600 mb-2">Review the packet, then choose exactly one action. The server preserves your measurements and does not decide whether they are plausible.</p><div className="grid grid-cols-2 gap-2"><input value={eaveLf} onChange={(e) => setEaveLf(e.target.value)} placeholder="Eaves LF" className="p-2 border rounded" /><input value={rafterLf} onChange={(e) => setRafterLf(e.target.value)} placeholder="Rafter LF" className="p-2 border rounded" /><input value={pitch} onChange={(e) => setPitch(e.target.value)} placeholder="Pitch rise / 12" className="p-2 border rounded" /><select value={roofType} onChange={(e) => setRoofType(e.target.value as 'hip' | 'gable' | 'other')} className="p-2 border rounded"><option value="hip">Hip</option><option value="gable">Gable</option><option value="other">Other</option></select><input value={soffitWidthFt} onChange={(e) => setSoffitWidthFt(e.target.value)} placeholder="Soffit width (ft)" className="p-2 border rounded" /><input value={fasciaWidthFt} onChange={(e) => setFasciaWidthFt(e.target.value)} placeholder="Fascia width (ft)" className="p-2 border rounded" /><label className="block text-sm col-span-2">Technician-measured gutter length (LF; enter 0 if none)<input type="number" min="0" max="10000" step="0.01" inputMode="decimal" value={verifiedGutterLf} onChange={(e) => setVerifiedGutterLf(e.target.value)} placeholder="Required for approval" className="w-full p-2 border rounded mt-1" /></label></div><p className="text-xs text-gray-500 mt-1">The technician owns the measurement decision. Roof dimensions and gutter length are saved with the approver and timestamp; only these approved values can create estimate drafts.</p><select value={wasteFactor} onChange={(e) => setWasteFactor(e.target.value)} className="w-full p-2 border rounded mt-2"><option value="0.10">10% waste</option><option value="0.15">15% waste</option><option value="0">0% waste</option></select><div className="grid grid-cols-2 gap-2 mt-2"><button onClick={() => void saveFieldVerification('refresh')} disabled={working} className="bg-amber-500 text-white py-2 rounded disabled:opacity-60">Request photo refresh</button><button onClick={() => void saveFieldVerification('verify')} disabled={working} className="bg-green-600 text-white py-2 rounded disabled:opacity-60">Verify measurements</button></div></div><div className="mt-3 bg-amber-50 p-3 rounded text-sm">Verify records the technician, timestamp, roof and gutter measurements, slope multiplier, roof type, waste factor, soffit/fascia widths, and calculated squares. Refresh preserves the existing packet and returns it for new photos.</div></div>}
   </div>
 }

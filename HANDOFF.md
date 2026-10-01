@@ -281,3 +281,94 @@ The explicit admin-only analysis UI and focused regression assertions are now te
 Passed checks: `npm run typecheck`, `npm run test:photo-estimate-flow`, `node scripts/security-check.mjs`, `node scripts/ai-vision-endpoint-test.mjs`, `node scripts/auth-flow-test.mjs`, `node scripts/ai-vision-contract-test.mjs` (11 assertions), and `git diff --check`.
 
 The D.3 call is explicit user-triggered only; packet creation does not invoke Gemini. The browser checks workspace-admin status for UI visibility, and the server remains authoritative. No live Gemini request was made.
+
+
+## 2026-09-30 production authentication verification checkpoint
+
+### Repository/recovery state
+
+- The former `rebuild/roof-os-recovery` branch was merged through PR #30 (merge commit `c68faf4e4b80aaa7e0555c1e47920f929c8049b2`) and is no longer a remote branch. PR #32 was also merged into `main`.
+- Current verified baseline: `main` at `852048a0925b24f5a92aee3b7554254bdac0b934`; local and remote `main` matched before this documentation checkpoint.
+- Current-task remote backup: `backup/auth-verification-20260930` at `852048a0925b24f5a92aee3b7554254bdac0b934` (remote SHA verified before edits).
+- The historical path `/home/ubuntu/roof-os-backup-temp` is absent in this sandbox. Work resumed from the existing clean `Gtownrter77/roof-os` clone at `/home/ubuntu/roof-os`, based on the verified current `main`; no source code was changed for this checkpoint.
+
+### Authentication evidence — 2026-09-30
+
+Passed locally from the current `main` source:
+
+- `node scripts/auth-flow-test.mjs` — PASS (OTP, callback result types, cooldowns, and safe redirects).
+- `npm run test:api-security` — PASS.
+- `npm run verify:security` — PASS.
+- `npm run typecheck` — PASS.
+- `npm run release-check` — PASS (9 protected routes, security headers, and secret scan).
+- `git diff --check` — PASS.
+
+Read-only production route smoke checks:
+
+- `GET https://roof-os-lemon.vercel.app/auth/login` — HTTP 200.
+- `GET https://roof-os-lemon.vercel.app/leads` without a session — HTTP 307 to `/auth/login?next=%2Fleads`.
+
+Source review confirms email-link and 6-digit email OTP flows, callback result validation, rate-limit cooldown handling, and same-origin `next` path validation. No email was sent and no production sign-in was attempted.
+
+### Verification boundary and next action
+
+**Production authentication is only partially verified.** The route and code-level checks above pass, but a real production magic-link/OTP delivery, successful callback/session establishment, and authenticated protected-workflow test were not performed. Do not claim end-to-end production login is verified. The remaining action is to run that test with an authorized test account and confirm the resulting authenticated workspace flow; no user credentials were requested or used in this checkpoint.
+
+
+## 2026-09-30 D.3 production schema and Gemini readiness
+
+- Production Supabase project `Roof OS` was active and healthy. Before the fix, the migration ledger ended at `035_retailer_quota_hardening`, and `public.photo_estimate_workflows` was missing the four D.3 persistence columns.
+- Applied `supabase/migrations/036_photo_estimate_ai_analysis.sql` as migration `photo_estimate_ai_analysis` (ledger version `20260930165224`). A read-only schema query confirmed `ai_analysis jsonb`, `ai_analyzed_at timestamptz`, `ai_model_version text`, and `ai_content_hash text` now exist and are nullable. This was additive schema DDL; no workflow data was changed.
+- Configured `GEMINI_API_KEY` in Vercel as a sensitive, production-only environment variable. Its value is not recorded in this repository or handoff. This setting will be consumed by the next production deployment.
+- Source change on this branch sends the Gemini key in Google's documented `x-goog-api-key` header instead of a URL query parameter; the endpoint regression test now asserts both behaviors.
+- Production smoke checks observed `/auth/login` returning 200 with security headers, unauthenticated `/leads` redirecting to login, and an invalid callback rejecting a hostile `next` target with `Cache-Control: no-store` and a safe `next=/`. An unauthenticated analysis POST was redirected by the auth proxy.
+- Local checks passed: photo-estimate flow, AI endpoint/auth regression, all 11 AI contract tests, TypeScript typecheck, security check, and release check (9 protected routes, headers, secret scan). `git diff --check` passed.
+- Source backup: `backup/pre-d3-migration-20260930` at `9f32401553e77c74a9814573113824ed75564270`.
+- **Not verified by design:** the user directed us to skip login. No authenticated workspace-admin flow was attempted, and no photo or live AI request was sent. After the header patch reaches production, a signed-in admin run remains the end-to-end proof for D.3.
+
+
+## 2026-09-30 measurement-to-estimate authority checkpoint
+
+- Starting baseline was clean `main` at `a35ddbf52415fdf5345c538e8c44e475a790a633` (PR #35 merge). Recovery branch `backup/pre-estimate-authority-20260930` was pushed and independently verified at the same SHA before edits.
+- Added `scripts/measurement-estimate-authority-test.mjs`, exposed as `npm run test:measurement-estimate-authority`, and wired it into the web CI job. This is a source-contract regression only; it makes no database, login, or provider calls and changes no API behavior.
+- The test asserts that D.3 writes only AI-analysis metadata, technician verification is workspace-admin gated and records the approving user/time, manual measurement rows remain `unverified`, and estimate packets remain unpriced `needs_price_review` drafts with measurement-source, price-book, and human-approval steps.
+- Local checks passed: the new regression, photo-estimate flow, all 17 AI contract cases, AI endpoint/provider-request regression, API security, security scan, typecheck, release check, production build, dependency audit (0 high-severity vulnerabilities), and `git diff --check`.
+- Login troubleshooting stopped after the preview displayed “Too many sign-in requests. Please wait 60 seconds and try again.” Both the initial request and one retry after the full 60-second cooldown showed that message. No successful app session was established and no further OTP requests were made. The login route itself had loaded; production/authenticated workflow acceptance remains incomplete.
+- **Next product gap (not changed here):** technician approval is recorded on `photo_estimate_workflows`, while `/api/estimates/draft` accepts client-supplied quantities and can create an explicitly unpriced, review-gated packet without requiring that approved workflow. A future behavior change could link a verified workflow/measurement server-side and derive quantities from persisted technician data. That would change the draft API contract, so it is intentionally not part of this test-only checkpoint and needs an explicit product decision.
+
+
+## 2026-09-30 strict technician-approved estimate gate
+
+This implementation starts from clean `main` at `fff6593329b2bcf7efada4e66a8e28288e4afb42`; the exact source baseline is preserved at `backup/pre-strict-estimate-gate-20260930`. On `feat/strict-approved-estimate-gate-20260930`, the technician verification form now requires an explicit gutter length (enter 0 when none). The verify endpoint persists the rounded gutter value alongside the approver, timestamp, eave/rafter/pitch/waste inputs, and server-calculated roof squares. Initial roof/gutter values remain unverified candidates and are not accepted by the estimate-draft endpoint.
+
+`/api/estimates/draft` now accepts only workspace, approved workflow ID, optional same-inspection storm evidence, and notes; client-supplied quantities and measurement IDs are rejected. It requires an approved workflow with consistent actor/time/roof/gutter values, re-derives roof squares server-side, and links the resulting packet to that workflow. Migration 037 adds the source foreign key and an RLS insert validator that rejects unapproved/mismatched workflows, altered quantities, extra line items, or priced packets. Drafts remain `needs_price_review`, unpriced, and blocked from external use until human approval.
+
+Local validation passed: measurement-authority tests (including stale/mismatched approvals and explicit zero gutters), photo-estimate flow, all 17 AI contract tests, AI endpoint/provider-request regression, API security, mobile offline sync, security scan, TypeScript typecheck, release check, production build, dependency audit (0 high-severity vulnerabilities), migration-order/policy checks, and `git diff --check`. Migration 037 parsed and ran against a disposable in-memory PostgreSQL instance; a valid packet was accepted and a tampered roof quantity was rejected by RLS. No production database migration or deployment was performed. Apply migration 037 before merging/deploying this API change; production/authenticated login verification also remains incomplete after the previously recorded Auth rate limit, and no further OTP requests were made.
+
+
+## 2026-09-30 production login-loop remediation (in progress)
+
+- Work is on a separate worktree/branch from the verified `main` baseline `fff6593329b2bcf7efada4e66a8e28288e4afb42`. Existing strict estimate-gate PR #37 remains open and untouched.
+- The login page now defaults to email/password via Supabase `signInWithPassword`; email-link and six-digit-code options remain available. Password success follows the validated same-origin `next` path and refreshes server auth state. No password or API key is stored in source or handoff.
+- Existing `/auth/callback` exchanges the authorization code with `exchangeCodeForSession`; the server Supabase client writes session cookies. The Next.js proxy treats `/auth/*` as public while unauthenticated, so it does not redirect the callback before session establishment.
+- Read-only live checks: `/auth/login` returned HTTP 200; an invalid callback safely returned to login with `Cache-Control: no-store`; an unauthenticated `/leads` request redirected to login. These checks do not prove a successful authenticated session.
+- Vercel Production has both `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` set across environments. The URL matches production project `xksumagfbegdlapwysps`, and the public key matches an active publishable key; raw key material is intentionally not recorded.
+- The hosted Supabase Auth URL Configuration page requires the owner to sign in interactively. Its current Site URL/redirect allowlist has not yet been inspected or changed. Target requested by owner: Site URL `https://roof-os-lemon.vercel.app`, production redirect allowed, and no localhost redirects.
+- The available Supabase SDK credential is a publishable key, not an admin key. No account password was changed and no OTP was sent in this work. Setting an owner password requires a supported admin/dashboard path; ask the owner to sign in to Supabase and approve the exact temporary password before applying it.
+- Validation passed: auth-flow regression (including public callback/cookie assertions), API security, mobile offline sync, photo-estimate flow, measurement-estimate authority, 17 AI contract cases, AI endpoint regression, typecheck, release check, security scan, production build, dependency audit (0 high-severity vulnerabilities), and `git diff --check`.
+- **Remaining acceptance:** inspect/apply Supabase URL settings after owner browser sign-in, set a temporary owner password only after approval of its exact value, push/open a separate auth PR, wait for green CI, deploy, and verify the full authenticated production flow without inspecting customer data.
+
+## 2026-10-01 estimate-gate integration checkpoint
+
+- Integrated current `main` (including Phase D aerial geometry and verified production-status documentation) into `feat/strict-approved-estimate-gate-20260930`.
+- Resolved the handoff-only merge conflict while preserving both the strict estimate-gate and login-remediation records.
+- Renumbered the estimate packet source migration from `037_estimate_packet_photo_workflow_source.sql` to `038_estimate_packet_photo_workflow_source.sql` because `main` already owns migration 037 for aerial geometry; updated the authority regression references accordingly.
+- Verified locally: `npm run typecheck`, `npm run test:measurement-estimate-authority`, `npm run test:photo-estimate-flow`, `npm run release-check`, `npm run verify:security`, and `git diff --check` all pass.
+- Pushed the corrected branch at `7914b23`; GitHub required `web`, `mobile`, and `migration-safety` checks are passing on PR #37. Merge is the next repository action.
+
+## 2026-10-01 simple-auth integration checkpoint
+
+- Reconciled PR #17 with the post-PR #37 `main` baseline.
+- Kept the newer main login implementation from PR #38 because it already contains the safer default-password mode, bounded password input, safe redirect handling, and the existing email-link/code fallback.
+- Preserved PR #17’s distinct additions: `/auth/reset` password update flow, explicit user-chosen signup passwords, and corresponding auth-contract changes.
+- This branch is ready for local verification and GitHub CI; no auth secrets or production credentials were changed.

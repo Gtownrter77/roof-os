@@ -232,6 +232,22 @@ export const FORBIDDEN_METRIC_KEYS = new Set([
 export const AUTHORITATIVE_PITCH_TERMS = /certified|verified|official|guaranteed|engineered|exact\s+pitch|authoritative/i
 export const AUTHORITATIVE_CLAIM_TERMS = /coverage\s+approved|claim\s+payable|code\s+violation|certified\s+repair\s+cost/i
 
+const NARRATIVE_TEXT_KEYS = new Set([
+  'apparent_pitch',
+  'summary',
+  'warnings',
+  'audit_notes',
+  'label',
+  'notes',
+  'location_description',
+])
+const NUMERIC_PITCH_RATIO_TEXT = /\b\d+(?:\.\d+)?\s*(?:\/|:)\s*\d+(?:\.\d+)?\b/i
+const NUMERIC_MEASUREMENT_TEXT = /\b\d+(?:,\d{3})*(?:\.\d+)?\s*(?:sq\.?\s*ft|sqft|square\s+feet|linear\s+feet|linear\s+ft|feet|foot|ft|inches?|millimeters?|mm|centimeters?|cm|meters?|metres?)\b|\b(?:roof\s+)?area\s*(?:(?:is|about|approximately)\s*)?(?:is\s*)?\d+(?:,\d{3})*(?:\.\d+)?\b/i
+const COUNT_NUMBER_TEXT = '(?:\\d+(?:\\.\\d+)?|zero|one|two|three|four|five|six|seven|eight|nine|ten|several|multiple)'
+const COUNTED_ROOF_ITEMS = new RegExp(`\\b${COUNT_NUMBER_TEXT}\\s+(?:roof\\s+)?(?:squares?|shingles?|tiles?|panels?|vents?|penetrations?|facets?)\\b`, 'i')
+const AUTHORITATIVE_NARRATIVE_TERMS = /\b(?:certified|verified|official|guaranteed|engineered|engineering|authoritative)\b|\bexact\s+(?:pitch|measurement|area|quantity|price|cost)\b/i
+const CLAIM_DECISION_NARRATIVE_TERMS = /\b(?:coverage\s+(?:approved|denied)|claim\s+(?:payable|approved|denied)|code[-\s](?:violation|compliant|compliance|determination)|insurance\s+(?:coverage|decision|approval)|pricing|price\s+quote|estimated\s+cost|payout|deductible|acv|rcv|depreciation)\b|\b(?:insurance|insurer)\s+(?:will|would|should|may|might|must)\s+(?:cover|approve|deny|pay|fund)\b|\b(?:meets?|complies?\s+with|satisfies?)\s+(?:(?:local|building)\s+){0,2}code\b|\$\s*\d|\bUSD\b/i
+
 const ALLOWED_ROOT_KEYS = new Set([
   'contract_version',
   'analyzed_at',
@@ -327,6 +343,46 @@ function assertNoForbiddenKeys(obj: unknown, path = 'root'): void {
       throw new AIContractValidationError(currentPath, `Forbidden metric/commercial key "${key}" detected`)
     }
     assertNoForbiddenKeys(value, currentPath)
+  }
+}
+
+function assertSafeNarrativeText(value: unknown, path: string): void {
+  if (Array.isArray(value)) {
+    value.forEach((item, index) => assertSafeNarrativeText(item, `${path}[${index}]`))
+    return
+  }
+  if (typeof value !== 'string') return
+  if (NUMERIC_PITCH_RATIO_TEXT.test(value)) {
+    throw new AIContractValidationError(path, 'Numeric pitch ratios are prohibited in AI narrative text')
+  }
+  if (NUMERIC_MEASUREMENT_TEXT.test(value)) {
+    throw new AIContractValidationError(path, 'Numeric measurements are prohibited in AI narrative text')
+  }
+  if (COUNTED_ROOF_ITEMS.test(value)) {
+    throw new AIContractValidationError(path, 'Quantities are prohibited in AI narrative text')
+  }
+  if (AUTHORITATIVE_NARRATIVE_TERMS.test(value)) {
+    throw new AIContractValidationError(path, 'Authority language is prohibited in AI narrative text')
+  }
+  if (CLAIM_DECISION_NARRATIVE_TERMS.test(value)) {
+    throw new AIContractValidationError(path, 'Claims and code decisions are prohibited in AI narrative text')
+  }
+}
+
+function assertNoUnsafeNarrativeText(value: unknown, path = 'root'): void {
+  if (!value || typeof value !== 'object') return
+  if (Array.isArray(value)) {
+    value.forEach((item, index) => assertNoUnsafeNarrativeText(item, `${path}[${index}]`))
+    return
+  }
+  for (const [key, item] of Object.entries(value as Record<string, unknown>)) {
+    if (key === 'authority_disclaimer') continue
+    const childPath = `${path}.${key}`
+    if (NARRATIVE_TEXT_KEYS.has(key)) {
+      assertSafeNarrativeText(item, childPath)
+    } else if (item && typeof item === 'object') {
+      assertNoUnsafeNarrativeText(item, childPath)
+    }
   }
 }
 
@@ -584,6 +640,9 @@ export function validateRoofAIObservationPacket(data: unknown, photoCount?: numb
       throw new AIContractValidationError(`${p}.notes`, 'Prohibited commercial/claim terms in notes')
     }
   }
+
+  // Narrative strings are untrusted model output; enforce safety rules across every prose field.
+  assertNoUnsafeNarrativeText(data, 'root')
 
   return data as RoofAIObservationPacket
 }

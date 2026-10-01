@@ -43,6 +43,11 @@ assert.ok(api.includes("status: 'photo_refresh_requested'"))
 assert.ok(api.includes("status: 'approved'"))
 assert.ok(api.includes('Existing measurements and source photos were preserved.'))
 assert.ok(api.includes("decision: 'verified_by_technician'"))
+assert.ok(ui.includes('Technician-measured gutter length (LF; enter 0 if none)'))
+assert.ok(ui.includes('gutterLf: Number(verifiedGutterLf)'))
+assert.ok(ui.includes('These initial quantities are unverified candidates.'))
+assert.ok(api.includes('gutter_lf: verifiedGutterLf'))
+assert.ok(api.includes('gutterLf: verifiedGutterLf'))
 assert.ok(migration.includes('refresh_requested_by'))
 assert.ok(migration.includes('photo_refresh_requested'))
 
@@ -52,7 +57,8 @@ const refresh = { ...initial, status: 'photo_refresh_requested', refreshRequeste
 assert.equal(refresh.measurements.pitch, -4, 'refresh must preserve technician-entered values')
 assert.equal(refresh.refresh_requested_by, mockTechnicianId)
 assert.equal(refresh.refresh_reason, 'Photo does not show the full eave line.')
-const verified = { ...initial, status: 'approved', verificationDecision: 'verified_by_technician' }
+const verified = { ...initial, status: 'approved', verificationDecision: 'verified_by_technician', gutterLf: 126.75 }
 assert.equal(verified.measurements.pitch, -4, 'verify must preserve technician-entered values')
+assert.equal(verified.gutterLf, 126.75, 'approved workflow carries the technician-verified gutter length')
 
 console.log('photo-estimate-flow-test: PASS')
