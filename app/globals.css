@@ -8,3 +8,21 @@
   button, input, select { font: inherit; }
   button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid #93c5fd; outline-offset: 2px; }
 }
+
+@media print {
+  @page { margin: 18mm 14mm 24mm; }
+  body { background: #fff !important; }
+  body * { visibility: hidden !important; }
+  .photo-estimate-report,
+  .photo-estimate-report * { visibility: visible !important; }
+  .photo-estimate-report {
+    position: absolute !important;
+    inset: 0 auto auto 0 !important;
+    width: 100% !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+  }
+  .photo-estimate-report button { display: none !important; }
+  .photo-estimate-report img { break-inside: avoid; }
+  .golden-report-footer { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; }
+}

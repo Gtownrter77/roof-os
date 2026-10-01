@@ -35,6 +35,7 @@ jobs:
       - run: npm run test:auth-flow
       - run: npm run test:mobile-offline-sync
       - run: npm run test:photo-estimate-flow
+      - run: npm run test:photo-full-report-flow
       - run: npm run test:measurement-estimate-authority
       - run: npm run test:ai-vision-contract
       - run: npm run test:ai-vision-endpoint

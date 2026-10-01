@@ -392,3 +392,24 @@ Local validation passed: measurement-authority tests (including stale/mismatched
 ## 2026-10-01 branch-wide CI trigger checkpoint
 
 - Updated `.github/workflows/ci.yml` so every branch push and every pull request target receives the same web, mobile, preview-build, migration-safety, security, and audit coverage; `main` protection still requires the three configured checks.
+
+
+## 2026-10-01 Golden Report / photo-to-report checkpoint
+
+- User priority: complete the photo-to-finished-report path; use only free/open-source software; checkpoint completed work frequently so it is not lost.
+- Canonical report template: `GOLDEN-REPORT.md`, indexed from `README.md`. The web report uses the 12 required sections and a dependency-free rules check in `lib/reports/golden-report.mjs`.
+- PR: https://github.com/Gtownrter77/roof-os/pull/43 (`feat/photo-full-report-20261001`). Code checkpoint commit: `ed3ef426fbf93a55bb10146719ddc1a5d9baf230`; remote ref matched local SHA. A backup ref `backup/pre-photo-report-upgrade-20261001` preserves pre-checkpoint SHA `d42afc240d2bb10cef9783295a1a1b910b29d14c`.
+- Implemented in that checkpoint: resume an inspection by URL; load its saved workflow and photo metadata; create fresh private signed photo URLs; generate and persist the standard report only from an approved workflow; check each photo belongs to the same workspace and inspection and is fully uploaded; match displayed photos to persisted IDs; print only the report with alt text and a repeating footer; and run the Golden Report contract before saving.
+- Honesty gates: missing facts render **Unknown**; each measurement shows its source; unconfirmed AI observations are omitted; NWS weather alerts are not presented as NOAA Storm Events Database entries; the report is a **Draft** until required signatures and manager approval exist; there are no dollar amounts or prices.
+- No new packages, paid software, or external services were added.
+- Local checks passed on the code checkpoint: all web regression scripts; Golden Report positive and negative contract tests; `npm run typecheck`; `npm run release-check`; `npm run verify:security`; `npm run audit` (0 production vulnerabilities); production `npm run build`; mobile `npm audit --audit-level=moderate` (0 vulnerabilities), `npx tsc --noEmit`, and `npx expo config --json`; `git diff --check`.
+- Live smoke test of the then-current production deployment (read-only): `/auth/login` returned 200; `/leads` redirected unauthenticated users to login (307); `/api/photo-estimate/report` also redirected to login (307). This does not verify the new PR code in production.
+- Production database/deployment evidence remains blocked: Supabase and Vercel connectors are disabled/not available in this session. No production database, migration, deployment, or customer data was changed.
+- At the code checkpoint, PR checks had 1 success and 9 pending, no failures; recheck after the handoff-doc push before merging.
+- Remaining Golden Report product gates (do not describe the report as customer-ready): capture a technician’s name/license and actual signature; record owner/manager approval before delivery; add per-photo usability/coverage and technician-confirmed observation review; connect NOAA Storm Events Database records (not NWS alerts); add verified jurisdiction-code citations, supported supplements, and homeowner Q&A. Keep each field **Unknown** until its source is implemented and verified.
+- Next: check PR #43 CI; fix any failures and push a new verified checkpoint. After CI is green, merge only within the already requested main-update scope; then verify the deployed report route and record actual production/database evidence when authorized access is available.
+
+
+## User-directed checkpoint law — mandatory for future work
+
+**Checkpoint after every 3 completed, verified work batches; do not let a 4th accumulate.** Commit and push the accumulated work, verify local and remote SHAs match, and update this handoff. Checkpoint sooner before a handoff, long pause, task/device switch, major milestone, merge, or risky/destructive action. Never merge while required CI checks are pending or failing. The full rule is `UPDATE-CHECKPOINT-LAW.md`, linked from the top of `README.md`.

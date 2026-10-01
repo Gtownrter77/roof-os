@@ -1,5 +1,11 @@
 # ROOF/OS
 
+## **MANDATORY CHECKPOINT LAW — EVERY 3 VERIFIED WORK BATCHES**
+
+> **After every third completed, verified work batch, commit and push the accumulated work, verify that the remote SHA matches the local commit, and update `HANDOFF.md`. Do not let a fourth batch accumulate. Checkpoint sooner before a handoff, long pause, task/device switch, major milestone, merge, or risky/destructive action. Never merge while required checks are pending or failing.**
+
+The full rule is in [`UPDATE-CHECKPOINT-LAW.md`](UPDATE-CHECKPOINT-LAW.md).
+
 Software for a roofing company that actually lives in the field.
 
 Office runs the pipeline. The phone takes the pictures. The roof keeps a record after you get paid.
@@ -71,5 +77,6 @@ npx eas build --platform android --profile preview
 ## Where to read more
 
 - Product direction: `PRODUCT-VISION.md`
+- Report standard: `GOLDEN-REPORT.md`
 - How to operate it: `OWNER-MANUAL.md`
 - What is real vs leftover: `STATE-OF-THE-UNION.md`
