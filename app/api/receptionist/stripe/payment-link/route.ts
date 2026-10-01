@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createClient } from '../../../../../lib/supabase/server'
 import { createAdminClient } from '../../../../../lib/supabase/admin'
+import { readJson } from '../../../../../lib/read-json'
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient()
@@ -12,8 +13,9 @@ export async function POST(request: NextRequest) {
   const stripeKey = process.env.STRIPE_SECRET_KEY?.trim()
   const appUrl = process.env.RECEPTIONIST_PUBLIC_URL?.trim() || process.env.NEXT_PUBLIC_APP_URL?.trim()
   if (!stripeKey || !appUrl) return NextResponse.json({ error: 'Stripe and public application URL are not configured.' }, { status: 503 })
-  let body: { invoiceId?: string; idempotencyKey?: string }
-  try { body = await request.json() } catch { return NextResponse.json({ error: 'Invalid JSON body.' }, { status: 400 }) }
+  const parsed = await readJson(request)
+  if ('error' in parsed) return NextResponse.json({ error: parsed.error }, { status: parsed.status })
+  const body = parsed.body as { invoiceId?: string; idempotencyKey?: string }
   if (!body.invoiceId || !body.idempotencyKey) return NextResponse.json({ error: 'invoiceId and idempotencyKey are required.' }, { status: 400 })
   const admin = createAdminClient()
   const { data: existing } = await admin.from('receptionist_payment_links').select('id,url,status,provider_link_id,amount_cents,currency').eq('workspace_id', workspaceId).eq('idempotency_key', body.idempotencyKey).maybeSingle()

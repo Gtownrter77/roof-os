@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import twilio from 'twilio'
 import { createClient } from '../../../../../lib/supabase/server'
 import { createAdminClient } from '../../../../../lib/supabase/admin'
+import { readJson } from '../../../../../lib/read-json'
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient()
@@ -14,8 +15,9 @@ export async function POST(request: NextRequest) {
   const from = process.env.TWILIO_PHONE_NUMBER?.trim()
   const publicUrl = process.env.RECEPTIONIST_PUBLIC_URL?.trim()
   if (!accountSid || !authToken || !from || !publicUrl) return NextResponse.json({ error: 'Twilio and receptionist configuration is incomplete.' }, { status: 503 })
-  let body: { leadId?: string; phone?: string; message?: string }
-  try { body = await request.json() } catch { return NextResponse.json({ error: 'Invalid JSON body.' }, { status: 400 }) }
+  const parsed = await readJson(request)
+  if ('error' in parsed) return NextResponse.json({ error: parsed.error }, { status: parsed.status })
+  const body = parsed.body as { leadId?: string; phone?: string; message?: string }
   const phone = body.phone?.trim()
   if (!phone || !body.message?.trim()) return NextResponse.json({ error: 'phone and message are required.' }, { status: 400 })
   const admin = createAdminClient()

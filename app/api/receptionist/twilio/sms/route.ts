@@ -4,6 +4,7 @@ import { createAdminClient } from '../../../../../lib/supabase/admin'
 import { createClient } from '../../../../../lib/supabase/server'
 import { receptionistConfig, recordConsent } from '../../../../../lib/receptionist-actions'
 import { assertTwilioRequest } from '../../../../../lib/receptionist-twilio'
+import { readJson } from '../../../../../lib/read-json'
 
 const OPT_OUT_WORDS = new Set(['stop', 'unsubscribe', 'cancel', 'end', 'quit'])
 
@@ -38,8 +39,9 @@ export async function PUT(request: NextRequest) {
   const authToken = process.env.TWILIO_AUTH_TOKEN?.trim()
   const from = process.env.TWILIO_PHONE_NUMBER?.trim()
   if (!accountSid || !authToken || !from) return NextResponse.json({ error: 'Twilio is not configured.' }, { status: 503 })
-  let body: { phone?: string; message?: string; leadId?: string }
-  try { body = await request.json() } catch { return NextResponse.json({ error: 'Invalid JSON body.' }, { status: 400 }) }
+  const parsed = await readJson(request)
+  if ('error' in parsed) return NextResponse.json({ error: parsed.error }, { status: parsed.status })
+  const body = parsed.body as { phone?: string; message?: string; leadId?: string }
   const phone = body.phone?.trim()
   const message = body.message?.trim()
   if (!phone || !message) return NextResponse.json({ error: 'phone and message are required.' }, { status: 400 })
