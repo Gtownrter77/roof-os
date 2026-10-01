@@ -413,3 +413,17 @@ Local validation passed: measurement-authority tests (including stale/mismatched
 ## User-directed checkpoint law — mandatory for future work
 
 **Checkpoint after every 3 completed, verified work batches; do not let a 4th accumulate.** Commit and push the accumulated work, verify local and remote SHAs match, and update this handoff. Checkpoint sooner before a handoff, long pause, task/device switch, major milestone, merge, or risky/destructive action. Never merge while required CI checks are pending or failing. The full rule is `UPDATE-CHECKPOINT-LAW.md`, linked from the top of `README.md`.
+
+## 2026-10-01 production verification and preservation checkpoint
+
+- PR #43 (`feat/photo-full-report-20261001`) was merged into `main` as `6972a4fde971462c1983f17355dc45680fc505ea`.
+- Post-merge branch-wide CI run `36921039340` passed all required jobs: web, mobile, preview-build, and migration-safety. The run reported only GitHub runner deprecation warnings; no test or build failures.
+- The authenticated My Browser route is now available and was used for a controlled production smoke test at `https://roof-os-lemon.vercel.app`.
+- Synthetic lead save succeeded and returned persisted lead `3c61088f-f776-4170-b7de-38ebbdd4790a`.
+- Starting an inspection from that persisted lead succeeded and opened the live camera workflow with inspection `2b66abf1-ea9c-4402-be42-fb53d2f00017`.
+- The live camera workflow exposes a private multi-file image input (`accept=image/*`, environment capture). Photo file submission and the full report path remain unverified in this checkpoint; do not describe the live evidence upload as complete yet.
+- No production customer record was used. The test lead is explicitly labeled `ROOF/OS Production Sync Test 20261001` and should be removed through the authenticated application workflow when cleanup is authorized.
+- The previously dirty local release-candidate worktree was preserved without deletion or reset on GitHub branch `backup/local-release-candidate-20261001` at commit `52056ed1f0b6331994b71424cfb448f7645c77b6`. This branch contains the uncommitted web hardening, mobile, sync, pricing, and migration files exactly as found before this checkpoint.
+- The canonical documentation update is being carried on `docs/handoff-production-verification-20261001`; merge it only after its documentation-only checks pass.
+- Supabase migrations, production auth URL settings, photo submission, offline retry against production, and live Data/Security level-3 evidence remain outstanding. No production database migration or account-security change was performed in this checkpoint.
+- Continue to follow the Golden Report authority rule: AI observations are non-authoritative; technician verification, source attribution, signatures, and manager approval are required before customer delivery.
