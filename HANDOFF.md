@@ -366,6 +366,14 @@ Local validation passed: measurement-authority tests (including stale/mismatched
 - Verified locally: `npm run typecheck`, `npm run test:measurement-estimate-authority`, `npm run test:photo-estimate-flow`, `npm run release-check`, `npm run verify:security`, and `git diff --check` all pass.
 - Pushed the corrected branch at `7914b23`; GitHub required `web`, `mobile`, and `migration-safety` checks are passing on PR #37. Merge is the next repository action.
 
+## 2026-10-01 AI receptionist integration checkpoint
+
+- Reconciled the receptionist branch with the post-PR #37 `main` baseline.
+- Kept current main’s Next.js 16.3.8 and all existing web, mobile, preview, migration, security, and audit gates; added the receptionist contract check to CI.
+- Preserved the receptionist routes, atomic booking migration, Twilio/Stripe/OpenAI adapters, runbook, realtime voice contract, and follow-up cron.
+- Added the required runtime dependencies (`openai`, `stripe`, and `twilio`) without retaining the stale Next.js 15 pin from the feature branch.
+- Production provider configuration remains environment-driven; no provider credentials were changed.
+
 ## 2026-10-01 simple-auth integration checkpoint
 
 - Reconciled PR #17 with the post-PR #37 `main` baseline.
