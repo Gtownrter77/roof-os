@@ -337,6 +337,15 @@ Source review confirms email-link and 6-digit email OTP flows, callback result v
 - **Next product gap (not changed here):** technician approval is recorded on `photo_estimate_workflows`, while `/api/estimates/draft` accepts client-supplied quantities and can create an explicitly unpriced, review-gated packet without requiring that approved workflow. A future behavior change could link a verified workflow/measurement server-side and derive quantities from persisted technician data. That would change the draft API contract, so it is intentionally not part of this test-only checkpoint and needs an explicit product decision.
 
 
+## 2026-09-30 strict technician-approved estimate gate
+
+This implementation starts from clean `main` at `fff6593329b2bcf7efada4e66a8e28288e4afb42`; the exact source baseline is preserved at `backup/pre-strict-estimate-gate-20260930`. On `feat/strict-approved-estimate-gate-20260930`, the technician verification form now requires an explicit gutter length (enter 0 when none). The verify endpoint persists the rounded gutter value alongside the approver, timestamp, eave/rafter/pitch/waste inputs, and server-calculated roof squares. Initial roof/gutter values remain unverified candidates and are not accepted by the estimate-draft endpoint.
+
+`/api/estimates/draft` now accepts only workspace, approved workflow ID, optional same-inspection storm evidence, and notes; client-supplied quantities and measurement IDs are rejected. It requires an approved workflow with consistent actor/time/roof/gutter values, re-derives roof squares server-side, and links the resulting packet to that workflow. Migration 037 adds the source foreign key and an RLS insert validator that rejects unapproved/mismatched workflows, altered quantities, extra line items, or priced packets. Drafts remain `needs_price_review`, unpriced, and blocked from external use until human approval.
+
+Local validation passed: measurement-authority tests (including stale/mismatched approvals and explicit zero gutters), photo-estimate flow, all 17 AI contract tests, AI endpoint/provider-request regression, API security, mobile offline sync, security scan, TypeScript typecheck, release check, production build, dependency audit (0 high-severity vulnerabilities), migration-order/policy checks, and `git diff --check`. Migration 037 parsed and ran against a disposable in-memory PostgreSQL instance; a valid packet was accepted and a tampered roof quantity was rejected by RLS. No production database migration or deployment was performed. Apply migration 037 before merging/deploying this API change; production/authenticated login verification also remains incomplete after the previously recorded Auth rate limit, and no further OTP requests were made.
+
+
 ## 2026-09-30 production login-loop remediation (in progress)
 
 - Work is on a separate worktree/branch from the verified `main` baseline `fff6593329b2bcf7efada4e66a8e28288e4afb42`. Existing strict estimate-gate PR #37 remains open and untouched.
@@ -348,3 +357,11 @@ Source review confirms email-link and 6-digit email OTP flows, callback result v
 - The available Supabase SDK credential is a publishable key, not an admin key. No account password was changed and no OTP was sent in this work. Setting an owner password requires a supported admin/dashboard path; ask the owner to sign in to Supabase and approve the exact temporary password before applying it.
 - Validation passed: auth-flow regression (including public callback/cookie assertions), API security, mobile offline sync, photo-estimate flow, measurement-estimate authority, 17 AI contract cases, AI endpoint regression, typecheck, release check, security scan, production build, dependency audit (0 high-severity vulnerabilities), and `git diff --check`.
 - **Remaining acceptance:** inspect/apply Supabase URL settings after owner browser sign-in, set a temporary owner password only after approval of its exact value, push/open a separate auth PR, wait for green CI, deploy, and verify the full authenticated production flow without inspecting customer data.
+
+## 2026-10-01 estimate-gate integration checkpoint
+
+- Integrated current `main` (including Phase D aerial geometry and verified production-status documentation) into `feat/strict-approved-estimate-gate-20260930`.
+- Resolved the handoff-only merge conflict while preserving both the strict estimate-gate and login-remediation records.
+- Renumbered the estimate packet source migration from `037_estimate_packet_photo_workflow_source.sql` to `038_estimate_packet_photo_workflow_source.sql` because `main` already owns migration 037 for aerial geometry; updated the authority regression references accordingly.
+- Verified locally: `npm run typecheck`, `npm run test:measurement-estimate-authority`, `npm run test:photo-estimate-flow`, `npm run release-check`, `npm run verify:security`, and `git diff --check` all pass.
+- Pushed the corrected branch at `7914b23`; GitHub required `web`, `mobile`, and `migration-safety` checks are passing on PR #37. Merge is the next repository action.
