@@ -2,20 +2,20 @@
 
 > **Start here:** This file is the operating handoff for ROOF/OS. Read this summary first; the older sections below are retained as history and evidence.
 
-**Last updated:** 2026-10-01 16:48 EDT
+**Last updated:** 2026-10-01 16:50 EDT
 **Repository:** [Gtownrter77/roof-os](https://github.com/Gtownrter77/roof-os)
 **Production URL:** https://roof-os-lemon.vercel.app
 **Current source:** `main` at `0f8bd8c19b9b577d1a96ceb9184f73ba07e61151`
 **Active work:** [PR #45 — Golden Report review controls](https://github.com/Gtownrter77/roof-os/pull/45)
 **Working branch:** `feat/golden-report-controls-20261001`
-**Latest branch commit:** `e177bee90b87c9b332387145bf7dfd0c1c480171`
+**Latest branch commit:** `d43b2b4fe4a5eb5da96ecba01fb87517ce76435f`
 
 ## Golden status
 
 | Area | Status | Meaning |
 | --- | --- | --- |
 | Source and local checks | **GREEN** | Three upgrade batches passed typecheck, production build, focused tests, security checks, full regression checks, and dependency audit. |
-| GitHub delivery | **OPEN** | PR #45 is pushed and the local/remote SHA matches. GitHub CI and Vercel checks are still pending; do not merge yet. |
+| GitHub delivery | **OPEN** | PR #45 is pushed and the local/remote SHA matches. Latest web, mobile, preview-build, migration-safety, and Vercel checks are green; one older duplicate preview-build run is still in progress, so do not merge until GitHub clears the PR. |
 | Golden Report controls | **UPGRADED** | Technician identity/signature, per-photo review, and owner/manager approval are implemented as additive controls. |
 | Production database | **PENDING** | Apply migration `039_golden_report_review_controls.sql` before deploying code that reads or writes its new fields. |
 | Production end-to-end evidence | **PARTIAL** | Public route smoke checks pass; authenticated photo upload, review, approval, and final report delivery still need an authorized production test. |
