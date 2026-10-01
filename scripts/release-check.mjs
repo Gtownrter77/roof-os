@@ -58,8 +58,9 @@ for (const route of routes) {
   const hasSessionGuard = source.includes('getUser()')
   const hasCronGuard = source.includes('CRON_SECRET')
   const hasStripeSignatureGuard = source.includes("stripe-signature") && source.includes('constructEvent')
-  if (!hasSessionGuard && !hasCronGuard && !hasStripeSignatureGuard) {
-    throw new Error(`API route has no visible session, cron, or verified webhook authentication guard: ${route}`)
+  const hasTwilioSignatureGuard = source.includes('assertTwilioRequest')
+  if (!hasSessionGuard && !hasCronGuard && !hasStripeSignatureGuard && !hasTwilioSignatureGuard) {
+    throw new Error(`API route has no visible session, cron, or verified provider webhook authentication guard: ${route}`)
   }
   if (source.includes('request.json()')) {
     throw new Error(`API route bypasses the bounded JSON reader: ${route}`)
