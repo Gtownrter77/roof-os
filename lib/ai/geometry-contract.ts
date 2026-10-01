@@ -1,19 +1,20 @@
 export const GEOMETRY_CONTRACT_VERSION = '1.0.0' as const
 export const GEOMETRY_CONFIDENCES = ['low', 'medium', 'high'] as const
 export const EDGE_TYPES = ['eave', 'rake', 'ridge', 'hip', 'valley', 'transition', 'step_flashing', 'other'] as const
-export const OBJECT_TYPES = ['skylight', 'chimney', 'HVAC', 'pipe_boot', 'attic_vent', 'other'] as const
+export const OBJECT_TYPES = ['skylight', 'chimney', 'hvac', 'pipe_boot', 'attic_vent', 'other'] as const
 export type GeometryConfidence = typeof GEOMETRY_CONFIDENCES[number]
 export type EdgeType = typeof EDGE_TYPES[number]
 export type ObjectType = typeof OBJECT_TYPES[number]
 export type Point = { x: number; y: number }
+export type SuggestionStatus = 'suggested' | 'accepted' | 'rejected' | 'edited'
 export type GeometrySuggestion = {
   contract_version: typeof GEOMETRY_CONTRACT_VERSION
   image_width: number
   image_height: number
   source_image_reference: string
-  planes: Array<{ id: string; vertices: Point[]; suggested_pitch: string | null; confidence: GeometryConfidence }>
-  edges: Array<{ id: string; start: Point; end: Point; classification: EdgeType; confidence: GeometryConfidence }>
-  objects: Array<{ id: string; type: ObjectType; position: Point; confidence: GeometryConfidence }>
+  planes: Array<{ id: string; vertices: Point[]; suggested_pitch: string | null; confidence: GeometryConfidence; suggestion_status: SuggestionStatus }>
+  edges: Array<{ id: string; start: Point; end: Point; classification: EdgeType; confidence: GeometryConfidence; suggestion_status: SuggestionStatus }>
+  objects: Array<{ id: string; type: ObjectType; position: Point; confidence: GeometryConfidence; suggestion_status: SuggestionStatus }>
   warnings: string[]
 }
 export class GeometryContractValidationError extends Error {
@@ -43,6 +44,7 @@ function validatePolygon(vertices: Point[], path: string) {
 }
 function string(value: unknown, path: string, max = 200): string { if (typeof value !== 'string' || value.length > max) throw new GeometryContractValidationError(path, 'must be a bounded string'); return value }
 function enumValue<T extends string>(value: unknown, allowed: readonly T[], path: string): T { if (typeof value !== 'string' || !allowed.includes(value as T)) throw new GeometryContractValidationError(path, `must be one of ${allowed.join(', ')}`); return value as T }
+function suggestionStatus(value: unknown, path: string): SuggestionStatus { return value === undefined ? 'suggested' : enumValue(value, ['suggested', 'accepted', 'rejected', 'edited'], path) }
 export function validateGeometrySuggestion(data: unknown): GeometrySuggestion {
   if (!record(data)) throw new GeometryContractValidationError('root', 'must be an object')
   if (data.contract_version !== GEOMETRY_CONTRACT_VERSION) throw new GeometryContractValidationError('contract_version', 'unsupported contract version')
@@ -53,9 +55,9 @@ export function validateGeometrySuggestion(data: unknown): GeometrySuggestion {
   if (!Array.isArray(planes) || !Array.isArray(edges) || !Array.isArray(objects) || !Array.isArray(warnings)) throw new GeometryContractValidationError('root', 'planes, edges, objects, and warnings must be arrays')
   const result = {
     contract_version: GEOMETRY_CONTRACT_VERSION, image_width: width, image_height: height, source_image_reference: source,
-    planes: planes.map((item, i) => { if (!record(item)) throw new GeometryContractValidationError(`planes[${i}]`, 'must be an object'); const vertices = item.vertices; if (!Array.isArray(vertices)) throw new GeometryContractValidationError(`planes[${i}].vertices`, 'must be an array'); const points = vertices.map((v, j) => point(v, `planes[${i}].vertices[${j}]`, width, height)); validatePolygon(points, `planes[${i}].vertices`); return { id: string(item.id, `planes[${i}].id`, 80), vertices: points, suggested_pitch: item.suggested_pitch === null ? null : string(item.suggested_pitch, `planes[${i}].suggested_pitch`, 80), confidence: enumValue(item.confidence, GEOMETRY_CONFIDENCES, `planes[${i}].confidence`) } }),
-    edges: edges.map((item, i) => { if (!record(item)) throw new GeometryContractValidationError(`edges[${i}]`, 'must be an object'); return { id: string(item.id, `edges[${i}].id`, 80), start: point(item.start, `edges[${i}].start`, width, height), end: point(item.end, `edges[${i}].end`, width, height), classification: enumValue(item.classification, EDGE_TYPES, `edges[${i}].classification`), confidence: enumValue(item.confidence, GEOMETRY_CONFIDENCES, `edges[${i}].confidence`) } }),
-    objects: objects.map((item, i) => { if (!record(item)) throw new GeometryContractValidationError(`objects[${i}]`, 'must be an object'); return { id: string(item.id, `objects[${i}].id`, 80), type: enumValue(item.type, OBJECT_TYPES, `objects[${i}].type`), position: point(item.position, `objects[${i}].position`, width, height), confidence: enumValue(item.confidence, GEOMETRY_CONFIDENCES, `objects[${i}].confidence`) } }),
+    planes: planes.map((item, i) => { if (!record(item)) throw new GeometryContractValidationError(`planes[${i}]`, 'must be an object'); const vertices = item.vertices; if (!Array.isArray(vertices)) throw new GeometryContractValidationError(`planes[${i}].vertices`, 'must be an array'); const points = vertices.map((v, j) => point(v, `planes[${i}].vertices[${j}]`, width, height)); validatePolygon(points, `planes[${i}].vertices`); return { id: string(item.id, `planes[${i}].id`, 80), vertices: points, suggested_pitch: item.suggested_pitch === null ? null : string(item.suggested_pitch, `planes[${i}].suggested_pitch`, 80), confidence: enumValue(item.confidence, GEOMETRY_CONFIDENCES, `planes[${i}].confidence`), suggestion_status: suggestionStatus(item.suggestion_status, `planes[${i}].suggestion_status`) } }),
+    edges: edges.map((item, i) => { if (!record(item)) throw new GeometryContractValidationError(`edges[${i}]`, 'must be an object'); return { id: string(item.id, `edges[${i}].id`, 80), start: point(item.start, `edges[${i}].start`, width, height), end: point(item.end, `edges[${i}].end`, width, height), classification: enumValue(item.classification, EDGE_TYPES, `edges[${i}].classification`), confidence: enumValue(item.confidence, GEOMETRY_CONFIDENCES, `edges[${i}].confidence`), suggestion_status: suggestionStatus(item.suggestion_status, `edges[${i}].suggestion_status`) } }),
+    objects: objects.map((item, i) => { if (!record(item)) throw new GeometryContractValidationError(`objects[${i}]`, 'must be an object'); return { id: string(item.id, `objects[${i}].id`, 80), type: enumValue(item.type, OBJECT_TYPES, `objects[${i}].type`), position: point(item.position, `objects[${i}].position`, width, height), confidence: enumValue(item.confidence, GEOMETRY_CONFIDENCES, `objects[${i}].confidence`), suggestion_status: suggestionStatus(item.suggestion_status, `objects[${i}].suggestion_status`) } }),
     warnings: warnings.map((warning, i) => string(warning, `warnings[${i}]`, 500)),
   }
   const ids = [...result.planes, ...result.edges, ...result.objects].map((item) => item.id)
