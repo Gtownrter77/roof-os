@@ -365,3 +365,10 @@ Local validation passed: measurement-authority tests (including stale/mismatched
 - Renumbered the estimate packet source migration from `037_estimate_packet_photo_workflow_source.sql` to `038_estimate_packet_photo_workflow_source.sql` because `main` already owns migration 037 for aerial geometry; updated the authority regression references accordingly.
 - Verified locally: `npm run typecheck`, `npm run test:measurement-estimate-authority`, `npm run test:photo-estimate-flow`, `npm run release-check`, `npm run verify:security`, and `git diff --check` all pass.
 - Pushed the corrected branch at `7914b23`; GitHub required `web`, `mobile`, and `migration-safety` checks are passing on PR #37. Merge is the next repository action.
+
+## 2026-10-01 simple-auth integration checkpoint
+
+- Reconciled PR #17 with the post-PR #37 `main` baseline.
+- Kept the newer main login implementation from PR #38 because it already contains the safer default-password mode, bounded password input, safe redirect handling, and the existing email-link/code fallback.
+- Preserved PR #17’s distinct additions: `/auth/reset` password update flow, explicit user-chosen signup passwords, and corresponding auth-contract changes.
+- This branch is ready for local verification and GitHub CI; no auth secrets or production credentials were changed.

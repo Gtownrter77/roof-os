@@ -28,7 +28,6 @@ export async function proxy(request: NextRequest) {
       },
     },
   })
-
   const { data: { user } } = await supabase.auth.getUser()
   const isAuthPage = pathname.startsWith('/auth')
   if (!user && !isPublicPath(pathname)) {
@@ -36,7 +35,7 @@ export async function proxy(request: NextRequest) {
     login.searchParams.set('next', pathname)
     return NextResponse.redirect(login)
   }
-  if (user && isAuthPage && pathname !== '/auth/callback') return NextResponse.redirect(new URL('/', request.url))
+  if (user && isAuthPage && pathname !== '/auth/callback' && pathname !== '/auth/reset') return NextResponse.redirect(new URL('/', request.url))
   return response
 }
 
