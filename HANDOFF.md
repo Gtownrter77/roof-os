@@ -1,6 +1,47 @@
 # ROOF/OS Final Handoff
 
-**Handoff date:** 2026-09-14
+> **Start here:** This file is the operating handoff for ROOF/OS. Read this summary first; the older sections below are retained as history and evidence.
+
+**Last updated:** 2026-10-01 16:48 EDT
+**Repository:** [Gtownrter77/roof-os](https://github.com/Gtownrter77/roof-os)
+**Production URL:** https://roof-os-lemon.vercel.app
+**Current source:** `main` at `0f8bd8c19b9b577d1a96ceb9184f73ba07e61151`
+**Active work:** [PR #45 — Golden Report review controls](https://github.com/Gtownrter77/roof-os/pull/45)
+**Working branch:** `feat/golden-report-controls-20261001`
+**Latest branch commit:** `e177bee90b87c9b332387145bf7dfd0c1c480171`
+
+## Golden status
+
+| Area | Status | Meaning |
+| --- | --- | --- |
+| Source and local checks | **GREEN** | Three upgrade batches passed typecheck, production build, focused tests, security checks, full regression checks, and dependency audit. |
+| GitHub delivery | **OPEN** | PR #45 is pushed and the local/remote SHA matches. GitHub CI and Vercel checks are still pending; do not merge yet. |
+| Golden Report controls | **UPGRADED** | Technician identity/signature, per-photo review, and owner/manager approval are implemented as additive controls. |
+| Production database | **PENDING** | Apply migration `039_golden_report_review_controls.sql` before deploying code that reads or writes its new fields. |
+| Production end-to-end evidence | **PARTIAL** | Public route smoke checks pass; authenticated photo upload, review, approval, and final report delivery still need an authorized production test. |
+| Customer readiness | **NOT CLAIMED** | Keep reports as drafts until technician evidence, source attribution, signatures, photo review, and manager approval are present. |
+
+## Exact next action
+
+1. Inspect PR #45 checks: **web**, **mobile**, **preview-build**, **migration-safety**, and **Vercel**.
+2. Fix only verified CI failures. Do not merge while any required check is pending or failing.
+3. With database authorization, apply `supabase/migrations/039_golden_report_review_controls.sql`.
+4. Run an authorized production test of photo upload → technician verification → per-photo review → manager approval → draft report.
+5. Record the observed production evidence here before calling the feature production-verified.
+
+## Golden rules
+
+- **No regression:** existing verification continues to work without the new optional metadata; upgraded fields add controls rather than breaking old flows.
+- **AI is not authority:** AI observations never become measurements, prices, code decisions, or claim decisions without human review.
+- **Unknown stays Unknown:** do not invent names, signatures, photo usability, storm history, code citations, or measurements.
+- **Three-batch checkpoint law:** after every three completed and verified work batches, commit, push, compare local and remote SHAs, and update this handoff. Full rule: [`UPDATE-CHECKPOINT-LAW.md`](UPDATE-CHECKPOINT-LAW.md).
+- **Production evidence is separate:** local builds and preview checks do not prove production database, authentication, or customer workflow readiness.
+
+---
+
+## Historical handoff and project record
+
+**Original handoff date:** 2026-09-14
 
 ## Current production site
 
