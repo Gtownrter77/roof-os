@@ -9,7 +9,7 @@ const verifyPage = read('../app/photo-estimate/page.tsx')
 const manualRoute = read('../app/api/measurements/manual/route.ts')
 const estimateRoute = read('../app/api/estimates/draft/route.ts')
 const measurementSchema = read('../supabase/migrations/012_inspection_measurements_storms.sql')
-const workflowLinkMigration = read('../supabase/migrations/037_estimate_packet_photo_workflow_source.sql')
+const workflowLinkMigration = read('../supabase/migrations/038_estimate_packet_photo_workflow_source.sql')
 
 // D.3 observations may persist only in the dedicated AI metadata columns.
 const aiUpdate = aiRoute.match(/\.update\(\{([\s\S]*?)\n\s*\}\)\s*\n\s*\.eq\('id'/)
