@@ -1,8 +1,8 @@
 # ROOF/OS
 
-## **MANDATORY CHECKPOINT LAW — EVERY COMPLETED WORK BATCH**
+## **MANDATORY CHECKPOINT LAW — EVERY 3 VERIFIED WORK BATCHES**
 
-> **After every completed and verified code, test, or documentation batch—not at the end of the task—commit and push the work to its correct GitHub branch or PR. Verify that the remote SHA exactly matches the local commit, then update `HANDOFF.md` with evidence and the next action. Never leave more than one completed batch only in the sandbox. Never merge while required checks are pending or failing.**
+> **After every third completed, verified work batch, commit and push the accumulated work, verify that the remote SHA matches the local commit, and update `HANDOFF.md`. Do not let a fourth batch accumulate. Checkpoint sooner before a handoff, long pause, task/device switch, major milestone, merge, or risky/destructive action. Never merge while required checks are pending or failing.**
 
 The full rule is in [`UPDATE-CHECKPOINT-LAW.md`](UPDATE-CHECKPOINT-LAW.md).
 

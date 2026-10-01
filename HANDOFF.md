@@ -412,4 +412,4 @@ Local validation passed: measurement-authority tests (including stale/mismatched
 
 ## User-directed checkpoint law — mandatory for future work
 
-**After every completed and verified code, test, or documentation batch, commit and push immediately; verify local and remote SHAs match; update this handoff with evidence and the next action. Do not wait until task end. Never merge while required CI checks are pending or failing.** The full rule is `UPDATE-CHECKPOINT-LAW.md`, linked from the top of `README.md`.
+**Checkpoint after every 3 completed, verified work batches; do not let a 4th accumulate.** Commit and push the accumulated work, verify local and remote SHAs match, and update this handoff. Checkpoint sooner before a handoff, long pause, task/device switch, major milestone, merge, or risky/destructive action. Never merge while required CI checks are pending or failing. The full rule is `UPDATE-CHECKPOINT-LAW.md`, linked from the top of `README.md`.
