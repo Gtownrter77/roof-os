@@ -357,3 +357,11 @@ Local validation passed: measurement-authority tests (including stale/mismatched
 - The available Supabase SDK credential is a publishable key, not an admin key. No account password was changed and no OTP was sent in this work. Setting an owner password requires a supported admin/dashboard path; ask the owner to sign in to Supabase and approve the exact temporary password before applying it.
 - Validation passed: auth-flow regression (including public callback/cookie assertions), API security, mobile offline sync, photo-estimate flow, measurement-estimate authority, 17 AI contract cases, AI endpoint regression, typecheck, release check, security scan, production build, dependency audit (0 high-severity vulnerabilities), and `git diff --check`.
 - **Remaining acceptance:** inspect/apply Supabase URL settings after owner browser sign-in, set a temporary owner password only after approval of its exact value, push/open a separate auth PR, wait for green CI, deploy, and verify the full authenticated production flow without inspecting customer data.
+
+## 2026-10-01 estimate-gate integration checkpoint
+
+- Integrated current `main` (including Phase D aerial geometry and verified production-status documentation) into `feat/strict-approved-estimate-gate-20260930`.
+- Resolved the handoff-only merge conflict while preserving both the strict estimate-gate and login-remediation records.
+- Renumbered the estimate packet source migration from `037_estimate_packet_photo_workflow_source.sql` to `038_estimate_packet_photo_workflow_source.sql` because `main` already owns migration 037 for aerial geometry; updated the authority regression references accordingly.
+- Verified locally: `npm run typecheck`, `npm run test:measurement-estimate-authority`, `npm run test:photo-estimate-flow`, `npm run release-check`, `npm run verify:security`, and `git diff --check` all pass.
+- Pushed the corrected branch at `7914b23`; GitHub required `web`, `mobile`, and `migration-safety` checks are passing on PR #37. Merge is the next repository action.
