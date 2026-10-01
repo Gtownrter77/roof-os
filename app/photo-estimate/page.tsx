@@ -4,8 +4,10 @@ import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '../../lib/supabase/client'
 import { createWorker } from 'tesseract.js'
+import { GoldenReport } from '../../components/GoldenReport'
 
 type Photo = { file: File; preview: string; id: string }
+type SourcePhoto = { id: string; url: string }
 type AIObservation = {
   summary: string
   authority_disclaimer: string
@@ -23,6 +25,7 @@ export default function PhotoEstimatePage() {
   const [supabase] = useState(() => createClient())
   const inputRef = useRef<HTMLInputElement>(null)
   const [photos, setPhotos] = useState<Photo[]>([])
+  const [sourcePhotos, setSourcePhotos] = useState<SourcePhoto[]>([])
   const [address, setAddress] = useState('')
   const [roofSquares, setRoofSquares] = useState('')
   const [gutterLf, setGutterLf] = useState('')
@@ -79,7 +82,36 @@ export default function PhotoEstimatePage() {
       setInspectionId(data.id)
       const lead = Array.isArray(data.leads) ? data.leads[0] : data.leads
       if (lead?.address) setAddress(lead.address)
-      setMessage('Inspection loaded. Add or confirm the photo evidence, then build the review packet.')
+      const { data: photoRows } = await supabase
+        .from('inspection_photos')
+        .select('id,object_path')
+        .eq('inspection_id', data.id)
+      const savedPhotoRows = photoRows ?? []
+      setPhotoIds(savedPhotoRows.map((photo) => photo.id))
+      if (savedPhotoRows.length) {
+        const { data: signedPhotos, error: signedPhotoError } = await supabase.storage
+          .from('inspection-photos')
+          .createSignedUrls(savedPhotoRows.map((photo) => photo.object_path), 3600)
+        if (!signedPhotoError && signedPhotos) {
+          setSourcePhotos(signedPhotos.flatMap((photo, index) => photo.signedUrl ? [{ id: savedPhotoRows[index].id, url: photo.signedUrl }] : []))
+        }
+      }
+      const { data: savedWorkflow } = await supabase
+        .from('photo_estimate_workflows')
+        .select('id,status,report,estimate,storm_candidates,source_photo_ids,ai_analysis,inspection_id,address,latitude,longitude,footprint_sqft,lead_id,approved_by,approved_at')
+        .eq('inspection_id', data.id)
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      if (savedWorkflow) {
+        setWorkflow(savedWorkflow)
+        if (savedWorkflow.address) setAddress(savedWorkflow.address)
+        setFullReport(savedWorkflow.report?.fullReport ?? null)
+        if (savedWorkflow.ai_analysis) setAiAnalysis(savedWorkflow.ai_analysis as AIObservation)
+      }
+      setMessage(savedWorkflow?.report?.fullReport
+        ? 'Saved inspection and full report loaded. Review the source evidence before printing or continuing.'
+        : 'Inspection loaded. Saved photos are ready; add or confirm evidence, then build or continue the review packet.')
     }
     void loadInspectionContext()
   }, [inspectionId, supabase])
@@ -261,6 +293,12 @@ export default function PhotoEstimatePage() {
     }
   }
 
+  const reportPhotoIds: string[] = Array.isArray(fullReport?.sourceEvidence?.photoIds) ? fullReport.sourceEvidence.photoIds : []
+  const reportPhotoById = new Map([
+    ...sourcePhotos,
+    ...photos.map((photo) => ({ id: photo.id, url: photo.preview })),
+  ].map((photo) => [photo.id, photo.url]))
+
   return <div className="min-h-screen bg-gray-50 p-4 pb-24">
     <button onClick={() => router.back()} className="text-blue-600 mb-4">← Back</button>
     <h1 className="text-2xl font-bold">Photo → Estimate Review</h1>
@@ -296,12 +334,6 @@ export default function PhotoEstimatePage() {
     </section>}
     {workflow && <div className="bg-white rounded-lg shadow p-4 mt-4"><h2 className="font-bold">{workflow.report?.title}</h2><p className="text-sm mt-2">Status: <b>{workflow.status}</b></p><p className="text-sm">Property footprint assist: {workflow.report?.propertyEvidence?.footprintSqFt || 0} sq ft, low confidence</p><p className="text-sm">Storm candidates: {workflow.storm_candidates?.length || 0}; these are corroborating candidates, not a proven loss date.</p><p className="text-sm mt-3">Estimate: {workflow.estimate?.status}; no prices are inserted unless an approved price book is present.</p><div className="mt-3 border-t pt-3"><h3 className="font-semibold">Technician field verification</h3><p className="text-xs text-gray-600 mb-2">Review the packet, then choose exactly one action. The server preserves your measurements and does not decide whether they are plausible.</p><div className="grid grid-cols-2 gap-2"><input value={eaveLf} onChange={(e) => setEaveLf(e.target.value)} placeholder="Eaves LF" className="p-2 border rounded" /><input value={rafterLf} onChange={(e) => setRafterLf(e.target.value)} placeholder="Rafter LF" className="p-2 border rounded" /><input value={pitch} onChange={(e) => setPitch(e.target.value)} placeholder="Pitch rise / 12" className="p-2 border rounded" /><select value={roofType} onChange={(e) => setRoofType(e.target.value as 'hip' | 'gable' | 'other')} className="p-2 border rounded"><option value="hip">Hip</option><option value="gable">Gable</option><option value="other">Other</option></select><input value={soffitWidthFt} onChange={(e) => setSoffitWidthFt(e.target.value)} placeholder="Soffit width (ft)" className="p-2 border rounded" /><input value={fasciaWidthFt} onChange={(e) => setFasciaWidthFt(e.target.value)} placeholder="Fascia width (ft)" className="p-2 border rounded" /><label className="block text-sm col-span-2">Technician-measured gutter length (LF; enter 0 if none)<input type="number" min="0" max="10000" step="0.01" inputMode="decimal" value={verifiedGutterLf} onChange={(e) => setVerifiedGutterLf(e.target.value)} placeholder="Required for approval" className="w-full p-2 border rounded mt-1" /></label></div><p className="text-xs text-gray-500 mt-1">The technician owns the measurement decision. Roof dimensions and gutter length are saved with the approver and timestamp; only these approved values can create estimate drafts.</p><select value={wasteFactor} onChange={(e) => setWasteFactor(e.target.value)} className="w-full p-2 border rounded mt-2"><option value="0.10">10% waste</option><option value="0.15">15% waste</option><option value="0">0% waste</option></select><div className="grid grid-cols-2 gap-2 mt-2"><button onClick={() => void saveFieldVerification('refresh')} disabled={working} className="bg-amber-500 text-white py-2 rounded disabled:opacity-60">Request photo refresh</button><button onClick={() => void saveFieldVerification('verify')} disabled={working} className="bg-green-600 text-white py-2 rounded disabled:opacity-60">Verify measurements</button></div></div><div className="mt-3 bg-amber-50 p-3 rounded text-sm">Verify records the technician, timestamp, roof and gutter measurements, slope multiplier, roof type, waste factor, soffit/fascia widths, and calculated squares. Refresh preserves the existing packet and returns it for new photos.</div></div>}
     {workflow?.status === 'approved' && !fullReport && <button onClick={() => void generateFullReport()} disabled={working} className="w-full mt-4 bg-indigo-700 text-white py-3 rounded font-semibold disabled:opacity-60">{working ? 'Generating full report…' : 'Generate full report'}</button>}
-    {fullReport && <section className="bg-white rounded-lg shadow p-4 mt-4" aria-labelledby="full-report-title">
-      <div className="flex items-start justify-between gap-3"><div><h2 id="full-report-title" className="text-xl font-bold">{fullReport.title}</h2><p className="text-sm text-amber-800 mt-1">Review-gated report · generated {new Date(fullReport.generatedAt).toLocaleString()}</p></div><button onClick={() => window.print()} className="border px-3 py-2 rounded text-sm">Print</button></div>
-      <div className="grid grid-cols-2 gap-3 mt-4 text-sm"><div><b>Property</b><p>{fullReport.property.address}</p><p>{fullReport.property.footprintSqFt || 0} sq ft footprint assist</p></div><div><b>Evidence</b><p>{fullReport.sourceEvidence.photoCount} source photos</p><p>{fullReport.sourceEvidence.stormCandidates.length} NOAA storm candidates</p></div><div><b>Approved quantities</b><p>{fullReport.quantities.roofSquares} roof squares</p><p>{fullReport.quantities.gutterLf} gutter LF</p></div><div><b>Estimate review</b><p>{fullReport.estimateReview.status}</p><p>{fullReport.estimateReview.priceBook ? fullReport.estimateReview.priceBook.name : 'No active price book'}</p></div></div>
-      {fullReport.sourceEvidence.stormCandidates.length > 0 && <div className="mt-4 border-t pt-3"><h3 className="font-semibold">NOAA storm-event candidates</h3><p className="text-xs text-gray-600 mt-1">These dates are corroborating weather records only; they do not prove a date of loss.</p><ul className="list-disc pl-5 text-sm mt-1">{fullReport.sourceEvidence.stormCandidates.map((storm: any, index: number) => <li key={`${storm.event || 'storm'}-${storm.onset || index}`}>{storm.event || 'Weather event'} — {storm.onset ? new Date(storm.onset).toLocaleString() : 'date unavailable'}{storm.expires ? ` through ${new Date(storm.expires).toLocaleString()}` : ''}</li>)}</ul></div>}
-      {fullReport.sourceEvidence.aiObservations && <div className="mt-4 border-t pt-3"><h3 className="font-semibold">AI visual observations</h3><p className="text-sm mt-1">{fullReport.sourceEvidence.aiObservations.summary}</p><p className="text-xs text-gray-600 mt-1">Non-authoritative; technician verification controls quantities and decisions.</p></div>}
-      <div className="mt-4 border-t pt-3"><h3 className="font-semibold">Required final review</h3><ul className="list-disc pl-5 text-sm mt-1 space-y-1">{fullReport.requiredReview.map((item: string) => <li key={item}>{item}</li>)}</ul></div>
-    </section>}
+    {fullReport && <GoldenReport report={fullReport} photoUrls={reportPhotoById} onPrint={() => window.print()} />}
   </div>
 }

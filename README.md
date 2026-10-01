@@ -71,5 +71,6 @@ npx eas build --platform android --profile preview
 ## Where to read more
 
 - Product direction: `PRODUCT-VISION.md`
+- Report standard: `GOLDEN-REPORT.md`
 - How to operate it: `OWNER-MANUAL.md`
 - What is real vs leftover: `STATE-OF-THE-UNION.md`
