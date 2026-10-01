@@ -58,7 +58,7 @@ function makeBasePacket() {
         facet_type: "main_pitch",
         orientation: "south",
         pitch_class: "standard",
-        apparent_pitch: "approximately 5/12 to 7/12 visually",
+        apparent_pitch: "appears moderately pitched from this view",
         confidence: "high",
         measurement_status: "estimated",
         source_photo_indices: [0],
@@ -70,7 +70,7 @@ function makeBasePacket() {
         facet_type: "main_pitch",
         orientation: "north",
         pitch_class: "standard",
-        apparent_pitch: "approximately 5/12 to 7/12 visually",
+        apparent_pitch: "appears moderately pitched from this view",
         confidence: "medium",
         measurement_status: "estimated",
         source_photo_indices: [1],
@@ -238,4 +238,75 @@ console.log("Running AI Vision Contract Tests...")
   console.log("  ✓ Test 11: Prohibited claim term rejected")
 }
 
-console.log("ai-vision-contract-test: ALL 11 TESTS PASSED")
+// Test 12: Numeric pitch ratios are rejected in any narrative field.
+{
+  const packet = makeBasePacket()
+  packet.summary = "The roof appears to be 6/12 from the street."
+  assert.throws(
+    () => validateRoofAIObservationPacket(packet, 2),
+    (err) => err instanceof AIContractValidationError && err.message.includes("Numeric pitch ratios are prohibited")
+  )
+  console.log("  ✓ Test 12: Numeric pitch ratio in summary rejected")
+}
+
+// Test 13: Numeric dimensions and areas are rejected in narrative fields.
+{
+  const packet = makeBasePacket()
+  packet.summary = "The roof area is about 1,800 square feet."
+  assert.throws(
+    () => validateRoofAIObservationPacket(packet, 2),
+    (err) => err instanceof AIContractValidationError && err.message.includes("Numeric measurements are prohibited")
+  )
+  console.log("  ✓ Test 13: Numeric area in summary rejected")
+}
+
+// Test 14: Counted roof items are rejected in narrative fields.
+{
+  const packet = makeBasePacket()
+  packet.damage_observations[0].notes = "Three shingles are missing near the south eave."
+  assert.throws(
+    () => validateRoofAIObservationPacket(packet, 2),
+    (err) => err instanceof AIContractValidationError && err.message.includes("Quantities are prohibited")
+  )
+  console.log("  ✓ Test 14: Counted quantity in notes rejected")
+}
+
+// Test 15: Authority claims are rejected in summary text, not only pitch fields.
+{
+  const packet = makeBasePacket()
+  packet.summary = "This roof condition is officially verified."
+  assert.throws(
+    () => validateRoofAIObservationPacket(packet, 2),
+    (err) => err instanceof AIContractValidationError && err.message.includes("Authority language is prohibited")
+  )
+  console.log("  ✓ Test 15: Authority claim in summary rejected")
+}
+
+// Test 16: Insurance and code decisions are rejected in warning text.
+{
+  const packet = makeBasePacket()
+  packet.warnings = ["Insurance coverage is approved for replacement."]
+  assert.throws(
+    () => validateRoofAIObservationPacket(packet, 2),
+    (err) => err instanceof AIContractValidationError && err.message.includes("Claims and code decisions are prohibited")
+  )
+  console.log("  ✓ Test 16: Insurance decision in warnings rejected")
+}
+
+// Test 17: Indirect insurer promises and building-code conclusions are rejected.
+{
+  for (const summary of [
+    "The insurer will cover the roof replacement.",
+    "The repair meets local building code.",
+  ]) {
+    const packet = makeBasePacket()
+    packet.summary = summary
+    assert.throws(
+      () => validateRoofAIObservationPacket(packet, 2),
+      (err) => err instanceof AIContractValidationError && err.message.includes("Claims and code decisions are prohibited")
+    )
+  }
+  console.log("  ✓ Test 17: Indirect insurer and building-code decisions rejected")
+}
+
+console.log("ai-vision-contract-test: ALL 17 TESTS PASSED")

@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { icon: 'Brief', path: '/brief' },
   { icon: 'Passport', path: '/warranty' },
   { icon: 'Camera', path: '/camera' },
+  { icon: 'Measure', path: '/measure' },
 ]
 
 const HIDDEN_ON = ['/auth/login', '/auth/signup', '/onboarding']
