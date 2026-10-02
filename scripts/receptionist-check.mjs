@@ -48,7 +48,7 @@ assert.ok(turnRoute.includes(".eq('workspace_id', workspaceId)"), 'Twilio turn s
 
 assert.ok(integrityMigration.includes('alter table public.leads\n  alter column workspace_id set not null'), 'lead workspace ownership must be non-null')
 assert.ok(integrityMigration.includes("role in ('owner', 'admin', 'member')"), 'receptionist booking creator must be a workspace member')
-assert.ok(integrityMigration.includes("where l.id = p_lead_id\n    and l.workspace_id = p_workspace_id"), 'booking RPC must require a workspace-local lead')
+assert.ok(/where l\.id = p_lead_id\s+and l\.workspace_id = p_workspace_id/.test(integrityMigration), 'booking RPC must require a workspace-local lead')
 assert.ok(integrityMigration.includes("p_created_by is null"), 'booking RPC must reject a missing creator')
 assert.ok(integrityMigration.includes("set search_path = ''"), 'security-definer booking RPC must use an empty search path')
 assert.ok(integrityMigration.includes('revoke all on function public.book_receptionist_appointment'), 'booking RPC must not be callable by browser roles')
