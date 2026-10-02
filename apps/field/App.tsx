@@ -5,8 +5,8 @@ import * as Location from 'expo-location'
 
 import * as SecureStore from 'expo-secure-store'
 import { createClient, type Session } from '@supabase/supabase-js'
-import { useEffect, useState } from 'react'
-import { ActivityIndicator, Alert, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
+import { useEffect, useRef, useState } from 'react'
+import { ActivityIndicator, Alert, AppState, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 
 const colors = { ink: '#102033', blue: '#1769e0', pale: '#eef5ff', green: '#138a5b', border: '#dbe4ef', muted: '#607086', white: '#fff', red: '#b42318' }
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
@@ -21,8 +21,8 @@ const timestamp = () => new Date().toISOString()
 const clientId = (prefix: string) => `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 12)}`
 
 function ensureDatabase() {
-  db.execSync(`CREATE TABLE IF NOT EXISTS inspection_drafts (id INTEGER PRIMARY KEY AUTOINCREMENT, remote_id TEXT, owner_user_id TEXT, workspace_id TEXT, client_id TEXT, address TEXT NOT NULL DEFAULT '', photo_count INTEGER NOT NULL DEFAULT 0, status TEXT NOT NULL DEFAULT 'draft', latitude REAL, longitude REAL, updated_at TEXT NOT NULL); CREATE TABLE IF NOT EXISTS inspection_measurements_local (id INTEGER PRIMARY KEY AUTOINCREMENT, draft_id INTEGER NOT NULL, client_id TEXT, roof_squares REAL NOT NULL, gutter_lf REAL NOT NULL, latitude REAL, longitude REAL, captured_at TEXT NOT NULL, sync_status TEXT NOT NULL DEFAULT 'queued'); CREATE TABLE IF NOT EXISTS inspection_photo_queue (id INTEGER PRIMARY KEY AUTOINCREMENT, draft_id INTEGER NOT NULL, client_id TEXT, local_uri TEXT NOT NULL, captured_at TEXT NOT NULL, sync_status TEXT NOT NULL DEFAULT 'queued', remote_id TEXT, error TEXT);`)
-  for (const statement of ['ALTER TABLE inspection_drafts ADD COLUMN owner_user_id TEXT', 'ALTER TABLE inspection_drafts ADD COLUMN workspace_id TEXT', 'ALTER TABLE inspection_drafts ADD COLUMN client_id TEXT', 'ALTER TABLE inspection_measurements_local ADD COLUMN client_id TEXT', 'ALTER TABLE inspection_photo_queue ADD COLUMN client_id TEXT']) {
+  db.execSync(`CREATE TABLE IF NOT EXISTS inspection_drafts (id INTEGER PRIMARY KEY AUTOINCREMENT, remote_id TEXT, owner_user_id TEXT, workspace_id TEXT, client_id TEXT, address TEXT NOT NULL DEFAULT '', photo_count INTEGER NOT NULL DEFAULT 0, status TEXT NOT NULL DEFAULT 'draft', latitude REAL, longitude REAL, updated_at TEXT NOT NULL); CREATE TABLE IF NOT EXISTS inspection_measurements_local (id INTEGER PRIMARY KEY AUTOINCREMENT, draft_id INTEGER NOT NULL, client_id TEXT, roof_squares REAL NOT NULL, gutter_lf REAL NOT NULL, latitude REAL, longitude REAL, captured_at TEXT NOT NULL, sync_status TEXT NOT NULL DEFAULT 'queued', retry_count INTEGER NOT NULL DEFAULT 0, next_retry_at TEXT, last_error TEXT); CREATE TABLE IF NOT EXISTS inspection_photo_queue (id INTEGER PRIMARY KEY AUTOINCREMENT, draft_id INTEGER NOT NULL, client_id TEXT, local_uri TEXT NOT NULL, captured_at TEXT NOT NULL, sync_status TEXT NOT NULL DEFAULT 'queued', remote_id TEXT, error TEXT, retry_count INTEGER NOT NULL DEFAULT 0, next_retry_at TEXT, last_error TEXT);`)
+  for (const statement of ['ALTER TABLE inspection_drafts ADD COLUMN owner_user_id TEXT', 'ALTER TABLE inspection_drafts ADD COLUMN workspace_id TEXT', 'ALTER TABLE inspection_drafts ADD COLUMN client_id TEXT', 'ALTER TABLE inspection_measurements_local ADD COLUMN client_id TEXT', 'ALTER TABLE inspection_measurements_local ADD COLUMN retry_count INTEGER NOT NULL DEFAULT 0', 'ALTER TABLE inspection_measurements_local ADD COLUMN next_retry_at TEXT', 'ALTER TABLE inspection_measurements_local ADD COLUMN last_error TEXT', 'ALTER TABLE inspection_photo_queue ADD COLUMN client_id TEXT', 'ALTER TABLE inspection_photo_queue ADD COLUMN retry_count INTEGER NOT NULL DEFAULT 0', 'ALTER TABLE inspection_photo_queue ADD COLUMN next_retry_at TEXT', 'ALTER TABLE inspection_photo_queue ADD COLUMN last_error TEXT']) {
     try { db.execSync(statement) } catch { /* Existing installs already have this column. */ }
   }
 }
@@ -43,6 +43,7 @@ export default function App() {
   const [error, setError] = useState('')
   const [syncing, setSyncing] = useState(false)
   const [checks, setChecks] = useState({ property: false, elevations: false, notes: false, upload: false })
+  const draftRef = useRef<Draft | null>(null)
 
   useEffect(() => {
     ensureDatabase()
@@ -54,11 +55,19 @@ export default function App() {
 
   useEffect(() => { if (session) loadDraft() }, [session])
 
+  useEffect(() => {
+    if (!session) return
+    const retry = () => { if (draftRef.current) void syncNow(draftRef.current) }
+    const subscription = AppState.addEventListener('change', (state) => { if (state === 'active') retry() })
+    const interval = setInterval(retry, 30_000)
+    return () => { subscription.remove(); clearInterval(interval) }
+  }, [session])
+
   function loadDraft() {
     const userId = session?.user.id
     if (!userId) return
     const row = db.getFirstSync<Draft>('SELECT id, remote_id as remoteId, owner_user_id as ownerUserId, workspace_id as workspaceId, client_id as clientId, address, photo_count as photoCount, status, updated_at as updatedAt, latitude, longitude FROM inspection_drafts WHERE owner_user_id = ? ORDER BY updated_at DESC LIMIT 1', userId)
-    if (row) { setDraft(row); setAddress(row.address); setPhotos(row.photoCount); if (row.latitude !== null && row.longitude !== null) setPoint({ latitude: row.latitude, longitude: row.longitude }) }
+    if (row) { draftRef.current = row; setDraft(row); setAddress(row.address); setPhotos(row.photoCount); if (row.latitude !== null && row.longitude !== null) setPoint({ latitude: row.latitude, longitude: row.longitude }) }
   }
 
   function saveDraft(nextAddress = address, nextPhotos = photos, nextPoint = point): number | null {
@@ -66,14 +75,15 @@ export default function App() {
       const now = timestamp()
       if (draft) {
         db.runSync('UPDATE inspection_drafts SET address = ?, photo_count = ?, latitude = ?, longitude = ?, updated_at = ? WHERE id = ?', nextAddress, nextPhotos, nextPoint?.latitude ?? null, nextPoint?.longitude ?? null, now, draft.id)
-        setDraft({ ...draft, address: nextAddress, photoCount: nextPhotos, latitude: nextPoint?.latitude ?? null, longitude: nextPoint?.longitude ?? null, updatedAt: now })
+        const nextDraft = { ...draft, address: nextAddress, photoCount: nextPhotos, latitude: nextPoint?.latitude ?? null, longitude: nextPoint?.longitude ?? null, updatedAt: now }
+        draftRef.current = nextDraft; setDraft(nextDraft)
         return draft.id
       }
       if (!session?.user.id) throw new Error('An authenticated user is required for local drafts.')
       const createdClientId = clientId('inspection')
       const result = db.runSync('INSERT INTO inspection_drafts (owner_user_id, workspace_id, client_id, address, photo_count, status, latitude, longitude, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', session.user.id, null, createdClientId, nextAddress, nextPhotos, 'draft', nextPoint?.latitude ?? null, nextPoint?.longitude ?? null, now)
       const created = { id: result.lastInsertRowId, remoteId: null, ownerUserId: session.user.id, workspaceId: null, clientId: createdClientId, address: nextAddress, photoCount: nextPhotos, status: 'draft', latitude: nextPoint?.latitude ?? null, longitude: nextPoint?.longitude ?? null, updatedAt: now }
-      setDraft(created); return created.id
+      draftRef.current = created; setDraft(created); return created.id
     } catch { setError('Could not save the local draft. Keep the app open and try again.'); return null }
   }
 
@@ -115,37 +125,44 @@ export default function App() {
     setNotice('Measurements saved locally as manual, unverified inputs.'); if (session) void syncNow()
   }
 
-  async function syncNow() {
-    if (!supabase || !session || !draft || syncing) return
+  async function syncNow(draftToSync = draftRef.current ?? draft) {
+    if (!supabase || !session || !draftToSync || syncing) return
     setSyncing(true); setError('')
     try {
       const { data: workspaceId, error: workspaceError } = await supabase.rpc('current_workspace_id')
       if (workspaceError || !workspaceId) throw new Error('No workspace is available for this account.')
-      if (draft.ownerUserId !== session.user.id) throw new Error('This draft belongs to a different signed-in user.')
-      if (draft.workspaceId && draft.workspaceId !== workspaceId) throw new Error('This draft belongs to a different workspace. Switch workspace before syncing.')
-      let remoteId = draft.remoteId
+      if (draftToSync.ownerUserId !== session.user.id) throw new Error('This draft belongs to a different signed-in user.')
+      if (draftToSync.workspaceId && draftToSync.workspaceId !== workspaceId) throw new Error('This draft belongs to a different workspace. Switch workspace before syncing.')
+      let remoteId = draftToSync.remoteId
       if (!remoteId) {
-        const { data, error: insertError } = await supabase.from('inspection_sessions').upsert({ workspace_id: workspaceId, client_id: draft.clientId, created_by: session.user.id, status: 'draft', client_version: 'field-0.2.0' }, { onConflict: 'workspace_id,client_id' }).select('id').single()
+        const { data, error: insertError } = await supabase.from('inspection_sessions').upsert({ workspace_id: workspaceId, client_id: draftToSync.clientId, created_by: session.user.id, status: 'draft', client_version: 'field-0.2.0' }, { onConflict: 'workspace_id,client_id' }).select('id').single()
         if (insertError) throw insertError
-        remoteId = data.id; db.runSync('UPDATE inspection_drafts SET remote_id = ?, workspace_id = ? WHERE id = ?', remoteId, workspaceId, draft.id); setDraft({ ...draft, remoteId, workspaceId })
+        remoteId = data.id; db.runSync('UPDATE inspection_drafts SET remote_id = ?, workspace_id = ? WHERE id = ?', remoteId, workspaceId, draftToSync.id); const syncedDraft = { ...draftToSync, remoteId, workspaceId }; draftRef.current = syncedDraft; setDraft(syncedDraft)
       }
-      const measurements = db.getAllSync<{ id: number; client_id: string; roof_squares: number; gutter_lf: number; latitude: number | null; longitude: number | null; captured_at: string }>('SELECT id, client_id, roof_squares, gutter_lf, latitude, longitude, captured_at FROM inspection_measurements_local WHERE draft_id = ? AND sync_status = ?', draft.id, 'queued')
+      const now = new Date().toISOString()
+      const measurements = db.getAllSync<{ id: number; client_id: string; roof_squares: number; gutter_lf: number; latitude: number | null; longitude: number | null; captured_at: string }>('SELECT id, client_id, roof_squares, gutter_lf, latitude, longitude, captured_at FROM inspection_measurements_local WHERE draft_id = ? AND sync_status IN (?, ?) AND (next_retry_at IS NULL OR next_retry_at <= ?)', draftToSync.id, 'queued', 'retrying', now)
       for (const measurement of measurements) {
         const { error } = await supabase.from('inspection_measurements').upsert({ workspace_id: workspaceId, inspection_id: remoteId, client_id: measurement.client_id, source_type: 'manual', confidence: 'unverified', roof_squares: measurement.roof_squares, gutter_lf: measurement.gutter_lf, latitude: measurement.latitude, longitude: measurement.longitude, source_reference: 'field-mobile-manual', captured_at: measurement.captured_at, created_by: session.user.id }, { onConflict: 'workspace_id,client_id' })
         if (error) throw error
-        db.runSync('UPDATE inspection_measurements_local SET sync_status = ? WHERE id = ?', 'synced', measurement.id)
+        db.runSync('UPDATE inspection_measurements_local SET sync_status = ?, last_error = NULL, next_retry_at = NULL WHERE id = ?', 'synced', measurement.id)
       }
-      const queued = db.getAllSync<{ id: number; client_id: string; local_uri: string; captured_at: string }>('SELECT id, client_id, local_uri, captured_at FROM inspection_photo_queue WHERE draft_id = ? AND sync_status = ?', draft.id, 'queued')
+      const queued = db.getAllSync<{ id: number; client_id: string; local_uri: string; captured_at: string }>('SELECT id, client_id, local_uri, captured_at FROM inspection_photo_queue WHERE draft_id = ? AND sync_status IN (?, ?) AND (next_retry_at IS NULL OR next_retry_at <= ?)', draftToSync.id, 'queued', 'retrying', now)
       for (const photo of queued) {
-        const objectPath = `${workspaceId}/${session.user.id}/${remoteId}/${photo.id}.jpg`; const response = await fetch(photo.local_uri); const blob = await response.blob()
+        const objectPath = `${workspaceId}/${session.user.id}/${remoteId}/${photo.client_id}.jpg`; const response = await fetch(photo.local_uri); const blob = await response.blob()
         const { error: uploadError } = await supabase.storage.from('inspection-photos').upload(objectPath, blob, { contentType: 'image/jpeg', upsert: false })
         if (uploadError && !/already exists|duplicate/i.test(uploadError.message)) throw uploadError
         const { data, error: recordError } = await supabase.from('inspection_photos').upsert({ inspection_id: remoteId, client_id: photo.client_id, workspace_id: workspaceId, uploaded_by: session.user.id, bucket_id: 'inspection-photos', object_path: objectPath, album: 'general', mime_type: 'image/jpeg', captured_at: photo.captured_at, upload_status: 'uploaded' }, { onConflict: 'workspace_id,client_id' }).select('id').single()
         if (recordError) throw recordError
-        db.runSync('UPDATE inspection_photo_queue SET sync_status = ?, remote_id = ? WHERE id = ?', 'synced', data.id, photo.id)
+        db.runSync('UPDATE inspection_photo_queue SET sync_status = ?, remote_id = ?, last_error = NULL, next_retry_at = NULL WHERE id = ?', 'synced', data.id, photo.id)
       }
       setNotice('Synced securely to the workspace. Evidence and estimates remain review-gated.')
-    } catch (syncError) { setError(syncError instanceof Error ? `Sync paused: ${syncError.message}` : 'Sync paused. Your local draft is safe and will retry.') }
+    } catch (syncError) {
+      const message = syncError instanceof Error ? syncError.message : 'Unknown sync error'
+      const retryAt = new Date(Date.now() + 30_000).toISOString()
+      db.runSync('UPDATE inspection_measurements_local SET sync_status = ?, retry_count = retry_count + 1, next_retry_at = ?, last_error = ? WHERE draft_id = ? AND sync_status IN (?, ?)', 'retrying', retryAt, message, draftToSync.id, 'queued', 'retrying')
+      db.runSync('UPDATE inspection_photo_queue SET sync_status = ?, retry_count = retry_count + 1, next_retry_at = ?, last_error = ?, error = ? WHERE draft_id = ? AND sync_status IN (?, ?)', 'retrying', retryAt, message, message, draftToSync.id, 'queued', 'retrying')
+      setError(`Sync paused: ${message}. Automatic retry scheduled.`)
+    }
     finally { setSyncing(false) }
   }
 

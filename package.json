@@ -19,6 +19,7 @@
     "test:ai-vision-contract": "node scripts/ai-vision-contract-test.mjs",
     "test:ai-vision-endpoint": "node scripts/ai-vision-endpoint-test.mjs",
     "test:aerial": "node scripts/aerial-geometry-test.mjs",
+    "test:agent-runtime": "node scripts/agent-runtime-test.mjs",
     "verify:security": "node scripts/security-check.mjs",
     "test:receptionist": "node scripts/receptionist-check.mjs"
   },

@@ -5,6 +5,8 @@
 - `heartbeat(...)` records worker identity, version, capabilities, status, and last-seen time.
 - `run(...)` enforces the workspace/agent/event idempotency key, records running/succeeded/failed states, preserves outputs, and supports approval states.
 
+Pass `reviewTaskCreatorId` when constructing the runtime in a deployed worker. If a handler throws, the runtime records the failed run and creates an open task assigned to that user. The worker identity must still be validated by deployment configuration; this module does not choose an owner implicitly.
+
 The module is intentionally infrastructure-neutral. It can run in a Supabase Edge Function, a scheduled worker, or a persistent process. The worker must receive `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` through the deployment secret manager; neither value belongs in the mobile bundle or browser code.
 
 ## Readiness checklist
