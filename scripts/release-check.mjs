@@ -3,10 +3,17 @@ import { join } from 'node:path'
 
 const root = new URL('..', import.meta.url).pathname
 const config = readFileSync(join(root, 'next.config.ts'), 'utf8')
-if (!config.includes('Content-Security-Policy') || !config.includes('X-Content-Type-Options')) {
-  throw new Error('Required security headers are missing from next.config.ts')
+const proxySecurity = readFileSync(join(root, 'proxy.ts'), 'utf8')
+if (!config.includes('X-Content-Type-Options')) {
+  throw new Error('Required static security headers are missing from next.config.ts')
 }
-if (config.includes("'unsafe-eval'")) throw new Error('Production Content Security Policy must not permit unsafe-eval')
+if (!proxySecurity.includes('Content-Security-Policy') || !proxySecurity.includes("script-src 'self';") && !proxySecurity.includes("script-src 'self' 'nonce-")) {
+  throw new Error('Nonce-based Content Security Policy is missing from proxy.ts')
+}
+if (proxySecurity.includes("script-src 'self' 'unsafe-inline'")) {
+  throw new Error('Production Content Security Policy must not permit unsafe-inline in script-src')
+}
+if (proxySecurity.includes("'unsafe-eval'")) throw new Error('Production Content Security Policy must not permit unsafe-eval')
 
 const definerHardening = readFileSync(join(root, 'supabase', 'migrations', '031_security_definer_least_privilege.sql'), 'utf8')
 for (const functionName of [
