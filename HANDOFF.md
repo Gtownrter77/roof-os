@@ -427,3 +427,12 @@ Local validation passed: measurement-authority tests (including stale/mismatched
 - The canonical documentation update is being carried on `docs/handoff-production-verification-20261001`; merge it only after its documentation-only checks pass.
 - Supabase migrations, production auth URL settings, photo submission, offline retry against production, and live Data/Security level-3 evidence remain outstanding. No production database migration or account-security change was performed in this checkpoint.
 - Continue to follow the Golden Report authority rule: AI observations are non-authoritative; technician verification, source attribution, signatures, and manager approval are required before customer delivery.
+
+## 2026-10-02 field reliability hardening checkpoint
+
+- PR #46: https://github.com/Gtownrter77/roof-os/pull/46
+- Commit `38f9876` is pushed to `fix/field-sync-worker-reliability`; direct `main` push was correctly rejected by branch protection because required checks were expected. The feature-branch remote SHA matches the local SHA.
+- Mobile field sync now records retry metadata, uses stable idempotent photo paths, retries on foreground/interval, and fixes the first-capture sync race. Worker runtime failures now increment attempts and can create an assigned human review task when `reviewTaskCreatorId` is configured.
+- Prototype routes now show a pilot-only warning, and CI enforces worker-runtime and prototype-guardrail tests.
+- Verified locally: web typecheck, production build, release-check, security-check, mobile TypeScript, mobile offline-sync contract, agent-runtime contract, prototype-guardrail contract, and receptionist contract all pass.
+- Remaining proof boundary: no claim is made that a signed mobile build, background OS task, deployed worker heartbeat, live retry/reconnect test, or production Vercel/Supabase configuration has been verified. Those require device/provider access.

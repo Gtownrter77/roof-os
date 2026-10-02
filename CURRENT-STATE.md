@@ -90,3 +90,10 @@ The authenticated browser and Vercel project configuration checks are currently 
 ## Historical notes
 
 Earlier `HANDOFF.md`, `STATE-OF-THE-UNION.md`, and other project documents preserve prior work claims. Refer to this document and `LEVEL3-SCOREBOARD.json` for the present evidence-based status.
+
+## 2026-10-02 code hardening checkpoint
+
+- Mobile offline drafts now retain retry state and last errors, use stable photo object keys, retry when the app returns to the foreground and on a bounded foreground interval, and avoid the first-capture stale-draft race. This is source-verified only; device and production offline/reconnect evidence remain outstanding.
+- The agent runtime now increments retry attempts and can create an assigned human review task when a configured worker handler fails. This is a runtime contract improvement, not proof that production workers are deployed or heartbeating.
+- Prototype routes now show a global pilot/prototype warning and are covered by a regression test; they remain outside the verified product surface.
+- CI now enforces the mobile, worker-runtime, and prototype-disclosure contract tests.
