@@ -208,6 +208,6 @@ Earlier `HANDOFF.md`, `STATE-OF-THE-UNION.md`, and other project documents prese
 
 ## 2026-10-02 Evidence Discipline Addendum
 
-The remediation branch `fix/remove-fabricated-demo-records-20261002` currently carries nine UI/data-truth corrections. Its latest verified head is recorded by PR #68. GitHub CI passes for the latest branch head. These changes are not yet merged into `main`. Production remains unverified because Vercel reports a build-rate-limit failure.
+The remediation branch `fix/remove-fabricated-demo-records-20261002` currently carries the UI/data-truth corrections and simulated-state removals. Its current head is `6785dafce60ce73ea4a25feb81262523baa2b910`. GitHub CI passes for the latest branch head. These changes are not yet merged into `main`. Production remains unverified because Vercel reports a build-rate-limit failure.
 
 The repository audit is being held to the canonical Master Build Specification: code presence alone is not completion; critical workflows require implementation, tests, tenant isolation, security, observability, failure handling, acceptance evidence, and manual fallback.
