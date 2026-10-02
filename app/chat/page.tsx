@@ -5,19 +5,12 @@ import { useRouter } from 'next/navigation'
 
 export default function ChatPage() {
   const router = useRouter()
-  const [messages, setMessages] = useState([
-    { id: 1, user: 'John Doe', message: 'Inspection complete at 123 Main St', time: '2 min ago', avatar: '👤' },
-    { id: 2, user: 'Jane Smith', message: 'Report ready for review', time: '5 min ago', avatar: '👩' },
-    { id: 3, user: 'Bob Johnson', message: 'New lead assigned to you', time: '10 min ago', avatar: '👨' },
-  ])
+  const [messages, setMessages] = useState<{id:number,user:string,message:string,time:string,avatar:string}[]>([])
   const [newMessage, setNewMessage] = useState('')
-  const [activeChat, setActiveChat] = useState('team')
+  const [activeChat, setActiveChat] = useState('local')
 
   const chats = [
-    { id: 'team', name: 'Team Chat', icon: '👥', unread: 3 },
-    { id: 'john', name: 'John Doe', icon: '👤', unread: 1 },
-    { id: 'jane', name: 'Jane Smith', icon: '👩', unread: 0 },
-    { id: 'bob', name: 'Bob Johnson', icon: '👨', unread: 2 },
+    { id: 'local', name: 'This browser only', icon: '💬', unread: 0 },
   ]
 
   const sendMessage = (e: React.FormEvent) => {
@@ -39,11 +32,11 @@ export default function ChatPage() {
         <div className="px-4 py-3 flex items-center">
           <button onClick={() => router.back()} className="text-white mr-3 text-xl">←</button>
           <h1 className="text-xl font-bold">💬 Chat</h1>
-          <span className="ml-2 bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">3</span>
+          
         </div>
       </header>
 
-      <main className="p-4">
+      <main className="p-4"><p className="text-sm bg-white rounded-lg shadow p-4 mb-4">Messages stay in this browser. They are not saved and are not a team chat.</p>
         {/* Chat List */}
         <div className="bg-white rounded-lg shadow mb-4">
           <div className="p-3 border-b">

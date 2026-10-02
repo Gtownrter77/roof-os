@@ -355,7 +355,7 @@ export default function AITrainPage() {
         <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg shadow-lg p-6 mb-4 border-2 border-green-500">
           <div className="text-center">
             <span className="text-6xl block mb-3">🎓</span>
-            <h2 className="text-2xl font-bold text-green-800">AI Training Guide</h2>
+            <h2 className="text-2xl font-bold text-green-800">Job checklist</h2><p className="text-sm text-green-800 mt-2">This is a local checklist. It is not a trained model, and progress is not saved.</p>
             <p className="text-green-600 text-sm">Step-by-step hand-holding for every job</p>
           </div>
         </div>

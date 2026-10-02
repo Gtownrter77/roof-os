@@ -132,3 +132,15 @@ The broader ROOF/OS product remains a separate status question. Existing Supabas
 `app/admin/page.tsx` on branch `upgrade/admin-page-20261002` no longer shows hardcoded users, leads, revenue, or storage. Signed-in counts come from the current workspace. Revenue and storage stay Unknown. This change is not on `main` and is not the live site at https://roof-os-lemon.vercel.app.
 
 Checks on that branch: `npx tsc --noEmit` passed, and `npm run build` passed with `/admin` in the route list. No signed-in browser session was opened. Live counts were not queried.
+
+## Files 2-7, 2026-10-02
+
+On branch `upgrade/admin-page-20261002`:
+
+- `app/ai-train/page.tsx` is labeled a local checklist. Steps were kept.
+- `app/ai/page.tsx` no longer starts with a fake address or inspector. The draft stays in the browser.
+- `app/analytics/page.tsx` no longer shows hardcoded leads, rates, or revenue. Workspace counts load when signed in. Rates and revenue stay Unknown.
+- `app/chat/page.tsx` no longer shows fake people. Messages stay in this browser.
+- `app/deck/page.tsx` and `app/doors-windows/page.tsx` keep their calculators and now say the result is a local example, not a saved bid.
+
+`npx tsc --noEmit` passed. `npm run build` passed and listed `/ai`, `/ai-train`, `/analytics`, `/chat`, `/deck`, and `/doors-windows`. No signed-in browser session was opened. Not on `main`.

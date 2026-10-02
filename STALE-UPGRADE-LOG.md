@@ -18,3 +18,15 @@ One file at a time. Do not start the next file until the current file has a 3-le
 - Level 3, data: reads are workspace-scoped selects under existing RLS. No service-role key is used. Live count values were not queried.
 
 File 1 is complete for this branch. It is not on `main`. Next file is not started.
+
+## Files 2-7, 2026-10-02
+
+On branch `upgrade/admin-page-20261002`:
+
+- `app/ai-train/page.tsx` is labeled a local checklist. Steps were kept.
+- `app/ai/page.tsx` no longer starts with a fake address or inspector. The draft stays in the browser.
+- `app/analytics/page.tsx` no longer shows hardcoded leads, rates, or revenue. Workspace counts load when signed in. Rates and revenue stay Unknown.
+- `app/chat/page.tsx` no longer shows fake people. Messages stay in this browser.
+- `app/deck/page.tsx` and `app/doors-windows/page.tsx` keep their calculators and now say the result is a local example, not a saved bid.
+
+`npx tsc --noEmit` passed. `npm run build` passed and listed `/ai`, `/ai-train`, `/analytics`, `/chat`, `/deck`, and `/doors-windows`. No signed-in browser session was opened. Not on `main`.

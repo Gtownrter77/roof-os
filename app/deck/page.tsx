@@ -163,7 +163,7 @@ export default function DeckPage() {
         </div>
       </header>
 
-      <main className="p-4">
+      <main className="p-4"><p className="text-sm bg-white rounded-lg shadow p-4 mb-4">Local example only. Not saved. Not a bid. A real price stays Unknown until you approve it.</p>
         {/* Inputs */}
         <div className="bg-white rounded-lg shadow-lg p-4 mb-4 border border-amber-200">
           <div className="grid grid-cols-2 gap-3">

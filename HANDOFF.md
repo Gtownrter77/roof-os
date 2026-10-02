@@ -544,3 +544,15 @@ Pre-existing Supabase security-advisor warnings (including authenticated SECURIT
 - Revenue and storage remain Unknown.
 - `npx tsc --noEmit` passed. `npm run build` passed and listed `/admin`.
 - Not merged to `main`. Not verified in a signed-in browser. Live counts were not queried.
+
+## Files 2-7, 2026-10-02
+
+On branch `upgrade/admin-page-20261002`:
+
+- `app/ai-train/page.tsx` is labeled a local checklist. Steps were kept.
+- `app/ai/page.tsx` no longer starts with a fake address or inspector. The draft stays in the browser.
+- `app/analytics/page.tsx` no longer shows hardcoded leads, rates, or revenue. Workspace counts load when signed in. Rates and revenue stay Unknown.
+- `app/chat/page.tsx` no longer shows fake people. Messages stay in this browser.
+- `app/deck/page.tsx` and `app/doors-windows/page.tsx` keep their calculators and now say the result is a local example, not a saved bid.
+
+`npx tsc --noEmit` passed. `npm run build` passed and listed `/ai`, `/ai-train`, `/analytics`, `/chat`, `/deck`, and `/doors-windows`. No signed-in browser session was opened. Not on `main`.
