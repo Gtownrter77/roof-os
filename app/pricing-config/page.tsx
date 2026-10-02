@@ -64,7 +64,7 @@ export default function PricingConfigPage() {
     try {
       const response = await fetch('/api/pricing/refresh', { method: 'POST' })
       const payload = await response.json()
-      setSaveMessage(response.ok ? `Refresh returned ${payload.count ?? 0} result${payload.count === 1 ? '' : 's'}. A result is not a saved price unless its status is refreshed.` : (payload.error ?? 'Price source is not connected.'))
+      setSaveMessage(response.ok ? `Refresh returned ${payload.count ?? 0} result${payload.count === 1 ? '' : 's'}. A result is a cached provider response, not a saved price.` : (payload.error ?? 'Price source is not connected.'))
     } catch {
       setSaveMessage('Price source is not connected.')
     } finally {
