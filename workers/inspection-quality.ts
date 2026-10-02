@@ -90,6 +90,7 @@ export async function runInspectionQuality(
       if (needsReview) {
         const { error: taskError } = await supabase.from('tasks').insert({
           workspace_id: workspaceId,
+          automation_key: `inspection-quality:${inspectionId}:${eventKey}`,
           title: 'Review inspection evidence quality',
           notes: `Inspection ${inspectionId} needs review: ${issues.join('; ')}`,
           assigned_to: reviewTaskCreatorId,
