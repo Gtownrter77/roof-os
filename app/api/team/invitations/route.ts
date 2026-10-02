@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
   try {
     const admin = createAdminClient()
     const { error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
-      redirectTo: `${siteUrl.replace(/\\/$/, '')}/auth/callback?next=/team/invitations/accept&invitationId=${encodeURIComponent(data.id)}`,
+      redirectTo: `${siteUrl.replace(/\/$/, '')}/auth/callback?next=/team/invitations/accept&invitationId=${encodeURIComponent(data.id)}`,
     })
     if (inviteError) throw inviteError
   } catch (inviteError) {
