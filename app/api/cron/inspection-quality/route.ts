@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createAdminClient } from '../../../../../lib/supabase/admin'
-import { runInspectionQuality } from '../../../../../workers/inspection-quality'
+import { createAdminClient } from '../../../../lib/supabase/admin'
+import { runInspectionQuality } from '../../../../workers/inspection-quality'
 
 export async function POST(request: NextRequest) {
   const secret = process.env.CRON_SECRET?.trim()
