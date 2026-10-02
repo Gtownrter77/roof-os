@@ -52,8 +52,7 @@ function CameraInner() {
         const { error: metaError } = await supabase.from('inspection_photos').insert({ inspection_id: sessionId, workspace_id: workspaceId, uploaded_by: user.id, object_path: path, mime_type: photo.file.type || 'image/jpeg', file_size_bytes: photo.file.size, album, upload_status: 'uploaded' })
         if (metaError) throw new Error(metaError.message)
       }
-      if (leadId) await supabase.from('leads').update({ status: 'inspected', updated_at: new Date().toISOString() }).eq('id', leadId)
-      setMessage(`${photos.length} photo${photos.length === 1 ? '' : 's'} saved to inspection ${sessionId.slice(0, 8)}.`)
+      setMessage(`${photos.length} photo${photos.length === 1 ? '' : 's'} saved to inspection ${sessionId.slice(0, 8)}. Lead status was not changed.`)
       photos.forEach((photo) => URL.revokeObjectURL(photo.preview))
       setPhotos([])
     } catch (err) {
