@@ -7,9 +7,9 @@
   "three_level_check": {
     "level_1_security_and_code": {
       "status": "PARTIAL",
-      "tests_passed": 6,
+      "tests_passed": 0,
       "total_tests": 6,
-      "evidence": "release-check, security-check, api-security-test, photo-estimate-flow-test, mobile-offline-sync-test, and mobile-release-check all pass with zero errors.",
+      "evidence": "Prior CI evidence passed these checks, but the latest remediation head is awaiting a fresh CI run before those results are treated as current.",
       "security_posture": "Strict Content-Security-Policy (no unsafe-eval), bounded JSON streaming reader (64KB max), authenticated RPC boundaries, elimination of window.alert sandbox violations, and consolidated RLS least-privilege enforcement."
     },
     "level_2_roofing_workflows": {
