@@ -37,6 +37,7 @@ jobs:
       - run: npm run test:auth-flow
       - run: npm run test:mobile-offline-sync
       - run: npm run test:agent-runtime
+      - run: npm run test:inspection-quality-agent
       - run: npm run test:prototype-guardrails
       - run: npm run test:photo-estimate-flow
       - run: npm run test:photo-full-report-flow
