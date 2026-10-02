@@ -25,7 +25,8 @@ export async function POST(request: NextRequest) {
   const title = body.title?.trim() ?? ''
   const jobAddress = body.jobAddress?.trim() ?? ''
   if (!title || !jobAddress) return NextResponse.json({ error: 'Job address and supplement title are required.' }, { status: 400 })
-  const cost = Number(body.additionalCost ?? 0)
+  if (body.additionalCost == null || Number.isNaN(Number(body.additionalCost))) return NextResponse.json({ error: 'Cost is Unknown until a person enters it.' }, { status: 400 })
+  const cost = Number(body.additionalCost)
   if (!Number.isFinite(cost) || cost < 0) return NextResponse.json({ error: 'Additional cost must be a non-negative number.' }, { status: 400 })
   const urgency = body.urgency ?? 'medium'
   if (!['low','medium','high','critical'].includes(urgency)) return NextResponse.json({ error: 'Invalid urgency.' }, { status: 400 })
