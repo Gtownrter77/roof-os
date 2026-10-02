@@ -597,3 +597,10 @@ On branch `upgrade/admin-page-20261002`:
 - Price displays on repair and siding stay Unknown.
 - `npx tsc --noEmit` passed.
 - Not merged. Signed-in production check is still open. That is not a pass.
+
+## Search and schedule, 2026-10-02
+
+- `app/search/page.tsx` searches saved leads in the current workspace. Fake lead rows removed.
+- `app/schedule/page.tsx` reads saved appointments. Fake report schedules removed.
+- `npx tsc --noEmit` passed.
+- Browser and production behavior not verified. Signed-in check is still open.
