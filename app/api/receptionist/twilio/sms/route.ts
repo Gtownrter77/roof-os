@@ -35,6 +35,9 @@ export async function PUT(request: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Authentication required.' }, { status: 401 })
   const { data: workspaceId } = await supabase.rpc('current_workspace_id')
   if (!workspaceId) return NextResponse.json({ error: 'No workspace is configured.' }, { status: 400 })
+  const { data: isAdmin, error: roleError } = await supabase.rpc('is_workspace_admin', { target_workspace: workspaceId })
+  if (roleError) return NextResponse.json({ error: 'Workspace authorization could not be verified.' }, { status: 503 })
+  if (!isAdmin) return NextResponse.json({ error: 'Workspace administrator access is required to send outbound SMS.' }, { status: 403 })
   const accountSid = process.env.TWILIO_ACCOUNT_SID?.trim()
   const authToken = process.env.TWILIO_AUTH_TOKEN?.trim()
   const from = process.env.TWILIO_PHONE_NUMBER?.trim()
@@ -45,6 +48,11 @@ export async function PUT(request: NextRequest) {
   const phone = body.phone?.trim()
   const message = body.message?.trim()
   if (!phone || !message) return NextResponse.json({ error: 'phone and message are required.' }, { status: 400 })
+  if (body.leadId) {
+    const { data: lead, error: leadError } = await supabase.from('leads').select('id').eq('id', body.leadId).eq('workspace_id', workspaceId).maybeSingle()
+    if (leadError) return NextResponse.json({ error: 'Lead access could not be verified.' }, { status: 503 })
+    if (!lead) return NextResponse.json({ error: 'leadId must belong to the active workspace.' }, { status: 400 })
+  }
   const admin = createAdminClient()
   const { data: optOut } = await admin.from('receptionist_consents').select('id').eq('workspace_id', workspaceId).eq('phone', phone).eq('channel', 'sms').eq('state', 'revoked').order('captured_at', { ascending: false }).limit(1).maybeSingle()
   if (optOut) return NextResponse.json({ error: 'This phone number has opted out of SMS follow-up.' }, { status: 409 })

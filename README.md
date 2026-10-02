@@ -80,3 +80,49 @@ npx eas build --platform android --profile preview
 - Report standard: `GOLDEN-REPORT.md`
 - How to operate it: `OWNER-MANUAL.md`
 - What is real vs leftover: `STATE-OF-THE-UNION.md`
+
+
+## 2026-10-02 current verified checkpoint
+
+**Repository:** `Gtownrter77/roof-os`  
+**Production URL:** https://roof-os-lemon.vercel.app  
+**Current `main`:** `f29981076c23b7a289b579c2852c916be368325e`  
+**Hardening branch:** `backend/production-hardening-20261002`  
+**Hardening scope:** receptionist workspace authorization, tenant isolation, payment boundary, outbound provider authorization, and booking RPC integrity.
+
+### Verified in this checkpoint
+
+- The hardening branch was reconciled with the latest `main`, including the 2026-10-02 prototype-disclosure QA commit.
+- The hardening branch contains exactly the seven intended receptionist-hardening files on top of the current `main` tree.
+- Supabase migration `receptionist_workspace_integrity` (repository migration file `043_receptionist_workspace_integrity.sql`) is applied to production project `xksumagfbegdlapwysps`.
+- Production `leads.workspace_id` is non-null with **0 missing values across 2 live leads**.
+- The receptionist booking RPC is SECURITY DEFINER with an empty search path and execution restricted to `service_role`; anonymous and authenticated execution are denied.
+- Live two-workspace simulations verified workspace-local visibility and admin boundaries: the second workspace sees 0 leads and 0 receptionist sessions; cross-workspace admin checks fail closed.
+- Negative RPC tests rejected cross-workspace creator/lead combinations and left no test rows behind.
+- The final production integrity audit reported zero mismatches for leads, appointments, receptionist events, invoices, payment links, and payment/lead relationships.
+- Latest hardening CI run #567 completed successfully across web, mobile, preview-build, and migration-safety. A fresh CI run will validate the post-2026-10-02 `main` sync as this branch advances.
+
+### What this means
+
+The **receptionist hardening scope is verified complete**. This does not mean every ROOF/OS feature is commercially verified.
+
+### Still outside this scope
+
+Pre-existing Supabase advisor findings remain: six authenticated SECURITY DEFINER warnings and disabled leaked-password protection. They are not treated as receptionist tenant-bypass evidence and were not changed in this hardening pass.
+
+The open PR is #72. **Do not merge it automatically.**
+
+
+## 2026-10-02 receptionist hardening — final handoff checkpoint
+
+**Current main:** `f29981076c23b7a289b579c2852c916be368325e`  
+**Current hardening branch:** `f81278881cf6e28809b6317811a7614e0293338f`  
+**PR:** #72 — open; merge only on explicit owner direction.
+
+The hardening branch is now synchronized with current `main` and is **0 commits behind**. The current `main...backend/production-hardening-20261002` comparison shows the intended seven receptionist-hardening files as the application/code delta: Stripe payment-link authorization, Twilio voice/SMS authorization and lead scoping, Twilio session workspace scoping, receptionist lead tenancy, regression contracts, and migration 043.
+
+Production migration `receptionist_workspace_integrity` is applied and verified in Supabase project `xksumagfbegdlapwysps`. Production checks showed 0 missing lead workspace IDs, cross-workspace negative booking tests rejected, worker-only booking RPC execution enforced, and 0 relationship mismatches across the audited receptionist/payment records.
+
+CI run **#567** passed web, mobile, preview-build, and migration-safety for the synchronized application tree. This documentation checkpoint changes documentation only; the next branch CI run is the final post-handoff verification gate.
+
+The broader ROOF/OS product remains a separate status question. Existing Supabase advisor findings and other incomplete end-to-end/commercial verification items are documented rather than silently treated as resolved.
