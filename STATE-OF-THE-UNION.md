@@ -1,6 +1,16 @@
 ## 2026-10-02 Current Evidence Boundary — supersedes stale status sections
 
-The historical State of the Union below is retained for audit history. Present repository state is main at 41162bb9359ffb26dac40dc993e59795af3a70e5. Production Supabase currently has 2 leads and 0 estimates; MFA factors currently total 0. The active Vercel connector exposes no accessible team/project, and the CSP branch deployment is rate-limited. Production environment configuration, scheduled cron execution, authenticated browser CRUD, and the requested MFA/lead/estimate end-to-end flow remain UNVERIFIED.
+The current repository baseline is main at 41162bb9359ffb26dac40dc993e59795af3a70e5. Production Supabase now also contains the timestamped migration 20261002182249 (`receptionist_workspace_integrity`), so historical statements that production stops at migration 042 are superseded.
+
+Production verification currently shows 2 leads, 0 estimates, 0 MFA factors, 0 MFA challenges, 0 receptionist events, and 0 receptionist sessions. `public.leads.workspace_id` is NOT NULL, and the live receptionist booking function is SECURITY DEFINER with an empty search_path and EXECUTE restricted to service_role.
+
+PR #72 is open and unmerged. Its branch now carries frontend QA commits in addition to backend hardening, while current main still contains the pre-hardening receptionist lead insert that omits workspace_id. Because the production migration was applied without an application deployment, this is a schema/source-drift release blocker until the matching application code is deployed and runtime-tested.
+
+PR #70 still contains a different local `043` migration, so its migration must be moved to a new forward prefix before it can be merged against the now-applied receptionist 043.
+
+The active Vercel connector still exposes no accessible team/project, so production deployment inspection, environment-variable inspection, scheduled cron execution, and authenticated browser E2E remain UNVERIFIED.
+
+Current product-truth source findings also include an undisclosed simulated `/ai` screen and static hard-coded-data surfaces at `/chat`, `/export`, `/search`, `/portal`, `/invoices`, and `/notifications`.
 
 Do not treat historical VERIFIED language below as current production evidence.
 
