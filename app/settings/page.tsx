@@ -32,9 +32,8 @@ export default function SettingsPage() {
   const save = async () => {
     setMessage('Saving owner settings…')
     const settingsResponse = await fetch('/api/settings', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(settings) })
-    const pricingResponse = await fetch('/api/pricing/labor-rates', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ rates: {}, market: settings.default_zipcode || 'owner-defined market', taxRates, taxSource }) })
-    const settingsPayload = await settingsResponse.json(); const pricingPayload = await pricingResponse.json()
-    setMessage(settingsResponse.ok && pricingResponse.ok ? `Saved. Combined tax rate is ${totalTax.toFixed(4)}%. Pricing remains a draft until owner review and activation.` : (settingsPayload.error ?? pricingPayload.error ?? 'Could not save settings.'))
+    const settingsPayload = await settingsResponse.json()
+    setMessage(settingsResponse.ok ? 'Settings saved. No price book was written from this screen because no labor rate was entered.' : (settingsPayload.error ?? 'Could not save settings.'))
   }
 
   const refreshPrices = async () => {
