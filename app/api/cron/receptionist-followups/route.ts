@@ -25,8 +25,8 @@ export async function POST(request: NextRequest) {
   for (const attempt of attempts || []) {
     const { data: claimed } = await admin.from('receptionist_call_attempts').update({ status: 'ringing' }).eq('id', attempt.id).eq('status', 'queued').select('id').maybeSingle()
     if (!claimed) continue
-    const { data: optOut } = await admin.from('receptionist_consents').select('id').eq('workspace_id', attempt.workspace_id).eq('phone', attempt.phone).eq('channel', 'voice').eq('state', 'revoked').order('captured_at', { ascending: false }).limit(1).maybeSingle()
-    if (optOut) {
+    const { data: consent } = await admin.from('receptionist_consents').select('state,expires_at').eq('workspace_id', attempt.workspace_id).eq('phone', attempt.phone).eq('channel', 'voice').order('captured_at', { ascending: false }).limit(1).maybeSingle()
+    if (consent?.state !== 'granted' || (consent.expires_at && new Date(consent.expires_at).getTime() <= Date.now())) {
       await admin.from('receptionist_call_attempts').update({ status: 'opted_out' }).eq('id', attempt.id)
       optedOut += 1
       continue
