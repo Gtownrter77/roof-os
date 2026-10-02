@@ -8,6 +8,7 @@ const photoSchema = readFileSync('supabase/migrations/003_status_history_inspect
 const analysisApi = readFileSync('app/api/photo-estimate/analyze/route.ts', 'utf8')
 const reviewApi = readFileSync('app/api/photo-estimate/review/route.ts', 'utf8')
 const reviewMigration = readFileSync('supabase/migrations/042_golden_report_review_controls.sql', 'utf8')
+const workspaceMigration = readFileSync('supabase/migrations/046_photo_estimate_workspace_integrity.sql', 'utf8')
 
 assert.ok(ui.includes("from('inspection_sessions')"))
 assert.ok(ui.includes("from('inspection_photos').insert"))
@@ -72,5 +73,12 @@ assert.equal(refresh.refresh_reason, 'Photo does not show the full eave line.')
 const verified = { ...initial, status: 'approved', verificationDecision: 'verified_by_technician', gutterLf: 126.75 }
 assert.equal(verified.measurements.pitch, -4, 'verify must preserve technician-entered values')
 assert.equal(verified.gutterLf, 126.75, 'approved workflow carries the technician-verified gutter length')
+
+for (const marker of [
+  'enforce_photo_estimate_workspace_consistency',
+  'photo_estimate_workspace_consistency',
+  'Lead and photo-estimate workflow must belong to the same workspace',
+  'Inspection and photo-estimate workflow must belong to the same workspace',
+]) assert.ok(workspaceMigration.includes(marker), `workspace integrity guard missing: ${marker}`)
 
 console.log('photo-estimate-flow-test: PASS')
