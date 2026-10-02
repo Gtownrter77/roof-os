@@ -32,4 +32,7 @@ for (const forbidden of ['payments.invalid', 'mockCreatePaymentLink', 'mockInbou
   assert.equal(source.includes(forbidden), false, `forbidden mock marker: ${forbidden}`)
 }
 for (const marker of ['stripe.webhooks.constructEvent', 'validateRequest', 'receptionist_consents', 'receptionist_events', 'idempotencyKey', 'OPENAI_API_KEY', 'book_receptionist_appointment', 'allowBargeIn']) assert.ok(source.includes(marker), marker)
+assert.ok(readFileSync('app/api/receptionist/twilio/sms/route.ts', 'utf8').includes("consent?.state !== 'granted'"), 'SMS must require explicit channel consent')
+assert.ok(readFileSync('app/api/receptionist/twilio/outbound/route.ts', 'utf8').includes("consent?.state !== 'granted'"), 'Voice must require explicit channel consent')
+assert.ok(cronRoute.includes("consent?.state !== 'granted'"), 'Automated voice follow-up must require explicit channel consent')
 console.log('receptionist-check: PASS')
