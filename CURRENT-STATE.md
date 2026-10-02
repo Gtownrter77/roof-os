@@ -36,6 +36,8 @@ Observed directly on project xksumagfbegdlapwysps:
 
 The requested authenticated MFA → lead → estimate production workflow has still not been exercised in the currently observed data: there are 0 MFA factors and 0 estimates.
 
+**Production schema/source drift warning:** PR #72 states that migration 043 was applied directly to Supabase and no application deployment was performed. Current `main` still contains `resolveLead()` in `lib/receptionist-actions.ts` with a receptionist lead insert that omits `workspace_id`, while production now requires `leads.workspace_id` to be non-null. A live application failure has not been claimed because Vercel production deployment access remains unavailable, but the source/schema combination is unsafe until the corresponding application code is deployed and runtime-tested.
+
 Supabase security advisors currently report six authenticated SECURITY DEFINER functions and leaked-password protection disabled. These require backend review; they are not, by themselves, evidence of a tenant-isolation bypass.
 
 ### Current verification rule
