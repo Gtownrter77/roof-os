@@ -57,6 +57,7 @@ for (const required of [
 }
 
 const ownerIntegrity = readFileSync(new URL('../supabase/migrations/044_lead_next_action_owner_integrity.sql', import.meta.url), 'utf8')
+const leadOwnerIntegrity = readFileSync(new URL('../supabase/migrations/047_lead_owner_workspace_integrity.sql', import.meta.url), 'utf8')
 for (const required of [
   'ensure_lead_next_action_owner',
   'leads_next_action_owner_workspace_guard',
@@ -65,3 +66,11 @@ for (const required of [
 ]) {
   if (!ownerIntegrity.includes(required)) throw new Error(`Missing next-action owner integrity guard: ${required}`)
 }
+for (const required of [
+  'enforce_lead_owner_workspace_consistency',
+  'leads_owner_workspace_guard',
+  'Lead owner must be a member of the lead workspace',
+]) {
+  if (!leadOwnerIntegrity.includes(required)) throw new Error(`Missing lead-owner workspace guard: ${required}`)
+}
+
