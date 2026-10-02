@@ -1,5 +1,33 @@
 # ROOF/OS Current State
 
+## 2026-10-02 Cyber/Production Continuation — superseding evidence
+
+**Verified main:** `873101fc094b4e04b8cf011cf36071675a75e199`
+
+**Verified backup before documentation work:** `backup/pre-cyber-doc-refresh-20261002` points to the same main commit.
+
+### Changes actually merged and deployed
+
+- PR #50 was merged into `main` after its corrected CI run passed.
+- Production CI run #239 passed all four jobs: web, mobile, preview-build, and migration-safety.
+- Vercel reported **success** for the merged main commit.
+- Supabase migration `041_aerial_workspace_consistency` was applied successfully to project `xksumagfbegdlapwysps`.
+- Supabase migration history now includes migrations through `aerial_workspace_consistency`.
+- Migration 041 enforces workspace equality between aerial measurements and their inspection/photo parents, and between aerial measurements and roof geometry children.
+- The invitation flow now has server-side Supabase Auth invitation delivery plus an acceptance page. **Runtime email delivery/acceptance is still unverified** because production Vercel environment/configuration access is not available through the current connector.
+
+### Cybersecurity evidence
+
+- The merged branch passed the repository security gate, TypeScript, production build, aerial test, CRM missing-spokes test, API-security test, auth-flow test, photo/measurement/AI contract tests, migration-safety checks, and dependency checks.
+- The production database currently has two workspaces, and existing inspection/photo data was checked for workspace consistency before migration 041 was applied; no mismatches were found.
+- Supabase security advisors still report six authenticated `SECURITY DEFINER` functions as warnings. These are existing, intentional authenticated RPC boundaries used by workspace/auth logic; the worker-only booking helper remains restricted. This is a review item, not evidence of an observed cross-tenant bypass.
+- Supabase also reports **Leaked Password Protection disabled**. That setting could not be changed through the available project connector, so it remains an explicit security hardening item.
+- No service-role secret was printed or committed. Repository CI contains secret-pattern scanning.
+
+### Remaining evidence gates
+
+This document does **not** mark ROOF/OS as fully commercially verified. Remaining runtime evidence includes real two-user/two-workspace RLS and Storage isolation, authenticated browser CRUD/magic-link verification, real invitation delivery/acceptance, cron success/retry/provider failure evidence, live provider tests, multi-workspace UI switching, mobile device/APK verification, and Vercel environment-variable/project inspection.
+
 **Evidence date:** 2026-09-18 UTC
 
 **Repository:** `Gtownrter77/roof-os`
