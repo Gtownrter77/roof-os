@@ -1,3 +1,16 @@
+## 2026-10-02 Current Migration Evidence
+
+Observed on current `main` 41162bb9359ffb26dac40dc993e59795af3a70e5:
+
+- `040_production_schema_hardening.sql` exists.
+- `041_aerial_workspace_consistency.sql` exists.
+- `042_golden_report_review_controls.sql` exists.
+- Therefore the historical statement below that 038 is the latest migration and that 039 is the next slot is stale and must not be used as current guidance.
+
+**Migration-prefix collision warning:** prefix `043` is already used by two separate unmerged development lines observed during this audit: PR #70 uses `043_inspection_activity_atomicity.sql`, and the backend hardening branch uses `043_receptionist_workspace_integrity.sql`. Neither should be treated as production-applied. Do not add, rename, or apply another 043 migration until those competing changes are reconciled.
+
+Production migration application status for 043–047 remains **UNVERIFIED / not observed in the connected production ledger**.
+
 # Database migration ordering
 
 **Do not rename or renumber an already-released SQL migration without checking the applied production ledger first.** The production Supabase ledger uses timestamp versions; the repo SQL files use shorter numeric prefixes. The project was restored during this release and is now `ACTIVE_HEALTHY`.
