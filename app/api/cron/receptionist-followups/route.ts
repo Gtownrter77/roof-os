@@ -18,12 +18,17 @@ export async function POST(request: NextRequest) {
   if (error) return NextResponse.json({ error: 'Could not read follow-up queue.', detail: error.message }, { status: 502 })
   const client = twilio(accountSid, authToken)
   let started = 0
+  let failed = 0
+  let optedOut = 0
+  const failures: Array<{ attemptId: string; error: string }> = []
+
   for (const attempt of attempts || []) {
     const { data: claimed } = await admin.from('receptionist_call_attempts').update({ status: 'ringing' }).eq('id', attempt.id).eq('status', 'queued').select('id').maybeSingle()
     if (!claimed) continue
     const { data: optOut } = await admin.from('receptionist_consents').select('id').eq('workspace_id', attempt.workspace_id).eq('phone', attempt.phone).eq('channel', 'voice').eq('state', 'revoked').order('captured_at', { ascending: false }).limit(1).maybeSingle()
     if (optOut) {
       await admin.from('receptionist_call_attempts').update({ status: 'opted_out' }).eq('id', attempt.id)
+      optedOut += 1
       continue
     }
     try {
@@ -31,9 +36,17 @@ export async function POST(request: NextRequest) {
       await admin.from('receptionist_call_attempts').update({ provider_call_id: call.sid }).eq('id', attempt.id).eq('status', 'ringing')
       started += 1
     } catch (callError) {
+      const errorMessage = callError instanceof Error ? callError.message : 'Twilio call failed'
       await admin.from('receptionist_call_attempts').update({ status: 'failed' }).eq('id', attempt.id).eq('status', 'ringing')
-      await admin.from('receptionist_events').upsert({ workspace_id: attempt.workspace_id, event_key: `followup:${attempt.id}:failed`, event_type: 'follow_up.failed', provider: 'twilio', payload: { attemptId: attempt.id, error: callError instanceof Error ? callError.message : 'Twilio call failed' } }, { onConflict: 'workspace_id,event_key' })
+      await admin.from('receptionist_events').upsert({ workspace_id: attempt.workspace_id, event_key: `followup:${attempt.id}:failed`, event_type: 'follow_up.failed', provider: 'twilio', payload: { attemptId: attempt.id, error: errorMessage } }, { onConflict: 'workspace_id,event_key' })
+      failed += 1
+      failures.push({ attemptId: attempt.id, error: errorMessage })
     }
   }
-  return NextResponse.json({ processed: attempts?.length || 0, started })
+
+  if (failed > 0) {
+    return NextResponse.json({ processed: attempts?.length || 0, started, optedOut, failed, failures }, { status: 502 })
+  }
+
+  return NextResponse.json({ processed: attempts?.length || 0, started, optedOut, failed: 0 })
 }
