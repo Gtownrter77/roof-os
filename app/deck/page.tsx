@@ -37,17 +37,6 @@ export default function DeckPage() {
   const railingTypes = ['Wood', 'Composite', 'Metal', 'Glass', 'Cable']
   const complexities = ['Standard', 'Complex', 'Custom', 'Luxury']
 
-  const materialPricing: Record<string, any> = {
-    'Pressure Treated': { decking: 8, framing: 12, railing: 25 },
-    'Cedar': { decking: 15, framing: 18, railing: 35 },
-    'Redwood': { decking: 18, framing: 20, railing: 40 },
-    'Composite': { decking: 22, framing: 15, railing: 45 },
-    'PVC': { decking: 20, framing: 15, railing: 42 },
-    'Tropical Hardwood': { decking: 30, framing: 25, railing: 60 },
-    'Aluminum': { decking: 28, framing: 22, railing: 55 },
-    'Steel': { decking: 25, framing: 20, railing: 50 },
-  }
-
   const calculateEstimate = () => {
     setEstimate(null)
     setLoading(false)

@@ -10,60 +10,6 @@ export default function AIWizardPage() {
   const [response, setResponse] = useState<any>(null)
   const [history, setHistory] = useState<any[]>([])
 
-  const constructionKnowledge: Record<string, any> = {
-    'roof': {
-      answer: 'Your roof should be inspected annually. Common issues include: missing shingles, leaks around flashing, and gutter blockages. Average roof replacement costs $8,000-$15,000 depending on materials and size.',
-      code: 'Check local building codes for minimum pitch requirements (typically 3:12 for asphalt shingles).',
-      materials: ['Asphalt', 'Metal', 'Tile', 'Slate'],
-      lifespan: '15-50 years depending on material'
-    },
-    'siding': {
-      answer: 'Siding protects your home from weather. Vinyl is most affordable, HardiePlank offers durability, and wood gives classic look. Average installation costs $6-$12 per square foot.',
-      code: 'Weather-resistant barrier required behind all siding. Minimum lap spacing varies by material.',
-      materials: ['Vinyl', 'HardiePlank', 'Wood', 'Fiber Cement'],
-      lifespan: '20-50 years'
-    },
-    'windows': {
-      answer: 'Energy-efficient windows save money. Look for ENERGY STAR certified, Low-E glass, and argon gas fill. Average cost: $600-$1,200 per window installed.',
-      code: 'Egress requirements: minimum 5.7 sq ft opening for bedrooms. Tempered glass required near doors.',
-      materials: ['Vinyl', 'Wood', 'Aluminum', 'Fiberglass'],
-      lifespan: '20-30 years'
-    },
-    'deck': {
-      answer: 'Deck construction requires proper footings, framing, and decking. Composite decking is low-maintenance but costs more upfront.',
-      code: 'Guard rails required for decks over 30" high. Stair treads must be at least 10" deep.',
-      materials: ['Composite', 'Wood', 'PVC', 'Aluminum'],
-      lifespan: '15-30 years'
-    },
-    'gutters': {
-      answer: 'Gutters should be cleaned twice yearly. Seamless gutters are preferred. Downspouts should direct water away from foundation.',
-      code: 'Minimum pitch: 1/4 inch per 10 feet. Downspouts every 40 feet of gutter.',
-      materials: ['Aluminum', 'Copper', 'Steel', 'Vinyl'],
-      lifespan: '20-50 years'
-    },
-    'permit': {
-      answer: 'Most exterior work requires permits. Costs vary by county. Always verify before starting work.',
-      code: 'Permits typically required for: new roofs (over 100 sq ft), siding replacement, window replacement, decks over 30" high.',
-      timeline: '1-4 weeks for permit approval'
-    },
-    'foundation': {
-      answer: 'Foundation issues include cracks, settling, and water intrusion. Professional inspection recommended for major concerns.',
-      code: 'Minimum footing depth: 12" below frost line. Proper drainage essential.',
-      materials: ['Concrete', 'Poured', 'Block', 'Slab'],
-      lifespan: '100+ years'
-    },
-    'structural': {
-      answer: 'Structural integrity is crucial. Signs of issues include cracks, sagging floors, sticking doors, and water stains.',
-      code: 'Load-bearing walls require proper engineering. Trusses must be designed for snow loads.',
-      inspection: 'Professional engineer inspection recommended for structural concerns.'
-    },
-    'energy': {
-      answer: 'Energy efficiency improves with proper insulation, windows, and HVAC. Average savings: 15-30% on utility bills.',
-      code: 'Minimum insulation: R-38 in attics, R-13 in walls. Energy Star certification available.',
-      savings: '$200-$500 annually'
-    }
-  }
-
   const askQuestion = () => {
     setLoading(false)
     return

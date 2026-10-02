@@ -47,28 +47,6 @@ export default function RepairPage() {
     asap: false,
   })
 
-  const repairPricing: Record<string, any> = {
-    roofRepair: { base: 300, perSqFt: 2.5, urgency: 'High' },
-    sidingRepair: { base: 200, perSqFt: 1.5, urgency: 'Medium' },
-    windowRepair: { base: 150, perUnit: 75, urgency: 'High' },
-    doorRepair: { base: 100, perUnit: 50, urgency: 'Medium' },
-    gutterRepair: { base: 100, perFoot: 2, urgency: 'High' },
-    deckRepair: { base: 200, perSqFt: 3, urgency: 'Medium' },
-    floorRepair: { base: 150, perSqFt: 2, urgency: 'Medium' },
-    drywallRepair: { base: 100, perSqFt: 1.5, urgency: 'Low' },
-    paintRepair: { base: 80, perSqFt: 0.5, urgency: 'Low' },
-    trimRepair: { base: 50, perFoot: 1.5, urgency: 'Low' },
-    chimneyRepair: { base: 300, perUnit: 150, urgency: 'High' },
-    drivewayRepair: { base: 200, perSqFt: 4, urgency: 'Low' },
-    landscapingRepair: { base: 150, perArea: 2, urgency: 'Low' },
-    structuralRepair: { base: 1000, perUnit: 500, urgency: 'Critical' },
-    electricalRepair: { base: 150, perUnit: 75, urgency: 'High' },
-    plumbingRepair: { base: 120, perUnit: 60, urgency: 'High' },
-    hvacRepair: { base: 200, perUnit: 100, urgency: 'High' },
-    insulationRepair: { base: 150, perSqFt: 1.5, urgency: 'Medium' },
-    foundationRepair: { base: 2000, perUnit: 1000, urgency: 'Critical' },
-  }
-
   const damageMultipliers: Record<string, number> = {
     stormDamage: 1.3,
     hailDamage: 1.2,
