@@ -36,7 +36,8 @@ begin
   if exists (
     select 1
     from public.leads l
-    where l.next_action_owner_id is not null
+    where l.workspace_id is not null
+      and l.next_action_owner_id is not null
       and not exists (
         select 1
         from public.workspace_members wm
