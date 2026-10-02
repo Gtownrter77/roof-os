@@ -1,5 +1,41 @@
 # ROOF/OS Current State
 
+## 2026-10-02 Verified Continuation Addendum
+
+**Verified main:** `8d4e2eb670060b668743472e9410c4d47bf96578`
+
+**Verified pre-change backup:** `backup/pre-cron-observability-20261002` points to the main commit immediately before cron observability changes.
+
+**Verified post-change backup:** `backup/post-cron-observability-20261002` points to the merged cron observability commit.
+
+### Verified changes since the prior state document
+
+- PR #55 Golden Report controls are merged; production migration 042 is applied.
+- PR #56 inspection-quality worker is merged.
+- PR #57 receptionist follow-up scheduling is merged.
+- PR #58 corrected the Vercel Hobby cron frequency defect introduced by PR #57. The affected every-15-minute schedules were changed to daily schedules.
+- The corrected main commit received a successful Vercel status.
+- PR #59 made cron worker/provider failures observable: inspection-quality failures now return HTTP 500, and receptionist provider failures now return HTTP 502 after recording per-item failure state.
+- PR #59 CI run #326 completed successfully.
+- PR #59 was merged into main as `8d4e2eb670060b668743472e9410c4d47bf96578`.
+- The merged main commit received a successful Vercel status.
+- Supabase production migration history includes `20261002140543 golden_report_review_controls`.
+- Supabase security advisors currently report six authenticated SECURITY DEFINER warnings and leaked-password protection disabled. The six RPC warnings are consistent with the repository's documented design: RLS helper RPCs and intended signed-in RPC boundaries remain executable by authenticated users, while trigger-only and worker-only helpers are restricted. These warnings remain review/hardening items, not proof of a tenant-isolation bypass.
+
+### Current cron configuration
+
+- `/api/cron/retailer-prices` — weekly, Monday 04:00 UTC.
+- `/api/cron/inspection-quality` — daily, 05:00 UTC.
+- `/api/cron/receptionist-followups` — daily, 06:00 UTC.
+
+The application code now distinguishes scheduled invocation success from worker/provider failure instead of returning a false 2xx success after an internal failure. Actual successful scheduled execution and provider outcomes remain runtime evidence gates.
+
+### Evidence boundary
+
+This addendum does **not** claim full commercial readiness. The remaining unverified gates documented below still apply, including real two-user/two-workspace RLS and Storage isolation, authenticated browser CRUD/magic-link verification, invitation delivery/acceptance, real cron execution/retry/provider evidence, live provider tests, multi-workspace UI switching, mobile device/APK verification, and direct Vercel environment/project inspection.
+
+---
+
 ## 2026-10-02 Cyber/Production Continuation — superseding evidence
 
 **Verified main:** `cd57ba6caf86171ea0b1c3bb3851e22806527e43`
