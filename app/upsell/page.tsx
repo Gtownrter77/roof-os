@@ -155,16 +155,9 @@ export default function UpsellPage() {
       return
     }
     
-    setLoading(true)
-    setTimeout(() => {
-      const data = upsellDatabase[selectedProject as keyof typeof upsellDatabase]
-      if (data) {
-        setUpsells(data)
-      } else {
-        setUpsells({ primary: [], crossSell: [] })
-      }
-      setLoading(false)
-    }, 800)
+    setUpsells(null)
+    setLoading(false)
+    return
   }
 
   const getPriorityColor = (priority: string) => {
