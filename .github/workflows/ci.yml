@@ -111,6 +111,7 @@ jobs:
           grep -q "lead_score" supabase/migrations/039_crm_missing_spokes.sql
           grep -q "aerial_measurements_workspace_consistency" supabase/migrations/041_aerial_workspace_consistency.sql
           grep -q "roof_planes_workspace_consistency" supabase/migrations/041_aerial_workspace_consistency.sql
+          grep -q "manager_approval_signature" supabase/migrations/042_golden_report_review_controls.sql
           grep -q "is_valid_approved_photo_estimate_packet" supabase/migrations/038_estimate_packet_photo_workflow_source.sql
           grep -q "estimate_review_packets_insert_approved_workflow" supabase/migrations/038_estimate_packet_photo_workflow_source.sql
           grep -q "accept_workspace_invitation" supabase/migrations/028_invitation_acceptance_transaction.sql
