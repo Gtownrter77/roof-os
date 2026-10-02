@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '../../../lib/supabase/client'
 import { safeNextPath } from '../../../lib/safe-next'
@@ -15,7 +15,7 @@ type Factor = {
 export default function MfaPage() {
   const router = useRouter()
   const search = useSearchParams()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const next = safeNextPath(search.get('next'), typeof window === 'undefined' ? 'https://invalid.local' : window.location.origin)
   const [factor, setFactor] = useState<Factor | null>(null)
   const [challengeId, setChallengeId] = useState('')
