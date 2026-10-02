@@ -29,7 +29,7 @@ export default function NewLeadPage() {
       owner_id: user.id,
       workspace_id: workspaceId,
       status: 'new',
-      next_action: form.nextAction.trim() || 'First contact',
+      next_action: form.nextAction.trim() || null,
       next_action_due: nextDue,
       next_action_owner_id: user.id,
     }).select('id').single()
@@ -48,7 +48,7 @@ export default function NewLeadPage() {
         <input type="tel" placeholder="Phone" className="w-full p-3 border rounded-lg" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
         <input type="email" placeholder="Email" className="w-full p-3 border rounded-lg" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
         <input type="text" placeholder="Source (storm, referral, website)" className="w-full p-3 border rounded-lg" value={form.source} onChange={(e) => setForm({ ...form, source: e.target.value })} />
-        <input type="text" placeholder="Next action (default: First contact)" className="w-full p-3 border rounded-lg" value={form.nextAction} onChange={(e) => setForm({ ...form, nextAction: e.target.value })} />
+        <input type="text" placeholder="Next action (Unknown if empty)" className="w-full p-3 border rounded-lg" value={form.nextAction} onChange={(e) => setForm({ ...form, nextAction: e.target.value })} />
         <input type="datetime-local" aria-label="Next action due" className="w-full p-3 border rounded-lg" value={form.nextActionDue} onChange={(e) => setForm({ ...form, nextActionDue: e.target.value })} />
         <textarea placeholder="First note" className="w-full p-3 border rounded-lg" rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
         {error && <p className="text-sm text-red-600">{error}</p>}
