@@ -589,3 +589,11 @@ On branch `upgrade/admin-page-20261002`:
 - Open gate: signed-in production check. Not run. Not a pass.
 - Production: not verified. Local typecheck is not deployment evidence.
 - Next action: do not merge until the signed-in check is done.
+
+## Files 16-20, 2026-10-02
+
+- Backup: `backup/pre-files-16-20-20261002` at `8aaaa162fcd598390edf123cf10718c81b7d12b6`. Remote SHA matched.
+- Files: `app/quantum/page.tsx`, `app/repair/page.tsx`, `app/schedule/page.tsx`, `app/search/page.tsx`, `app/siding/page.tsx`.
+- Price displays on repair and siding stay Unknown.
+- `npx tsc --noEmit` passed.
+- Not merged. Signed-in production check is still open. That is not a pass.

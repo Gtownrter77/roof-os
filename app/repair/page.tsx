@@ -179,7 +179,7 @@ export default function RepairPage() {
         </div>
       </header>
 
-      <main className="p-4">
+      <main className="p-4"><p className="text-sm bg-white rounded-lg shadow p-4 mb-4">Price is Unknown. This screen does not write a dollar figure.</p>
         {/* Damage Types */}
         <div className="bg-white rounded-lg shadow-lg p-4 mb-4 border border-red-200">
           <h3 className="font-semibold text-sm mb-2 flex items-center">
@@ -250,7 +250,7 @@ export default function RepairPage() {
                 </div>
                 <div className="text-right">
                   <p className="text-xs text-gray-500">Total Estimate</p>
-                  <p className="text-2xl font-bold text-red-600">${estimate.summary.total.toFixed(2)}</p>
+                  <p className="text-2xl font-bold text-red-600">Unknown</p>
                 </div>
               </div>
             </div>
@@ -258,11 +258,11 @@ export default function RepairPage() {
             <div className="bg-white rounded-lg shadow-lg p-4 border border-gray-200">
               <h3 className="font-semibold text-sm mb-2">📊 Estimate Details</h3>
               <div className="grid grid-cols-2 gap-2 text-sm">
-                <div><span className="text-gray-500">Base Estimate:</span> ${estimate.summary.totalBase.toFixed(2)}</div>
+                <div><span className="text-gray-500">Base Estimate:</span> Unknown</div>
                 <div><span className="text-gray-500">Damage Multiplier:</span> {estimate.summary.damageMultiplier.toFixed(2)}x</div>
-                <div><span className="text-gray-500">Materials:</span> ${estimate.summary.materialCost.toFixed(2)}</div>
-                <div><span className="text-gray-500">Labor:</span> ${estimate.summary.laborCost.toFixed(2)}</div>
-                <div><span className="text-gray-500">Labor Rate:</span> ${estimate.summary.laborRate}/hr</div>
+                <div><span className="text-gray-500">Materials:</span> Unknown</div>
+                <div><span className="text-gray-500">Labor:</span> Unknown</div>
+                <div><span className="text-gray-500">Labor Rate:</span> Unknown</div>
                 <div><span className="text-gray-500">Labor Hours:</span> {estimate.summary.laborHours.toFixed(0)} hrs</div>
               </div>
             </div>

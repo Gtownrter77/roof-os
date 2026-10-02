@@ -21,7 +21,7 @@ export default function SchedulePage() {
         </div>
       </header>
 
-      <main className="p-4">
+      <main className="p-4"><p className="text-sm bg-white rounded-lg shadow p-4 mb-4">This schedule is not a saved appointment until a live record exists.</p>
         <div className="flex justify-between items-center mb-4">
           <p className="text-sm text-gray-500">{schedules.length} schedules</p>
           <button className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm">

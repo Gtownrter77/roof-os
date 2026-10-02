@@ -46,7 +46,7 @@ export default function QuantumPage() {
         </div>
       </header>
 
-      <main className="p-4">
+      <main className="p-4"><p className="text-sm bg-white rounded-lg shadow p-4 mb-4">This is not a measurement. A number without a source stays Unknown.</p>
         <div className="bg-gradient-to-br from-indigo-900/50 to-purple-900/50 rounded-lg p-4 mb-4 border border-cyan-500">
           <div className="flex items-center mb-3">
             <span className="text-2xl mr-2">⚛️</span>

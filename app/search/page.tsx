@@ -58,7 +58,7 @@ export default function SearchPage() {
         </div>
       </header>
 
-      <main className="p-4">
+      <main className="p-4"><p className="text-sm bg-white rounded-lg shadow p-4 mb-4">Search results without a live record stay Unknown.</p>
         <form onSubmit={handleSearch} className="mb-4">
           <div className="flex gap-2">
             <input 
