@@ -8,7 +8,7 @@ Production lists `035_retailer_quota_hardening` as applied (ledger version `2026
 
 ## Known legacy local-prefix collisions
 
-The current repository has three duplicate numeric prefixes. Migrations 036, 037, and 038 are already present on main; the next new migration slot is 039.
+The repository retains the three historical duplicate numeric-prefix groups 021, 022, and 023. Current main contains migrations through prefix 042. Production has already applied the receptionist hardening migration recorded as `043_receptionist_workspace_integrity`; therefore this branch records that migration at 043 and reserves 044–048 for the remaining unreleased integrity migrations.
 
 | Prefix | Files |
 | --- | --- |
@@ -16,17 +16,17 @@ The current repository has three duplicate numeric prefixes. Migrations 036, 037
 | `022` | `022_photo_estimate_workflows.sql`, `022_soffit_measurement_fields.sql` |
 | `023` | `023_photo_refresh_decisions.sql`, `023_soffit_measurement_fields.sql` |
 
-The release checker locks this exact legacy set and fails if a new collision appears. The live ledger is timestamped and confirms individual migrations; do not add files under any existing or duplicated numeric prefix.
+The release checker locks this exact legacy set and fails if a new collision appears. The live ledger is timestamped and confirms individual migrations. Do not rename or reapply the production-applied 043 migration. The branch-local pending sequence is 044–048 and must not be treated as production-applied.
 
 ## Safe forward path
 
 1. Before using `supabase migration repair`, renaming a historical file, or changing a production ledger, inspect the recorded production migration versions.
 2. Keep released migration files immutable until the remote history is reconciled.
-3. Give every new local migration a unique prefix greater than the highest released prefix. The current next slot is `039`.
+3. Give every new local migration a unique prefix greater than the highest released prefix. After the production-applied 043 receptionist migration is represented in source, the next pending slots are `044` through `048`.
 4. Run the migration in a staging database first, then run the app/release checks against the migrated schema.
 5. Record the migration name and its production apply status in the release/owner manual.
 
-This change restores the missing source for a migration already applied remotely. It introduces no new production SQL and does not claim the three historical local-prefix collisions have been renumbered.
+This branch reconciles the production-applied 043 receptionist migration with source control and renumbers the previously proposed inspection/integrity sequence to 044–048. No production SQL was applied by this repository change.
 
 
 ## CRM missing-spokes migration
