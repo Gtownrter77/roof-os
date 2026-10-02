@@ -31,6 +31,8 @@ jobs:
       - run: npm run release-check
       - run: npm run verify:security
       - run: npm run test:receptionist
+      - run: npm run test:aerial
+      - run: npm run test:crm-missing-spokes
       - run: npm run test:api-security
       - run: npm run test:auth-flow
       - run: npm run test:mobile-offline-sync
@@ -103,6 +105,10 @@ jobs:
           grep -q "is_workspace_admin" supabase/migrations/026_supplement_review_admin_guard.sql
           grep -q "photo_estimate_workflows_update" supabase/migrations/027_photo_estimate_admin_guard.sql
           grep -q "photo_estimate_workflow_id" supabase/migrations/038_estimate_packet_photo_workflow_source.sql
+          grep -q "next_action_owner_id" supabase/migrations/039_crm_missing_spokes.sql
+          grep -q "lead_score" supabase/migrations/039_crm_missing_spokes.sql
+          grep -q "aerial_measurements_workspace_consistency" supabase/migrations/041_aerial_workspace_consistency.sql
+          grep -q "roof_planes_workspace_consistency" supabase/migrations/041_aerial_workspace_consistency.sql
           grep -q "is_valid_approved_photo_estimate_packet" supabase/migrations/038_estimate_packet_photo_workflow_source.sql
           grep -q "estimate_review_packets_insert_approved_workflow" supabase/migrations/038_estimate_packet_photo_workflow_source.sql
           grep -q "accept_workspace_invitation" supabase/migrations/028_invitation_acceptance_transaction.sql
@@ -114,5 +120,6 @@ jobs:
           grep -q "Workspace administrator access is required" app/api/claims/capout/route.ts
           grep -q "signed URL for an authorized ROOF/OS inspection asset" app/api/claims/capout/route.ts
           test -f app/api/team/invitations/accept/route.ts
+          test -f app/team/invitations/accept/page.tsx
           grep -q "accept_workspace_invitation" app/api/team/invitations/accept/route.ts
           if grep -RInE 'CAPOUT_API_KEY=|RAPIDAPI_KEY=|SUPABASE_SERVICE_ROLE_KEY=' --exclude=.env.example --exclude-dir=.git --exclude-dir=.github .; then exit 1; fi
