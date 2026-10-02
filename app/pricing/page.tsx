@@ -182,7 +182,7 @@ export default function PricingPage() {
         <div className="bg-white rounded-lg shadow p-4 mb-4">
           <h3 className="font-semibold text-sm mb-3 flex justify-between">
             <span>👷 Labor</span>
-            <span className="text-green-600">${totals.labor.toFixed(2)}</span>
+            <span className="text-green-600">{totals.labor ? totals.labor.toFixed(2) : "Unknown"}</span>
           </h3>
           <div className="space-y-2">
             {Object.entries(pricing.labor).map(([key, item]) => (
@@ -201,7 +201,7 @@ export default function PricingPage() {
                   className="p-1 border rounded text-xs w-full"
                 />
                 <span className="text-xs font-medium text-right">
-                  ${(item.rate * item.quantity).toFixed(2)}
+                  {item.rate && item.quantity ? (item.rate * item.quantity).toFixed(2) : "Unknown"}
                 </span>
               </div>
             ))}
@@ -220,7 +220,7 @@ export default function PricingPage() {
                 onChange={(e) => setPricing({...pricing, overhead: Number(e.target.value) / 100})}
                 className="w-full p-2 border rounded text-sm"
               />
-              <span className="text-xs text-green-600">${totals.overhead.toFixed(2)}</span>
+              <span className="text-xs text-green-600">{totals.overhead ? totals.overhead.toFixed(2) : "Unknown"}</span>
             </div>
             <div>
               <label className="text-xs text-gray-500">Profit %</label>
@@ -230,7 +230,7 @@ export default function PricingPage() {
                 onChange={(e) => setPricing({...pricing, profit: Number(e.target.value) / 100})}
                 className="w-full p-2 border rounded text-sm"
               />
-              <span className="text-xs text-green-600">${totals.profit.toFixed(2)}</span>
+              <span className="text-xs text-green-600">{totals.profit ? totals.profit.toFixed(2) : "Unknown"}</span>
             </div>
           </div>
         </div>
@@ -244,15 +244,15 @@ export default function PricingPage() {
             </div>
             <div className="flex justify-between">
               <span className="text-sm">Labor</span>
-              <span className="font-medium">${totals.labor.toFixed(2)}</span>
+              <span className="font-medium">{totals.labor ? totals.labor.toFixed(2) : "Unknown"}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-sm">Overhead</span>
-              <span className="font-medium">${totals.overhead.toFixed(2)}</span>
+              <span className="font-medium">{totals.overhead ? totals.overhead.toFixed(2) : "Unknown"}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-sm">Profit</span>
-              <span className="font-medium">${totals.profit.toFixed(2)}</span>
+              <span className="font-medium">{totals.profit ? totals.profit.toFixed(2) : "Unknown"}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-sm">Taxes</span>
