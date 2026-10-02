@@ -1,3 +1,9 @@
+## 2026-10-02 Current Evidence Boundary — supersedes stale status sections
+
+The historical State of the Union below is retained for audit history. Present repository state is main at 41162bb9359ffb26dac40dc993e59795af3a70e5. Production Supabase currently has 2 leads and 0 estimates; MFA factors currently total 0. The active Vercel connector exposes no accessible team/project, and the CSP branch deployment is rate-limited. Production environment configuration, scheduled cron execution, authenticated browser CRUD, and the requested MFA/lead/estimate end-to-end flow remain UNVERIFIED.
+
+Do not treat historical VERIFIED language below as current production evidence.
+
 # ROOF/OS State of the Union — 2026-10-01
 
 Repo: https://github.com/Gtownrter77/roof-os  
