@@ -1,5 +1,13 @@
 # ROOF/OS Current State
 
+## 2026-10-02 Evidence Correction Addendum
+
+**Actual main at time of correction:** `7e0b0d1807a3bc0ff9782c19271cfa276a7dc3b3`
+
+The earlier addendum's `5508485bff1d895a4c7790986d48b209cb3d2dc5` value was stale. It described an earlier verified point, not the actual current `main`. This document now records the distinction explicitly.
+
+The current repository evidence also does **not** support a fully verified commercial-release claim. In particular, privileged-user MFA enforcement is not present in the checked-out source evidence, and the runtime gates listed below remain unproven until exercised.
+
 ## 2026-10-02 Final Continuation Addendum
 
 **Verified main:** `5508485bff1d895a4c7790986d48b209cb3d2dc5`
