@@ -21,7 +21,9 @@
     "test:aerial": "node scripts/aerial-geometry-test.mjs",
     "verify:security": "node scripts/security-check.mjs",
     "test:receptionist": "node scripts/receptionist-check.mjs",
-    "test:crm-missing-spokes": "node scripts/crm-missing-spokes-test.mjs"
+    "test:crm-missing-spokes": "node scripts/crm-missing-spokes-test.mjs",
+    "test:agent-runtime": "node scripts/agent-runtime-test.mjs",
+    "test:prototype-guardrails": "node scripts/prototype-guardrail-test.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.2",
