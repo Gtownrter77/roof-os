@@ -44,6 +44,19 @@ for (const guard of ['auth.uid() is null', 'is_workspace_admin(p_workspace_id)',
   if (!retailerQuota.includes(guard)) throw new Error(`Retailer pricing quota migration is missing guard: ${guard}`)
 }
 
+const proxy = readFileSync(join(root, 'proxy.ts'), 'utf8')
+if (!proxy.includes("supabase.auth.mfa.getAuthenticatorAssuranceLevel()") || !proxy.includes("role', ['owner', 'admin']")) {
+  throw new Error('Privileged-user MFA enforcement is missing from proxy.ts')
+}
+const mfaPage = readFileSync(join(root, 'app', 'auth', 'mfa', 'page.tsx'), 'utf8')
+for (const required of ['mfa.listFactors', 'mfa.enroll', 'mfa.challenge', 'mfa.verify']) {
+  if (!mfaPage.includes(required)) throw new Error(`MFA page is missing required operation: ${required}`)
+}
+const profilePage = readFileSync(join(root, 'app', 'profile', 'page.tsx'), 'utf8')
+if (profilePage.includes('admin@roof-os.com') || profilePage.includes('(555) 123-4567') || profilePage.includes('ROOF/OS Demo')) {
+  throw new Error('Profile page still contains hard-coded demo identity data')
+}
+
 const routes = []
 function walk(dir) {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
