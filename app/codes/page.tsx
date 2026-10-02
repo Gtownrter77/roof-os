@@ -178,44 +178,12 @@ export default function CodesPage() {
       }
       return
     }
-    setTimeout(() => {
-      const stateData = codeDatabase[selectedState as keyof typeof codeDatabase]
-      if (stateData) {
-        const categoryData = stateData[selectedCategory as keyof typeof stateData]
-        if (categoryData) {
-          setResults(categoryData)
-        } else {
-          setResults({ error: 'Category not found for this state' })
-        }
-      } else {
-        setResults({ error: 'State not found in database' })
-      }
-      setLoading(false)
-    }, 800)
+    setResults({ error: 'Unknown. Enter a ZIP. A local table is not a permit decision.' })
+    setLoading(false)
   }
 
   const searchByQuery = () => {
-    if (!searchQuery.trim()) return
-    setLoading(true)
-    setTimeout(() => {
-      // Search all states and categories
-      const found: any[] = []
-      Object.entries(codeDatabase).forEach(([state, categories]) => {
-        Object.entries(categories).forEach(([category, data]) => {
-          const query = searchQuery.toLowerCase()
-          const match = 
-            category.toLowerCase().includes(query) ||
-            data.code?.toLowerCase().includes(query) ||
-            data.requirements?.some((r: string) => r.toLowerCase().includes(query)) ||
-            data.materials?.some((m: string) => m.toLowerCase().includes(query))
-          if (match) {
-            found.push({ state, category, data })
-          }
-        })
-      })
-      setResults({ searchResults: found })
-      setLoading(false)
-    }, 1000)
+    setResults({ error: 'Unknown. Text search of the local table is not a code lookup.' })
   }
 
   return (
