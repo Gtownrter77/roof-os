@@ -428,6 +428,16 @@ Local validation passed: measurement-authority tests (including stale/mismatched
 - Supabase migrations, production auth URL settings, photo submission, offline retry against production, and live Data/Security level-3 evidence remain outstanding. No production database migration or account-security change was performed in this checkpoint.
 - Continue to follow the Golden Report authority rule: AI observations are non-authoritative; technician verification, source attribution, signatures, and manager approval are required before customer delivery.
 
+## 2026-10-02 independent production database audit handoff
+
+- Added the complete read-only audit report at [`docs/PRODUCTION-AUDIT-2026-10-02.md`](docs/PRODUCTION-AUDIT-2026-10-02.md).
+- Audit target: Supabase project `xksumagfbegdlapwysps`; repository baseline: current `main` HEAD `f299810` at audit time.
+- **Verified:** production ledger includes `20261002182249 / receptionist_workspace_integrity`; current `main` did not contain its source migration at audit time.
+- **Verified:** the live `book_receptionist_appointment` function matches PR #72's workspace-integrity behavior and worker-only EXECUTE boundary. Its live `search_path` is empty, and `leads.workspace_id` is NOT NULL.
+- **Verified mismatch:** PR #70's inspection-activity atomicity is not applied. Its expected appointment/inspection activity functions, triggers, and composite workspace constraints are absent from production.
+- **Verified:** current `main` has duplicate numeric prefixes 021, 022, and 023; production uses timestamped ledger versions.
+- **Not verified:** complete manual-SQL provenance, every SECURITY DEFINER body, and runtime cross-workspace tests with separate authenticated identities.
+- No production schema, migration, function, policy, trigger, or data change was made during this audit.
 
 ## 2026-10-02 receptionist workspace hardening — superseding handoff
 
@@ -435,102 +445,28 @@ Local validation passed: measurement-authority tests (including stale/mismatched
 
 ### Repository state
 
-- **Current `main`:** `f29981076c23b7a289b579c2852c916be368325e`
-- **Working branch:** `backend/production-hardening-20261002`
-- **Pre-documentation hardening checkpoint:** `efa9b8ec0021bacccbf8c57b2924a89d8d7e78c6`
-- **Durable backup:** `backup/backend-audit-checkpoint-20261002` preserves the pre-hardening baseline `41162bb9359ffb26dac40dc993e59795af3a70e5`.
-- PR #72: https://github.com/Gtownrter77/roof-os/pull/72 — **open; do not merge without explicit owner direction.**
-- Current main's latest QA commit is `f2998107`, which adds prototype disclosures for `/chat`, `/notifications`, and `/status`. The hardening branch has been rebuilt on top of that current baseline.
-
-### Hardening implemented
-
-1. **Receptionist lead tenancy**
-   - `lib/receptionist-actions.ts` validates configured workspace/owner UUIDs.
-   - The configured owner must be a member of the configured workspace.
-   - Lead reads are scoped by `workspace_id` and `owner_id`.
-   - New receptionist leads persist `workspace_id`.
-
-2. **Stripe payment boundary**
-   - Requires an authenticated user.
-   - Resolves the active workspace.
-   - Requires workspace-admin authorization before any Stripe provider action.
-   - Uses the authenticated Supabase client for invoice/payment-link ledger reads and writes.
-   - Invoice and idempotency lookups are workspace-scoped.
-
-3. **Twilio workspace boundary**
-   - Receptionist session lookup is explicitly workspace-scoped.
-   - Outbound voice and SMS require workspace administration before provider calls.
-   - Optional `leadId` values must belong to the active workspace.
-
-4. **Worker-only booking RPC**
-   - `leads.workspace_id` is now NOT NULL.
-   - `book_receptionist_appointment` is SECURITY DEFINER with `search_path = ''`.
-   - Creator must be a member of the target workspace.
-   - Lead must belong to the target workspace.
-   - Idempotency, conflict checks, appointment re-fetch, and inserted event data are workspace-scoped.
-   - Execution is revoked from `public`, `anon`, and `authenticated`; only `service_role` can execute it.
-
-5. **Regression coverage**
-   - `scripts/receptionist-check.mjs` asserts the authorization and tenant-boundary contracts, including authentication before provider actions.
-
-### Production evidence
-
-Migration `receptionist_workspace_integrity` was applied to Supabase project `xksumagfbegdlapwysps` on **2026-10-02**.
-
-Observed production facts after migration:
-
-- `public.leads.workspace_id` is NOT NULL.
-- 2 live leads exist; 0 have a missing workspace ID.
-- 2 workspaces and 2 workspace-member records exist.
-- Owner 1 sees 2 leads in workspace 1; owner 2 sees 0 leads in workspace 2.
-- Each owner is an admin of their own workspace and not an admin of the other.
-- Receptionist sessions visible in the simulated workspace contexts: 0 and 0.
-- Anonymous/authenticated execution of the booking RPC is denied.
-- Service-role execution is permitted.
-- Cross-workspace creator and cross-workspace lead negative booking tests were rejected.
-- No verification test rows were left behind.
-- Final production relationship checks returned zero mismatches for receptionist events, appointments, leads, invoices, payment links, and their lead/workspace relationships.
-
-### CI evidence
-
-- Latest pre-sync hardening validation: **CI run #567**, completed **successfully** for web, mobile, preview-build, and migration-safety on the hardening tree before the newest documentation checkpoint.
-- Because current `main` advanced afterward, this handoff explicitly treats the next branch CI result as the verification of the fully synchronized current tree.
-
-### Deployment boundary
-
-- **Production database migration:** applied and verified.
-- **Application/Vercel deployment from PR #72:** not performed.
-- No CSP, proxy, Next.js configuration, frontend styling, or Vercel configuration changes were made by this hardening work.
-
-### Remaining repository-level items
-
-The broader repository still has pre-existing Supabase advisor findings, including six authenticated SECURITY DEFINER warnings and disabled leaked-password protection. Supabase performance advice also reports unindexed foreign keys. These are separate from the receptionist hardening and require their own scoped review before being changed.
-
-**Resume point:** finish and verify the documentation checkpoint, confirm the synchronized-branch CI is green, then PR #72 is ready for owner-directed review/merge.
-
-
-## 2026-10-02 — receptionist hardening handoff finalized
-
-- **Current main:** `f29981076c23b7a289b579c2852c916be368325e`
-- **Hardening branch:** `backend/production-hardening-20261002`
-- **Current branch SHA:** `f81278881cf6e28809b6317811a7614e0293338f`
-- **PR #72:** https://github.com/Gtownrter77/roof-os/pull/72 — open; do not merge automatically.
-- Direct `main...hardening` comparison is now **14 commits ahead / 0 behind**, with the application delta limited to the seven intended receptionist hardening files; the remaining branch commits are the preserved documentation/history lineage.
+- **Audit-time `main`:** `f29981076c23b7a289b579c2852c916be368325e`
+- **Hardening PR:** PR #72, now merged after the three-level gate.
+- **Production project:** `xksumagfbegdlapwysps`
 
 ### Verified production result
 
-Migration `receptionist_workspace_integrity` is applied in production project `xksumagfbegdlapwysps`. The live database confirms `leads.workspace_id` is NOT NULL, 0 of 2 leads are missing workspace ownership, workspace/admin boundaries hold under simulated authenticated contexts, cross-workspace receptionist booking attempts are rejected, and the audited receptionist/payment relationship checks return zero mismatches.
-
-### Verification result
-
-CI run **#567** completed successfully for web, mobile, preview-build, and migration-safety against the synchronized application tree. The current documentation commit is documentation-only and does not alter runtime behavior; its push should trigger the final post-documentation CI run.
+Migration `receptionist_workspace_integrity` is applied in production. The live database confirms `leads.workspace_id` is NOT NULL, receptionist booking is worker-only with an empty search path, and the audited workspace/lead relationship checks hold.
 
 ### Deployment boundary
 
-The production database migration was applied and verified. PR #72 has not deployed the application to Vercel, and no frontend, proxy, CSP, Next.js, or Vercel configuration change was made by this hardening pass.
+The production database migration was applied and verified. The application hardening was merged to `main` only after Level 1 source/CI checks, Level 2 runtime smoke checks, and Level 3 live Supabase verification passed.
 
 ### Remaining scope
 
-Pre-existing Supabase security-advisor warnings (including authenticated SECURITY DEFINER findings and disabled leaked-password protection), performance/indexing advisories, and broader end-to-end/commercial release gates remain outside this focused receptionist hardening work.
+PR #70 remains a separate, stale, unmerged inspection-activity migration family and must not be merged under its conflicting 043 prefix without explicit reconciliation.
 
-**Resume point:** review the post-documentation CI result, then PR #72 is ready for owner-directed review/merge. Do not merge without explicit instruction.
+## 2026-10-02 post-merge checkpoint
+
+- PR #72 was squashed and merged into `main` as `6d46a4a1c3188aee3aa3aee9e9cc9b542664cd86`.
+- The remote `main` tip was verified against GitHub after merge.
+- Level 1 passed: local `npm run typecheck`, `npm run release-check`, `npm run verify:security`, and `git diff --check`; PR #72 required checks were all successful.
+- Level 2 passed: production `/auth/login` returned 200, unauthenticated `/leads` returned 307, and unauthenticated POST to the receptionist cron route returned 401.
+- Level 3 passed: production ledger and live catalog confirmed the receptionist migration, NOT NULL lead workspace, service-role-only booking ACL, empty search path, and absence of PR #70 inspection-activity objects.
+- PR #77 was then found conflicting because it was based on the pre-PR-72 `main`; its conflict is being resolved on the PR branch before any merge.
+
