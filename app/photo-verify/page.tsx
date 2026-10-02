@@ -83,16 +83,14 @@ export default function PhotoVerifyPage() {
         const reader = new FileReader()
         reader.onload = (event) => {
           if (event.target?.result) {
-            const types = requiredPhotos.map(r => r.id)
-            const randomType = types[Math.floor(Math.random() * types.length)]
             newPhotos.push({
-              id: Date.now() + Math.random(),
+              id: crypto.randomUUID(),
               url: event.target.result as string,
-              type: randomType,
-              label: requiredPhotos.find(r => r.id === randomType)?.label || randomType,
+              type: 'unclassified',
+              label: 'Unclassified — choose a category',
               timestamp: new Date().toISOString(),
-              aiVerified: Math.random() > 0.2,
-              quality: ['Excellent', 'Good', 'Acceptable'][Math.floor(Math.random() * 3)]
+              aiVerified: false,
+              quality: 'Unrated'
             })
             if (newPhotos.length === files.length) {
               setPhotos([...photos, ...newPhotos])
