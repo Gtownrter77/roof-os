@@ -1,3 +1,7 @@
+## 2026-10-02 Current Evidence Notice — supersedes this historical handoff
+
+The document below is retained as historical handoff material. For present-state claims, use CURRENT-STATE.md and the evidence recorded there. Current main is 41162bb9359ffb26dac40dc993e59795af3a70e5. Production Vercel project inspection, successful current deployment, cron execution, and authenticated browser workflow tests are not currently verified.
+
 # ROOF/OS Final Handoff
 
 **Handoff date:** 2026-09-14
