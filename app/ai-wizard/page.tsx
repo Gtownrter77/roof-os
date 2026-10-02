@@ -108,7 +108,7 @@ export default function AIWizardPage() {
         </div>
       </header>
 
-      <main className="p-4">
+      <main className="p-4"><p className="text-sm bg-white rounded-lg shadow p-4 mb-4">No model was called. Result is Unknown.</p>
         <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg shadow-lg p-4 mb-4 border border-indigo-200">
           <div className="flex items-center">
             <span className="text-3xl mr-3">🧙</span>
