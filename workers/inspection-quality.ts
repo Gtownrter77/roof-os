@@ -95,7 +95,6 @@ export async function runInspectionQuality(
           assigned_to: reviewTaskCreatorId,
           created_by: reviewTaskCreatorId,
           status: 'open',
-          automation_key: `inspection_quality:${inspectionId}:${eventKey}`,
         })
         if (taskError && taskError.code !== '23505') throw taskError
       }
