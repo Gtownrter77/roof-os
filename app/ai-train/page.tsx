@@ -221,7 +221,7 @@ export default function AITrainPage() {
         }
       }
     } else {
-      alert('🎉 Training Complete! You are now ready for the job!')
+      alert('Checklist finished on this screen. It is not saved and it does not certify the job.')
       setShowGuide(false)
     }
   }
@@ -345,7 +345,7 @@ export default function AITrainPage() {
       <header className="bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-lg sticky top-0 z-10">
         <div className="px-4 py-3 flex items-center">
           <button onClick={() => router.back()} className="text-white mr-3 text-xl">←</button>
-          <h1 className="text-xl font-bold">🎓 AI Training Center</h1>
+          <h1 className="text-xl font-bold">Job checklist</h1>
           <span className="ml-2 bg-yellow-500 text-black text-xs px-2 py-0.5 rounded-full">NEW</span>
         </div>
       </header>
