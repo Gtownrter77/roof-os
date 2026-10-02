@@ -49,9 +49,15 @@ function CameraInner() {
         const { error: uploadError } = await supabase.storage.from('inspection-photos').upload(path, photo.file, { contentType: photo.file.type, upsert: false })
         if (uploadError) throw new Error(uploadError.message)
         const { error: metaError } = await supabase.from('inspection_photos').insert({ inspection_id: sessionId, workspace_id: workspaceId, uploaded_by: user.id, object_path: path, mime_type: photo.file.type || 'image/jpeg', file_size_bytes: photo.file.size, album: 'damage', upload_status: 'uploaded' })
-        if (metaError) throw new Error(metaError.message)
+        if (metaError) {
+          await supabase.storage.from('inspection-photos').remove([path])
+          throw new Error(metaError.message)
+        }
       }
-      if (leadId) await supabase.from('leads').update({ status: 'inspected', updated_at: new Date().toISOString() }).eq('id', leadId)
+      if (leadId) {
+        const { error: leadUpdateError } = await supabase.from('leads').update({ status: 'inspected', updated_at: new Date().toISOString() }).eq('id', leadId)
+        if (leadUpdateError) throw new Error(`Photos saved, but lead status could not be updated: ${leadUpdateError.message}`)
+      }
       setMessage(`${photos.length} photo${photos.length === 1 ? '' : 's'} saved to inspection ${sessionId.slice(0, 8)}.`)
       photos.forEach((photo) => URL.revokeObjectURL(photo.preview))
       setPhotos([])
