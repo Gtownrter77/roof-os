@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '../../../../lib/supabase/server'
+import { createAdminClient } from '../../../../lib/supabase/admin'
 import { readJson } from '../../../../lib/api-security'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -35,5 +36,23 @@ export async function POST(request: NextRequest) {
 
   const { data, error } = await supabase.from('workspace_invitations').insert({ workspace_id: workspaceId, email, role, invited_by: user.id }).select('id,email,role,status,expires_at,created_at').single()
   if (error) return NextResponse.json({ error: 'Invitation could not be created.', detail: error.message }, { status: error.code === '23505' ? 409 : 403 })
-  return NextResponse.json({ invitation: data, delivery: 'pending', warning: 'The invitation record is ready; email delivery and acceptance flow still require implementation.' }, { status: 201 })
+
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim() || process.env.NEXT_PUBLIC_SUPABASE_SITE_URL?.trim()
+  if (!siteUrl) {
+    await supabase.from('workspace_invitations').update({ status: 'revoked', updated_at: new Date().toISOString() }).eq('id', data.id)
+    return NextResponse.json({ error: 'Invitation email delivery is not configured.' }, { status: 503 })
+  }
+
+  try {
+    const admin = createAdminClient()
+    const { error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
+      redirectTo: `${siteUrl.replace(/\\/$/, '')}/auth/callback?next=/team/invitations/accept&invitationId=${encodeURIComponent(data.id)}`,
+    })
+    if (inviteError) throw inviteError
+  } catch (inviteError) {
+    await supabase.from('workspace_invitations').update({ status: 'revoked', updated_at: new Date().toISOString() }).eq('id', data.id)
+    return NextResponse.json({ error: 'Invitation was recorded but email delivery failed.', detail: inviteError instanceof Error ? inviteError.message : 'Unknown delivery error.' }, { status: 502 })
+  }
+
+  return NextResponse.json({ invitation: data, delivery: 'sent' }, { status: 201 })
 }
