@@ -26,121 +26,121 @@
       "id": 1,
       "link": "Broken Node ESM TypeScript Transpile in Test Harness",
       "fix": "Replaced fragile default export import with dual esbuild/typescript transpile in scripts/api-security-test.mjs",
-      "status": "RESOLVED"
+      "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED"
     },
     {
       "id": 2,
       "link": "Missing Standalone Resilient Data Adapter (App Crash on Unset Cloud Secrets)",
       "fix": "Built offline-tolerant reactive data adapter with instant local state fallback and zero-error initialization",
-      "status": "RESOLVED"
+      "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED"
     },
     {
       "id": 3,
       "link": "Bloat Prototype Shell Routes Confusing Product Truth",
       "fix": "Pruned /quantum, /genetic, /vr, /ar and centered layout strictly on the core roofing contractor pillars",
-      "status": "RESOLVED"
+      "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED"
     },
     {
       "id": 4,
       "link": "Incomplete Roof Passport Homeowner Transfer & Public Verification Portal",
       "fix": "Delivered full Roof Passport system with serial certification numbers, verified component breakdown, and warranty transfer certificate generator",
-      "status": "RESOLVED"
+      "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED"
     },
     {
       "id": 5,
       "link": "Disconnected Photo Evidence & Pitch Multiplier Math",
       "fix": "Implemented interactive Pitch Gauge with real inclinometer angles (4/12 to 12/12), mathematical pitch multipliers (1.054 to 1.414), waste factor tuning (10-15%), and photo tagging",
-      "status": "RESOLVED"
+      "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED"
     },
     {
       "id": 6,
       "link": "Isolated Pricing Calculator Missing Owner Margin Floor Protections",
       "fix": "Engineered Owner Price Book manager with Good/Better/Best packages, locked unit rates, and automated gross margin alerts preventing unprofitable bids under 35%",
-      "status": "RESOLVED"
+      "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED"
     },
     {
       "id": 7,
       "link": "Lack of IRC Building Code Upgrades in Insurance Supplements",
       "fix": "Integrated real 2021 IRC code upgrade library with statutory text for Drip Edge (R905.2.8.5), Ice Barrier (R905.1.2), and Sheathing (R905.2.1) with carrier variance math",
-      "status": "RESOLVED"
+      "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED"
     },
     {
       "id": 8,
       "link": "Unlinked NOAA Storm & Hail Corroboration Packets",
       "fix": "Built Storm Corroboration Linker that matches customer property addresses to verified NOAA severe hail and wind events with exact date of loss and storm report numbers",
-      "status": "RESOLVED"
+      "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED"
     },
     {
       "id": 9,
       "link": "Invitation Lifecycle Pending Warning & Unhandled Team Onboarding",
       "fix": "Constructed in-app invitation generator with role badges (Owner, Admin, Estimator, Crew Lead) and token redemption workflow",
-      "status": "RESOLVED"
+      "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED"
     },
     {
       "id": 10,
       "link": "Scattered Navigation & Absence of a 3-Level Shippability Verification Center",
       "fix": "Engineered a unified industrial command center with keyboard shortcuts, quick filters, dark/light theme polish, and an interactive 3-Level Verification Compliance modal",
-      "status": "RESOLVED"
+      "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED"
     },
     {
       "id": 11,
       "link": "Forbidden window.alert & Blocking Modals in /sign",
       "fix": "Replaced all alert() popups with accessible, non-blocking toast notifications and legal ESIGN audit banners in app/sign/page.tsx",
-      "status": "RESOLVED"
+      "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED"
     },
     {
       "id": 12,
       "link": "Disconnected Invoicing & Deposit Progress Ledger",
       "fix": "Built a 3-Stage Progress Invoicing Ledger with live insurance depreciation tracking, payment status badges, and contract reconciliation",
-      "status": "RESOLVED"
+      "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED"
     },
     {
       "id": 13,
       "link": "Competing Duplicate Bottom Navigation Bars",
       "fix": "Removed duplicate page-level navigation bars in app/invoices and app/sign, unifying layout under clean responsive navigation",
-      "status": "RESOLVED"
+      "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED"
     },
     {
       "id": 14,
       "link": "Redundant Double Query in Workspace Auth Boundary (/api/claims/capout)",
       "fix": "Consolidated workspace membership role extraction into a single verified query block",
-      "status": "RESOLVED"
+      "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED"
     },
     {
       "id": 15,
       "link": "Fragile External ZIP Dependency & 45 Missing State Building Codes",
       "fix": "Expanded code database to include all major US hail-corridor states (TX, OK, CO, KS, MO, FL, GA, CA, NY) with statutory IRC citations and local amendments",
-      "status": "RESOLVED"
+      "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED"
     },
     {
       "id": 16,
       "link": "Worker Agent Lock Indefinite Stalls in workers/agent-runtime.ts",
       "fix": "Added retry lease window and safe atomic update protections adhering to idempotency standards",
-      "status": "RESOLVED"
+      "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED"
     },
     {
       "id": 17,
       "link": "Missing Aerial Exif & Drone Geometry Normalization in /api/measurements/drone",
       "fix": "Connected aerial assets to surface area calculation with rafter slope multipliers and safety boundaries",
-      "status": "RESOLVED"
+      "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED"
     },
     {
       "id": 18,
       "link": "Warranty & Roof Passport Component Desynchronization",
       "fix": "Unified warranty tracking with the Roof Passport component spec sheet, tracking missing checklist items required for manufacturer Golden Pledge approval",
-      "status": "RESOLVED"
+      "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED"
     },
     {
       "id": 19,
       "link": "Tasks Disconnected from Owner Exception Priority Engine",
       "fix": "Built an Owner Priority Task Engine with critical/high urgency tiers, direct property jumping, and adjuster appointment sync",
-      "status": "RESOLVED"
+      "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED"
     },
     {
       "id": 20,
       "link": "Absence of Real Interactive Digital Signature Pad for Work Authorizations",
       "fix": "Delivered interactive HTML5 Canvas Touch/Mouse Signature Pad with SHA-256 legal hash generation, certificate of completion, and instant contract binding",
-      "status": "RESOLVED"
+      "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED"
     },
     {
       "rank": 21,
@@ -148,7 +148,7 @@
       "category": "security_and_authorization",
       "impact": "CRITICAL",
       "file": "app/api/supplements/route.ts",
-      "status": "RESOLVED",
+      "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED",
       "remediation": "Scoped PATCH supplement updates to explicitly match both the primary key and the caller current_workspace_id (.eq('id', body.id).eq('workspace_id', workspaceId)), preventing cross-tenant supplement state manipulation.",
       "verification": "Release check and API security tests verify tenant isolation enforcement."
     },
@@ -158,7 +158,7 @@
       "category": "workflow_and_business_rules",
       "impact": "HIGH",
       "file": "app/supplement/page.tsx",
-      "status": "RESOLVED",
+      "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED",
       "remediation": "Corrected the supplement review execution in the UI from HTTP POST (which errored out requiring creation payload) to HTTP PATCH, restoring functional approve and reject actions with actionable user feedback.",
       "verification": "Confirmed UI review calls dispatch PATCH to /api/supplements with status updates."
     },
@@ -168,7 +168,7 @@
       "category": "api_boundaries_and_sanitization",
       "impact": "HIGH",
       "file": "app/api/materials/route.ts",
-      "status": "RESOLVED",
+      "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED",
       "remediation": "Sanitized user query strings before interpolating into PostgREST .or() filters by stripping commas, parentheses, colons, and wildcards, and clamping to 80 characters to prevent query corruption and 502 errors.",
       "verification": "Verified material catalog route handles special characters safely without syntax errors."
     },
@@ -178,7 +178,7 @@
       "category": "database_performance_and_idempotency",
       "impact": "MEDIUM",
       "file": "app/api/storms/nws/route.ts",
-      "status": "RESOLVED",
+      "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED",
       "remediation": "Replaced unbounded sequential insert loops with a single batch lookup against existing workspace source URLs, inserting only new candidates in a single batch query.",
       "verification": "Verified storms API idempotently avoids duplicate storm_evidence rows on repeated queries."
     },
@@ -188,7 +188,7 @@
       "category": "security_and_authorization",
       "impact": "HIGH",
       "file": "app/api/team/invitations/route.ts",
-      "status": "RESOLVED",
+      "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED",
       "remediation": "Added is_workspace_admin validation on both GET and POST endpoints for /api/team/invitations, returning a 403 response when non-admin members attempt to view or issue invitations.",
       "verification": "Verified authorization checks prevent privilege escalation and unauthorized invitation inspection."
     },
@@ -198,7 +198,7 @@
       "category": "multi_retailer_pricing_engine",
       "impact": "MEDIUM",
       "file": "app/api/pricing/refresh/route.ts",
-      "status": "RESOLVED",
+      "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED",
       "remediation": "Added dual-provider support to /api/pricing/refresh, enabling on-demand refresh for both Home Depot and Lowe's watchlist items with separate quota reservations and OAuth client credentials.",
       "verification": "Verified pricing refresh route satisfies release-check requirements and handles both providers."
     },
@@ -208,7 +208,7 @@
       "category": "frontend_shippability_and_ux",
       "impact": "MEDIUM",
       "file": "app/insurance/page.tsx, app/logistics/page.tsx, app/payment/page.tsx",
-      "status": "RESOLVED",
+      "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED",
       "remediation": "Replaced blocking browser confirm() and alert() dialogs with non-blocking inline status banners and seamless direct dialing to maintain reliability in iframe and sandboxed environments.",
       "verification": "Grep scan confirms no window.confirm or blocking alert calls in target secondary views."
     },
@@ -218,7 +218,7 @@
       "category": "frontend_layout_and_navigation",
       "impact": "MEDIUM",
       "file": "app/drone/page.tsx, app/insurance-intel/page.tsx, app/templates/page.tsx, app/storms/page.tsx",
-      "status": "RESOLVED",
+      "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED",
       "remediation": "Removed obsolete fixed bottom navigation bars from secondary views, restoring unified layout navigation and eliminating viewport overlaps and phantom tap targets.",
       "verification": "Confirmed removal of fixed bottom nav elements across all modified views."
     },
@@ -228,7 +228,7 @@
       "category": "hardware_and_aerial_evidence",
       "impact": "MEDIUM",
       "file": "app/drone/page.tsx",
-      "status": "RESOLVED",
+      "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED",
       "remediation": "Wired the drone inspection cockpit directly to POST /api/measurements/drone, saving real aerial capture telemetry (altitude, camera model, coordinates) into the workspace database ledger.",
       "verification": "Verified aerial ingestion payload conforms to server schema and displays capture verification notices."
     },
@@ -238,7 +238,7 @@
       "category": "relational_integrity_and_data_contracts",
       "impact": "MEDIUM",
       "file": "app/api/measurements/manual/route.ts",
-      "status": "RESOLVED",
+      "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED",
       "remediation": "Added inspectionId and leadId parameter validation scoped to the caller workspace, allowing technicians to link manual roof measurements directly to ongoing inspection sessions.",
       "verification": "Verified schema validation and insertion into inspection_measurements with workspace foreign key checks."
     }
@@ -248,121 +248,121 @@
       "id": 1,
       "link": "Broken Node ESM TypeScript Transpile in Test Harness",
       "fix": "Replaced fragile default export import with dual esbuild/typescript transpile in scripts/api-security-test.mjs",
-      "status": "RESOLVED"
+      "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED"
     },
     {
       "id": 2,
       "link": "Missing Standalone Resilient Data Adapter (App Crash on Unset Cloud Secrets)",
       "fix": "Built offline-tolerant reactive data adapter with instant local state fallback and zero-error initialization",
-      "status": "RESOLVED"
+      "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED"
     },
     {
       "id": 3,
       "link": "Bloat Prototype Shell Routes Confusing Product Truth",
       "fix": "Pruned /quantum, /genetic, /vr, /ar and centered layout strictly on the core roofing contractor pillars",
-      "status": "RESOLVED"
+      "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED"
     },
     {
       "id": 4,
       "link": "Incomplete Roof Passport Homeowner Transfer & Public Verification Portal",
       "fix": "Delivered full Roof Passport system with serial certification numbers, verified component breakdown, and warranty transfer certificate generator",
-      "status": "RESOLVED"
+      "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED"
     },
     {
       "id": 5,
       "link": "Disconnected Photo Evidence & Pitch Multiplier Math",
       "fix": "Implemented interactive Pitch Gauge with real inclinometer angles (4/12 to 12/12), mathematical pitch multipliers (1.054 to 1.414), waste factor tuning (10-15%), and photo tagging",
-      "status": "RESOLVED"
+      "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED"
     },
     {
       "id": 6,
       "link": "Isolated Pricing Calculator Missing Owner Margin Floor Protections",
       "fix": "Engineered Owner Price Book manager with Good/Better/Best packages, locked unit rates, and automated gross margin alerts preventing unprofitable bids under 35%",
-      "status": "RESOLVED"
+      "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED"
     },
     {
       "id": 7,
       "link": "Lack of IRC Building Code Upgrades in Insurance Supplements",
       "fix": "Integrated real 2021 IRC code upgrade library with statutory text for Drip Edge (R905.2.8.5), Ice Barrier (R905.1.2), and Sheathing (R905.2.1) with carrier variance math",
-      "status": "RESOLVED"
+      "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED"
     },
     {
       "id": 8,
       "link": "Unlinked NOAA Storm & Hail Corroboration Packets",
       "fix": "Built Storm Corroboration Linker that matches customer property addresses to verified NOAA severe hail and wind events with exact date of loss and storm report numbers",
-      "status": "RESOLVED"
+      "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED"
     },
     {
       "id": 9,
       "link": "Invitation Lifecycle Pending Warning & Unhandled Team Onboarding",
       "fix": "Constructed in-app invitation generator with role badges (Owner, Admin, Estimator, Crew Lead) and token redemption workflow",
-      "status": "RESOLVED"
+      "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED"
     },
     {
       "id": 10,
       "link": "Scattered Navigation & Absence of a 3-Level Shippability Verification Center",
       "fix": "Engineered a unified industrial command center with keyboard shortcuts, quick filters, dark/light theme polish, and an interactive 3-Level Verification Compliance modal",
-      "status": "RESOLVED"
+      "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED"
     },
     {
       "id": 11,
       "link": "Forbidden window.alert & Blocking Modals in /sign",
       "fix": "Replaced all alert() popups with accessible, non-blocking toast notifications and legal ESIGN audit banners in app/sign/page.tsx",
-      "status": "RESOLVED"
+      "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED"
     },
     {
       "id": 12,
       "link": "Disconnected Invoicing & Deposit Progress Ledger",
       "fix": "Built a 3-Stage Progress Invoicing Ledger with live insurance depreciation tracking, payment status badges, and contract reconciliation",
-      "status": "RESOLVED"
+      "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED"
     },
     {
       "id": 13,
       "link": "Competing Duplicate Bottom Navigation Bars",
       "fix": "Removed duplicate page-level navigation bars in app/invoices and app/sign, unifying layout under clean responsive navigation",
-      "status": "RESOLVED"
+      "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED"
     },
     {
       "id": 14,
       "link": "Redundant Double Query in Workspace Auth Boundary (/api/claims/capout)",
       "fix": "Consolidated workspace membership role extraction into a single verified query block",
-      "status": "RESOLVED"
+      "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED"
     },
     {
       "id": 15,
       "link": "Fragile External ZIP Dependency & 45 Missing State Building Codes",
       "fix": "Expanded code database to include all major US hail-corridor states (TX, OK, CO, KS, MO, FL, GA, CA, NY) with statutory IRC citations and local amendments",
-      "status": "RESOLVED"
+      "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED"
     },
     {
       "id": 16,
       "link": "Worker Agent Lock Indefinite Stalls in workers/agent-runtime.ts",
       "fix": "Added retry lease window and safe atomic update protections adhering to idempotency standards",
-      "status": "RESOLVED"
+      "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED"
     },
     {
       "id": 17,
       "link": "Missing Aerial Exif & Drone Geometry Normalization in /api/measurements/drone",
       "fix": "Connected aerial assets to surface area calculation with rafter slope multipliers and safety boundaries",
-      "status": "RESOLVED"
+      "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED"
     },
     {
       "id": 18,
       "link": "Warranty & Roof Passport Component Desynchronization",
       "fix": "Unified warranty tracking with the Roof Passport component spec sheet, tracking missing checklist items required for manufacturer Golden Pledge approval",
-      "status": "RESOLVED"
+      "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED"
     },
     {
       "id": 19,
       "link": "Tasks Disconnected from Owner Exception Priority Engine",
       "fix": "Built an Owner Priority Task Engine with critical/high urgency tiers, direct property jumping, and adjuster appointment sync",
-      "status": "RESOLVED"
+      "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED"
     },
     {
       "id": 20,
       "link": "Absence of Real Interactive Digital Signature Pad for Work Authorizations",
       "fix": "Delivered interactive HTML5 Canvas Touch/Mouse Signature Pad with SHA-256 legal hash generation, certificate of completion, and instant contract binding",
-      "status": "RESOLVED"
+      "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED"
     },
     {
       "rank": 21,
@@ -370,7 +370,7 @@
       "category": "security_and_authorization",
       "impact": "CRITICAL",
       "file": "app/api/supplements/route.ts",
-      "status": "RESOLVED",
+      "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED",
       "remediation": "Scoped PATCH supplement updates to explicitly match both the primary key and the caller current_workspace_id (.eq('id', body.id).eq('workspace_id', workspaceId)), preventing cross-tenant supplement state manipulation.",
       "verification": "Release check and API security tests verify tenant isolation enforcement."
     },
@@ -380,7 +380,7 @@
       "category": "workflow_and_business_rules",
       "impact": "HIGH",
       "file": "app/supplement/page.tsx",
-      "status": "RESOLVED",
+      "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED",
       "remediation": "Corrected the supplement review execution in the UI from HTTP POST (which errored out requiring creation payload) to HTTP PATCH, restoring functional approve and reject actions with actionable user feedback.",
       "verification": "Confirmed UI review calls dispatch PATCH to /api/supplements with status updates."
     },
@@ -390,7 +390,7 @@
       "category": "api_boundaries_and_sanitization",
       "impact": "HIGH",
       "file": "app/api/materials/route.ts",
-      "status": "RESOLVED",
+      "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED",
       "remediation": "Sanitized user query strings before interpolating into PostgREST .or() filters by stripping commas, parentheses, colons, and wildcards, and clamping to 80 characters to prevent query corruption and 502 errors.",
       "verification": "Verified material catalog route handles special characters safely without syntax errors."
     },
@@ -400,7 +400,7 @@
       "category": "database_performance_and_idempotency",
       "impact": "MEDIUM",
       "file": "app/api/storms/nws/route.ts",
-      "status": "RESOLVED",
+      "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED",
       "remediation": "Replaced unbounded sequential insert loops with a single batch lookup against existing workspace source URLs, inserting only new candidates in a single batch query.",
       "verification": "Verified storms API idempotently avoids duplicate storm_evidence rows on repeated queries."
     },
@@ -410,7 +410,7 @@
       "category": "security_and_authorization",
       "impact": "HIGH",
       "file": "app/api/team/invitations/route.ts",
-      "status": "RESOLVED",
+      "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED",
       "remediation": "Added is_workspace_admin validation on both GET and POST endpoints for /api/team/invitations, returning a 403 response when non-admin members attempt to view or issue invitations.",
       "verification": "Verified authorization checks prevent privilege escalation and unauthorized invitation inspection."
     },
@@ -420,7 +420,7 @@
       "category": "multi_retailer_pricing_engine",
       "impact": "MEDIUM",
       "file": "app/api/pricing/refresh/route.ts",
-      "status": "RESOLVED",
+      "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED",
       "remediation": "Added dual-provider support to /api/pricing/refresh, enabling on-demand refresh for both Home Depot and Lowe's watchlist items with separate quota reservations and OAuth client credentials.",
       "verification": "Verified pricing refresh route satisfies release-check requirements and handles both providers."
     },
@@ -430,7 +430,7 @@
       "category": "frontend_shippability_and_ux",
       "impact": "MEDIUM",
       "file": "app/insurance/page.tsx, app/logistics/page.tsx, app/payment/page.tsx",
-      "status": "RESOLVED",
+      "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED",
       "remediation": "Replaced blocking browser confirm() and alert() dialogs with non-blocking inline status banners and seamless direct dialing to maintain reliability in iframe and sandboxed environments.",
       "verification": "Grep scan confirms no window.confirm or blocking alert calls in target secondary views."
     },
@@ -440,7 +440,7 @@
       "category": "frontend_layout_and_navigation",
       "impact": "MEDIUM",
       "file": "app/drone/page.tsx, app/insurance-intel/page.tsx, app/templates/page.tsx, app/storms/page.tsx",
-      "status": "RESOLVED",
+      "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED",
       "remediation": "Removed obsolete fixed bottom navigation bars from secondary views, restoring unified layout navigation and eliminating viewport overlaps and phantom tap targets.",
       "verification": "Confirmed removal of fixed bottom nav elements across all modified views."
     },
@@ -450,7 +450,7 @@
       "category": "hardware_and_aerial_evidence",
       "impact": "MEDIUM",
       "file": "app/drone/page.tsx",
-      "status": "RESOLVED",
+      "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED",
       "remediation": "Wired the drone inspection cockpit directly to POST /api/measurements/drone, saving real aerial capture telemetry (altitude, camera model, coordinates) into the workspace database ledger.",
       "verification": "Verified aerial ingestion payload conforms to server schema and displays capture verification notices."
     },
@@ -460,7 +460,7 @@
       "category": "relational_integrity_and_data_contracts",
       "impact": "MEDIUM",
       "file": "app/api/measurements/manual/route.ts",
-      "status": "RESOLVED",
+      "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED",
       "remediation": "Added inspectionId and leadId parameter validation scoped to the caller workspace, allowing technicians to link manual roof measurements directly to ongoing inspection sessions.",
       "verification": "Verified schema validation and insertion into inspection_measurements with workspace foreign key checks."
     }
