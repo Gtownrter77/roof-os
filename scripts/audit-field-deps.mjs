@@ -48,7 +48,7 @@ function isAllowed(name) {
 const blocking = Object.entries(vulnerabilities).filter(([, vuln]) => {
   const severity = vuln.severity;
   const highEnough = severity === "moderate" || severity === "high" || severity === "critical";
-  return highEnough && !isAllowed(vuln.name);
+  return highEnough && !isAllowed(name);
 });
 
 if (blocking.length) {
@@ -60,7 +60,7 @@ if (blocking.length) {
 }
 
 const allowed = Object.entries(vulnerabilities)
-  .filter(([, vuln]) => isAllowed(vuln.name))
+  .filter(([name]) => isAllowed(name))
   .map(([name, vuln]) => `${name} (${vuln.severity})`);
 
 if (allowed.length) {
