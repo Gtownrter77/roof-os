@@ -32,6 +32,7 @@ type Lead = {
   lead_score_reasons: string[]
   lost_reason: string | null
   lost_reason_detail: string | null
+  lost_at: string | null
   last_activity_at: string | null
 }
 type Activity = { id: string; kind: string; body: string; created_at: string }
@@ -56,7 +57,7 @@ export default function LeadDetailPage() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.replace('/auth/login'); return }
     const [{ data: leadRow, error: leadError }, activityRes] = await Promise.all([
-      supabase.from('leads').select('id,name,address,status,phone,email,source,next_action,next_action_due,next_action_owner_id,lead_score,lead_score_reasons,lost_reason,lost_reason_detail,last_activity_at').eq('id', leadId).maybeSingle(),
+      supabase.from('leads').select('id,name,address,status,phone,email,source,next_action,next_action_due,next_action_owner_id,lead_score,lead_score_reasons,lost_reason,lost_reason_detail,lost_at,last_activity_at').eq('id', leadId).maybeSingle(),
       supabase.from('lead_activity').select('id,kind,body,created_at').eq('lead_id', leadId).order('created_at', { ascending: false }).limit(50),
     ])
     if (leadError) setError(leadError.message)
@@ -125,7 +126,7 @@ export default function LeadDetailPage() {
     const { error: updateError } = await supabase.from('leads').update({
       lost_reason: lostReason || null,
       lost_reason_detail: lostDetail.trim() || null,
-      lost_at: lead.lost_reason ? undefined : new Date().toISOString(),
+      lost_at: lead.lost_at ?? new Date().toISOString(),
       updated_at: new Date().toISOString(),
     }).eq('id', lead.id)
     if (updateError) setError(updateError.message)
