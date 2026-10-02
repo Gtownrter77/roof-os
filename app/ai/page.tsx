@@ -19,8 +19,8 @@ export default function AIPage() {
   })
 
   const generateReport = () => {
-    setLoading(true)
-    // Simulate AI processing
+    setLoading(false)
+    return
     setTimeout(() => {
       const report = `ROOF INSPECTION REPORT
 

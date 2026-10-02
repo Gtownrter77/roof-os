@@ -66,8 +66,8 @@ export default function AIWizardPage() {
 
   const askQuestion = () => {
     if (!query.trim()) return
-    setLoading(true)
-    
+    setLoading(false)
+    return
     setTimeout(() => {
       const lowerQuery = query.toLowerCase()
       let foundAnswer = null
