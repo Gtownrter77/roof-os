@@ -59,7 +59,7 @@ export default function UpsellPage() {
       <header className="bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-lg sticky top-0 z-10">
         <div className="px-4 py-3 flex items-center">
           <button onClick={() => router.back()} className="text-white mr-3 text-xl">←</button>
-          <h1 className="text-xl font-bold">💰 AI Upsell Engine</h1>
+          <h1 className="text-xl font-bold">Upsell list</h1>
           <span className="ml-2 bg-green-500 text-white text-xs px-2 py-0.5 rounded-full animate-pulse">PRO</span>
         </div>
       </header>
