@@ -15,6 +15,13 @@ type Workflow = {
   source_photo_ids: unknown
   approved_by: string | null
   approved_at: string | null
+  technician_name?: string | null
+  technician_license?: string | null
+  technician_signature?: string | null
+  photo_reviews?: unknown
+  manager_approval_name?: string | null
+  manager_approval_signature?: string | null
+  manager_approved_at?: string | null
   roof_squares: number | string | null
   gutter_lf: number | string | null
 }
@@ -54,7 +61,7 @@ export async function POST(request: NextRequest) {
 
   const { data: workflow, error: workflowError } = await supabase
     .from('photo_estimate_workflows')
-    .select('id,workspace_id,lead_id,inspection_id,status,address,report,source_photo_ids,approved_by,approved_at,roof_squares,gutter_lf')
+    .select('id,workspace_id,lead_id,inspection_id,status,address,report,source_photo_ids,approved_by,approved_at,roof_squares,gutter_lf,technician_name,technician_license,technician_signature,photo_reviews,manager_approval_name,manager_approval_signature,manager_approved_at')
     .eq('id', workflowId)
     .eq('workspace_id', workspaceId)
     .maybeSingle()
@@ -62,9 +69,8 @@ export async function POST(request: NextRequest) {
   if (!workflow) return jsonError('Photo workflow not found in this workspace.', 404)
 
   const row = workflow as Workflow
-  if (row.status !== 'approved' || !row.approved_by || !row.approved_at) {
-    return jsonError('Technician approval is required before a report can be generated.', 409)
-  }
+  if (row.status !== 'approved' || !row.approved_by || !row.approved_at) return jsonError('Technician approval is required before a report can be generated.', 409)
+  if (!row.manager_approval_name || !row.manager_approval_signature || !row.manager_approved_at) return jsonError('Owner or manager approval is required before a Golden Report can be generated.', 409)
   if (!row.address?.trim() || !isUuid(row.inspection_id)) {
     return jsonError('The approved workflow must include a property address and inspection.', 409)
   }
@@ -87,6 +93,8 @@ export async function POST(request: NextRequest) {
     return jsonError('Every source photo must still belong to this workspace and inspection.', 409)
   }
   const photos = photoRows as PhotoRow[]
+  const photoReviews = Array.isArray(row.photo_reviews) ? row.photo_reviews as Array<{ photoId?: string; usability?: string; coverage?: string; notes?: string | null }> : []
+  if (sourcePhotoIds.some((id) => !photoReviews.some((review) => review.photoId === id))) return jsonError('Every source photo requires a usability and coverage review before the report can be generated.', 409)
   if (photos.some((photo) => photo.upload_status !== 'uploaded')) {
     return jsonError('Every source photo must finish uploading before the report can be generated.', 409)
   }
@@ -97,13 +105,14 @@ export async function POST(request: NextRequest) {
   const generatedAt = new Date().toISOString()
   const photosInReportOrder = sourcePhotoIds.map((id, index) => {
     const photo = photos.find((candidate) => candidate.id === id)!
+    const review = photoReviews.find((candidate) => candidate.photoId === id)
     return {
       id,
       altText: `Inspection photo ${index + 1}. Content description: Unknown.`,
       caption: photo.caption?.trim() ? `${photo.caption.trim()} (recorded caption; not verified)` : 'Unknown',
       capturedAt: photo.captured_at || 'Unknown',
       mimeType: photo.mime_type,
-      usability: 'Unknown. No photo usability review is recorded.',
+      usability: review ? `${review.usability ?? 'Unknown'}; coverage: ${review.coverage ?? 'Unknown'}${review.notes ? `; note: ${review.notes}` : ''}` : 'Unknown. No photo usability review is recorded.',
     }
   })
 
@@ -176,12 +185,12 @@ export async function POST(request: NextRequest) {
         id: 'verification',
         title: '7. Verification',
         statements: [
-          'Verified by: Unknown. The system records an account approval, but no technician display name or signature is recorded.',
+          `Verified by: ${row.technician_name || 'Unknown'}. License / registration: ${row.technician_license || 'Unknown'}.`,
           `Verified on: ${row.approved_at}.`,
           'Verified values: roof area, pitch, eave length, rafter length, waste factor, and gutter length. Each is tied to the technician approval record.',
           'Corrected values: Unknown. No separate correction list is recorded.',
           'Unverified: photo observations, photo usability, storm history, ridge, rake, valley, fascia, soffit area, aerial roof measurement, building codes, and supplements.',
-          'Technician signature: Unknown. This report remains a draft until it is signed.',
+          `Technician signature: ${row.technician_signature ? 'Captured.' : 'Unknown.'}`,
         ],
       },
       {
@@ -218,8 +227,8 @@ export async function POST(request: NextRequest) {
         id: 'signatures',
         title: '12. Signatures',
         statements: [
-          'Technician: Unknown. No name, license number, or signature is recorded.',
-          'Owner / Manager approval: Unknown. No name or approval signature is recorded.',
+          `Technician: ${row.technician_name || 'Unknown'}. License / registration: ${row.technician_license || 'Unknown'}. Signature: ${row.technician_signature ? 'Captured.' : 'Unknown.'}`,
+          `Owner / Manager approval: ${row.manager_approval_name || 'Unknown'}. Signature: ${row.manager_approval_signature ? 'Captured.' : 'Unknown.'} Approved on: ${row.manager_approved_at || 'Unknown'}.`,
           'Report version: v1.0.',
           `Report ID: ${reportId}.`,
         ],
