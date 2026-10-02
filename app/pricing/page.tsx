@@ -256,16 +256,16 @@ export default function PricingPage() {
             </div>
             <div className="flex justify-between">
               <span className="text-sm">Taxes</span>
-              <span className="font-medium">${totals.taxes.toFixed(2)}</span>
+              <span className="font-medium">{totals.taxes ? totals.taxes.toFixed(2) : "Unknown"}</span>
             </div>
             <div className="border-t pt-2 border-blue-300">
               <div className="flex justify-between text-lg font-bold">
                 <span>Total Estimate</span>
-                <span className="text-blue-600">${totals.total.toFixed(2)}</span>
+                <span className="text-blue-600">{totals.total ? totals.total.toFixed(2) : "Unknown"}</span>
               </div>
               <div className="flex justify-between text-sm text-gray-500">
                 <span>Per Square</span>
-                <span>${totals.perSquare.toFixed(2)}</span>
+                <span>{totals.perSquare ? totals.perSquare.toFixed(2) : "Unknown"}</span>
               </div>
             </div>
           </div>
