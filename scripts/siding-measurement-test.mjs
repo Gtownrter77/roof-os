@@ -1,5 +1,9 @@
 import assert from 'node:assert/strict'
 
+function closeTo(actual, expected, tolerance = 1e-9) {
+  assert.ok(Math.abs(actual - expected) <= tolerance, `expected ${actual} to be within ${tolerance} of ${expected}`)
+}
+
 function calculateSection({ widthFt, stories, rows, exposureIn }) {
   assert.ok(widthFt > 0 && stories > 0 && rows > 0 && exposureIn > 0)
   const sidingHeightFt = rows * exposureIn / 12
@@ -16,15 +20,15 @@ function calculate(sections, wastePercent) {
 
 {
   const result = calculate([{ widthFt: 40, stories: 1, rows: 100, exposureIn: 8 }], 10)
-  assert.equal(result.results[0].sidingHeightFt, 66.66666666666667)
-  assert.equal(result.grossSqFt, 2666.666666666666667)
-  assert.equal(result.materialSqFt, 2933.333333333334)
+  closeTo(result.results[0].sidingHeightFt, 66.66666666666667)
+  closeTo(result.grossSqFt, 2666.6666666666667)
+  closeTo(result.materialSqFt, 2933.3333333333335)
 }
 
 {
   const result = calculate([{ widthFt: 40, stories: 1, rows: 96, exposureIn: 7.25 }], 0)
-  assert.equal(result.results[0].sidingHeightFt, 58)
-  assert.equal(result.grossSqFt, 2320)
+  closeTo(result.results[0].sidingHeightFt, 58)
+  closeTo(result.grossSqFt, 2320)
 }
 
 {
@@ -32,9 +36,10 @@ function calculate(sections, wastePercent) {
     { widthFt: 40, stories: 2, rows: 20, exposureIn: 8 },
     { widthFt: 30, stories: 1, rows: 15, exposureIn: 7.25 },
   ], 10)
-  assert.equal(result.results[0].grossSqFt, 1066.6666666666667)
-  assert.equal(result.results[1].grossSqFt, 271.875)
-  assert.equal(Number(result.materialSqFt.toFixed(3)), 1472.396)
+  closeTo(result.results[0].grossSqFt, 1066.6666666666667)
+  closeTo(result.results[1].grossSqFt, 271.875)
+  closeTo(result.grossSqFt, 1338.5416666666667)
+  closeTo(result.materialSqFt, 1472.3958333333335)
 }
 
 {
