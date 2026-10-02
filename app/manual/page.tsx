@@ -206,28 +206,28 @@ export default function ManualPage() {
         { 
           step: 1, 
           title: 'Building Codes', 
-          description: 'Access building codes for all 50 states.',
+          description: 'A local table is not a permit decision. Unknown unless a ZIP lookup returns a record.',
           action: 'Go to Codes',
           tip: 'Check local codes before estimating'
         },
         { 
           step: 2, 
           title: 'Insurance Intelligence', 
-          description: 'Check state appraisal laws, matching laws, and permit requirements.',
+          description: 'Insurance rules are Unknown until a saved record is loaded.',
           action: 'Go to Insurance Intel',
           tip: 'Enter address to check permit requirements'
         },
         { 
           step: 3, 
           title: 'Insurance Claims Directory', 
-          description: 'Quick dial insurance claims departments.',
+          description: 'A phone number is Unknown until it comes from a saved record.',
           action: 'Go to Insurance',
           tip: 'Save time with one-tap calling'
         },
         { 
           step: 4, 
           title: 'Permit Flagging', 
-          description: 'Auto-flag properties that need roof permits.',
+          description: 'No property is auto-flagged. Permit status is Unknown.',
           action: 'Enter address in Insurance Intel',
           tip: 'Always verify permit requirements'
         }
@@ -242,7 +242,7 @@ export default function ManualPage() {
         { 
           step: 1, 
           title: 'Dumpster Rentals', 
-          description: 'Find and order dumpsters near your job site.',
+          description: 'No dumpster order is placed from this screen.',
           action: 'Go to Logistics',
           tip: 'Rubber wheel trailers are preferred'
         },
