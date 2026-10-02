@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 export default function PricingConfigPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
-  const [lastUpdate, setLastUpdate] = useState<Date>(new Date())
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null)
   const [taxRates, setTaxRates] = useState({ state: 0, county: 0, city: 0, specialDistrict: 0 })
   const [taxSource, setTaxSource] = useState('Owner-entered jurisdiction rates')
   const [selectedState, setSelectedState] = useState('GA')
@@ -138,7 +138,7 @@ export default function PricingConfigPage() {
           <div className="flex justify-between items-center">
             <div>
               <p className="text-xs text-gray-500">Last Price Update</p>
-              <p className="font-bold text-sm">{lastUpdate.toLocaleString()}</p>
+              <p className="font-bold text-sm">{lastUpdate ? lastUpdate.toLocaleString() : "Unknown"}</p>
             </div>
             <button
               onClick={generateDailyPrices}
