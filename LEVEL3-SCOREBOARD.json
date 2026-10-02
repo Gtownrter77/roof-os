@@ -18,7 +18,7 @@
     },
     "level_3_production_shippable": {
       "status": "BLOCKED",
-      "evidence": "Live responsive contractor command center operating system deployed with zero-latency offline-resilient local persistence, interactive touch/mouse canvas e-signatures, progress invoice ledger, warranty tracking, and clean git synchronization state."
+      "evidence": "Source and CI evidence exist for the listed capabilities; production deployment and runtime acceptance are not fully verified."
     }
   },
   "twenty_weakest_links_resolved": [
@@ -150,7 +150,7 @@
       "file": "app/api/supplements/route.ts",
       "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED",
       "remediation": "Scoped PATCH supplement updates to explicitly match both the primary key and the caller current_workspace_id (.eq('id', body.id).eq('workspace_id', workspaceId)), preventing cross-tenant supplement state manipulation.",
-      "verification": "Release check and API security tests verify tenant isolation enforcement."
+      "verification": "Source-level remediation is present; runtime acceptance evidence remains required."
     },
     {
       "rank": 22,
@@ -160,7 +160,7 @@
       "file": "app/supplement/page.tsx",
       "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED",
       "remediation": "Corrected the supplement review execution in the UI from HTTP POST (which errored out requiring creation payload) to HTTP PATCH, restoring functional approve and reject actions with actionable user feedback.",
-      "verification": "Confirmed UI review calls dispatch PATCH to /api/supplements with status updates."
+      "verification": "Source-level remediation is present; runtime acceptance evidence remains required."
     },
     {
       "rank": 23,
@@ -170,7 +170,7 @@
       "file": "app/api/materials/route.ts",
       "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED",
       "remediation": "Sanitized user query strings before interpolating into PostgREST .or() filters by stripping commas, parentheses, colons, and wildcards, and clamping to 80 characters to prevent query corruption and 502 errors.",
-      "verification": "Verified material catalog route handles special characters safely without syntax errors."
+      "verification": "Source-level remediation is present; runtime acceptance evidence remains required."
     },
     {
       "rank": 24,
@@ -180,7 +180,7 @@
       "file": "app/api/storms/nws/route.ts",
       "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED",
       "remediation": "Replaced unbounded sequential insert loops with a single batch lookup against existing workspace source URLs, inserting only new candidates in a single batch query.",
-      "verification": "Verified storms API idempotently avoids duplicate storm_evidence rows on repeated queries."
+      "verification": "Source-level remediation is present; runtime acceptance evidence remains required."
     },
     {
       "rank": 25,
@@ -190,7 +190,7 @@
       "file": "app/api/team/invitations/route.ts",
       "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED",
       "remediation": "Added is_workspace_admin validation on both GET and POST endpoints for /api/team/invitations, returning a 403 response when non-admin members attempt to view or issue invitations.",
-      "verification": "Verified authorization checks prevent privilege escalation and unauthorized invitation inspection."
+      "verification": "Source-level remediation is present; runtime acceptance evidence remains required."
     },
     {
       "rank": 26,
@@ -200,7 +200,7 @@
       "file": "app/api/pricing/refresh/route.ts",
       "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED",
       "remediation": "Added dual-provider support to /api/pricing/refresh, enabling on-demand refresh for both Home Depot and Lowe's watchlist items with separate quota reservations and OAuth client credentials.",
-      "verification": "Verified pricing refresh route satisfies release-check requirements and handles both providers."
+      "verification": "Source-level remediation is present; runtime acceptance evidence remains required."
     },
     {
       "rank": 27,
@@ -210,7 +210,7 @@
       "file": "app/insurance/page.tsx, app/logistics/page.tsx, app/payment/page.tsx",
       "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED",
       "remediation": "Replaced blocking browser confirm() and alert() dialogs with non-blocking inline status banners and seamless direct dialing to maintain reliability in iframe and sandboxed environments.",
-      "verification": "Grep scan confirms no window.confirm or blocking alert calls in target secondary views."
+      "verification": "Source-level remediation is present; runtime acceptance evidence remains required."
     },
     {
       "rank": 28,
@@ -220,7 +220,7 @@
       "file": "app/drone/page.tsx, app/insurance-intel/page.tsx, app/templates/page.tsx, app/storms/page.tsx",
       "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED",
       "remediation": "Removed obsolete fixed bottom navigation bars from secondary views, restoring unified layout navigation and eliminating viewport overlaps and phantom tap targets.",
-      "verification": "Confirmed removal of fixed bottom nav elements across all modified views."
+      "verification": "Source-level remediation is present; runtime acceptance evidence remains required."
     },
     {
       "rank": 29,
@@ -230,7 +230,7 @@
       "file": "app/drone/page.tsx",
       "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED",
       "remediation": "Wired the drone inspection cockpit directly to POST /api/measurements/drone, saving real aerial capture telemetry (altitude, camera model, coordinates) into the workspace database ledger.",
-      "verification": "Verified aerial ingestion payload conforms to server schema and displays capture verification notices."
+      "verification": "Source-level remediation is present; runtime acceptance evidence remains required."
     },
     {
       "rank": 30,
@@ -240,7 +240,7 @@
       "file": "app/api/measurements/manual/route.ts",
       "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED",
       "remediation": "Added inspectionId and leadId parameter validation scoped to the caller workspace, allowing technicians to link manual roof measurements directly to ongoing inspection sessions.",
-      "verification": "Verified schema validation and insertion into inspection_measurements with workspace foreign key checks."
+      "verification": "Source-level remediation is present; runtime acceptance evidence remains required."
     }
   ],
   "thirty_weakest_links_resolved": [
@@ -372,7 +372,7 @@
       "file": "app/api/supplements/route.ts",
       "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED",
       "remediation": "Scoped PATCH supplement updates to explicitly match both the primary key and the caller current_workspace_id (.eq('id', body.id).eq('workspace_id', workspaceId)), preventing cross-tenant supplement state manipulation.",
-      "verification": "Release check and API security tests verify tenant isolation enforcement."
+      "verification": "Source-level remediation is present; runtime acceptance evidence remains required."
     },
     {
       "rank": 22,
@@ -382,7 +382,7 @@
       "file": "app/supplement/page.tsx",
       "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED",
       "remediation": "Corrected the supplement review execution in the UI from HTTP POST (which errored out requiring creation payload) to HTTP PATCH, restoring functional approve and reject actions with actionable user feedback.",
-      "verification": "Confirmed UI review calls dispatch PATCH to /api/supplements with status updates."
+      "verification": "Source-level remediation is present; runtime acceptance evidence remains required."
     },
     {
       "rank": 23,
@@ -392,7 +392,7 @@
       "file": "app/api/materials/route.ts",
       "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED",
       "remediation": "Sanitized user query strings before interpolating into PostgREST .or() filters by stripping commas, parentheses, colons, and wildcards, and clamping to 80 characters to prevent query corruption and 502 errors.",
-      "verification": "Verified material catalog route handles special characters safely without syntax errors."
+      "verification": "Source-level remediation is present; runtime acceptance evidence remains required."
     },
     {
       "rank": 24,
@@ -402,7 +402,7 @@
       "file": "app/api/storms/nws/route.ts",
       "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED",
       "remediation": "Replaced unbounded sequential insert loops with a single batch lookup against existing workspace source URLs, inserting only new candidates in a single batch query.",
-      "verification": "Verified storms API idempotently avoids duplicate storm_evidence rows on repeated queries."
+      "verification": "Source-level remediation is present; runtime acceptance evidence remains required."
     },
     {
       "rank": 25,
@@ -412,7 +412,7 @@
       "file": "app/api/team/invitations/route.ts",
       "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED",
       "remediation": "Added is_workspace_admin validation on both GET and POST endpoints for /api/team/invitations, returning a 403 response when non-admin members attempt to view or issue invitations.",
-      "verification": "Verified authorization checks prevent privilege escalation and unauthorized invitation inspection."
+      "verification": "Source-level remediation is present; runtime acceptance evidence remains required."
     },
     {
       "rank": 26,
@@ -422,7 +422,7 @@
       "file": "app/api/pricing/refresh/route.ts",
       "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED",
       "remediation": "Added dual-provider support to /api/pricing/refresh, enabling on-demand refresh for both Home Depot and Lowe's watchlist items with separate quota reservations and OAuth client credentials.",
-      "verification": "Verified pricing refresh route satisfies release-check requirements and handles both providers."
+      "verification": "Source-level remediation is present; runtime acceptance evidence remains required."
     },
     {
       "rank": 27,
@@ -432,7 +432,7 @@
       "file": "app/insurance/page.tsx, app/logistics/page.tsx, app/payment/page.tsx",
       "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED",
       "remediation": "Replaced blocking browser confirm() and alert() dialogs with non-blocking inline status banners and seamless direct dialing to maintain reliability in iframe and sandboxed environments.",
-      "verification": "Grep scan confirms no window.confirm or blocking alert calls in target secondary views."
+      "verification": "Source-level remediation is present; runtime acceptance evidence remains required."
     },
     {
       "rank": 28,
@@ -442,7 +442,7 @@
       "file": "app/drone/page.tsx, app/insurance-intel/page.tsx, app/templates/page.tsx, app/storms/page.tsx",
       "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED",
       "remediation": "Removed obsolete fixed bottom navigation bars from secondary views, restoring unified layout navigation and eliminating viewport overlaps and phantom tap targets.",
-      "verification": "Confirmed removal of fixed bottom nav elements across all modified views."
+      "verification": "Source-level remediation is present; runtime acceptance evidence remains required."
     },
     {
       "rank": 29,
@@ -452,7 +452,7 @@
       "file": "app/drone/page.tsx",
       "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED",
       "remediation": "Wired the drone inspection cockpit directly to POST /api/measurements/drone, saving real aerial capture telemetry (altitude, camera model, coordinates) into the workspace database ledger.",
-      "verification": "Verified aerial ingestion payload conforms to server schema and displays capture verification notices."
+      "verification": "Source-level remediation is present; runtime acceptance evidence remains required."
     },
     {
       "rank": 30,
@@ -462,7 +462,7 @@
       "file": "app/api/measurements/manual/route.ts",
       "status": "IMPLEMENTED_NOT_RUNTIME_VERIFIED",
       "remediation": "Added inspectionId and leadId parameter validation scoped to the caller workspace, allowing technicians to link manual roof measurements directly to ongoing inspection sessions.",
-      "verification": "Verified schema validation and insertion into inspection_measurements with workspace foreign key checks."
+      "verification": "Source-level remediation is present; runtime acceptance evidence remains required."
     }
   ],
   "remediated_count": 30,
