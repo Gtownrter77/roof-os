@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 
 const root = new URL('..', import.meta.url).pathname
 const migration = readFileSync(new URL('../supabase/migrations/039_crm_missing_spokes.sql', import.meta.url), 'utf8')
-const atomicity = readFileSync(new URL('../supabase/migrations/040_inspection_activity_atomicity.sql', import.meta.url), 'utf8')
+const atomicity = readFileSync(new URL('../supabase/migrations/043_inspection_activity_atomicity.sql', import.meta.url), 'utf8')
 const detail = readFileSync(new URL('../app/leads/[id]/page.tsx', import.meta.url), 'utf8')
 const list = readFileSync(new URL('../app/leads/LeadsClient.tsx', import.meta.url), 'utf8')
 const create = readFileSync(new URL('../app/leads/new/page.tsx', import.meta.url), 'utf8')
