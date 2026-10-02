@@ -2,7 +2,7 @@
 
 ## 2026-10-02 Post-MFA Remediation Addendum
 
-**Actual main after remediation merge:** `5d6e61498ad3b4c3477bbdf1918270ef4d9488fd`
+**Actual main after evidence-sync merge:** `7918fa5e7c277b9e2c8d2b6c3686a0dee85ff425`
 
 PR #65 was merged after the full repository CI workflow passed: web, preview-build, mobile, and migration-safety all succeeded.
 
