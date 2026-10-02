@@ -55,3 +55,13 @@ for (const required of [
 ]) {
   if (!atomicity.includes(required)) throw new Error(`Missing atomic inspection continuity: ${required}`)
 }
+
+const ownerIntegrity = readFileSync(new URL('../supabase/migrations/044_lead_next_action_owner_integrity.sql', import.meta.url), 'utf8')
+for (const required of [
+  'ensure_lead_next_action_owner',
+  'leads_next_action_owner_workspace_guard',
+  'new.workspace_id is not null and new.next_action_owner_id is not null',
+  'Next action owner must be a member of the lead workspace',
+]) {
+  if (!ownerIntegrity.includes(required)) throw new Error(`Missing next-action owner integrity guard: ${required}`)
+}
