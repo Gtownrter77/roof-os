@@ -18,7 +18,7 @@ jobs:
       - run: npm ci
       - run: npm ci
         working-directory: apps/field
-      - run: npm audit --prefix apps/field --audit-level=moderate
+      - run: node scripts/audit-field-deps.mjs
       - run: npm run build
         env:
           NEXT_PUBLIC_SUPABASE_URL: https://validation.supabase.co
