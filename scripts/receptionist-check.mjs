@@ -32,4 +32,7 @@ for (const forbidden of ['payments.invalid', 'mockCreatePaymentLink', 'mockInbou
   assert.equal(source.includes(forbidden), false, `forbidden mock marker: ${forbidden}`)
 }
 for (const marker of ['stripe.webhooks.constructEvent', 'validateRequest', 'receptionist_consents', 'receptionist_events', 'idempotencyKey', 'OPENAI_API_KEY', 'book_receptionist_appointment', 'allowBargeIn']) assert.ok(source.includes(marker), marker)
+const receptionistActions = readFileSync('lib/receptionist-actions.ts', 'utf8')
+assert.ok(receptionistActions.includes(".eq('workspace_id', input.workspaceId)"), 'receptionist lead lookup must be workspace-scoped')
+assert.ok(receptionistActions.includes('workspace_id: input.workspaceId'), 'receptionist lead creation must persist the configured workspace')
 console.log('receptionist-check: PASS')
