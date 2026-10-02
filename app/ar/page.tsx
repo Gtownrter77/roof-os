@@ -19,7 +19,7 @@ export default function ARPage() {
   const startARScan = () => {
     setScanning(true)
     setTimeout(() => {
-      setDetectedIssues(arIssues.slice(0, Math.floor(Math.random() * 3) + 2))
+      setDetectedIssues([])
       setScanning(false)
     }, 3000)
   }
@@ -30,7 +30,7 @@ export default function ARPage() {
         <div className="px-4 py-3 flex items-center">
           <button onClick={() => router.back()} className="text-white mr-3 text-xl">←</button>
           <h1 className="text-xl font-bold">🛸 AR Roof Scanner</h1>
-          <span className="ml-2 bg-green-500 text-white text-xs px-2 py-0.5 rounded-full animate-pulse">LIVE</span>
+          <span className="ml-2 bg-green-500 text-white text-xs px-2 py-0.5 rounded-full animate-pulse">CONCEPT PREVIEW</span>
         </div>
       </header>
 
@@ -45,8 +45,8 @@ export default function ARPage() {
                   key={i}
                   className="absolute animate-pulse"
                   style={{
-                    top: `${20 + Math.random() * 60}%`,
-                    left: `${20 + Math.random() * 60}%`,
+                    top: '35%',
+                    left: '45%',
                   }}
                 >
                   <span className="text-3xl">{issue.type}</span>
@@ -56,7 +56,7 @@ export default function ARPage() {
                 </div>
               ))}
               <div className="absolute bottom-0 left-0 right-0 text-center text-xs text-cyan-300">
-                {scanning ? '🔍 Scanning with LiDAR...' : '👆 Tap to scan'}
+                {scanning ? '🔍 Scanning with LiDAR...' : 'Concept preview only — no inspection findings are generated.'}
               </div>
             </div>
           </div>
@@ -65,8 +65,8 @@ export default function ARPage() {
         {/* AR Controls */}
         <div className="grid grid-cols-3 gap-2 mb-4">
           <button 
-            onClick={startARScan}
-            disabled={scanning}
+            onClick={() => router.push('/measure')}
+            disabled={false}
             className="bg-gradient-to-r from-cyan-500 to-blue-600 text-white p-3 rounded-lg font-semibold disabled:opacity-50"
           >
             {scanning ? '⏳ Scanning' : '🔍 AR Scan'}

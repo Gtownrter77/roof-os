@@ -83,16 +83,14 @@ export default function PhotoVerifyPage() {
         const reader = new FileReader()
         reader.onload = (event) => {
           if (event.target?.result) {
-            const types = requiredPhotos.map(r => r.id)
-            const randomType = types[Math.floor(Math.random() * types.length)]
             newPhotos.push({
-              id: Date.now() + Math.random(),
+              id: crypto.randomUUID(),
               url: event.target.result as string,
-              type: randomType,
-              label: requiredPhotos.find(r => r.id === randomType)?.label || randomType,
+              type: 'unclassified',
+              label: 'Unclassified — choose a category',
               timestamp: new Date().toISOString(),
-              aiVerified: Math.random() > 0.2,
-              quality: ['Excellent', 'Good', 'Acceptable'][Math.floor(Math.random() * 3)]
+              aiVerified: false,
+              quality: 'Unrated'
             })
             if (newPhotos.length === files.length) {
               setPhotos([...photos, ...newPhotos])
@@ -102,6 +100,14 @@ export default function PhotoVerifyPage() {
         reader.readAsDataURL(file)
       })
     }
+  }
+
+  const updatePhotoType = (id: string, type: string) => {
+    setPhotos((current) => current.map((photo) => photo.id === id ? {
+      ...photo,
+      type,
+      label: requiredPhotos.find((item) => item.id === type)?.label ?? type,
+    } : photo))
   }
 
   const getCoverageColor = (percentage: number) => {
@@ -123,7 +129,7 @@ export default function PhotoVerifyPage() {
         <div className="px-4 py-3 flex items-center">
           <button onClick={() => router.back()} className="text-white mr-3 text-xl">←</button>
           <h1 className="text-xl font-bold">📸 AI Photo Verification</h1>
-          <span className="ml-2 bg-green-500 text-white text-xs px-2 py-0.5 rounded-full animate-pulse">AI</span>
+          <span className="ml-2 bg-green-500 text-white text-xs px-2 py-0.5 rounded-full animate-pulse">REVIEW-GATED</span>
         </div>
       </header>
 
@@ -162,8 +168,11 @@ export default function PhotoVerifyPage() {
               {photos.map((photo) => (
                 <div key={photo.id} className="relative">
                   <img src={photo.url} alt={photo.label} className="w-full h-24 object-cover rounded border-2 border-blue-200" />
-                  <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[8px] p-1 truncate">
-                    {photo.label}
+                  <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white text-[8px] p-1">
+                    <select value={photo.type} onChange={(event) => updatePhotoType(photo.id, event.target.value)} className="w-full bg-transparent text-white text-[8px]">
+                      <option value="unclassified" className="text-black">Choose category</option>
+                      {requiredPhotos.map((item) => <option key={item.id} value={item.id} className="text-black">{item.label}</option>)}
+                    </select>
                   </div>
                   {photo.aiVerified && (
                     <span className="absolute top-1 right-1 text-xs bg-green-500 text-white rounded-full px-1">✓</span>

@@ -77,7 +77,7 @@ export default function AIWizardPage() {
           foundAnswer = {
             topic: key,
             ...value,
-            confidence: Math.floor(Math.random() * 20) + 80
+            confidence: null
           }
           break
         }
@@ -104,7 +104,7 @@ export default function AIWizardPage() {
         <div className="px-4 py-3 flex items-center">
           <button onClick={() => router.back()} className="text-white mr-3 text-xl">←</button>
           <h1 className="text-xl font-bold">🧙 AI Construction Wizard</h1>
-          <span className="ml-2 bg-green-500 text-white text-xs px-2 py-0.5 rounded-full animate-pulse">GPT</span>
+          <span className="ml-2 bg-green-500 text-white text-xs px-2 py-0.5 rounded-full animate-pulse">REFERENCE AI</span>
         </div>
       </header>
 
@@ -145,9 +145,9 @@ export default function AIWizardPage() {
                   <p className="text-xs text-gray-500">AI Response</p>
                   <p className="text-sm text-gray-700 mt-1">{response.answer}</p>
                 </div>
-                <span className="bg-green-100 text-green-800 text-xs px-2 py-0.5 rounded">
-                  {response.confidence}% confidence
-                </span>
+                {response.confidence !== null && (
+                  <span className="bg-green-100 text-green-800 text-xs px-2 py-0.5 rounded">{response.confidence}% confidence</span>
+                )}
               </div>
               
               {response.code && (

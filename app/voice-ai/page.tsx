@@ -23,6 +23,23 @@ export default function VoiceAI() {
     'Predict future damage'
   ]
 
+  const startVoiceRecognition = () => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    if (!SpeechRecognition) {
+      setResponse('Voice recognition is not available in this browser.')
+      return
+    }
+    const recognition = new SpeechRecognition()
+    recognition.lang = 'en-US'
+    recognition.interimResults = false
+    recognition.maxAlternatives = 1
+    setIsListening(true)
+    recognition.onresult = (event: any) => processVoiceCommand(event.results[0][0].transcript)
+    recognition.onerror = () => { setResponse('Voice recognition failed. Please try again.'); setIsListening(false) }
+    recognition.onend = () => setIsListening(false)
+    recognition.start()
+  }
+
   const processVoiceCommand = (text: string) => {
     setCommand(text)
     setIsListening(true)
@@ -54,7 +71,7 @@ export default function VoiceAI() {
         <div className="px-4 py-3 flex items-center">
           <button onClick={() => router.back()} className="text-white mr-3 text-xl">←</button>
           <h1 className="text-xl font-bold">🎤 AI Voice Command</h1>
-          <span className="ml-2 bg-green-500 text-white text-xs px-2 py-0.5 rounded-full animate-pulse">LIVE</span>
+          <span className="ml-2 bg-green-500 text-white text-xs px-2 py-0.5 rounded-full animate-pulse">BROWSER VOICE</span>
         </div>
       </header>
 
@@ -64,15 +81,11 @@ export default function VoiceAI() {
             {isListening ? '🎤' : '🤖'}
           </div>
           <p className="font-semibold">Tap the button and speak your command</p>
-          <p className="text-xs text-gray-400">AI-powered voice recognition</p>
+          <p className="text-xs text-gray-400">Browser speech recognition; commands are routed to existing ROOF/OS workflows.</p>
         </div>
 
         <button 
-          onClick={() => {
-            // Simulate voice input
-            const randomCommand = voiceCommands[Math.floor(Math.random() * voiceCommands.length)]
-            processVoiceCommand(randomCommand)
-          }}
+          onClick={startVoiceRecognition}
           disabled={isListening}
           className={`w-full py-4 rounded-lg font-semibold text-lg ${
             isListening ? 'bg-red-600 text-white' : 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white'

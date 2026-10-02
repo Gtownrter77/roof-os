@@ -2,33 +2,23 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { createClient } from '../../lib/supabase/client'
 
 export default function ActivityPage() {
   const router = useRouter()
-  const [activities, setActivities] = useState([
-    { id: 1, user: 'John Doe', action: 'Created new lead', target: '123 Main St', time: 'Just now', icon: '➕' },
-    { id: 2, user: 'Jane Smith', action: 'Completed inspection', target: '456 Oak Ave', time: '2 min ago', icon: '✅' },
-    { id: 3, user: 'Bob Johnson', action: 'Approved report', target: '789 Pine Rd', time: '5 min ago', icon: '📄' },
-  ])
+  const supabase = createClient()
+  const [activities, setActivities] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      const users = ['John', 'Jane', 'Bob', 'Sarah']
-      const actions = ['Created lead', 'Updated status', 'Added photo', 'Sent email']
-      const icons = ['➕', '📝', '📷', '📧']
-      
-      const newActivity = {
-        id: Date.now(),
-        user: users[Math.floor(Math.random() * users.length)],
-        action: actions[Math.floor(Math.random() * actions.length)],
-        target: `Activity ${Math.floor(Math.random() * 100)}`,
-        time: 'Just now',
-        icon: icons[Math.floor(Math.random() * icons.length)]
-      }
-      setActivities(prev => [newActivity, ...prev.slice(0, 9)])
-    }, 10000)
-    
-    return () => clearInterval(interval)
+    const load = async () => {
+      const { data, error: queryError } = await supabase.from('lead_activity').select('id,lead_id,kind,body,created_at').order('created_at', { ascending: false }).limit(50)
+      if (queryError) setError(queryError.message)
+      else setActivities(data ?? [])
+      setLoading(false)
+    }
+    void load()
   }, [])
 
   return (
@@ -43,28 +33,22 @@ export default function ActivityPage() {
       <main className="p-4">
         <div className="flex justify-between items-center mb-4">
           <p className="text-sm text-gray-500">{activities.length} recent activities</p>
-          <span className="text-xs text-green-500">🟢 Live</span>
+          <span className="text-xs text-gray-500">Workspace activity</span>
         </div>
 
         <div className="space-y-3">
+          {loading && <p className="text-sm text-gray-500">Loading workspace activity…</p>}
+          {error && <p className="text-sm text-red-600">{error}</p>}
+          {!loading && !error && activities.length === 0 && <p className="text-sm text-gray-500">No lead activity recorded yet.</p>}
           {activities.map((activity) => (
             <div key={activity.id} className="bg-white rounded-lg shadow p-4">
-              <div className="flex items-start space-x-3">
-                <span className="text-2xl">{activity.icon}</span>
-                <div className="flex-1">
-                  <p className="text-sm">
-                    <span className="font-semibold">{activity.user}</span>
-                    {' '}{activity.action}
-                    {' '}
-                    <span className="text-blue-600 font-medium">{activity.target}</span>
-                  </p>
-                  <p className="text-xs text-gray-400 mt-1">{activity.time}</p>
-                </div>
-              </div>
+              <p className="text-sm font-medium">{activity.kind.replaceAll('_', ' ')}</p>
+              <p className="text-sm text-gray-700 mt-1">{activity.body || 'Activity recorded.'}</p>
+              <p className="text-xs text-gray-400 mt-1">{new Date(activity.created_at).toLocaleString()}</p>
+              <button onClick={() => router.push('/leads/' + activity.lead_id)} className="text-xs text-blue-600 mt-2">Open lead</button>
             </div>
           ))}
-        </div>
-      </main>
+        </div>     </main>
 
       <nav className="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around py-2 px-4">
         <button onClick={() => router.push('/')} className="flex flex-col items-center text-gray-400">
