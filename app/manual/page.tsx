@@ -69,7 +69,7 @@ export default function ManualPage() {
         { 
           step: 2, 
           title: 'Lead Status Tracking', 
-          description: 'Track leads through the pipeline: New → Assigned → Contacting → Qualified → Inspection Scheduled → Inspected → Report Pending → Report Approved → Estimate → Won/Lost.',
+          description: 'Saved lead statuses are new, assigned, qualified, inspection_scheduled, inspected, report_pending, report_approved, won, and lost. A status changes only when a person saves it.',
           action: 'Update status in lead details',
           tip: 'Keep statuses updated for accurate pipeline'
         },
