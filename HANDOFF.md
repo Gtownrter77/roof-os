@@ -576,3 +576,16 @@ On branch `upgrade/admin-page-20261002`:
 - Home Depot list no longer shows prices. Price stays Unknown.
 - Integrations, manual, notifications, plans, and predict are labeled local. They are not a live record.
 - `npx tsc --noEmit` passed. Not merged. Signed-in check is still open.
+
+## Checkpoint record, 2026-10-02
+
+- Commit: `fix: label files 7-15 and remove unapproved prices`
+- Full SHA: `5114603e044cac7957e1ac3521e65b5247fd1247`
+- Branch: `upgrade/files-7-15-20261002`
+- Branch URL: https://github.com/Gtownrter77/roof-os/tree/upgrade/files-7-15-20261002
+- Local check: `npx tsc --noEmit` passed before this commit.
+- Remote SHA match: `git ls-remote` returned `5114603e044cac7957e1ac3521e65b5247fd1247` for this branch.
+- `main` SHA: `6df7c849150423ccdfead732a5b2868c57974533`. This branch is not merged.
+- Open gate: signed-in production check. Not run. Not a pass.
+- Production: not verified. Local typecheck is not deployment evidence.
+- Next action: do not merge until the signed-in check is done.
