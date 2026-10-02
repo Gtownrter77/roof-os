@@ -9,7 +9,7 @@ security definer
 set search_path = public
 as $$
 begin
-  if new.next_action_owner_id is not null then
+  if new.workspace_id is not null and new.next_action_owner_id is not null then
     if not exists (
       select 1
       from public.workspace_members wm
