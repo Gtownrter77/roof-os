@@ -178,7 +178,7 @@ export default function InsurancePage() {
                   onClick={() => quickDial(company.claims, company.name)}
                   className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-semibold flex items-center"
                 >
-                  📞 Call
+                  Dial unverified number
                 </button>
               </div>
               <div className="mt-2 flex gap-2">
@@ -210,7 +210,7 @@ export default function InsurancePage() {
         {/* Call Log */}
         {callLog.length > 0 && (
           <div className="mt-4 bg-white rounded-lg shadow-lg p-4">
-            <h3 className="font-semibold text-sm mb-3">📜 Recent Calls</h3>
+            <h3 className="font-semibold text-sm mb-3">Dial attempts</h3><p className="text-xs text-gray-500 mb-2">A dial attempt is not a confirmed call.</p>
             {callLog.map((call, i) => (
               <div key={i} className="flex justify-between items-center border-b py-2">
                 <div>
