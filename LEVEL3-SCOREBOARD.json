@@ -1,22 +1,23 @@
 {
   "evidence_date": "2026-10-02T16:36:00Z",
   "repository": "Gtownrter77/roof-os",
-  "baseline_commit": "7918fa5e7c277b9e2c8d2b6c3686a0dee85ff425",
+  "baseline_commit": "ede543e47fa9b3fadc08fa2f0977bda340422fa2",
   "production_status": "CONDITIONAL_NOT_FULLY_VERIFIED",
+  "current_evidence_note": "GitHub CI passes for the remediation head, but production deployment is blocked by Vercel build-rate limiting. Runtime tenant-isolation, invitation delivery/acceptance, provider execution, physical mobile verification, and direct Vercel inspection remain unverified. The repository also contains intentionally deferred or review-gated workflows; these are not production-complete merely because code exists.",
   "three_level_check": {
     "level_1_security_and_code": {
-      "status": "VERIFIED",
+      "status": "PARTIAL",
       "tests_passed": 6,
       "total_tests": 6,
       "evidence": "release-check, security-check, api-security-test, photo-estimate-flow-test, mobile-offline-sync-test, and mobile-release-check all pass with zero errors.",
       "security_posture": "Strict Content-Security-Policy (no unsafe-eval), bounded JSON streaming reader (64KB max), authenticated RPC boundaries, elimination of window.alert sandbox violations, and consolidated RLS least-privilege enforcement."
     },
     "level_2_roofing_workflows": {
-      "status": "VERIFIED",
+      "status": "PARTIAL",
       "evidence": "Roof Passport property-first digital twin, 2021 IRC building code statutory citations for insurance supplements, owner price book margin guard (35% floor), pitch multiplier geometry (4/12 to 12/12), 3-stage progress billing (50/30/20), and manufacturer Golden Pledge warranty checklists verified."
     },
     "level_3_production_shippable": {
-      "status": "VERIFIED",
+      "status": "BLOCKED",
       "evidence": "Live responsive contractor command center operating system deployed with zero-latency offline-resilient local persistence, interactive touch/mouse canvas e-signatures, progress invoice ledger, warranty tracking, and clean git synchronization state."
     }
   },
