@@ -95,7 +95,7 @@ export default function TranslatePage() {
           <div className="flex items-center">
             <span className="text-3xl mr-3">🌐</span>
             <div>
-              <h3 className="font-semibold">Multi-Language Translation</h3>
+              <h3 className="font-semibold">Word list</h3>
               <p className="text-xs text-gray-500">Translate estimates, reports, and communications</p>
             </div>
           </div>
@@ -149,7 +149,7 @@ export default function TranslatePage() {
         {translated && (
           <div className="mt-4 bg-white rounded-lg shadow-lg p-4 border-2 border-green-500">
             <h3 className="font-semibold text-sm mb-2 flex items-center">
-              <span className="text-xl mr-2">📝</span> Translation
+              <span className="text-xl mr-2">📝</span> Word list result
             </h3>
             <p className="text-gray-700">{translated}</p>
             <div className="mt-3 flex gap-2">
