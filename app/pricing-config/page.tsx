@@ -106,7 +106,7 @@ export default function PricingConfigPage() {
 
   const saveConfiguration = async () => {
     setSaveMessage('Saving owner-managed labor rates and local tax…')
-    const response = await fetch('/api/pricing/labor-rates', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ rates: Object.fromEntries(Object.entries(laborRates).map(([key, value]) => [key, value.rate])), market: selectedState, taxRates, taxSource }) })
+    const response = await fetch('/api/pricing/labor-rates', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ rates: Object.fromEntries(Object.entries(laborRates).filter(([, value]) => Number(value.rate) > 0).map(([key, value]) => [key, value.rate])), market: selectedState, taxRates, taxSource }) })
     const payload = await response.json()
     if (response.ok) setLastUpdate(new Date())
     setSaveMessage(response.ok ? `Saved labor rates and ${payload.localTaxRate}% combined jurisdiction tax as draft price book ${payload.priceBookId}. Review and activate before use.` : (payload.error ?? 'Could not save pricing configuration.'))
