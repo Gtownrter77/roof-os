@@ -40,6 +40,12 @@ The requested authenticated MFA → lead → estimate production workflow has st
 
 Supabase security advisors currently report six authenticated SECURITY DEFINER functions and leaked-password protection disabled. These require backend review; they are not, by themselves, evidence of a tenant-isolation bypass.
 
+### Current product-truth findings
+
+- `app/ai/page.tsx` is a simulated report generator: it uses hard-coded inspection data, a local timeout instead of an AI/backend call, and non-functional approval buttons. It is not listed in `PrototypeNotice.tsx` or the prototype guardrail test on current `main`.
+- The current `main` sources for `/chat`, `/export`, `/search`, `/portal`, `/invoices`, and `/notifications` contain hard-coded customer/activity data and no Supabase/API data loading. Those routes are also not currently listed in the prototype disclosure set checked by the source audit.
+- These findings are source-level product-truth defects. They do not establish how production currently behaves because browser/runtime deployment access remains unavailable.
+
 ### Current verification rule
 
 Do not label production behavior VERIFIED unless the behavior was directly exercised and the evidence is recorded. Schema/migration presence is evidence of deployment, not proof of end-to-end application behavior.
