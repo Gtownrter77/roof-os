@@ -31,7 +31,7 @@ for (const required of [
   if (!migration.includes(required)) throw new Error(`Missing CRM guard/trigger: ${required}`)
 }
 
-for (const required of ['Next action', 'Lost reason', 'lead_score', 'Save next action']) {
+for (const required of ['Next action', 'Lost reason', 'lead_score', 'Save next action', 'appointment_scheduled', 'inspection_started']) {
   if (!detail.includes(required)) throw new Error(`Lead detail missing CRM UI: ${required}`)
 }
 
