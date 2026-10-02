@@ -39,8 +39,30 @@ export async function POST(request: NextRequest) {
       const errorMessage = callError instanceof Error ? callError.message : 'Twilio call failed'
       await admin.from('receptionist_call_attempts').update({ status: 'failed' }).eq('id', attempt.id).eq('status', 'ringing')
       await admin.from('receptionist_events').upsert({ workspace_id: attempt.workspace_id, event_key: `followup:${attempt.id}:failed`, event_type: 'follow_up.failed', provider: 'twilio', payload: { attemptId: attempt.id, error: errorMessage } }, { onConflict: 'workspace_id,event_key' })
+
+      const maxAttempts = 3
+      if (attempt.attempt_number < maxAttempts) {
+        const nextAttemptNumber = attempt.attempt_number + 1
+        const backoffHours = attempt.attempt_number === 1 ? 1 : 4
+        const nextAttemptAt = new Date(Date.now() + backoffHours * 60 * 60 * 1000).toISOString()
+        const { error: retryError } = await admin.from('receptionist_call_attempts').insert({
+          workspace_id: attempt.workspace_id,
+          lead_id: attempt.lead_id,
+          phone: attempt.phone,
+          direction: 'outbound',
+          attempt_number: nextAttemptNumber,
+          status: 'queued',
+          next_attempt_at: nextAttemptAt,
+        })
+        if (retryError) {
+          failures.push({ attemptId: attempt.id, error: `${errorMessage}; retry scheduling failed: ${retryError.message}` })
+        }
+      }
+
       failed += 1
-      failures.push({ attemptId: attempt.id, error: errorMessage })
+      if (!failures.some((failure) => failure.attemptId === attempt.id)) {
+        failures.push({ attemptId: attempt.id, error: errorMessage })
+      }
     }
   }
 
