@@ -15,6 +15,7 @@ for (const marker of [
   'already exists|duplicate',
   'client_id: measurement.client_id',
   'client_id: photo.client_id',
+  'UPGRADES ONLY · NO REGRESSIONS',
 ]) assert.ok(app.includes(marker), `app contract missing: ${marker}`)
 for (const marker of [
   'inspection_sessions_workspace_client_uidx',
