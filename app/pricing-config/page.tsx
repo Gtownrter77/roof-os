@@ -58,9 +58,18 @@ export default function PricingConfigPage() {
 
   const stateCodes = ['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY']
 
-  const generateDailyPrices = () => {
-    setLoading(false)
+  const generateDailyPrices = async () => {
+    setLoading(true)
     setDailyPrices(null)
+    try {
+      const response = await fetch('/api/pricing/refresh', { method: 'POST' })
+      const payload = await response.json()
+      setSaveMessage(response.ok ? `Price refresh finished. Saved rows: ${payload.saved ?? payload.results?.length ?? 0}.` : (payload.error ?? 'Price source is not connected.'))
+    } catch {
+      setSaveMessage('Price source is not connected.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const updateLaborRate = (jobType: string, rate: string) => {
@@ -145,7 +154,7 @@ export default function PricingConfigPage() {
               disabled={loading}
               className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold disabled:opacity-50"
             >
-              {loading ? '⏳ Loading...' : '🔄 Connect a price source'}
+              {loading ? '⏳ Loading...' : '🔄 Refresh saved watchlist'}
             </button>
           </div>
         </div>
