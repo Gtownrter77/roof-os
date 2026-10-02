@@ -6,6 +6,7 @@ const PROTOTYPE_PATHS = [
   '/quantum', '/genetic', '/vr', '/ar', '/pitch-gauge', '/voice-ai', '/ai-wizard', '/photo-verify',
   '/portal', '/schedule', '/drone', '/invoices', '/sign', '/integrations', '/admin', '/pricing', '/exterior',
   '/deck', '/siding', '/repair', '/doors-windows', '/manual', '/logistics', '/homedepot', '/insurance', '/insurance-intel',
+  '/chat', '/notifications', '/status',
 ]
 
 export default function PrototypeNotice() {
