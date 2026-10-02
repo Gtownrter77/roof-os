@@ -32,75 +32,12 @@ export default function ExteriorPage() {
     'Zinc'
   ]
 
-  const calculateEstimate = () => {
-    setLoading(true)
-    
-    setTimeout(() => {
-      const linearFeet = measurements.linearFeet || 100
-      const stories = measurements.stories || 2
-      const downspouts = measurements.downspouts || Math.ceil(linearFeet / 40)
-      
-      // Pricing calculations
-      const gutterPricing = {
-        'Seamless Aluminum': 6.50,
-        'Copper': 18.00,
-        'Steel': 8.00,
-        'Vinyl': 4.50,
-        'Zinc': 14.00
-      }
-      
-      const baseGutterPrice = gutterPricing[measurements.gutterType as keyof typeof gutterPricing] || 6.50
-      const gutterCost = linearFeet * baseGutterPrice
-      const downspoutCost = downspouts * 45
-      const laborCost = linearFeet * 3.50
-      
-      // Additional components
-      let guardCost = 0
-      let coverCost = 0
-      let copperCost = 0
-      let soffitCost = 0
-      let fasciaCost = 0
-      let chimneyCost = 0
-      
-      if (measurements.hasGuards) guardCost = linearFeet * 4.00
-      if (measurements.hasCovers) coverCost = linearFeet * 3.00
-      if (measurements.hasCopper) copperCost = linearFeet * 2.50
-      if (measurements.hasSoffit) soffitCost = linearFeet * 8.00
-      if (measurements.hasFascia) fasciaCost = linearFeet * 7.00
-      
-      if (measurements.hasChimney) {
-        chimneyCost = measurements.chimneyCount * (measurements.chimneyHeight * 25 + 500)
-      }
-      
-      const totalMaterials = gutterCost + downspoutCost + guardCost + coverCost + copperCost + soffitCost + fasciaCost + chimneyCost
-      const totalLabor = laborCost + (measurements.hasChimney ? measurements.chimneyCount * 300 : 0)
-      const overhead = totalMaterials * 0.15
-      const profit = (totalMaterials + totalLabor + overhead) * 0.10
-      const total = totalMaterials + totalLabor + overhead + profit
-      
-      setEstimate({
-        breakdown: [
-          { item: 'Gutters', cost: gutterCost, unit: 'linear ft', quantity: linearFeet, price: baseGutterPrice },
-          { item: 'Downspouts', cost: downspoutCost, unit: 'each', quantity: downspouts, price: 45 },
-          { item: 'Gutter Guards', cost: guardCost, unit: 'linear ft', quantity: linearFeet, price: 4.00 },
-          { item: 'Gutter Covers', cost: coverCost, unit: 'linear ft', quantity: linearFeet, price: 3.00 },
-          { item: 'Copper Accents', cost: copperCost, unit: 'linear ft', quantity: linearFeet, price: 2.50 },
-          { item: 'Soffit', cost: soffitCost, unit: 'linear ft', quantity: linearFeet, price: 8.00 },
-          { item: 'Fascia', cost: fasciaCost, unit: 'linear ft', quantity: linearFeet, price: 7.00 },
-          { item: 'Chimney Work', cost: chimneyCost, unit: 'each', quantity: measurements.chimneyCount, price: 'varies' },
-          { item: 'Labor', cost: totalLabor, unit: 'hours', quantity: Math.round(totalLabor / 55), price: 55 },
-        ],
-        totalMaterials: totalMaterials,
-        totalLabor: totalLabor,
-        overhead: overhead,
-        profit: profit,
-        grandTotal: total,
-        perLinearFoot: total / linearFeet,
-        squareFootage: linearFeet * 0.5,
-      })
-      
-      setLoading(false)
-    }, 2000)
+  const calculateEstimate = async () => {
+    if (!Number.isFinite(measurements.linearFeet) || measurements.linearFeet <= 0) {
+      setSaveMessage('Enter measured linear feet before saving. No default quantity is assumed.')
+      return
+    }
+    await saveMeasurement()
   }
 
   const formatCurrency = (num: number) => {
@@ -123,7 +60,7 @@ export default function ExteriorPage() {
         <div className="px-4 py-3 flex items-center">
           <button onClick={() => router.back()} className="text-white mr-3 text-xl">←</button>
           <h1 className="text-xl font-bold">🏠 Exterior Estimating</h1>
-          <span className="ml-2 bg-green-500 text-white text-xs px-2 py-0.5 rounded-full animate-pulse">AUTO</span>
+          <span className="ml-2 bg-green-500 text-white text-xs px-2 py-0.5 rounded-full ">REVIEW-GATED</span>
         </div>
       </header>
 
