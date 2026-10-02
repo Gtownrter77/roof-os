@@ -67,7 +67,7 @@ export default function MfaPage() {
       }
 
       if (cancelled) return
-      setFactor({ id: enrollment.id, friendly_name: enrollment.friendly_name, factor_type: enrollment.type, status: enrollment.status })
+      setFactor({ id: enrollment.id, friendly_name: enrollment.friendly_name, factor_type: enrollment.type, status: 'unverified' })
       setQrCode(enrollment.totp.qr_code)
       setSecret(enrollment.totp.secret)
       await createChallenge(enrollment.id)
