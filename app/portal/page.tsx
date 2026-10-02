@@ -71,7 +71,7 @@ export default function PortalPage() {
           <span className="text-xl">🤖</span>
           <span className="text-xs">AI</span>
         </button>
-        <button onClick={() => router.push('/voice')} className="flex flex-col items-center text-gray-400">
+        <button onClick={() => router.push('/voice-ai')} className="flex flex-col items-center text-gray-400">
           <span className="text-xl">🎤</span>
           <span className="text-xs">Voice</span>
         </button>
