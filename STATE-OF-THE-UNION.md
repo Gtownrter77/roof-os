@@ -1,68 +1,132 @@
-# ROOF/OS State of the Union — 2026-10-01
+# ROOF/OS State of the Union — 2026-10-02
 
-Repo: https://github.com/Gtownrter77/roof-os  
-Production: https://roof-os-lemon.vercel.app  
-Initial audit basis (2026-09-15): `5fcff9d` plus `fix/sotu-hardening`
+**Repository:** `Gtownrter77/roof-os`  
+**Production:** https://roof-os-lemon.vercel.app  
+**Current `main`:** `f29981076c23b7a289b579c2852c916be368325e`  
+**Active hardening branch:** `backend/production-hardening-20261002`  
+**Supabase project:** `xksumagfbegdlapwysps`
 
-## Verdict
+## Executive state
 
-The core office loop is a real app, not a mock. Auth, RLS-backed persistence, and owner pricing exist. It is not ready to be represented as a sales-facing estimating platform until licensed claims pricing, invitation email delivery, production Vercel configuration/cron, and cross-workspace isolation are verified. Migration 019 is applied; aerial-geometry migration 037 is not applied in production.
+ROOF/OS has a real office workflow with Supabase-backed persistence, workspace-aware authorization, inspection/reporting foundations, pricing configuration, automation infrastructure, and an AI receptionist surface.
 
-## Verified status — 2026-10-01
+The latest verified engineering work is a **receptionist workspace/tenant-isolation hardening pass**. That scope is complete at the code and production-database level. The application deployment itself was not changed by that pass.
 
-- `fix/sotu-hardening` merged as PR #3 on 2026-09-16.
-- The production Supabase migration ledger confirms `019_material_catalog_workspace_settings` is applied. `material_catalog` and `workspace_settings` exist with RLS enabled.
-- Main contains `037_aerial_geometry_suggestions.sql` and the aerial suggestion API. The schema stores proposed roof planes, edges, and objects with confidence and review states. Calibration and technician review gate confirmation; the API says AI suggestions do not create authoritative estimate quantities. Production does **not** have migration 037 applied: `aerial_measurements`, `roof_planes`, `roof_edges`, and `roof_objects` are absent.
-- The migration uses ordinary foreign keys for parent and workspace IDs but does not enforce that each linked inspection, photo, and child geometry row belongs to the same workspace. Add a database-level consistency constraint before applying it.
-- Open PR #37 adds a separate migration also numbered `037`; renumber and reconcile it with main before merge. Review the combined schema and ordering before applying either change.
-- CI runs builds/typechecks, release/security checks, and targeted API-security, auth-flow, photo-estimate, measurement-authority, and AI-vision tests. An aerial-geometry contract script exists but is not wired into CI. A live two-workspace RLS test and browser E2E test were not verified.
-- Invitation creation and acceptance routes/transaction exist; email delivery remains unimplemented.
-- PR #24 (retailer quota safeguards) and PR #31 (master playbook PDF) merged on 2026-10-01 after all six required checks passed on their refreshed branches.
-- Vercel preview checks passed for those PRs, but Production environment variables and the production deployment were not verified in this recheck.
+This document separates verified behavior from broader product work that remains incomplete or unproven.
 
-## Strengths
+## Evidence standard
 
-- Next.js 15 with Supabase SSR auth and `getUser()` on nearly all APIs.
-- Ordered Supabase migration history, RLS policies, and a system-owner lock.
-- CI covers web/mobile and preview builds, typechecks, release/security checks, and targeted tests.
-- Measurement and retailer-price provenance is documented; estimates are not represented as Xactimate or carrier-approved pricing.
-- Owner manual and operating cadence exist.
+- **VERIFIED:** exercised and observed with supporting repository, CI, or live-database evidence.
+- **PARTIAL:** implemented in meaningful layers, but an end-to-end proof is still missing.
+- **BLOCKED:** required external access is unavailable.
+- **NOT IMPLEMENTED:** absent or remains experimental.
 
-## Remaining weaknesses
+## Current repository and release state
 
-### Operations
+- Current `main` is `f29981076c23b7a289b579c2852c916be368325e`.
+- That main commit adds explicit prototype disclosures for `/chat`, `/notifications`, and `/status`.
+- The active hardening branch has been reconciled with that latest main baseline and contains the intended seven receptionist-hardening files on top of it.
+- PR #72 remains open: https://github.com/Gtownrter77/roof-os/pull/72
+- No automatic merge has been performed.
 
-- Verify Production has `NEXT_PUBLIC_SUPABASE_*`, `SUPABASE_SERVICE_ROLE_KEY`, `RAPIDAPI_KEY`, and `CRON_SECRET`, and verify production cron operation. This recheck lacked authorized Vercel project access.
-- Apply the geometry schema only after migration ordering and workspace-consistency constraints are resolved.
-- Expo APK build credentials/status were not rechecked.
+## Receptionist hardening — VERIFIED
 
-### Product honesty
+The following boundaries are implemented and verified:
 
-- Prior audit identified prototype routes; recheck their current contents before presenting them as production features, and label prototypes in navigation.
-- Building-code results were previously found to use a hardcoded state family rather than a legal jurisdiction source; do not describe them as permit-ready.
-- OSM footprints and AI-generated roof geometry are suggestions, not certified measurements. Calibration and technician review are required; production geometry tables are not deployed.
-- Invitation acceptance exists, but invitation email delivery does not.
-- Licensed claims pricing remains unverified; retailer prices are not claims pricing.
+| Area | Status | Evidence |
+|---|---|---|
+| Receptionist lead lookup/creation | **VERIFIED** | Workspace + owner scoping; owner membership validated; new leads carry workspace ID. |
+| Stripe payment-link authorization | **VERIFIED** | Authenticated user + workspace-admin check before provider action; ledger operations use authenticated client. |
+| Twilio outbound voice | **VERIFIED** | Workspace-admin gate before provider action; optional lead ID is workspace-validated. |
+| Twilio outbound SMS | **VERIFIED** | Workspace-admin gate before provider action; optional lead ID is workspace-validated. |
+| Twilio session lookup | **VERIFIED** | Session query explicitly scoped by workspace. |
+| Appointment booking RPC | **VERIFIED** | Workspace-local creator/lead checks; empty search path; worker-only execution. |
+| `leads.workspace_id` | **VERIFIED** | Production column is NOT NULL; 0/2 leads missing workspace ID. |
+| Cross-workspace negative cases | **VERIFIED** | Creator/lead mismatch attempts rejected; no test rows remained. |
+| Production relationship integrity | **VERIFIED** | Zero observed mismatches across receptionist events, appointments, leads, invoices, payment links, and payment/lead relationships. |
 
-### Security and verification
+### CI
 
-- Run a two-workspace RLS isolation test for leads, photos, price books, and geometry.
-- Add a browser-based smoke test for login redirect, authenticated dashboard, and unauthenticated API responses.
-- Keep service-role credentials server-side and continue secret scanning.
-- Prior audit flagged a root-license gap and a module-scope Supabase client; their current status was not rechecked here.
-- Treat this as internal operations software until the isolation and production checks above pass.
+The latest hardening validation before the newest main-sync/documentation checkpoint was CI run **#567**, which completed successfully for:
 
-## Follow-up order
+- web
+- mobile
+- preview-build
+- migration-safety
 
-1. Reconcile PR #37 with main, renumber its migration, add same-workspace integrity constraints, and validate the geometry schema.
-2. Verify Vercel Production environment variables and cron operation with authorized project access; preview success does not establish production readiness.
-3. Run two-workspace RLS isolation and add browser E2E coverage.
-4. Implement invitation email delivery while retaining the existing acceptance transaction.
-5. Clearly label prototype routes and avoid claims that AI geometry, footprint estimates, building-code lookups, or retailer prices are authoritative.
+A new CI result is the final validation of the fully synchronized branch after the current main update.
 
-## Do not claim
+## Production database — VERIFIED
 
-- Photo analysis produces a customer-ready insurance estimate.
-- Home Depot / RapidAPI numbers are Xactimate or carrier-approved.
-- Building-code results are permit-ready.
-- AI-generated geometry or OSM footprints are certified roof measurements.
+Migration `receptionist_workspace_integrity` was applied to production on **2026-10-02**.
+
+Live checks found:
+
+- 2 workspaces.
+- 2 workspace-member records.
+- 2 leads, all assigned to workspace 1.
+- Workspace 2 sees 0 leads under authenticated simulation.
+- Each owner is admin only in their own workspace.
+- No receptionist sessions visible in the simulated workspaces.
+- Booking RPC: anonymous/authenticated execution denied; service-role execution allowed.
+- Cross-workspace booking attempts denied.
+- No test data leaked into production.
+
+## Broader product state
+
+### Real / substantially implemented
+
+- Supabase authentication and workspace model.
+- Leads and workspace-scoped persistence.
+- Inspections, photo workflows, and Golden Report authority gates.
+- Estimate-draft authority protections and technician approval source linkage.
+- Owner pricing configuration and retailer reference-price infrastructure.
+- Bounded automation/cron architecture.
+- AI receptionist routes and provider adapters.
+- Mobile field-app shell and offline architecture.
+- Security headers, release checks, type checks, dependency auditing, and targeted regression suites.
+- Explicit prototype disclosures for known non-production surfaces.
+
+### Partial / still requires runtime evidence
+
+- Real two-user/two-workspace browser RLS and Storage isolation across the full UI.
+- Full authenticated browser CRUD and magic-link end-to-end verification.
+- Invitation email delivery and acceptance lifecycle.
+- Real scheduled cron execution/provider success-retry-failure evidence.
+- Live Stripe/Twilio provider success/failure testing.
+- Multi-workspace UI switching with two actual users.
+- Mobile device behavior, offline retry, camera upload, and signed APK verification.
+- Direct inspection of Vercel project/environment configuration.
+- Jurisdiction-authoritative building-code sourcing.
+- Licensed insurance/claims pricing integration.
+
+## Production and commercial boundaries
+
+Retailer prices remain reference pricing, not licensed Xactimate/Verisk/carrier rates.
+
+AI image analysis and aerial/OSM geometry remain non-authoritative until the documented human review, calibration, and approval gates are satisfied.
+
+Prototype screens remain experimental and are disclosed as such; they are not represented as completed commercial capabilities.
+
+## Known security review items outside this hardening scope
+
+Supabase's existing security advisor still reports:
+
+- six authenticated SECURITY DEFINER warnings on shared auth/workspace RPCs;
+- leaked-password protection disabled.
+
+Supabase performance advice also reports unindexed foreign keys. These are separate review items, not evidence of the receptionist tenant-isolation defect addressed here.
+
+## Bottom line
+
+**Receptionist hardening:** VERIFIED COMPLETE.  
+**Production database hardening:** VERIFIED COMPLETE for this scope.  
+**Current synchronized branch:** ready for final CI confirmation and owner-directed PR review.  
+**Whole-product commercial verification:** NOT COMPLETE; several end-to-end and external-provider gates remain.
+
+## Resume point
+
+1. Confirm the synchronized-branch CI is green.
+2. Review PR #72.
+3. Merge only on explicit owner instruction.
+4. Continue the remaining runtime/commercial verification items above without treating prototype or reference-price surfaces as production-authoritative.
