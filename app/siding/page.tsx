@@ -86,7 +86,9 @@ export default function SidingPage() {
   }
 
   const calculateEstimate = () => {
-    setLoading(true)
+    setEstimate(null)
+    setLoading(false)
+    return
     setTimeout(() => {
       const sqFt = form.squareFeet || 1000
       const waste = sqFt * (form.wasteFactor / 100)

@@ -86,7 +86,9 @@ export default function RepairPage() {
   }
 
   const calculateEstimate = () => {
-    setLoading(true)
+    setEstimate(null)
+    setLoading(false)
+    return
     setTimeout(() => {
       let totalBase = 0
       let totalMaterial = 0

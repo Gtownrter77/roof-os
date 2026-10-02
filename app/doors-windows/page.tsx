@@ -54,8 +54,9 @@ export default function DoorsWindowsPage() {
   const garageSizes = ['14x7', '16x7', '18x8', '20x8', '24x8', '30x10']
 
   const calculateEstimate = () => {
-    setLoading(true)
-
+    setEstimate(null)
+    setLoading(false)
+    return
     setTimeout(() => {
       // Window calculations
       const windowPrices = {

@@ -49,7 +49,9 @@ export default function DeckPage() {
   }
 
   const calculateEstimate = () => {
-    setLoading(true)
+    setEstimate(null)
+    setLoading(false)
+    return
     setTimeout(() => {
       const sqFt = form.deckSize || 200
       const height = form.height || 8
