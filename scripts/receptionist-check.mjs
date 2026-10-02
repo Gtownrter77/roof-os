@@ -23,6 +23,8 @@ const requiredFiles = [
 ]
 for (const file of requiredFiles) assert.ok(existsSync(file), file)
 const source = requiredFiles.map((file) => readFileSync(file, 'utf8')).join('\n')
+const cronRoute = readFileSync('app/api/cron/receptionist-followups/route.ts', 'utf8')
+assert.ok(cronRoute.includes("return NextResponse.json({ processed: attempts?.length || 0, started, optedOut, failed, failures }, { status: 502 })"), 'receptionist cron must surface provider failures with a non-2xx response')
 for (const forbidden of ['payments.invalid', 'mockCreatePaymentLink', 'mockInboundCall']) {
   assert.equal(source.includes(forbidden), false, `forbidden mock marker: ${forbidden}`)
 }
