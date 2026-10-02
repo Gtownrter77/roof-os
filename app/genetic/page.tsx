@@ -24,8 +24,8 @@ export default function GeneticPage() {
           generation: gen,
           score: score,
           materials: ['Asphalt', 'Metal', 'Tile', 'Slate'][gen % 4],
-          cost: `$${Math.floor(Math.random() * 5000) + 5000}`,
-          lifespan: `${Math.floor(Math.random() * 20) + 15} years`
+          cost: 'simulation',
+          lifespan: 'simulation'
         }
         return [newSolution, ...prev].slice(0, 6)
       })
