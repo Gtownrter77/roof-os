@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 export default function PricingPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
+  const [draftNote, setDraftNote] = useState('Not saved. Refresh will drop these entries.')
   const [pricing, setPricing] = useState({
     materials: {
       shingles: { price: 0, unit: 'sq', quantity: 0 },
@@ -30,6 +31,21 @@ export default function PricingPage() {
     permits: 0,
     dumpFees: 0,
   })
+
+
+  useEffect(() => {
+    const saved = window.localStorage.getItem('roof-os-pricing-draft')
+    if (!saved) return
+    try {
+      setPricing(JSON.parse(saved))
+      setDraftNote('Loaded from this browser only. This is not a price book.')
+    } catch {
+      setDraftNote('Saved draft could not be read.')
+    }
+  }, [])
+  useEffect(() => {
+    window.localStorage.setItem('roof-os-pricing-draft', JSON.stringify(pricing))
+  }, [pricing])
 
   const [totals, setTotals] = useState({
     materials: 0,
@@ -131,7 +147,7 @@ export default function PricingPage() {
         </div>
       </header>
 
-      <main className="p-4"><p className="text-sm bg-white rounded-lg shadow p-4 mb-4">Price is Unknown until a person enters it. No default supplier price is used.</p>
+      <main className="p-4"><p className="text-sm bg-white rounded-lg shadow p-4 mb-4">Price is Unknown until a person enters it. No default supplier price is used. {draftNote}</p>
         {/* Quick Input */}
         <div className="bg-white rounded-lg shadow p-4 mb-4">
           <h3 className="font-semibold text-sm mb-3">📐 Quick Estimate</h3>
