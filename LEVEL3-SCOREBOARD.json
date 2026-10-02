@@ -1,7 +1,7 @@
 {
-  "evidence_date": "2026-10-02T16:36:00Z",
+  "evidence_date": "2026-10-02T16:58:00Z",
   "repository": "Gtownrter77/roof-os",
-  "baseline_commit": "ede543e47fa9b3fadc08fa2f0977bda340422fa2",
+  "baseline_commit": "6785dafce60ce73ea4a25feb81262523baa2b910",
   "production_status": "CONDITIONAL_NOT_FULLY_VERIFIED",
   "current_evidence_note": "GitHub CI passes for the remediation head, but production deployment is blocked by Vercel build-rate limiting. Runtime tenant-isolation, invitation delivery/acceptance, provider execution, physical mobile verification, and direct Vercel inspection remain unverified. The repository also contains intentionally deferred or review-gated workflows; these are not production-complete merely because code exists.",
   "three_level_check": {
