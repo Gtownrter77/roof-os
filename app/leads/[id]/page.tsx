@@ -157,7 +157,8 @@ export default function LeadDetailPage() {
     const end = new Date(start.getTime() + 60 * 60 * 1000)
     const { error: insertError } = await supabase.from('appointments').insert({ workspace_id: workspaceId, lead_id: lead.id, title: `Inspection: ${lead.name}`, appointment_type: 'inspection', starts_at: start.toISOString(), ends_at: end.toISOString(), location: lead.address, created_by: user.id })
     if (insertError) { setError(insertError.message); setSaving(false); return }
-    await supabase.from('leads').update({ status: 'inspection_scheduled', next_action: 'Complete inspection', next_action_due: start.toISOString(), next_action_owner_id: user.id, updated_at: new Date().toISOString() }).eq('id', lead.id)
+    const { error: updateError } = await supabase.from('leads').update({ status: 'inspection_scheduled', next_action_due: start.toISOString(), updated_at: new Date().toISOString() }).eq('id', lead.id)
+    if (updateError) { setError(updateError.message); setSaving(false); return }
     setApptAt('')
     await load()
     setSaving(false)
