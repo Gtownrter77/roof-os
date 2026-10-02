@@ -31,6 +31,7 @@ export default function PhotoEstimatePage() {
   const [gutterLf, setGutterLf] = useState('')
   const [photoIds, setPhotoIds] = useState<string[]>([])
   const [inspectionId, setInspectionId] = useState('')
+  const [album, setAlbum] = useState('closeup-damage')
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [working, setWorking] = useState(false)
@@ -206,6 +207,7 @@ export default function PhotoEstimatePage() {
         mime_type: photo.file.type,
         file_size_bytes: photo.file.size,
         upload_status: 'uploaded',
+        album,
       })
       if (metadataError) {
         await supabase.storage.from('inspection-photos').remove([path]).catch(() => undefined)
@@ -337,7 +339,7 @@ export default function PhotoEstimatePage() {
     <p className="text-sm text-gray-600 mt-1 mb-4">Upload evidence first. The system assembles address, property, storm, measurement, pricing, and report candidates. A technician must verify the packet before it can be sent.</p>
     <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-900 mb-4"><b>Important:</b> OCR can read visible address text; it cannot prove a roof photo’s location. Confirm the property and quantities before approval.</div>
     <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp" capture="environment" multiple className="hidden" onChange={chooseFiles} />
-    <button onClick={() => inputRef.current?.click()} className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold">{photos.length ? `Add photos (${photos.length})` : 'Take or upload photos'}</button>
+    <label className="block text-sm mb-2">Album<select value={album} onChange={(event) => setAlbum(event.target.value)} className="w-full p-3 border rounded mt-1"><option value="closeup-damage">closeup-damage</option><option value="roof-top">roof-top</option><option value="north">north</option><option value="south">south</option><option value="east">east</option><option value="west">west</option><option value="damage">damage</option></select></label><button onClick={() => inputRef.current?.click()} className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold">{photos.length ? `Add photos (${photos.length})` : 'Take or upload photos'}</button>
     {photos.length > 0 && <><div className="grid grid-cols-3 gap-2 mt-3">{photos.map((photo) => <img key={photo.id} src={photo.preview} alt="Uploaded roof evidence" className="h-24 w-full object-cover rounded" />)}</div><button onClick={() => void findAddressInPhotos()} disabled={ocrWorking} className="w-full mt-3 bg-purple-600 text-white py-2 rounded-lg disabled:opacity-60">{ocrWorking ? 'Reading photo text…' : 'Find address text in photo'}</button></>}
     <div className="bg-white rounded-lg shadow p-4 mt-4 space-y-3">
       <h2 className="font-semibold">Property confirmation</h2>
