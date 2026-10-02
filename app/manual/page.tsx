@@ -33,21 +33,21 @@ export default function ManualPage() {
         { 
           step: 2, 
           title: 'Set Up Your Profile', 
-          description: 'Add your company name, logo, and contact information.',
+          description: 'Profile fields are saved only when the settings save returns a row.',
           action: 'Go to Settings → Profile',
-          tip: 'Add your company logo for professional estimates'
+          tip: 'A logo is not an estimate.'
         },
         { 
           step: 3, 
           title: 'Configure Your Pricing', 
-          description: 'Set up your labor rates, material markup, and sales tax.',
+          description: 'A labor rate is saved only when a person enters one.',
           action: 'Go to Pricing Configuration',
           tip: 'Update labor rates based on your market'
         },
         { 
           step: 4, 
           title: 'Start Your First Lead', 
-          description: 'Create your first lead and begin the workflow.',
+          description: 'The new-lead form writes a lead only when the save returns a row.',
           action: 'Click + New Lead',
           tip: 'Enter as much detail as possible'
         }
