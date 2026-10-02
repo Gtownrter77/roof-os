@@ -1,9 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 
-export default function AcceptInvitationPage() {
+function AcceptInvitationContent() {
   const searchParams = useSearchParams()
   const invitationId = searchParams.get('invitationId')
   const [message, setMessage] = useState('Accepting invitation…')
@@ -45,5 +45,13 @@ export default function AcceptInvitationPage() {
         </a>
       </section>
     </main>
+  )
+}
+
+export default function AcceptInvitationPage() {
+  return (
+    <Suspense fallback={<main className="mx-auto flex min-h-screen max-w-xl items-center px-6 py-12"><section className="w-full rounded-xl border border-gray-200 bg-white p-8 shadow-sm"><h1 className="text-2xl font-semibold">Workspace invitation</h1><p className="mt-4 text-gray-700">Loading invitation…</p></section></main>}>
+      <AcceptInvitationContent />
+    </Suspense>
   )
 }
