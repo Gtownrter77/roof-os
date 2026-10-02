@@ -427,3 +427,15 @@ Local validation passed: measurement-authority tests (including stale/mismatched
 - The canonical documentation update is being carried on `docs/handoff-production-verification-20261001`; merge it only after its documentation-only checks pass.
 - Supabase migrations, production auth URL settings, photo submission, offline retry against production, and live Data/Security level-3 evidence remain outstanding. No production database migration or account-security change was performed in this checkpoint.
 - Continue to follow the Golden Report authority rule: AI observations are non-authoritative; technician verification, source attribution, signatures, and manager approval are required before customer delivery.
+
+## 2026-10-02 independent production database audit handoff
+
+- Added the complete read-only audit report at [`docs/PRODUCTION-AUDIT-2026-10-02.md`](docs/PRODUCTION-AUDIT-2026-10-02.md).
+- Audit target: Supabase project `xksumagfbegdlapwysps`; repository baseline: current `main` HEAD `f299810`.
+- **Verified:** production ledger includes `20261002182249 / receptionist_workspace_integrity`; current `main` does not contain its source migration.
+- **Verified:** the live `book_receptionist_appointment` function matches PR #72's workspace-integrity behavior and worker-only EXECUTE boundary. Its live `search_path` is empty, and `leads.workspace_id` is NOT NULL.
+- **Verified mismatch:** PR #70's inspection-activity atomicity is not applied. Its expected appointment/inspection activity functions, triggers, and composite workspace constraints are absent from production.
+- **Verified:** current `main` has duplicate numeric prefixes 021, 022, and 023; production uses timestamped ledger versions.
+- **Not verified:** complete manual-SQL provenance, every SECURITY DEFINER body, and runtime cross-workspace tests with separate authenticated identities.
+- No production schema, migration, function, policy, trigger, or data change was made during this audit.
+- **Next action:** review and merge this documentation-only handoff through a protected PR if checks pass. Do not merge PR #70 or #72, replay the live receptionist migration, or create a new 043 migration until their identities and ordering are explicitly reconciled.

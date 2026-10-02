@@ -1,5 +1,31 @@
 # ROOF/OS Current State
 
+## 2026-10-02 Independent Production Database Audit — superseding evidence
+
+**Audited repository main:** `f299810`
+**Production Supabase project:** `xksumagfbegdlapwysps`
+**Full evidence report:** [`docs/PRODUCTION-AUDIT-2026-10-02.md`](docs/PRODUCTION-AUDIT-2026-10-02.md)
+
+This addendum supersedes older statements that production migration history stops at migration 042 or that production database evidence was unavailable. The database was queried directly in a read-only audit; no production schema, function, policy, trigger, or data changes were made.
+
+### Verified production state
+
+- The production ledger includes `20261002182249 / receptionist_workspace_integrity` after `20261002140543 / golden_report_review_controls`.
+- The live `book_receptionist_appointment(uuid, uuid, text, timestamptz, text, uuid, text)` function matches PR #72's hardened behavior: workspace-member and workspace-local-lead checks, empty `search_path`, idempotency handling, overlap protection, and EXECUTE restricted to `service_role` plus owner `postgres`.
+- Production has `leads.workspace_id` set NOT NULL.
+- Current `main` contains migrations through `042_golden_report_review_controls.sql`, but not the live receptionist-integrity source migration.
+- PR #70's inspection-activity atomicity is not applied: its expected functions, appointment/inspection triggers, and composite workspace constraints are absent from production.
+- Current `main` retains the known duplicate numeric prefixes 021, 022, and 023. Production uses timestamped ledger versions.
+
+### Evidence boundary
+
+- **VERIFIED:** production is ahead of current `main` for receptionist workspace integrity.
+- **VERIFIED:** PR #70 is not live; PR #72's receptionist function is live.
+- **NOT VERIFIED:** full manual-SQL provenance, every SECURITY DEFINER body, and runtime cross-workspace testing with separate authenticated identities.
+- PR #70 and PR #72 were open/unmerged at audit time. Do not infer deployment from PR state or migration filename alone.
+
+No migration or repair is recommended in this addendum. Any future reconciliation must use a new unique migration identity, preserve the already-live PR #72 state, and separately review PR #70.
+
 ## 2026-10-02 Post-MFA Remediation Addendum
 
 **Actual main after evidence-sync merge:** `7918fa5e7c277b9e2c8d2b6c3686a0dee85ff425`
