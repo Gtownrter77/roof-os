@@ -88,6 +88,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          duplicate_migrations="$(find supabase/migrations -maxdepth 1 -name '*.sql' -printf '%f\n' | sed -nE 's/^([0-9]+)_.*/\1/p' | sort | uniq -d)"
+          test -z "$duplicate_migrations"
           test "$(find supabase/migrations -maxdepth 1 -name '*.sql' | wc -l)" -ge 24
           grep -q "enable row level security" supabase/migrations/008_claims_line_items_agent_readiness.sql
           grep -q "enable row level security" supabase/migrations/009_agent_runtime_claims_imports.sql
@@ -113,6 +115,8 @@ jobs:
           grep -q "aerial_measurements_workspace_consistency" supabase/migrations/041_aerial_workspace_consistency.sql
           grep -q "roof_planes_workspace_consistency" supabase/migrations/041_aerial_workspace_consistency.sql
           grep -q "manager_approval_signature" supabase/migrations/042_golden_report_review_controls.sql
+          grep -q "appointment_inspection_activity" supabase/migrations/043_inspection_activity_atomicity.sql
+          grep -q "inspection_session_start_activity" supabase/migrations/043_inspection_activity_atomicity.sql
           grep -q "is_valid_approved_photo_estimate_packet" supabase/migrations/038_estimate_packet_photo_workflow_source.sql
           grep -q "estimate_review_packets_insert_approved_workflow" supabase/migrations/038_estimate_packet_photo_workflow_source.sql
           grep -q "accept_workspace_invitation" supabase/migrations/028_invitation_acceptance_transaction.sql
