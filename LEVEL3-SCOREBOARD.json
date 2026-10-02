@@ -1,8 +1,8 @@
 {
-  "evidence_date": "2026-09-30T05:10:38.267Z",
+  "evidence_date": "2026-10-02T16:21:08.444Z",
   "repository": "Gtownrter77/roof-os",
   "baseline_commit": "70dce1f",
-  "production_status": "VERIFIED_SHIPPABLE",
+  "production_status": "CONDITIONAL_NOT_FULLY_VERIFIED",
   "three_level_check": {
     "level_1_security_and_code": {
       "status": "VERIFIED",
@@ -464,5 +464,20 @@
       "verification": "Verified schema validation and insertion into inspection_measurements with workspace foreign key checks."
     }
   ],
-  "remediated_count": 30
+  "remediated_count": 30,
+  "verification_correction": {
+    "status": "CORRECTED",
+    "reason": "The prior VERIFIED_SHIPPABLE label exceeded the evidence actually available.",
+    "required_before_full_verification": [
+      "real two-user/two-workspace RLS and Storage isolation test",
+      "authenticated browser CRUD and magic-link verification",
+      "invitation delivery and acceptance",
+      "actual scheduled cron/provider execution evidence",
+      "live provider tests",
+      "multi-workspace UI switching verification",
+      "mobile physical-device/APK verification",
+      "direct Vercel project/environment inspection",
+      "MFA enforcement for privileged users, required by the canonical build specification"
+    ]
+  }
 }
