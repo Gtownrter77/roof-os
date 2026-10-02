@@ -5,6 +5,9 @@ import { calculateRoofSquares } from '../../../../lib/estimates/verified-photo-w
 
 type VerifyBody = {
   action?: 'verify' | 'refresh'
+  technicianName?: string
+  technicianLicense?: string
+  technicianSignature?: string
   eaveLf?: number
   rafterLf?: number
   pitch?: number
@@ -34,6 +37,8 @@ export async function PATCH(request: NextRequest) {
   if (action === 'verify') {
     const { data: isAdmin, error: roleError } = await supabase.rpc('is_workspace_admin', { target_workspace: workspaceId })
     if (roleError || !isAdmin) return NextResponse.json({ error: 'Workspace administrator access is required for estimate approval.' }, { status: 403 })
+    if ((body.technicianName?.length ?? 0) > 160 || (body.technicianLicense?.length ?? 0) > 120 || (body.technicianSignature?.length ?? 0) > 240_032) return NextResponse.json({ error: 'Technician review metadata exceeds the supported size.' }, { status: 400 })
+    if (body.technicianSignature && !/^data:image\/png;base64,[A-Za-z0-9+/=]{1,240000}$/.test(body.technicianSignature.trim())) return NextResponse.json({ error: 'Technician signature must be a PNG capture.' }, { status: 400 })
   }
 
   const { data: workflow, error: fetchError } = await supabase
@@ -88,9 +93,15 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: 'The derived roof quantity is outside supported safety limits.' }, { status: 400 })
   }
   const verifiedGutterLf = Number(gutterLf.toFixed(2))
+  const technicianName = body.technicianName?.trim() ?? ''
+  const technicianLicense = body.technicianLicense?.trim() ?? ''
+  const technicianSignature = body.technicianSignature?.trim() ?? ''
   const verification = {
     verifiedBy: user.id,
     verifiedAt: now,
+    ...(technicianName ? { technicianName } : {}),
+    ...(technicianLicense ? { technicianLicense } : {}),
+    ...(technicianSignature ? { technicianSignature } : {}),
     eaveLf,
     rafterLf,
     pitch,
@@ -110,11 +121,11 @@ export async function PATCH(request: NextRequest) {
   const report = { ...(workflow.report ?? {}), technicianVerification: verification, status: 'approved_for_customer_packet' }
   const { data: updated, error: updateError } = await supabase
     .from('photo_estimate_workflows')
-    .update({ status: 'approved', roof_squares: fieldSquares, gutter_lf: verifiedGutterLf, soffit_width_ft: soffitWidthFt, soffit_lf: eaveLf, fascia_width_ft: fasciaWidthFt, fascia_lf: eaveLf, report, approved_by: user.id, approved_at: now, updated_at: now })
+    .update({ status: 'approved', roof_squares: fieldSquares, gutter_lf: verifiedGutterLf, soffit_width_ft: soffitWidthFt, soffit_lf: eaveLf, fascia_width_ft: fasciaWidthFt, fascia_lf: eaveLf, report, approved_by: user.id, approved_at: now, ...(technicianName ? { technician_name: technicianName } : {}), ...(technicianLicense ? { technician_license: technicianLicense } : {}), ...(technicianSignature ? { technician_signature: technicianSignature } : {}), updated_at: now })
     .eq('id', workflowId)
     .eq('workspace_id', workspaceId)
     .select('id,status,roof_squares,gutter_lf,soffit_width_ft,soffit_lf,fascia_width_ft,fascia_lf,report,approved_by,approved_at,updated_at')
     .single()
   if (updateError) return NextResponse.json({ error: 'Could not save technician verification.', detail: updateError.message }, { status: 502 })
-  return NextResponse.json({ workflow: updated, verification, action, warning: 'Technician verification recorded. Customer email and digital signature remain separate controlled steps.' })
+  return NextResponse.json({ workflow: updated, verification, action, warning: 'Technician verification recorded. Manager approval and photo review remain separate controlled steps.' })
 }
