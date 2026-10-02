@@ -40,37 +40,7 @@ export default function PitchGaugePage() {
   }
 
   const measurePitch = () => {
-    if (!cameraActive) {
-      alert('Please start the camera first')
-      return
-    }
-    
-    setIsMeasuring(true)
-    
-    // Simulate AI pitch measurement
-    setTimeout(() => {
-      const measuredPitch = Math.floor(Math.random() * 10) + 2
-      const measuredAngle = Math.round(Math.atan(measuredPitch / 12) * (180 / Math.PI))
-      
-      setPitch(measuredPitch)
-      setAngle(measuredAngle)
-      
-      const classification = pitchClassifications.find(
-        p => measuredPitch >= p.min && measuredPitch <= p.max
-      )
-      setPitchType(classification?.label || 'Unknown')
-      
-      const now = new Date().toLocaleTimeString()
-      setMeasurements([{
-        pitch: measuredPitch,
-        angle: measuredAngle,
-        type: classification?.label,
-        time: now,
-        id: Date.now()
-      }, ...measurements])
-      
-      setIsMeasuring(false)
-    }, 1500)
+    router.push('/measure')
   }
 
   const getPitchInfo = (pitch: number) => {
@@ -84,7 +54,7 @@ export default function PitchGaugePage() {
         <div className="px-4 py-3 flex items-center">
           <button onClick={() => router.back()} className="text-white mr-3 text-xl">←</button>
           <h1 className="text-xl font-bold">📐 AR Pitch Gauge</h1>
-          <span className="ml-2 bg-green-500 text-white text-xs px-2 py-0.5 rounded-full animate-pulse">LIVE</span>
+          <span className="ml-2 bg-green-500 text-white text-xs px-2 py-0.5 rounded-full animate-pulse">REVIEW-GATED</span>
         </div>
       </header>
 
@@ -186,7 +156,7 @@ export default function PitchGaugePage() {
         {/* Info */}
         <div className="mt-4 bg-blue-900/30 border border-blue-800 rounded-lg p-3">
           <p className="text-xs text-blue-300">
-            📐 Point camera at roof edge to measure pitch. AR overlay shows slope lines.
+            📐 This legacy camera screen does not calculate pitch. Use the verified measurement workflow so measurements are tied to inspection evidence and human review.
           </p>
         </div>
       </main>

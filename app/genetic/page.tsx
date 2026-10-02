@@ -16,16 +16,16 @@ export default function GeneticPage() {
     const interval = setInterval(() => {
       gen++
       setGenerations(gen)
-      const score = Math.floor(Math.random() * 30) + 70
+      const score = 85
       setBestScore(score)
       
       setSolutions(prev => {
         const newSolution = {
           generation: gen,
           score: score,
-          materials: ['Asphalt', 'Metal', 'Tile', 'Slate'][Math.floor(Math.random() * 4)],
-          cost: `$${Math.floor(Math.random() * 5000) + 5000}`,
-          lifespan: `${Math.floor(Math.random() * 20) + 15} years`
+          materials: ['Asphalt', 'Metal', 'Tile', 'Slate'][gen % 4],
+          cost: 'simulation',
+          lifespan: 'simulation'
         }
         return [newSolution, ...prev].slice(0, 6)
       })
@@ -43,7 +43,7 @@ export default function GeneticPage() {
         <div className="px-4 py-3 flex items-center">
           <button onClick={() => router.back()} className="text-white mr-3 text-xl">←</button>
           <h1 className="text-xl font-bold">🧬 Genetic AI Optimizer</h1>
-          <span className="ml-2 bg-teal-500 text-white text-xs px-2 py-0.5 rounded-full animate-pulse">EVOLVING</span>
+          <span className="ml-2 bg-teal-500 text-white text-xs px-2 py-0.5 rounded-full animate-pulse">SIMULATION</span>
         </div>
       </header>
 
