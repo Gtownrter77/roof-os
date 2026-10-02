@@ -172,7 +172,7 @@ export default function LeadDetailPage() {
     const { user, workspaceId } = await ctx()
     if (!user || !workspaceId) { setError('No workspace available.'); setSaving(false); return }
     const { data, error: insertError } = await supabase.from('inspection_sessions').insert({ workspace_id: workspaceId, lead_id: lead.id, created_by: user.id, status: 'in_progress' }).select('id').single()
-    if (insertError) { setError(insertError.message); setSaving(false); return }
+    if (insertError || !data?.id) { setError(insertError?.message ?? 'Inspection was not created.'); setSaving(false); return }
     router.push(`/camera?inspection=${data.id}&lead=${lead.id}`)
   }
 
