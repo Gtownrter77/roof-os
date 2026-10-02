@@ -1,3 +1,44 @@
+## 2026-10-02 Current Evidence Update — supersedes stale current-status claims
+
+**Current main observed:** 41162bb9359ffb26dac40dc993e59795af3a70e5
+
+This section is the current evidence boundary for this repository. Historical entries below are retained as history and are not proof of present production behavior.
+
+### Current repository / CI evidence
+
+- main currently resolves to 41162bb9359ffb26dac40dc993e59795af3a70e5.
+- CSP work is isolated on PR #71, branch fix/csp-nonce-20261002, head e25ebe21e7fe98fe0127d5a8069ac6ecbdec9bad.
+- GitHub Actions run #531 for that exact CSP head completed successfully. The web job passed production build, TypeScript, release-check, security-check, and the listed regression/API/auth/AI/photo/mobile tests; mobile, preview-build, and migration-safety also passed.
+- PR #71 is not merged.
+- The CSP branch is not evidence that main has the nonce change.
+
+### Current Vercel evidence boundary
+
+- The connected Vercel account currently exposes zero accessible teams/projects to this task.
+- GitHub reports the CSP head's Vercel status as failure: deployment rate limited — retry in 24 hours.
+- Therefore production deployment, production environment-variable inspection, scheduled cron execution, and browser console verification remain UNVERIFIED.
+
+### Current production Supabase observations
+
+Observed on project xksumagfbegdlapwysps:
+
+- leads: 2
+- estimates: 0
+- photo_estimate_workflows: 0
+- receptionist_events: 0
+- receptionist_sessions: 0
+- auth.mfa_factors: 0
+- auth.mfa_challenges: 0
+- auth.mfa_amr_claims: 7
+
+These counts do not show that the requested end-to-end user test has occurred yet.
+
+Supabase security advisors currently report six authenticated SECURITY DEFINER functions exposed as callable RPCs and leaked-password protection disabled. These findings require backend review; they are not, by themselves, evidence of a tenant-isolation bypass.
+
+### Current verification rule
+
+Do not label production behavior VERIFIED unless the behavior was directly exercised and the evidence is recorded. Unexercised production workflows are UNVERIFIED.
+
 # ROOF/OS Current State
 
 ## 2026-10-02 Post-MFA Remediation Addendum
