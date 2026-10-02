@@ -41,7 +41,7 @@ export default function ExteriorPage() {
   }
 
   const formatCurrency = (num: number) => {
-    return '$' + num.toFixed(2)
+    return 'Unknown'
   }
 
   const saveMeasurement = async () => {
@@ -64,7 +64,7 @@ export default function ExteriorPage() {
         </div>
       </header>
 
-      <main className="p-4">
+      <main className="p-4"><p className="text-sm bg-white rounded-lg shadow p-4 mb-4">Price is Unknown. This screen does not write a bid.</p>
         {/* Measurements Input */}
         <div className="bg-white rounded-lg shadow-lg p-4 mb-4">
           <h3 className="font-semibold text-sm mb-3">📐 Measurements</h3>

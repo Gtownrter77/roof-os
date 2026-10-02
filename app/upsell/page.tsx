@@ -200,7 +200,7 @@ export default function UpsellPage() {
         </div>
       </header>
 
-      <main className="p-4">
+      <main className="p-4"><p className="text-sm bg-white rounded-lg shadow p-4 mb-4">Price is Unknown. This screen does not write a bid.</p>
         <div className="bg-white rounded-lg shadow-lg p-4 mb-4 border border-amber-200">
           <h3 className="font-semibold text-sm mb-3 flex items-center">
             <span className="text-xl mr-2">🎯</span> Select Project Type
@@ -234,7 +234,7 @@ export default function UpsellPage() {
                 </div>
                 <div className="text-right">
                   <p className="text-xs text-gray-500">Estimated Profit</p>
-                  <p className="text-xl font-bold text-green-600">+${(totalUpsellPotential() * 0.35).toFixed(0)}</p>
+                  <p className="text-xl font-bold text-green-600">+Unknown</p>
                 </div>
               </div>
             </div>

@@ -193,7 +193,7 @@ export default function DoorsWindowsPage() {
   }
 
   const formatCurrency = (num: number) => {
-    return '$' + num.toFixed(2)
+    return 'Unknown'
   }
 
   return (
