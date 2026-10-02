@@ -2,7 +2,11 @@
 
 import { usePathname } from 'next/navigation'
 
-const PROTOTYPE_PATHS = ['/quantum', '/genetic', '/vr', '/ar', '/pitch-gauge', '/voice-ai', '/ai-wizard', '/photo-verify', '/portal', '/schedule', '/drone', '/invoices', '/sign', '/integrations', '/admin', '/pricing', '/exterior']
+const PROTOTYPE_PATHS = [
+  '/quantum', '/genetic', '/vr', '/ar', '/pitch-gauge', '/voice-ai', '/ai-wizard', '/photo-verify',
+  '/portal', '/schedule', '/drone', '/invoices', '/sign', '/integrations', '/admin', '/pricing', '/exterior',
+  '/deck', '/siding', '/repair', '/doors-windows', '/manual', '/logistics', '/homedepot', '/insurance', '/insurance-intel',
+]
 
 export default function PrototypeNotice() {
   const pathname = usePathname()
