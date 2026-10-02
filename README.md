@@ -126,3 +126,9 @@ Production migration `receptionist_workspace_integrity` is applied and verified 
 CI run **#567** passed web, mobile, preview-build, and migration-safety for the synchronized application tree. This documentation checkpoint changes documentation only; the next branch CI run is the final post-handoff verification gate.
 
 The broader ROOF/OS product remains a separate status question. Existing Supabase advisor findings and other incomplete end-to-end/commercial verification items are documented rather than silently treated as resolved.
+
+## Admin page upgrade, 2026-10-02
+
+`app/admin/page.tsx` on branch `upgrade/admin-page-20261002` no longer shows hardcoded users, leads, revenue, or storage. Signed-in counts come from the current workspace. Revenue and storage stay Unknown. This change is not on `main` and is not the live site at https://roof-os-lemon.vercel.app.
+
+Checks on that branch: `npx tsc --noEmit` passed, and `npm run build` passed with `/admin` in the route list. No signed-in browser session was opened. Live counts were not queried.

@@ -534,3 +534,13 @@ The production database migration was applied and verified. PR #72 has not deplo
 Pre-existing Supabase security-advisor warnings (including authenticated SECURITY DEFINER findings and disabled leaked-password protection), performance/indexing advisories, and broader end-to-end/commercial release gates remain outside this focused receptionist hardening work.
 
 **Resume point:** review the post-documentation CI result, then PR #72 is ready for owner-directed review/merge. Do not merge without explicit instruction.
+
+## Admin page, 2026-10-02
+
+- Branch: `upgrade/admin-page-20261002`
+- File: `app/admin/page.tsx`
+- Removed hardcoded admin numbers from the 2026-08-16 page.
+- Workspace-scoped counts: members, leads, inspection sessions, inspection photos.
+- Revenue and storage remain Unknown.
+- `npx tsc --noEmit` passed. `npm run build` passed and listed `/admin`.
+- Not merged to `main`. Not verified in a signed-in browser. Live counts were not queried.
