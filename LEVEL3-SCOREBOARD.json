@@ -1,23 +1,23 @@
 {
-  "evidence_date": "2026-10-02T16:36:00Z",
+  "evidence_date": "2026-10-02T17:57:31Z",
   "repository": "Gtownrter77/roof-os",
-  "baseline_commit": "7918fa5e7c277b9e2c8d2b6c3686a0dee85ff425",
+  "baseline_commit": "41162bb9359ffb26dac40dc993e59795af3a70e5",
   "production_status": "CONDITIONAL_NOT_FULLY_VERIFIED",
   "three_level_check": {
     "level_1_security_and_code": {
-      "status": "VERIFIED",
+      "status": "PARTIAL",
       "tests_passed": 6,
       "total_tests": 6,
-      "evidence": "release-check, security-check, api-security-test, photo-estimate-flow-test, mobile-offline-sync-test, and mobile-release-check all pass with zero errors.",
-      "security_posture": "Strict Content-Security-Policy (no unsafe-eval), bounded JSON streaming reader (64KB max), authenticated RPC boundaries, elimination of window.alert sandbox violations, and consolidated RLS least-privilege enforcement."
+      "evidence": "Repository CI run #531 verified the CSP branch head e25ebe21e7fe98fe0127d5a8069ac6ecbdec9bad. That branch is unmerged; current main remains 41162bb9359ffb26dac40dc993e59795af3a70e5.",
+      "security_posture": "CSP nonce work is CI-verified on PR #71; current main has not been replaced by that branch."
     },
     "level_2_roofing_workflows": {
-      "status": "VERIFIED",
-      "evidence": "Roof Passport property-first digital twin, 2021 IRC building code statutory citations for insurance supplements, owner price book margin guard (35% floor), pitch multiplier geometry (4/12 to 12/12), 3-stage progress billing (50/30/20), and manufacturer Golden Pledge warranty checklists verified."
+      "status": "PARTIAL",
+      "evidence": "Workflow source and regression tests exist, but current production end-to-end workflow execution has not been re-established from the requested authenticated user test."
     },
     "level_3_production_shippable": {
-      "status": "VERIFIED",
-      "evidence": "Live responsive contractor command center operating system deployed with zero-latency offline-resilient local persistence, interactive touch/mouse canvas e-signatures, progress invoice ledger, warranty tracking, and clean git synchronization state."
+      "status": "UNVERIFIED",
+      "evidence": "Production environment/project inspection is blocked by unavailable Vercel team scope. Current Supabase shows 2 leads, 0 estimates, and 0 MFA factors, so the requested production MFA → lead → estimate test has not yet been evidenced."
     }
   },
   "twenty_weakest_links_resolved": [
@@ -485,5 +485,31 @@
       "Direct Vercel project/environment inspection"
     ],
     "deployment_status": "Vercel currently reports build-rate limiting on the merged commit; production deployment is not claimed."
+  },
+  "current_evidence_boundary": {
+    "current_main": "41162bb9359ffb26dac40dc993e59795af3a70e5",
+    "csp_pr": {
+      "number": 71,
+      "branch": "fix/csp-nonce-20261002",
+      "head": "e25ebe21e7fe98fe0127d5a8069ac6ecbdec9bad",
+      "ci_run": 531,
+      "status": "success",
+      "merged": false
+    },
+    "vercel": {
+      "status": "UNVERIFIED",
+      "reason": "Connected Vercel scope currently exposes zero teams/projects; GitHub Vercel status is rate-limited."
+    },
+    "production_counts": {
+      "leads": 2,
+      "estimates": 0,
+      "photo_estimate_workflows": 0,
+      "receptionist_events": 0,
+      "receptionist_sessions": 0,
+      "mfa_factors": 0,
+      "mfa_challenges": 0,
+      "mfa_amr_claims": 7
+    },
+    "verification_rule": "VERIFIED requires directly observed evidence; unexercised production behavior is UNVERIFIED."
   }
 }
