@@ -300,9 +300,9 @@ export default function ManualPage() {
         { 
           step: 1, 
           title: 'Pricing Configuration', 
-          description: 'Set labor rates, material markup, and sales tax.',
+          description: 'A labor rate is saved only when a person enters one. Markup and tax are Unknown until entered on the pricing screen.',
           action: 'Go to Pricing Config',
-          tip: 'Update daily for accurate estimates'
+          tip: 'Do not treat an empty rate as a price.'
         },
         { 
           step: 2, 
@@ -314,9 +314,9 @@ export default function ManualPage() {
         { 
           step: 3, 
           title: 'Dark Mode', 
-          description: 'Toggle between light and dark mode.',
+          description: 'The theme control is on the header. Battery effect is Unknown.',
           action: 'Click 🌙 or ☀️ in header',
-          tip: 'Dark mode saves battery on Android'
+          tip: 'Battery effect is Unknown.'
         }
       ]
     }
