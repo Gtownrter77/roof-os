@@ -34,8 +34,8 @@ export default function NewLeadPage() {
       next_action_owner_id: user.id,
     }).select('id').single()
     if (insertError || !data) { setError(insertError?.message ?? 'Lead was not created.'); setSaving(false); return }
-    await supabase.from('lead_activity').insert({ lead_id: data.id, workspace_id: workspaceId, user_id: user.id, kind: 'created', body: form.notes || `Lead created from ${form.source || 'manual'}` })
-    router.push(`/leads/${data.id}`)
+    const { error: activityError } = await supabase.from('lead_activity').insert({ lead_id: data.id, workspace_id: workspaceId, user_id: user.id, kind: 'created', body: form.notes || `Lead created from ${form.source || 'manual'}` })
+    router.push(activityError ? `/leads/${data.id}?activity=not-saved` : `/leads/${data.id}`)
   }
 
   return (

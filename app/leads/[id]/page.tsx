@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '../../../lib/supabase/client'
 
 const STATUSES = ['new', 'assigned', 'qualified', 'inspection_scheduled', 'inspected', 'report_pending', 'report_approved', 'won', 'lost']
@@ -40,6 +40,7 @@ type Activity = { id: string; kind: string; body: string; created_at: string }
 export default function LeadDetailPage() {
   const params = useParams<{ id: string }>()
   const router = useRouter()
+  const activityMissing = useSearchParams().get('activity') === 'not-saved'
   const supabase = createClient()
   const leadId = params.id
   const [lead, setLead] = useState<Lead | null>(null)
