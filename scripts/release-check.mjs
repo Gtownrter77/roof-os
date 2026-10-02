@@ -139,3 +139,16 @@ if (JSON.stringify(canonical(collisions)) !== JSON.stringify(canonical(knownLega
   throw new Error(`Migration version collisions changed unexpectedly: ${JSON.stringify(collisions)}`)
 }
 console.log(`release-check passed: ${protectedWorkspaceRoutes.length} protected routes, security headers, and secret scan verified`)
+
+
+const productionTruthFiles = [
+  'app/status/page.tsx', 'app/admin/page.tsx', 'app/integrations/page.tsx', 'app/payment/page.tsx',
+  'app/drone/page.tsx', 'app/logistics/page.tsx', 'app/upsell/page.tsx', 'app/codes/page.tsx',
+  'app/predict/page.tsx', 'app/homedepot/page.tsx', 'app/insurance/page.tsx',
+]
+for (const file of productionTruthFiles) {
+  const source = readFileSync(join(root, file), 'utf8')
+  for (const forbidden of ['John Doe', 'Jane Smith', '123 Main St', 'Sunny, 72°F', 'State Farm v. Miller', 'Citizens v. Garris', 'All Systems Operational', 'Payment recorded.', 'Product database', 'Connected</span>']) {
+    if (source.includes(forbidden)) throw new Error(`Unverified production-looking data remains in ${file}: ${forbidden}`)
+  }
+}
