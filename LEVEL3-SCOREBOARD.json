@@ -1,5 +1,5 @@
 {
-  "evidence_date": "2026-10-02T17:57:31Z",
+  "evidence_date": "2026-10-02T18:39:23Z",
   "repository": "Gtownrter77/roof-os",
   "baseline_commit": "41162bb9359ffb26dac40dc993e59795af3a70e5",
   "production_status": "CONDITIONAL_NOT_FULLY_VERIFIED",
@@ -510,6 +510,17 @@
       "mfa_challenges": 0,
       "mfa_amr_claims": 7
     },
-    "verification_rule": "VERIFIED requires directly observed evidence; unexercised production behavior is UNVERIFIED."
+    "verification_rule": "VERIFIED requires directly observed evidence; unexercised production behavior is UNVERIFIED.",
+    "production_migration_043": {
+      "version": "20261002182249",
+      "name": "receptionist_workspace_integrity",
+      "source": "043_receptionist_workspace_integrity.sql",
+      "applied": true
+    },
+    "migration_collision": {
+      "pr70": "043_inspection_activity_atomicity.sql",
+      "pr72": "043_receptionist_workspace_integrity.sql",
+      "action": "reconcile before PR70 merge/apply"
+    }
   }
 }
