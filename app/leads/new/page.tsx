@@ -31,7 +31,7 @@ export default function NewLeadPage() {
       status: 'new',
       next_action: form.nextAction.trim() || null,
       next_action_due: nextDue,
-      next_action_owner_id: user.id,
+      next_action_owner_id: form.nextAction.trim() ? user.id : null,
     }).select('id').single()
     if (insertError || !data) { setError(insertError?.message ?? 'Lead was not created.'); setSaving(false); return }
     const { error: activityError } = await supabase.from('lead_activity').insert({ lead_id: data.id, workspace_id: workspaceId, user_id: user.id, kind: 'created', body: form.notes || `Lead created from ${form.source || 'manual'}` })
