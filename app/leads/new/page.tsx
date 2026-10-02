@@ -7,7 +7,7 @@ import { createClient } from '../../../lib/supabase/client'
 export default function NewLeadPage() {
   const router = useRouter()
   const supabase = createClient()
-  const [form, setForm] = useState({ name: '', address: '', phone: '', email: '', source: '', notes: '' })
+  const [form, setForm] = useState({ name: '', address: '', phone: '', email: '', source: '', notes: '', nextAction: '', nextActionDue: '' })
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
 
@@ -18,9 +18,23 @@ export default function NewLeadPage() {
     if (!user) { router.replace('/auth/login'); return }
     const { data: workspaceId, error: workspaceError } = await supabase.rpc('current_workspace_id')
     if (workspaceError || !workspaceId) { setError(workspaceError?.message ?? 'No workspace is available.'); setSaving(false); return }
-    const { data, error: insertError } = await supabase.from('leads').insert({ name: form.name.trim(), address: form.address.trim(), phone: form.phone || null, email: form.email || null, source: form.source || 'manual', notes: form.notes || null, owner_id: user.id, workspace_id: workspaceId, status: 'new' }).select('id').single()
+    const nextDue = form.nextActionDue ? new Date(form.nextActionDue).toISOString() : null
+    const { data, error: insertError } = await supabase.from('leads').insert({
+      name: form.name.trim(),
+      address: form.address.trim(),
+      phone: form.phone || null,
+      email: form.email || null,
+      source: form.source || 'manual',
+      notes: form.notes || null,
+      owner_id: user.id,
+      workspace_id: workspaceId,
+      status: 'new',
+      next_action: form.nextAction.trim() || 'First contact',
+      next_action_due: nextDue,
+      next_action_owner_id: user.id,
+    }).select('id').single()
     if (insertError || !data) { setError(insertError?.message ?? 'Lead was not created.'); setSaving(false); return }
-    await supabase.from('lead_activity').insert({ lead_id: data.id, workspace_id: workspaceId, user_id: user.id, kind: 'note', body: form.notes || `Lead created from ${form.source || 'manual'}` })
+    await supabase.from('lead_activity').insert({ lead_id: data.id, workspace_id: workspaceId, user_id: user.id, kind: 'created', body: form.notes || `Lead created from ${form.source || 'manual'}` })
     router.push(`/leads/${data.id}`)
   }
 
@@ -34,6 +48,8 @@ export default function NewLeadPage() {
         <input type="tel" placeholder="Phone" className="w-full p-3 border rounded-lg" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
         <input type="email" placeholder="Email" className="w-full p-3 border rounded-lg" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
         <input type="text" placeholder="Source (storm, referral, website)" className="w-full p-3 border rounded-lg" value={form.source} onChange={(e) => setForm({ ...form, source: e.target.value })} />
+        <input type="text" placeholder="Next action (default: First contact)" className="w-full p-3 border rounded-lg" value={form.nextAction} onChange={(e) => setForm({ ...form, nextAction: e.target.value })} />
+        <input type="datetime-local" aria-label="Next action due" className="w-full p-3 border rounded-lg" value={form.nextActionDue} onChange={(e) => setForm({ ...form, nextActionDue: e.target.value })} />
         <textarea placeholder="First note" className="w-full p-3 border rounded-lg" rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
         {error && <p className="text-sm text-red-600">{error}</p>}
         <button type="submit" disabled={saving} className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold disabled:opacity-60">{saving ? 'Saving…' : 'Save Lead'}</button>
