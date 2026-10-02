@@ -1,3 +1,55 @@
+## 2026-10-02 Current Evidence Update — supersedes stale current-status claims
+
+**Current main observed:** 41162bb9359ffb26dac40dc993e59795af3a70e5
+
+This section is the current evidence boundary for this repository. Historical entries below are retained as history and are not proof of present production behavior.
+
+### Current repository / CI evidence
+
+- main currently resolves to 41162bb9359ffb26dac40dc993e59795af3a70e5.
+- CSP work is isolated on PR #71, branch fix/csp-nonce-20261002, head e25ebe21e7fe98fe0127d5a8069ac6ecbdec9bad.
+- GitHub Actions run #531 for that exact CSP head completed successfully. PR #71 is not merged.
+- Backend hardening PR #72 is open at head 4c5063420dbc63aec857051ecc946ace17d34428. Its original backend-only scope was later expanded by commits 1c19f7d0a4c482b62ef9dad830b8f44221236aad and af309170939ece47fc5b12228a7ad8ab7a9e4e97, which add frontend route, prototype-disclosure, and Supabase-client/test changes. Therefore PR #72 must not currently be treated as backend-only.
+- PR #70 still proposes 043_inspection_activity_atomicity.sql and remains open. Production already contains a different 043 migration, so the migration prefix must be reconciled before PR #70 can be applied.
+
+### Current Vercel evidence boundary
+
+- The connected Vercel account currently exposes zero accessible teams/projects to this task.
+- GitHub reports the CSP head's Vercel status as failure: deployment rate limited — retry in 24 hours.
+- Therefore production deployment, production environment-variable inspection, scheduled cron execution, and browser console verification remain UNVERIFIED.
+
+### Current production Supabase observations
+
+Observed directly on project xksumagfbegdlapwysps:
+
+- Production migration ledger now includes 20261002182249 — receptionist_workspace_integrity.
+- public.leads.workspace_id is NOT NULL.
+- public.book_receptionist_appointment exists as a SECURITY DEFINER function; repository migration source restricts EXECUTE to service_role.
+- leads: 2
+- estimates: 0
+- photo_estimate_workflows: 0
+- receptionist_events: 0
+- receptionist_sessions: 0
+- auth.mfa_factors: 0
+- auth.mfa_challenges: 0
+- auth.mfa_amr_claims: 7
+
+The requested authenticated MFA → lead → estimate production workflow has still not been exercised in the currently observed data: there are 0 MFA factors and 0 estimates.
+
+**Production schema/source drift warning:** PR #72 states that migration 043 was applied directly to Supabase and no application deployment was performed. Current `main` still contains `resolveLead()` in `lib/receptionist-actions.ts` with a receptionist lead insert that omits `workspace_id`, while production now requires `leads.workspace_id` to be non-null. A live application failure has not been claimed because Vercel production deployment access remains unavailable, but the source/schema combination is unsafe until the corresponding application code is deployed and runtime-tested.
+
+Supabase security advisors currently report six authenticated SECURITY DEFINER functions and leaked-password protection disabled. These require backend review; they are not, by themselves, evidence of a tenant-isolation bypass.
+
+### Current product-truth findings
+
+- `app/ai/page.tsx` is a simulated report generator: it uses hard-coded inspection data, a local timeout instead of an AI/backend call, and non-functional approval buttons. It is not listed in `PrototypeNotice.tsx` or the prototype guardrail test on current `main`.
+- The current `main` sources for `/chat`, `/export`, `/search`, `/portal`, `/invoices`, and `/notifications` contain hard-coded customer/activity data and no Supabase/API data loading. Those routes are also not currently listed in the prototype disclosure set checked by the source audit.
+- These findings are source-level product-truth defects. They do not establish how production currently behaves because browser/runtime deployment access remains unavailable.
+
+### Current verification rule
+
+Do not label production behavior VERIFIED unless the behavior was directly exercised and the evidence is recorded. Schema/migration presence is evidence of deployment, not proof of end-to-end application behavior.
+
 # ROOF/OS Current State
 
 ## 2026-10-02 Post-MFA Remediation Addendum

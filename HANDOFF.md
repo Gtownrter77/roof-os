@@ -1,3 +1,17 @@
+## 2026-10-02 Live Evidence Correction
+
+Production Supabase now directly confirms migration 043 as the timestamped migration 20261002182249, receptionist_workspace_integrity. The earlier statement that production stopped at 042 is superseded.
+
+PR #72 remains open and unmerged. Its backend branch now also contains frontend QA commits (including route-integrity/prototype disclosure/client-stability work), so it is not currently a backend-only change set.
+
+PR #70 still proposes a different migration under the same local 043 prefix. Treat that as a release-order/source-drift blocker until the inspection migration receives a new forward prefix and is checked against the already-applied receptionist migration.
+
+Production application behavior remains only partially verified: the live database contains 2 leads, 0 estimates, and 0 MFA factors. Vercel project access and authenticated browser E2E remain unavailable/unverified.
+
+## 2026-10-02 Current Evidence Notice — supersedes this historical handoff
+
+The document below is retained as historical handoff material. For present-state claims, use CURRENT-STATE.md and the evidence recorded there. Current main is 41162bb9359ffb26dac40dc993e59795af3a70e5. Production Vercel project inspection, successful current deployment, cron execution, and authenticated browser workflow tests are not currently verified.
+
 # ROOF/OS Final Handoff
 
 **Handoff date:** 2026-09-14
