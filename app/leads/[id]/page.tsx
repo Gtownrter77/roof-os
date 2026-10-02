@@ -156,10 +156,6 @@ export default function LeadDetailPage() {
     const end = new Date(start.getTime() + 60 * 60 * 1000)
     const { error: insertError } = await supabase.from('appointments').insert({ workspace_id: workspaceId, lead_id: lead.id, title: `Inspection: ${lead.name}`, appointment_type: 'inspection', starts_at: start.toISOString(), ends_at: end.toISOString(), location: lead.address, created_by: user.id })
     if (insertError) { setError(insertError.message); setSaving(false); return }
-    const { error: leadUpdateError } = await supabase.from('leads').update({ status: 'inspection_scheduled', next_action: 'Complete inspection', next_action_due: start.toISOString(), next_action_owner_id: user.id, updated_at: new Date().toISOString() }).eq('id', lead.id)
-    if (leadUpdateError) { setError(leadUpdateError.message); setSaving(false); return }
-    const { error: activityError } = await supabase.from('lead_activity').insert({ lead_id: lead.id, workspace_id: workspaceId, user_id: user.id, kind: 'appointment_scheduled', body: `Inspection scheduled for ${start.toLocaleString()}` })
-    if (activityError) { setError(activityError.message); setSaving(false); return }
     setApptAt('')
     await load()
     setSaving(false)
@@ -172,8 +168,6 @@ export default function LeadDetailPage() {
     if (!user || !workspaceId) { setError('No workspace available.'); setSaving(false); return }
     const { data, error: insertError } = await supabase.from('inspection_sessions').insert({ workspace_id: workspaceId, lead_id: lead.id, created_by: user.id, status: 'in_progress' }).select('id').single()
     if (insertError) { setError(insertError.message); setSaving(false); return }
-    const { error: activityError } = await supabase.from('lead_activity').insert({ lead_id: lead.id, workspace_id: workspaceId, user_id: user.id, kind: 'inspection_started', body: `Inspection started (${data.id})` })
-    if (activityError) { setError(activityError.message); setSaving(false); return }
     router.push(`/camera?inspection=${data.id}&lead=${lead.id}`)
   }
 
