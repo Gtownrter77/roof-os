@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 
 const root = new URL('..', import.meta.url).pathname
 const migration = readFileSync(new URL('../supabase/migrations/039_crm_missing_spokes.sql', import.meta.url), 'utf8')
+const atomicity = readFileSync(new URL('../supabase/migrations/040_inspection_activity_atomicity.sql', import.meta.url), 'utf8')
 const detail = readFileSync(new URL('../app/leads/[id]/page.tsx', import.meta.url), 'utf8')
 const list = readFileSync(new URL('../app/leads/LeadsClient.tsx', import.meta.url), 'utf8')
 const create = readFileSync(new URL('../app/leads/new/page.tsx', import.meta.url), 'utf8')
@@ -31,7 +32,7 @@ for (const required of [
   if (!migration.includes(required)) throw new Error(`Missing CRM guard/trigger: ${required}`)
 }
 
-for (const required of ['Next action', 'Lost reason', 'lead_score', 'Save next action', 'appointment_scheduled', 'inspection_started']) {
+for (const required of ['Next action', 'Lost reason', 'lead_score', 'Save next action']) {
   if (!detail.includes(required)) throw new Error(`Lead detail missing CRM UI: ${required}`)
 }
 
@@ -44,3 +45,13 @@ if (!create.includes('nextAction') || !create.includes('First contact')) {
 }
 
 console.log('crm-missing-spokes-test passed')
+
+for (const required of [
+  'appointment_inspection_activity',
+  'inspection_session_start_activity',
+  'appointment_scheduled:',
+  'inspection_started:',
+  "kind, body",
+]) {
+  if (!atomicity.includes(required)) throw new Error(`Missing atomic inspection continuity: ${required}`)
+}
