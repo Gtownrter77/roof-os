@@ -1,5 +1,35 @@
 # ROOF/OS Current State
 
+## 2026-10-02 Final Continuation Addendum
+
+**Verified main:** `5508485bff1d895a4c7790986d48b209cb3d2dc5`
+
+**Verified pre-change backups:** `backup/pre-receptionist-retry-20261002` and `backup/pre-inspection-task-idempotency-20261002`.
+
+**Verified post-change backup:** `backup/post-inspection-task-idempotency-20261002`.
+
+### Verified continuation work
+
+- PR #58 fixed the Vercel Hobby cron-frequency defect; Vercel status succeeded.
+- PR #59 changed inspection-quality and receptionist cron routes so internal worker/provider failures produce non-2xx responses instead of false 2xx success. CI run #326 passed; PR #59 merged as `8d4e2eb670060b668743472e9410c4d47bf96578`; Vercel status succeeded.
+- PR #60 refreshed this state document to the verified post-PR-59 baseline; CI run #332 passed; PR #60 merged as `a13cb6f09b95fbd9f3c42c3a348558e8cbcc456c`; Vercel status succeeded.
+- PR #61 added bounded receptionist retry scheduling using the existing `attempt_number` and `next_attempt_at` fields: failed attempts remain failed, then a new queued attempt is created after 1 hour and then 4 hours, capped at three attempts. CI run #339 passed; PR #61 merged as `2da96b58316a0b038da78409fe5aa3e9cb1fd720`; Vercel status succeeded.
+- PR #62 made inspection-quality review-task creation explicitly idempotent by supplying the existing workspace-scoped `tasks.automation_key` uniqueness key. CI run #346 passed; PR #62 merged as `5508485bff1d895a4c7790986d48b209cb3d2dc5`; Vercel status succeeded.
+- Production Supabase migration history remains through migration 042, `golden_report_review_controls`.
+- Supabase security advisors still report six authenticated SECURITY DEFINER warnings and leaked-password protection disabled. The six RPC warnings match the repository's documented least-privilege design: RLS helper/direct user-facing RPCs intentionally remain available to authenticated users, while trigger-only and worker-only functions are restricted. These remain hardening/review items, not observed tenant-bypass evidence.
+
+### Current Vercel cron configuration
+
+- `/api/cron/retailer-prices` — weekly, Monday 04:00 UTC.
+- `/api/cron/inspection-quality` — daily, 05:00 UTC.
+- `/api/cron/receptionist-followups` — daily, 06:00 UTC.
+
+### Evidence boundary
+
+ROOF/OS is **not being marked fully commercially verified** by this document. Remaining runtime gates include real two-user/two-workspace RLS and Storage isolation, authenticated browser CRUD/magic-link verification, invitation delivery/acceptance, actual scheduled cron/provider execution evidence, live provider tests, multi-workspace UI switching, mobile device/APK verification, and direct Vercel environment/project inspection. The active Vercel connector remains unauthorized for direct project inspection even though GitHub's Vercel status checks are succeeding.
+
+---
+
 ## 2026-10-02 Verified Continuation Addendum
 
 **Verified main:** `8d4e2eb670060b668743472e9410c4d47bf96578`
