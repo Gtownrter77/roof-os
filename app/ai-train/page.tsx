@@ -125,7 +125,7 @@ export default function AITrainPage() {
           steps: [
             { id: 4, title: 'Photo Documentation', description: 'Take photos of ALL damage.', image: '📸', tip: 'Use the Photo Verify tool.' },
             { id: 5, title: 'Measure Damage', description: 'Measure affected areas.', image: '📐', tip: 'Use the Pitch Gauge.' },
-            { id: 6, title: 'Estimate Repairs', description: 'Generate repair estimate.', image: '💰', tip: 'Use the Repair Engine.' },
+            { id: 6, title: 'Review repairs', description: 'A repair price is Unknown until a person enters it.', image: '💰', tip: 'Do not invent a repair price.' },
           ]
         },
         {
