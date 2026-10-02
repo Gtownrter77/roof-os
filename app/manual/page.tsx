@@ -12,7 +12,7 @@ export default function ManualPage() {
   const [tourMode, setTourMode] = useState(false)
 
   const categories = [
-    'All', 'Getting Started', 'Leads', 'Estimating', 'AI Features', 
+    'All', 'Getting Started', 'Leads', 'Estimating', 'Review tools', 
     'Tools', 'Compliance', 'Logistics', 'Training', 'Settings'
   ]
 
@@ -97,29 +97,29 @@ export default function ManualPage() {
       steps: [
         { 
           step: 1, 
-          title: 'Photo AI Estimation', 
+          title: 'Photo review', 
           description: 'Take a photo. A complete estimate is Unknown until a person reviews it.',
           action: 'Go to Photo AI',
           tip: 'Take clear photos from multiple angles'
         },
         { 
           step: 2, 
-          title: 'Xactimate-Style Pricing', 
-          description: 'Use professional pricing with materials, labor, overhead, and profit.',
+          title: 'Pricing', 
+          description: 'Price is Unknown until a person enters it.',
           action: 'Go to Pricing',
           tip: 'Adjust rates based on your market'
         },
         { 
           step: 3, 
-          title: 'Supplement Engine', 
-          description: 'Automatically detect additional work needed.',
+          title: 'Supplement review', 
+          description: 'Additional work is Unknown until a person reviews it.',
           action: 'Go to Supplement',
           tip: 'Review all supplements before approving'
         },
         { 
           step: 4, 
           title: 'Exterior Estimating', 
-          description: 'Estimate gutters, siding, windows, doors, decks, and more.',
+          description: 'Measurements can be entered. A price is Unknown until a person enters it.',
           action: 'Go to Exterior or Siding',
           tip: 'Enter accurate measurements for best results'
         }
@@ -127,35 +127,35 @@ export default function ManualPage() {
     },
     {
       id: 'ai-features',
-      category: 'AI Features',
-      title: '🤖 AI Features Guide',
+      category: 'Review tools',
+      title: 'Review tools',
       icon: '🤖',
       steps: [
         { 
           step: 1, 
-          title: 'AI Photo Verification', 
-          description: 'Ensure all required photos are captured with AI checking.',
+          title: 'Photo checklist', 
+          description: 'Required photos are Unknown until saved inspection photos are reviewed.',
           action: 'Go to Photo Verify',
           tip: 'Cover all elevations and slopes'
         },
         { 
           step: 2, 
-          title: 'AI Construction Wizard', 
-          description: 'Ask any construction question and get instant answers.',
+          title: 'Construction notes', 
+          description: 'No model answer is returned from this screen.',
           action: 'Go to AI Wizard',
           tip: 'Ask about codes, materials, or best practices'
         },
         { 
           step: 3, 
-          title: 'AI Upsell Engine', 
-          description: 'Discover opportunities to increase project value.',
+          title: 'Upsell list', 
+          description: 'No offer is generated. A price is Unknown.',
           action: 'Go to Upsell',
           tip: 'Focus on high-priority upgrades first'
         },
         { 
           step: 4, 
-          title: 'AI Training Center', 
-          description: 'Step-by-step guidance for every job type.',
+          title: 'Job checklist', 
+          description: 'A local checklist. It does not certify the job.',
           action: 'Go to Training Center',
           tip: 'Perfect for new employee onboarding'
         }
@@ -270,7 +270,7 @@ export default function ManualPage() {
       steps: [
         { 
           step: 1, 
-          title: 'AI Training Center', 
+          title: 'Job checklist', 
           description: 'Step-by-step job training with hand-holding guidance.',
           action: 'Go to Training Center',
           tip: 'Select job type and follow each step'
@@ -478,14 +478,14 @@ export default function ManualPage() {
                           'Configure Your Pricing': '/pricing-config',
                           'Start Your First Lead': '/leads/new',
                           'Adding a New Lead': '/leads/new',
-                          'Photo AI Estimation': '/photo-estimate',
-                          'Xactimate-Style Pricing': '/pricing',
-                          'Supplement Engine': '/supplement',
+                          'Photo review': '/photo-estimate',
+                          'Pricing': '/pricing',
+                          'Supplement review': '/supplement',
                           'Exterior Estimating': '/exterior',
-                          'AI Photo Verification': '/photo-verify',
-                          'AI Construction Wizard': '/ai-wizard',
-                          'AI Upsell Engine': '/upsell',
-                          'AI Training Center': '/ai-train',
+                          'Photo checklist': '/photo-verify',
+                          'Construction notes': '/ai-wizard',
+                          'Upsell list': '/upsell',
+                          'Job checklist': '/ai-train',
                           'AR Pitch Gauge': '/pitch-gauge',
                           'Sketch Pad': '/sketch',
                           'Drone Integration': '/drone',
