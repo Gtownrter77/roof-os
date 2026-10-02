@@ -16,9 +16,34 @@ function isMfaPath(pathname: string) {
 
 export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname
-  if (isCronPath(pathname)) return NextResponse.next({ request })
+  const nonce = Buffer.from(crypto.randomUUID()).toString('base64')
+  const cspHeader = [
+    "default-src 'self'",
+    "base-uri 'self'",
+    "frame-ancestors 'none'",
+    "form-action 'self'",
+    "img-src 'self' data: blob: https://*.supabase.co",
+    "connect-src 'self' https://*.supabase.co https://api.weather.gov https://api.capout.ai https://*.rapidapi.com",
+    "style-src 'self' 'unsafe-inline'",
+    `script-src 'self' 'nonce-${nonce}'`,
+  ].join('; ')
 
-  let response = NextResponse.next({ request })
+  const requestHeaders = new Headers(request.headers)
+  requestHeaders.set('x-nonce', nonce)
+  requestHeaders.set('Content-Security-Policy', cspHeader)
+
+  const secureNextResponse = () => {
+    const next = NextResponse.next({ request: { headers: requestHeaders } })
+    next.headers.set('Content-Security-Policy', cspHeader)
+    return next
+  }
+  const secureRedirect = (url: URL) => {
+    const redirect = NextResponse.redirect(url)
+    redirect.headers.set('Content-Security-Policy', cspHeader)
+    return redirect
+  }
+
+  let response = secureNextResponse()
   const { url, anonKey } = getSupabaseEnv()
   const supabase = createServerClient(url, anonKey, {
     cookies: {
@@ -27,11 +52,13 @@ export async function proxy(request: NextRequest) {
       },
       setAll(cookiesToSet) {
         cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
-        response = NextResponse.next({ request })
+        response = secureNextResponse()
         cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options))
       },
     },
   })
+
+  if (isCronPath(pathname)) return response
 
   const { data: { user } } = await supabase.auth.getUser()
   const isAuthPage = pathname.startsWith('/auth')
@@ -39,7 +66,7 @@ export async function proxy(request: NextRequest) {
   if (!user && !isPublicPath(pathname)) {
     const login = new URL('/auth/login', request.url)
     login.searchParams.set('next', pathname)
-    return NextResponse.redirect(login)
+    return secureRedirect(login)
   }
 
   if (!user) return response
@@ -47,7 +74,7 @@ export async function proxy(request: NextRequest) {
   if (isMfaPath(pathname)) return response
 
   if (isAuthPage && pathname !== '/auth/callback' && pathname !== '/auth/reset') {
-    return NextResponse.redirect(new URL('/', request.url))
+    return secureRedirect(new URL('/', request.url))
   }
 
   const { data: privilegedMembership } = await supabase
@@ -63,7 +90,7 @@ export async function proxy(request: NextRequest) {
     if (assurance?.currentLevel !== 'aal2') {
       const mfa = new URL('/auth/mfa', request.url)
       mfa.searchParams.set('next', pathname)
-      return NextResponse.redirect(mfa)
+      return secureRedirect(mfa)
     }
   }
 
