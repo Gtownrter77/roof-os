@@ -56,16 +56,7 @@ export default function PricingConfigPage() {
     return () => window.clearTimeout(timer)
   }, [materialQuery])
 
-  const stateSalesTax: Record<string, number> = {
-    'AL': 4.0, 'AK': 0, 'AZ': 5.6, 'AR': 6.5, 'CA': 7.25, 'CO': 2.9, 'CT': 6.35,
-    'DE': 0, 'FL': 6.0, 'GA': 4.0, 'HI': 4.0, 'ID': 6.0, 'IL': 6.25, 'IN': 7.0,
-    'IA': 6.0, 'KS': 6.5, 'KY': 6.0, 'LA': 4.45, 'ME': 5.5, 'MD': 6.0, 'MA': 6.25,
-    'MI': 6.0, 'MN': 6.875, 'MS': 7.0, 'MO': 4.225, 'MT': 0, 'NE': 5.5, 'NV': 6.85,
-    'NH': 0, 'NJ': 6.625, 'NM': 5.125, 'NY': 4.0, 'NC': 4.75, 'ND': 5.0, 'OH': 5.75,
-    'OK': 4.5, 'OR': 0, 'PA': 6.0, 'RI': 7.0, 'SC': 6.0, 'SD': 4.5, 'TN': 7.0,
-    'TX': 6.25, 'UT': 4.85, 'VT': 6.0, 'VA': 5.3, 'WA': 6.5, 'WV': 6.0, 'WI': 5.0,
-    'WY': 4.0
-  }
+  const stateCodes = ['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY']
 
   const generateDailyPrices = () => {
     setLoading(false)
@@ -202,15 +193,12 @@ export default function PricingConfigPage() {
                 value={selectedState}
                 onChange={(e) => {
                   setSelectedState(e.target.value)
-                  setTaxRates(prev => ({ ...prev, state: stateSalesTax[e.target.value] || 0 }))
-                  setTaxSource(`${e.target.value} state reference — verify county and municipal rates before approval`)
+                  setTaxSource('Tax rate is Unknown until a person enters it.')
                 }}
                 className="w-full p-2 border rounded-lg text-sm"
               >
-                {Object.keys(stateSalesTax).sort().map(state => (
-                  <option key={state} value={state}>
-                    {state} ({stateSalesTax[state]}%)
-                  </option>
+                {stateCodes.map(state => (
+                  <option key={state} value={state}>{state}</option>
                 ))}
               </select>
             </div>
