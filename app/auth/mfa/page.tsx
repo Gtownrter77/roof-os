@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { Suspense, useEffect, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '../../../lib/supabase/client'
 import { safeNextPath } from '../../../lib/safe-next'
@@ -12,7 +12,7 @@ type Factor = {
   status: string
 }
 
-export default function MfaPage() {
+function MfaForm() {
   const router = useRouter()
   const search = useSearchParams()
   const supabase = useMemo(() => createClient(), [])
@@ -160,5 +160,4 @@ export default function MfaPage() {
         </button>
       </section>
     </main>
-  )
-}
+  )\n}\n\nexport default function MfaPage() {\n  return <Suspense fallback={<main className="min-h-screen flex items-center justify-center p-4"><p className="text-sm text-gray-600">Loading secure sign-in…</p></main>}><MfaForm /></Suspense>\n}\n
