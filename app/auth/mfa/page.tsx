@@ -160,4 +160,9 @@ function MfaForm() {
         </button>
       </section>
     </main>
-  )\n}\n\nexport default function MfaPage() {\n  return <Suspense fallback={<main className="min-h-screen flex items-center justify-center p-4"><p className="text-sm text-gray-600">Loading secure sign-in…</p></main>}><MfaForm /></Suspense>\n}\n
+  )
+}
+
+export default function MfaPage() {
+  return <Suspense fallback={<main className="min-h-screen flex items-center justify-center p-4"><p className="text-sm text-gray-600">Loading secure sign-in…</p></main>}><MfaForm /></Suspense>
+}
