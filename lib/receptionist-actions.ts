@@ -11,10 +11,10 @@ export function receptionistConfig() {
 export async function resolveLead(input: { workspaceId: string; ownerId: string; phone: string; name?: string; address?: string }) {
   const supabase = createAdminClient()
   const normalized = input.phone.replace(/[^0-9+]/g, '')
-  const { data: existing, error: lookupError } = await supabase.from('leads').select('id,name,address,phone,email,status').eq('owner_id', input.ownerId).eq('phone', normalized).limit(1).maybeSingle()
+  const { data: existing, error: lookupError } = await supabase.from('leads').select('id,name,address,phone,email,status').eq('workspace_id', input.workspaceId).eq('owner_id', input.ownerId).eq('phone', normalized).limit(1).maybeSingle()
   if (lookupError) throw lookupError
   if (existing) return existing
-  const { data, error } = await supabase.from('leads').insert({ owner_id: input.ownerId, name: input.name?.trim() || 'Phone lead', address: input.address?.trim() || 'Address pending', phone: normalized, source: 'ai_receptionist' }).select('id,name,address,phone,email,status').single()
+  const { data, error } = await supabase.from('leads').insert({ workspace_id: input.workspaceId, owner_id: input.ownerId, name: input.name?.trim() || 'Phone lead', address: input.address?.trim() || 'Address pending', phone: normalized, source: 'ai_receptionist' }).select('id,name,address,phone,email,status').single()
   if (error) throw error
   return data
 }
