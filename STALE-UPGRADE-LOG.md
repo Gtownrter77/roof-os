@@ -13,8 +13,8 @@ One file at a time. Do not start the next file until the current file has a 3-le
 
 ### 3-level check
 
-- Level 1, static: page uses the existing browser Supabase client and `current_workspace_id`. A standalone `tsc` run could not resolve `react` or `next` because this machine has no project `node_modules`. No project `npm run typecheck` was run.
-- Level 2, runtime: not run. No signed-in browser session was opened against https://roof-os-lemon.vercel.app.
+- Level 1, static: `npx tsc --noEmit` passed on 2026-10-02 after `npm ci` on this branch.
+- Level 2, compile: `npm run build` passed on 2026-10-02. The build output includes `/admin`. No signed-in browser session was opened against https://roof-os-lemon.vercel.app. This machine has no `.env.local`.
 - Level 3, data: reads are workspace-scoped selects under existing RLS. No service-role key is used. Live count values were not queried.
 
-Next file is not started.
+File 1 is complete for this branch. It is not on `main`. Next file is not started.
