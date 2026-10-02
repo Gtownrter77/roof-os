@@ -7,10 +7,10 @@ export default function HelpPage() {
   const router = useRouter()
   const [faqs] = useState([
     { q: 'How do I add a new lead?', a: 'Click the + New Lead button on the dashboard or leads page.' },
-    { q: 'How do I take photos?', a: 'Go to Camera page and tap Take Photo. Photos are saved automatically.' },
-    { q: 'What is StormScore?', a: 'A 0-100 score showing storm severity and operational priority.' },
+    { q: 'How do I take photos?', a: 'Go to Camera page and tap Take Photo. Photo save status is Unknown on this page.' },
+    { q: 'What is StormScore?', a: 'Unknown on this page.' },
     { q: 'How do I export data?', a: 'Go to Export page and choose CSV or PDF format.' },
-    { q: 'What are SLA targets?', a: 'Response time targets. Default is 15 minutes for first response.' },
+    { q: 'What are SLA targets?', a: 'Response time targets. Unknown on this page.' },
   ])
 
   return (
@@ -22,7 +22,7 @@ export default function HelpPage() {
         </div>
       </header>
 
-      <main className="p-4">
+      <main className="p-4"><p className="text-sm bg-white rounded-lg shadow p-4 mb-4">Help text that is not checked stays Unknown.</p>
         <div className="bg-white rounded-lg shadow p-4 mb-4">
           <h2 className="font-semibold text-sm mb-3">📞 Contact Support</h2>
           <div className="space-y-2">

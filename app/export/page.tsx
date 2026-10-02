@@ -8,9 +8,7 @@ export default function ExportPage() {
   const exportData = (type: string) => {
     const data = [
       ['Name', 'Address', 'Status', 'Date'],
-      ['John Doe', '123 Main St', 'New', '2024-01-15'],
-      ['Jane Smith', '456 Oak Ave', 'Assigned', '2024-01-14'],
-      ['Bob Johnson', '789 Pine Rd', 'Qualified', '2024-01-13'],
+      ['Unknown', 'Unknown', 'Unknown', 'Unknown'],
     ]
     
     let csv = data.map(row => row.join(',')).join('\n')
@@ -32,7 +30,7 @@ export default function ExportPage() {
         </div>
       </header>
 
-      <main className="p-4">
+      <main className="p-4"><p className="text-sm bg-white rounded-lg shadow p-4 mb-4">Export does not include live records. Missing fields stay Unknown.</p>
         {/* Export Section */}
         <div className="bg-white rounded-lg shadow p-4 mb-4">
           <h2 className="font-semibold text-sm mb-3">📤 Export Data</h2>

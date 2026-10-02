@@ -65,7 +65,7 @@ export default function PlansPage() {
         </div>
       </header>
 
-      <main className="p-4">
+      <main className="p-4"><p className="text-sm bg-white rounded-lg shadow p-4 mb-4">This plan screen does not write a price.</p>
         <div className="text-center mb-6">
           <h2 className="text-2xl font-bold">Choose Your Plan</h2>
           <p className="text-sm text-gray-500">Start free, upgrade anytime</p>
@@ -75,9 +75,7 @@ export default function PlansPage() {
           {plans.map((plan) => (
             <div 
               key={plan.id}
-              className={`bg-white rounded-lg shadow p-6 border-2 transition-all ${
-                plan.popular ? 'border-blue-500' : 'border-transparent'
-              }`}
+              className={`bg-white rounded-lg shadow p-6 border-2 transition-all Unknown`}
             >
               {plan.popular && (
                 <span className="bg-blue-600 text-white text-xs px-3 py-1 rounded-full inline-block mb-2">
@@ -88,16 +86,12 @@ export default function PlansPage() {
                 <div>
                   <h3 className="text-xl font-bold">{plan.name}</h3>
                   <div className="mt-1">
-                    <span className="text-3xl font-bold">${plan.price}</span>
+                    <span className="text-3xl font-bold">Unknown</span>
                     <span className="text-gray-500 text-sm">{plan.period}</span>
                   </div>
                 </div>
                 <button 
-                  className={`px-6 py-2 rounded-lg font-semibold ${
-                    plan.popular 
-                      ? 'bg-blue-600 text-white hover:bg-blue-700' 
-                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                  }`}
+                  className={`px-6 py-2 rounded-lg font-semibold Unknown`}
                 >
                   {plan.button}
                 </button>

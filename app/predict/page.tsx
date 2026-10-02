@@ -46,7 +46,7 @@ export default function PredictPage() {
         </div>
       </header>
 
-      <main className="p-4">
+      <main className="p-4"><p className="text-sm bg-white rounded-lg shadow p-4 mb-4">A prediction without a source stays Unknown.</p>
         <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg shadow-lg p-4 mb-4 border border-purple-200">
           <div className="flex items-center">
             <span className="text-3xl mr-3">🧠</span>
@@ -76,7 +76,7 @@ export default function PredictPage() {
                 </div>
                 <div className="bg-gray-50 p-2 rounded">
                   <p className="text-xs text-gray-500">Risk Score</p>
-                  <p className={`font-bold ${prediction.riskScore > 70 ? 'text-red-600' : 'text-yellow-600'}`}>
+                  <p className={`font-bold Unknown`}>
                     {prediction.riskScore}/100
                   </p>
                 </div>
@@ -86,7 +86,7 @@ export default function PredictPage() {
                 </div>
                 <div className="bg-gray-50 p-2 rounded">
                   <p className="text-xs text-gray-500">Risk Level</p>
-                  <p className={`font-bold ${prediction.riskLevel.includes('High') ? 'text-red-600' : 'text-yellow-600'}`}>
+                  <p className={`font-bold Unknown`}>
                     {prediction.riskLevel}
                   </p>
                 </div>
