@@ -228,7 +228,7 @@ export default function CodesPage() {
         </div>
       </header>
 
-      <main className="p-4">
+      <main className="p-4"><p className="text-sm bg-white rounded-lg shadow p-4 mb-4">A local table is not a permit decision. Unknown unless the ZIP lookup returns a record.</p>
         {/* Search */}
         <div className="bg-white rounded-lg shadow-lg p-4 mb-4 border border-blue-200">
           <h3 className="font-semibold text-sm mb-3">🔍 Search Codes</h3>
