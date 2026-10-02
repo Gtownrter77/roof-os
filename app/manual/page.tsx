@@ -170,7 +170,7 @@ export default function ManualPage() {
         { 
           step: 1, 
           title: 'AR Pitch Gauge', 
-          description: 'Measure roof pitch using your phone camera.',
+          description: 'Pitch is Unknown until a person enters a measured pitch.',
           action: 'Go to Pitch Gauge',
           tip: 'Point camera at roof edge for accuracy'
         },
@@ -183,15 +183,15 @@ export default function ManualPage() {
         },
         { 
           step: 3, 
-          title: 'Drone Integration', 
-          description: 'Connect and control drones for aerial inspections.',
+          title: 'Drone', 
+          description: 'No drone is connected. Scan and measurement are Unknown.',
           action: 'Go to Drone',
           tip: 'Scan the entire roof from above'
         },
         { 
           step: 4, 
-          title: 'Home Depot Direct', 
-          description: 'Search and order materials instantly.',
+          title: 'Home Depot snapshots', 
+          description: 'A saved snapshot can be listed. Price and order status are Unknown.',
           action: 'Go to Home Depot',
           tip: 'Add items to cart for quick checkout'
         }
@@ -488,8 +488,8 @@ export default function ManualPage() {
                           'Job checklist': '/ai-train',
                           'AR Pitch Gauge': '/pitch-gauge',
                           'Sketch Pad': '/sketch',
-                          'Drone Integration': '/drone',
-                          'Home Depot Direct': '/homedepot',
+                          'Drone': '/drone',
+                          'Home Depot snapshots': '/homedepot',
                           'Building Codes': '/codes',
                           'Insurance Intelligence': '/insurance-intel',
                           'Insurance Claims Directory': '/insurance',
