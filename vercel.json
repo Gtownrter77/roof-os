@@ -7,6 +7,10 @@
     {
       "path": "/api/cron/inspection-quality",
       "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron/receptionist-followups",
+      "schedule": "*/15 * * * *"
     }
   ]
 }
