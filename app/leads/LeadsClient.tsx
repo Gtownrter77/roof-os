@@ -20,7 +20,7 @@ type Lead = {
 
 export default function LeadsClient() {
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const [leads, setLeads] = useState<Lead[]>([])
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState('all')

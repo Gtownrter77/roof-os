@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '../../lib/supabase/client'
 
@@ -20,7 +20,7 @@ function downloadCalendarEvent(appointment: Appointment) {
 
 export default function CalendarPage() {
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [form, setForm] = useState({ title: '', type: 'follow_up', startsAt: '', location: '', notes: '' })
   const [loading, setLoading] = useState(true)

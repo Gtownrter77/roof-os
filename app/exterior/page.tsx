@@ -301,7 +301,7 @@ export default function ExteriorPage() {
           <span className="text-xl">💰</span>
           <span className="text-xs">Pricing</span>
         </button>
-        <button onClick={() => router.push('/estimate')} className="flex flex-col items-center text-gray-400">
+        <button onClick={() => router.push('/ai')} className="flex flex-col items-center text-gray-400">
           <span className="text-xl">🤖</span>
           <span className="text-xs">AI</span>
         </button>
