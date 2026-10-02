@@ -9,8 +9,13 @@ set search_path = public
 as $$
 begin
   if new.appointment_type = 'inspection' and new.lead_id is not null then
-    if not public.is_workspace_member(new.workspace_id) then
-      raise exception 'Workspace membership required' using errcode = '42501';
+    if not exists (
+      select 1
+      from public.workspace_members wm
+      where wm.workspace_id = new.workspace_id
+        and wm.user_id = new.created_by
+    ) then
+      raise exception 'Appointment creator is not a workspace member' using errcode = '42501';
     end if;
 
     if not exists (
@@ -59,8 +64,13 @@ set search_path = public
 as $$
 begin
   if new.lead_id is not null then
-    if not public.is_workspace_member(new.workspace_id) then
-      raise exception 'Workspace membership required' using errcode = '42501';
+    if not exists (
+      select 1
+      from public.workspace_members wm
+      where wm.workspace_id = new.workspace_id
+        and wm.user_id = new.created_by
+    ) then
+      raise exception 'Inspection creator is not a workspace member' using errcode = '42501';
     end if;
 
     if not exists (
