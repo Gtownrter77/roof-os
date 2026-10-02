@@ -24,9 +24,9 @@ export default function PricingPage() {
       gutterWork: { rate: 0, unit: 'hr', quantity: 0 },
       cleanup: { rate: 0, unit: 'hr', quantity: 0 },
     },
-    overhead: 0.15,
-    profit: 0.10,
-    salesTax: 0.07,
+    overhead: 0,
+    profit: 0,
+    salesTax: 0,
     permits: 0,
     dumpFees: 0,
   })
