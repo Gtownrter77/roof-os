@@ -7,9 +7,12 @@ import { createClient } from '../../lib/supabase/client'
 type Appointment = { id: string; title: string; appointment_type: string; starts_at: string; ends_at: string; location: string | null; notes: string | null; status: string }
 
 function downloadCalendarEvent(appointment: Appointment) {
+  const start = new Date(appointment.starts_at)
+  const end = new Date(appointment.ends_at)
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || !(end > start)) return
   const format = (date: Date) => date.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')
   const escape = (value: string) => value.replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/[,;]/g, '\\$&')
-  const ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//ROOF OS//Appointments//EN', 'BEGIN:VEVENT', `UID:${appointment.id}@roof-os`, `DTSTAMP:${format(new Date())}`, `DTSTART:${format(new Date(appointment.starts_at))}`, `DTEND:${format(new Date(appointment.ends_at))}`, `SUMMARY:${escape(appointment.title)}`, `LOCATION:${escape(appointment.location ?? '')}`, `DESCRIPTION:${escape(appointment.notes ?? '')}`, 'END:VEVENT', 'END:VCALENDAR'].join('\r\n')
+  const ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//ROOF OS//Appointments//EN', 'BEGIN:VEVENT', `UID:${appointment.id}@roof-os`, `DTSTAMP:${format(new Date())}`, `DTSTART:${format(start)}`, `DTEND:${format(end)}`, `SUMMARY:${escape(appointment.title)}`, `LOCATION:${escape(appointment.location ?? '')}`, `DESCRIPTION:${escape(appointment.notes ?? '')}`, 'END:VEVENT', 'END:VCALENDAR'].join('\r\n')
   const url = URL.createObjectURL(new Blob([ics], { type: 'text/calendar;charset=utf-8' }))
   const link = document.createElement('a')
   link.href = url
