@@ -3,7 +3,7 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js'
 type AgentKey = 'intake_router' | 'scheduler' | 'inspection_quality' | 'office_copilot'
 type AgentStatus = 'queued' | 'running' | 'succeeded' | 'failed' | 'needs_review' | 'skipped'
 
-type RuntimeConfig = { supabaseUrl: string; serviceRoleKey: string; workerId: string; workerVersion: string }
+type RuntimeConfig = { supabaseUrl: string; serviceRoleKey: string; workerId: string; workerVersion: string; reviewTaskCreatorId?: string }
 type AgentEvent = { workspaceId: string; agentKey: AgentKey; eventKey: string; trigger: string; inputReference: Record<string, unknown> }
 
 export function createAgentRuntime(config: RuntimeConfig) {
@@ -26,20 +26,20 @@ export function createAgentRuntime(config: RuntimeConfig) {
     if (workspaceError) throw workspaceError
     if (!workspace) throw new Error(`Unknown workspace: ${event.workspaceId}`)
     const base = { workspace_id: event.workspaceId, agent_key: event.agentKey, event_key: event.eventKey, trigger: event.trigger, input_reference: event.inputReference }
-    const { data: existing } = await supabase.from('agent_runs').select('id,status,output').match({ workspace_id: event.workspaceId, agent_key: event.agentKey, event_key: event.eventKey }).maybeSingle()
+    const { data: existing } = await supabase.from('agent_runs').select('id,status,output,attempt').match({ workspace_id: event.workspaceId, agent_key: event.agentKey, event_key: event.eventKey }).maybeSingle()
     if (existing?.status === 'succeeded' || existing?.status === 'needs_review') return existing
     if (existing?.status === 'running') return existing
 
     let started: { id: string } | null = null
     if (existing) {
-      const { data, error } = await supabase.from('agent_runs').update({ status: 'running', started_at: new Date().toISOString(), attempt: 2 }).eq('id', existing.id).eq('status', existing.status).select('id').maybeSingle()
+      const { data, error } = await supabase.from('agent_runs').update({ status: 'running', started_at: new Date().toISOString(), attempt: (existing.attempt ?? 1) + 1 }).eq('id', existing.id).eq('status', existing.status).select('id').maybeSingle()
       if (error) throw error
       started = data
     } else {
       const { data, error } = await supabase.from('agent_runs').insert({ ...base, status: 'running', started_at: new Date().toISOString(), attempt: 1 }).select('id').maybeSingle()
       if (error && error.code !== '23505') throw error
       if (!data) {
-        const { data: claimed } = await supabase.from('agent_runs').select('id,status,output').match({ workspace_id: event.workspaceId, agent_key: event.agentKey, event_key: event.eventKey }).maybeSingle()
+        const { data: claimed } = await supabase.from('agent_runs').select('id,status,output,attempt').match({ workspace_id: event.workspaceId, agent_key: event.agentKey, event_key: event.eventKey }).maybeSingle()
         return claimed
       }
       started = data
@@ -52,7 +52,12 @@ export function createAgentRuntime(config: RuntimeConfig) {
       if (error) throw error
       return data
     } catch (error) {
-      await supabase.from('agent_runs').update({ status: 'failed', error_message: error instanceof Error ? error.message : 'Unknown worker error', finished_at: new Date().toISOString() }).eq('id', started.id)
+      const errorMessage = error instanceof Error ? error.message : 'Unknown worker error'
+      await supabase.from('agent_runs').update({ status: 'failed', error_message: errorMessage, finished_at: new Date().toISOString() }).eq('id', started.id)
+      if (config.reviewTaskCreatorId) {
+        const leadId = typeof event.inputReference.lead_id === 'string' ? event.inputReference.lead_id : null
+        await supabase.from('tasks').insert({ workspace_id: event.workspaceId, lead_id: leadId, title: `Review failed ${event.agentKey} run`, notes: `${errorMessage} (event ${event.eventKey})`, assigned_to: config.reviewTaskCreatorId, created_by: config.reviewTaskCreatorId, status: 'open' })
+      }
       throw error
     }
   }

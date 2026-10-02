@@ -6,13 +6,16 @@ const migration = readFileSync('supabase/migrations/034_mobile_offline_idempoten
 
 for (const marker of [
   'WHERE owner_user_id = ?',
-  'draft.ownerUserId !== session.user.id',
-  'draft.workspaceId !== workspaceId',
+  'draftToSync.ownerUserId !== session.user.id',
+  'draftToSync.workspaceId !== workspaceId',
   "onConflict: 'workspace_id,client_id'",
-  'UPDATE inspection_measurements_local SET sync_status = ? WHERE id = ?',
+  'UPDATE inspection_measurements_local SET sync_status = ?, last_error = NULL, next_retry_at = NULL WHERE id = ?',
+  "sync_status IN (?, ?) AND (next_retry_at IS NULL OR next_retry_at <= ?)",
+  'Automatic retry scheduled.',
   'already exists|duplicate',
   'client_id: measurement.client_id',
   'client_id: photo.client_id',
+  'UPGRADES ONLY · NO REGRESSIONS',
 ]) assert.ok(app.includes(marker), `app contract missing: ${marker}`)
 for (const marker of [
   'inspection_sessions_workspace_client_uidx',
