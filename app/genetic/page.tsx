@@ -16,8 +16,8 @@ export default function GeneticPage() {
     const interval = setInterval(() => {
       gen++
       setGenerations(gen)
-      const score = 85
-      setBestScore(score)
+      const score = null
+      setBestScore(0)
       
       setSolutions(prev => {
         const newSolution = {
@@ -56,7 +56,7 @@ export default function GeneticPage() {
             </div>
             <div className="text-center p-2 bg-green-800/50 rounded">
               <p className="text-xs text-teal-300">Best Score</p>
-              <p className="text-2xl font-bold text-yellow-400">{bestScore}%</p>
+              <p className="text-2xl font-bold text-yellow-400">Unknown</p>
             </div>
             <div className="text-center p-2 bg-green-800/50 rounded">
               <p className="text-xs text-teal-300">Status</p>

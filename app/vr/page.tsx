@@ -62,15 +62,15 @@ export default function VRPage() {
         <div className="grid grid-cols-3 gap-2 mb-4">
           <div className="bg-purple-900/50 rounded-lg p-3 text-center border border-purple-500">
             <p className="text-xs text-purple-300">Area</p>
-            <p className="font-bold">1,245 sq ft</p>
+            <p className="font-bold">Unknown</p>
           </div>
           <div className="bg-purple-900/50 rounded-lg p-3 text-center border border-purple-500">
             <p className="text-xs text-purple-300">Roof Pitch</p>
-            <p className="font-bold">6/12</p>
+            <p className="font-bold">Unknown</p>
           </div>
           <div className="bg-purple-900/50 rounded-lg p-3 text-center border border-purple-500">
             <p className="text-xs text-purple-300">Material</p>
-            <p className="font-bold">Asphalt</p>
+            <p className="font-bold">Unknown</p>
           </div>
         </div>
 
