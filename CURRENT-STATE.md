@@ -1,5 +1,17 @@
 # ROOF/OS Current State
 
+## 2026-10-02 Post-MFA Remediation Addendum
+
+**Actual main after remediation merge:** `5d6e61498ad3b4c3477bbdf1918270ef4d9488fd`
+
+PR #65 was merged after the full repository CI workflow passed: web, preview-build, mobile, and migration-safety all succeeded.
+
+The privileged-user MFA gap identified against the canonical build specification was remediated. Owner/admin workspace users are now required to reach Supabase Auth AAL2 before accessing the application, and `/auth/mfa` provides TOTP enrollment/challenge verification.
+
+The profile screen's hard-coded demo identity was also removed and replaced with authenticated Supabase user/workspace data.
+
+The merged commit's current Vercel status is **failure due to Vercel build-rate limiting** (`upgradeToPro=build-rate-limit`). This is a platform/account deployment constraint, not a passing production deployment. Production deployment therefore remains unverified until a successful deployment is observed.
+
 ## 2026-10-02 Evidence Correction Addendum
 
 **Actual main at time of correction:** `7e0b0d1807a3bc0ff9782c19271cfa276a7dc3b3`

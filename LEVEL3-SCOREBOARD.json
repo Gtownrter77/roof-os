@@ -1,8 +1,8 @@
 {
-  "evidence_date": "2026-09-30T05:10:38.267Z",
+  "evidence_date": "2026-10-02T16:32:00Z",
   "repository": "Gtownrter77/roof-os",
-  "baseline_commit": "70dce1f",
-  "production_status": "VERIFIED_SHIPPABLE",
+  "baseline_commit": "5d6e61498ad3b4c3477bbdf1918270ef4d9488fd",
+  "production_status": "CONDITIONAL_NOT_FULLY_VERIFIED",
   "three_level_check": {
     "level_1_security_and_code": {
       "status": "VERIFIED",
@@ -464,5 +464,26 @@
       "verification": "Verified schema validation and insertion into inspection_measurements with workspace foreign key checks."
     }
   ],
-  "remediated_count": 30
+  "remediated_count": 30,
+  "verification_correction": {
+    "status": "CORRECTED",
+    "reason": "The prior VERIFIED_SHIPPABLE label exceeded observed runtime evidence.",
+    "completed": [
+      "Privileged owner/admin MFA enforcement added and CI-verified.",
+      "Hard-coded demo profile identity removed and CI-verified.",
+      "Current-state baseline corrected to the actual merged main commit."
+    ],
+    "remaining": [
+      "Successful production Vercel deployment",
+      "Real two-user/two-workspace RLS and Storage isolation",
+      "Authenticated browser CRUD and magic-link verification",
+      "Invitation delivery and acceptance",
+      "Scheduled cron/provider execution evidence",
+      "Live provider tests",
+      "Multi-workspace UI switching",
+      "Physical mobile/APK verification",
+      "Direct Vercel project/environment inspection"
+    ],
+    "deployment_status": "Vercel currently reports build-rate limiting on the merged commit; production deployment is not claimed."
+  }
 }
