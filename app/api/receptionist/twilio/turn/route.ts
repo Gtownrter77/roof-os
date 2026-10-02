@@ -13,7 +13,13 @@ export async function POST(request: NextRequest) {
     const callSid = params.CallSid
     const speech = params.SpeechResult?.trim()
     if (!callSid || !speech) return twiml('<Say>I did not hear a request. I can connect you with a team member. Goodbye.</Say><Hangup/>')
-    const { data: session, error: sessionError } = await supabase.from('receptionist_sessions').select('id,caller_phone,lead_id,transcript').eq('provider', 'twilio').eq('provider_session_id', callSid).single()
+    const { data: session, error: sessionError } = await supabase
+      .from('receptionist_sessions')
+      .select('id,caller_phone,lead_id,transcript')
+      .eq('workspace_id', workspaceId)
+      .eq('provider', 'twilio')
+      .eq('provider_session_id', callSid)
+      .single()
     if (sessionError || !session) return new Response('Receptionist session not found', { status: 404 })
     const turn = await generateReceptionistTurn({ transcript: speech, callerPhone: session.caller_phone || undefined, history: session.transcript ? [session.transcript] : [] })
     const transcript = [session.transcript, `Caller: ${speech}`, `Assistant: ${turn.reply}`].filter(Boolean).join('\n')

@@ -1,20 +1,52 @@
+import { isUuid } from './api-security'
 import { createAdminClient } from './supabase/admin'
 
 export function receptionistConfig() {
   const workspaceId = process.env.RECEPTIONIST_WORKSPACE_ID?.trim()
   const ownerId = process.env.RECEPTIONIST_OWNER_ID?.trim()
   const publicUrl = process.env.RECEPTIONIST_PUBLIC_URL?.trim()
-  if (!workspaceId || !ownerId || !publicUrl) throw new Error('RECEPTIONIST_WORKSPACE_ID, RECEPTIONIST_OWNER_ID, and RECEPTIONIST_PUBLIC_URL are required')
+  if (!workspaceId || !ownerId || !publicUrl || !isUuid(workspaceId) || !isUuid(ownerId)) {
+    throw new Error('RECEPTIONIST_WORKSPACE_ID and RECEPTIONIST_OWNER_ID must be valid UUIDs, and RECEPTIONIST_PUBLIC_URL is required')
+  }
   return { workspaceId, ownerId, publicUrl }
 }
 
 export async function resolveLead(input: { workspaceId: string; ownerId: string; phone: string; name?: string; address?: string }) {
   const supabase = createAdminClient()
   const normalized = input.phone.replace(/[^0-9+]/g, '')
-  const { data: existing, error: lookupError } = await supabase.from('leads').select('id,name,address,phone,email,status').eq('owner_id', input.ownerId).eq('phone', normalized).limit(1).maybeSingle()
+
+  const { data: ownerMembership, error: membershipError } = await supabase
+    .from('workspace_members')
+    .select('user_id')
+    .eq('workspace_id', input.workspaceId)
+    .eq('user_id', input.ownerId)
+    .maybeSingle()
+  if (membershipError) throw membershipError
+  if (!ownerMembership) throw new Error('Receptionist owner is not a member of the configured workspace')
+
+  const { data: existing, error: lookupError } = await supabase
+    .from('leads')
+    .select('id,name,address,phone,email,status')
+    .eq('workspace_id', input.workspaceId)
+    .eq('owner_id', input.ownerId)
+    .eq('phone', normalized)
+    .limit(1)
+    .maybeSingle()
   if (lookupError) throw lookupError
   if (existing) return existing
-  const { data, error } = await supabase.from('leads').insert({ owner_id: input.ownerId, name: input.name?.trim() || 'Phone lead', address: input.address?.trim() || 'Address pending', phone: normalized, source: 'ai_receptionist' }).select('id,name,address,phone,email,status').single()
+
+  const { data, error } = await supabase
+    .from('leads')
+    .insert({
+      workspace_id: input.workspaceId,
+      owner_id: input.ownerId,
+      name: input.name?.trim() || 'Phone lead',
+      address: input.address?.trim() || 'Address pending',
+      phone: normalized,
+      source: 'ai_receptionist',
+    })
+    .select('id,name,address,phone,email,status')
+    .single()
   if (error) throw error
   return data
 }
