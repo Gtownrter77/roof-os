@@ -111,7 +111,7 @@ export default function PricingConfigPage() {
     const payload = await response.json()
     if (response.ok) setLastUpdate(new Date())
     const savedRates = Object.keys(rates).length
-    setSaveMessage(response.ok ? (savedRates ? `Saved ${savedRates} entered labor rate${savedRates === 1 ? '' : 's'} as draft price book ${payload.priceBookId}. Review and activate before use.` : 'No labor rate was entered. Tax was sent. No labor price was saved.') : (payload.error ?? 'Could not save pricing configuration.'))
+    setSaveMessage(response.ok && payload.priceBookId ? `Saved ${payload.itemCount ?? savedRates} entered labor rate item${(payload.itemCount ?? savedRates) === 1 ? '' : 's'} as draft price book ${payload.priceBookId}. Review and activate before use.` : (payload.error ?? 'Could not save pricing configuration.'))
   }
 
   const getTrendIcon = (trend: string) => {
