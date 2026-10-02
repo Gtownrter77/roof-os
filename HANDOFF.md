@@ -431,11 +431,42 @@ Local validation passed: measurement-authority tests (including stale/mismatched
 ## 2026-10-02 independent production database audit handoff
 
 - Added the complete read-only audit report at [`docs/PRODUCTION-AUDIT-2026-10-02.md`](docs/PRODUCTION-AUDIT-2026-10-02.md).
-- Audit target: Supabase project `xksumagfbegdlapwysps`; repository baseline: current `main` HEAD `f299810`.
-- **Verified:** production ledger includes `20261002182249 / receptionist_workspace_integrity`; current `main` does not contain its source migration.
+- Audit target: Supabase project `xksumagfbegdlapwysps`; repository baseline: current `main` HEAD `f299810` at audit time.
+- **Verified:** production ledger includes `20261002182249 / receptionist_workspace_integrity`; current `main` did not contain its source migration at audit time.
 - **Verified:** the live `book_receptionist_appointment` function matches PR #72's workspace-integrity behavior and worker-only EXECUTE boundary. Its live `search_path` is empty, and `leads.workspace_id` is NOT NULL.
 - **Verified mismatch:** PR #70's inspection-activity atomicity is not applied. Its expected appointment/inspection activity functions, triggers, and composite workspace constraints are absent from production.
 - **Verified:** current `main` has duplicate numeric prefixes 021, 022, and 023; production uses timestamped ledger versions.
 - **Not verified:** complete manual-SQL provenance, every SECURITY DEFINER body, and runtime cross-workspace tests with separate authenticated identities.
 - No production schema, migration, function, policy, trigger, or data change was made during this audit.
-- **Next action:** review and merge this documentation-only handoff through a protected PR if checks pass. Do not merge PR #70 or #72, replay the live receptionist migration, or create a new 043 migration until their identities and ordering are explicitly reconciled.
+
+## 2026-10-02 receptionist workspace hardening — superseding handoff
+
+**Scope:** backend production hardening for the AI receptionist, workspace authorization, tenant isolation, Stripe payment-link creation, Twilio outbound actions, and worker-only appointment booking.
+
+### Repository state
+
+- **Audit-time `main`:** `f29981076c23b7a289b579c2852c916be368325e`
+- **Hardening PR:** PR #72, now merged after the three-level gate.
+- **Production project:** `xksumagfbegdlapwysps`
+
+### Verified production result
+
+Migration `receptionist_workspace_integrity` is applied in production. The live database confirms `leads.workspace_id` is NOT NULL, receptionist booking is worker-only with an empty search path, and the audited workspace/lead relationship checks hold.
+
+### Deployment boundary
+
+The production database migration was applied and verified. The application hardening was merged to `main` only after Level 1 source/CI checks, Level 2 runtime smoke checks, and Level 3 live Supabase verification passed.
+
+### Remaining scope
+
+PR #70 remains a separate, stale, unmerged inspection-activity migration family and must not be merged under its conflicting 043 prefix without explicit reconciliation.
+
+## 2026-10-02 post-merge checkpoint
+
+- PR #72 was squashed and merged into `main` as `6d46a4a1c3188aee3aa3aee9e9cc9b542664cd86`.
+- The remote `main` tip was verified against GitHub after merge.
+- Level 1 passed: local `npm run typecheck`, `npm run release-check`, `npm run verify:security`, and `git diff --check`; PR #72 required checks were all successful.
+- Level 2 passed: production `/auth/login` returned 200, unauthenticated `/leads` returned 307, and unauthenticated POST to the receptionist cron route returned 401.
+- Level 3 passed: production ledger and live catalog confirmed the receptionist migration, NOT NULL lead workspace, service-role-only booking ACL, empty search path, and absence of PR #70 inspection-activity objects.
+- PR #77 was then found conflicting because it was based on the pre-PR-72 `main`; its conflict is being resolved on the PR branch before any merge.
+
