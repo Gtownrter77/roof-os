@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { execFileSync } from "node:child_process";
 
-const allowedAdvisory = "GHSA-86w9-cpqp-85rv";
+// This advisory currently has no published patched version. Keep the exception narrow and explicit.\nconst allowedAdvisory = "GHSA-86w9-cpqp-85rv";
 
 let report;
 let exitCode = 0;
