@@ -29,7 +29,7 @@ export default function PlansPage() {
       period: '/month',
       features: [
         'Unlimited leads',
-        'AI report generation',
+        'Report generation is Unknown until a saved report exists',
         'Advanced analytics',
         'Priority support',
         'Camera integration',

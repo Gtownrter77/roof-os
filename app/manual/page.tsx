@@ -98,7 +98,7 @@ export default function ManualPage() {
         { 
           step: 1, 
           title: 'Photo AI Estimation', 
-          description: 'Take a photo and let AI generate a complete estimate.',
+          description: 'Take a photo. A complete estimate is Unknown until a person reviews it.',
           action: 'Go to Photo AI',
           tip: 'Take clear photos from multiple angles'
         },
