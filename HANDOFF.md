@@ -507,3 +507,30 @@ Observed production facts after migration:
 The broader repository still has pre-existing Supabase advisor findings, including six authenticated SECURITY DEFINER warnings and disabled leaked-password protection. Supabase performance advice also reports unindexed foreign keys. These are separate from the receptionist hardening and require their own scoped review before being changed.
 
 **Resume point:** finish and verify the documentation checkpoint, confirm the synchronized-branch CI is green, then PR #72 is ready for owner-directed review/merge.
+
+
+## 2026-10-02 — receptionist hardening handoff finalized
+
+- **Current main:** `f29981076c23b7a289b579c2852c916be368325e`
+- **Hardening branch:** `backend/production-hardening-20261002`
+- **Current branch SHA:** `f81278881cf6e28809b6317811a7614e0293338f`
+- **PR #72:** https://github.com/Gtownrter77/roof-os/pull/72 — open; do not merge automatically.
+- Direct `main...hardening` comparison is now **14 commits ahead / 0 behind**, with the application delta limited to the seven intended receptionist hardening files; the remaining branch commits are the preserved documentation/history lineage.
+
+### Verified production result
+
+Migration `receptionist_workspace_integrity` is applied in production project `xksumagfbegdlapwysps`. The live database confirms `leads.workspace_id` is NOT NULL, 0 of 2 leads are missing workspace ownership, workspace/admin boundaries hold under simulated authenticated contexts, cross-workspace receptionist booking attempts are rejected, and the audited receptionist/payment relationship checks return zero mismatches.
+
+### Verification result
+
+CI run **#567** completed successfully for web, mobile, preview-build, and migration-safety against the synchronized application tree. The current documentation commit is documentation-only and does not alter runtime behavior; its push should trigger the final post-documentation CI run.
+
+### Deployment boundary
+
+The production database migration was applied and verified. PR #72 has not deployed the application to Vercel, and no frontend, proxy, CSP, Next.js, or Vercel configuration change was made by this hardening pass.
+
+### Remaining scope
+
+Pre-existing Supabase security-advisor warnings (including authenticated SECURITY DEFINER findings and disabled leaked-password protection), performance/indexing advisories, and broader end-to-end/commercial release gates remain outside this focused receptionist hardening work.
+
+**Resume point:** review the post-documentation CI result, then PR #72 is ready for owner-directed review/merge. Do not merge without explicit instruction.

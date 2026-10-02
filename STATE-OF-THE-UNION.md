@@ -130,3 +130,45 @@ Supabase performance advice also reports unindexed foreign keys. These are separ
 2. Review PR #72.
 3. Merge only on explicit owner instruction.
 4. Continue the remaining runtime/commercial verification items above without treating prototype or reference-price surfaces as production-authoritative.
+
+
+## 2026-10-02 receptionist hardening — current evidence supersedes older release-candidate rows
+
+**Current main:** `f29981076c23b7a289b579c2852c916be368325e`  
+**Current hardening branch:** `backend/production-hardening-20261002`  
+**Current branch SHA:** `f81278881cf6e28809b6317811a7614e0293338f`  
+**PR #72:** open; merge only by explicit owner direction.
+
+The earlier scoreboard entries that describe receptionist functionality as **NOT IMPLEMENTED** are historical and no longer describe the current hardening branch. The receptionist routes and worker-only booking path are now present in source and their targeted tenant-boundary contracts have been verified.
+
+### Current receptionist/security scoreboard
+
+| Capability | Status | Evidence |
+| --- | --- | --- |
+| Receptionist lead workspace/owner scoping | **VERIFIED** | Configured owner membership required; reads and inserts are workspace-scoped. |
+| Stripe payment-link admin boundary | **VERIFIED** | Auth + active workspace + workspace-admin gate before provider action; ledger access is workspace-scoped. |
+| Twilio outbound voice authorization | **VERIFIED** | Workspace-admin gate before provider call; optional lead ID is workspace-validated. |
+| Twilio outbound SMS authorization | **VERIFIED** | Workspace-admin gate before provider call; optional lead ID is workspace-validated. |
+| Twilio receptionist session tenancy | **VERIFIED** | Session lookup explicitly scoped to active workspace. |
+| Worker-only appointment booking | **VERIFIED** | Creator/lead workspace checks, empty search path, workspace-scoped idempotency/conflict handling, service-role-only execution. |
+| Production lead workspace integrity | **VERIFIED** | `leads.workspace_id` is NOT NULL; 0/2 live leads missing workspace IDs. |
+| Cross-workspace negative booking tests | **VERIFIED** | Mismatched creator/lead combinations rejected; no test rows remained. |
+| Audited production relationship integrity | **VERIFIED** | Zero observed mismatches across receptionist events, appointments, leads, invoices, payment links, and lead/payment relationships. |
+
+### Branch/CI state
+
+The direct comparison from current `main` to the hardening branch is **14 commits ahead / 0 behind**. The application delta is the intended seven hardening files. CI run **#567** passed web, mobile, preview-build, and migration-safety for the synchronized application tree before this documentation-only checkpoint.
+
+### Product boundary
+
+This verified hardening result is **not** a claim that all ROOF/OS product capabilities are commercially complete. Prototype surfaces remain disclosed, retailer prices remain reference data rather than licensed carrier/Xactimate prices, and the broader runtime/commercial evidence backlog remains documented in this file.
+
+### Remaining non-receptionist evidence
+
+The project still has partial or blocked areas including full two-user/two-workspace browser RLS/Storage testing, end-to-end authentication acceptance, invitation delivery/acceptance, live provider success/failure tests, cron execution evidence, mobile device/APK verification, jurisdiction-authoritative code sourcing, licensed insurance pricing, and Vercel project configuration inspection.
+
+### Production security advisories outside scope
+
+Supabase's pre-existing advisor findings remain documented: six authenticated SECURITY DEFINER warnings, disabled leaked-password protection, and performance/indexing notices. These were intentionally not altered during receptionist hardening.
+
+**Current conclusion:** receptionist backend hardening and its production database integrity scope are **VERIFIED COMPLETE**. Whole-product commercial verification remains a separate, incomplete track.
