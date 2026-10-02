@@ -249,14 +249,14 @@ export default function ManualPage() {
         { 
           step: 2, 
           title: 'Porta John Rentals', 
-          description: 'Order portable restrooms for your job site.',
+          description: 'No restroom order is placed from this screen.',
           action: 'Go to Logistics',
           tip: 'Order deluxe units with hand washing stations'
         },
         { 
           step: 3, 
           title: 'Material Ordering', 
-          description: 'Order materials directly from Home Depot.',
+          description: 'No material order is placed. Price is Unknown.',
           action: 'Go to Home Depot',
           tip: 'Check daily prices for best deals'
         }
@@ -271,14 +271,14 @@ export default function ManualPage() {
         { 
           step: 1, 
           title: 'Job checklist', 
-          description: 'Step-by-step job training with hand-holding guidance.',
+          description: 'A local checklist. It does not certify the job.',
           action: 'Go to Training Center',
           tip: 'Select job type and follow each step'
         },
         { 
           step: 2, 
           title: 'Multi-Language Support', 
-          description: 'Translate estimates and communications into 12 languages.',
+          description: 'A word list only. No translation service is called.',
           action: 'Go to Translate',
           tip: 'Useful for non-English speaking clients'
         },
