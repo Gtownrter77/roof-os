@@ -28,7 +28,7 @@ export default function PricingConfigPage() {
     consulting: { rate: 0, unit: 'hr', description: 'Consulting per hour' },
   })
 
-  const [materialMarkup, setMaterialMarkup] = useState(25)
+  const [materialMarkup, setMaterialMarkup] = useState(0)
   const [priceHistory, setPriceHistory] = useState<any[]>([])
   const [dailyPrices, setDailyPrices] = useState<any>(null)
   const [selectedJobType, setSelectedJobType] = useState('roofing')
@@ -316,7 +316,7 @@ export default function PricingConfigPage() {
             </div>
             <div className="flex-1 text-center">
               <p className="text-xs text-gray-500">Current Margin</p>
-              <p className="text-xl font-bold text-green-600">{materialMarkup}%</p>
+              <p className="text-xl font-bold text-green-600">{materialMarkup ? materialMarkup + "%" : "Unknown"}</p>
             </div>
           </div>
         </div>
