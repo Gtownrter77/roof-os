@@ -25,6 +25,8 @@ export async function POST(request: NextRequest) {
 
   let processed = 0
   let failed = 0
+  const failures: Array<{ inspectionId: string; error: string }> = []
+
   for (const inspection of inspections ?? []) {
     try {
       const { data: latestPhoto } = await admin
@@ -45,10 +47,18 @@ export async function POST(request: NextRequest) {
         eventKey,
       )
       processed += 1
-    } catch {
+    } catch (error) {
       failed += 1
+      failures.push({
+        inspectionId: inspection.id,
+        error: error instanceof Error ? error.message : 'Unknown inspection-quality worker error',
+      })
     }
   }
 
-  return NextResponse.json({ processed, failed })
+  if (failed > 0) {
+    return NextResponse.json({ processed, failed, failures }, { status: 500 })
+  }
+
+  return NextResponse.json({ processed, failed: 0 })
 }
