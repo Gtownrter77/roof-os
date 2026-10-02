@@ -604,3 +604,9 @@ On branch `upgrade/admin-page-20261002`:
 - `app/schedule/page.tsx` reads saved appointments. Fake report schedules removed.
 - `npx tsc --noEmit` passed.
 - Browser and production behavior not verified. Signed-in check is still open.
+
+## Export, 2026-10-02
+
+- `app/export/page.tsx` exports saved leads for the current workspace. Fake rows removed. Import is Unknown.
+- `npx tsc --noEmit` passed.
+- Browser and production not verified.
