@@ -156,6 +156,10 @@ begin
   end loop;
 end $$;
 
+revoke execute on function public.refresh_lead_score(uuid) from public, anon, authenticated;
+revoke execute on function public.refresh_lead_activity_timestamp() from public, anon, authenticated;
+revoke execute on function public.refresh_lead_score_trigger() from public, anon, authenticated;
+
 comment on column public.leads.next_action is 'The single next operational action required to move this lead forward.';
 comment on column public.leads.next_action_due is 'Due time for the next operational action.';
 comment on column public.leads.next_action_owner_id is 'Workspace member responsible for the next action.';
