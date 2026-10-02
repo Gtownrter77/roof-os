@@ -2,7 +2,7 @@
 
 ## 2026-10-02 Cyber/Production Continuation — superseding evidence
 
-**Verified main:** `873101fc094b4e04b8cf011cf36071675a75e199`
+**Verified main:** `cd57ba6caf86171ea0b1c3bb3851e22806527e43`
 
 **Verified backup before documentation work:** `backup/pre-cyber-doc-refresh-20261002` points to the same main commit.
 
