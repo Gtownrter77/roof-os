@@ -2,7 +2,7 @@
 
 ## 2026-10-02 Post-MFA Remediation Addendum
 
-**Actual main after evidence-sync merge:** `7918fa5e7c277b9e2c8d2b6c3686a0dee85ff425`
+**Actual main after evidence-sync merge:** `41162bb9359ffb26dac40dc993e59795af3a70e5`
 
 PR #65 was merged after the full repository CI workflow passed: web, preview-build, mobile, and migration-safety all succeeded.
 
@@ -204,3 +204,10 @@ The authenticated browser and Vercel project configuration checks are currently 
 ## Historical notes
 
 Earlier `HANDOFF.md`, `STATE-OF-THE-UNION.md`, and other project documents preserve prior work claims. Refer to this document and `LEVEL3-SCOREBOARD.json` for the present evidence-based status.
+
+
+## 2026-10-02 Evidence Discipline Addendum
+
+The remediation branch `fix/remove-fabricated-demo-records-20261002` currently carries nine UI/data-truth corrections. Its latest verified head is recorded by PR #68. GitHub CI passes for the latest branch head. These changes are not yet merged into `main`. Production remains unverified because Vercel reports a build-rate-limit failure.
+
+The repository audit is being held to the canonical Master Build Specification: code presence alone is not completion; critical workflows require implementation, tests, tenant isolation, security, observability, failure handling, acceptance evidence, and manual fallback.
