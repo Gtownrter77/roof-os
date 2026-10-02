@@ -28,6 +28,8 @@ const cronRoute = readFileSync('app/api/cron/receptionist-followups/route.ts', '
 const receptionistActions = readFileSync('lib/receptionist-actions.ts', 'utf8')
 const paymentRoute = readFileSync('app/api/receptionist/stripe/payment-link/route.ts', 'utf8')
 const turnRoute = readFileSync('app/api/receptionist/twilio/turn/route.ts', 'utf8')
+const outboundRoute = readFileSync('app/api/receptionist/twilio/outbound/route.ts', 'utf8')
+const smsRoute = readFileSync('app/api/receptionist/twilio/sms/route.ts', 'utf8')
 const integrityMigration = readFileSync('supabase/migrations/043_receptionist_workspace_integrity.sql', 'utf8')
 
 assert.ok(cronRoute.includes("return NextResponse.json({ processed: attempts?.length || 0, started, optedOut, failed, failures }, { status: 502 })"), 'receptionist cron must surface provider failures with a non-2xx response')
@@ -45,6 +47,12 @@ assert.ok(paymentRoute.indexOf("supabase.rpc('is_workspace_admin'") < paymentRou
 assert.ok(!paymentRoute.includes("admin.from('invoices'"), 'payment-link invoice reads must use the authenticated client')
 assert.ok(!paymentRoute.includes("admin.from('receptionist_payment_links'"), 'payment-link ledger reads/writes must use the authenticated client')
 assert.ok(turnRoute.includes(".eq('workspace_id', workspaceId)"), 'Twilio turn session lookup must remain workspace scoped')
+assert.ok(outboundRoute.includes("supabase.rpc('is_workspace_admin'"), 'outbound voice must require workspace administration')
+assert.ok(outboundRoute.indexOf("supabase.rpc('is_workspace_admin'") < outboundRoute.indexOf('client.calls.create'), 'outbound voice authorization must precede provider action')
+assert.ok(outboundRoute.includes(".eq('id', body.leadId).eq('workspace_id', workspaceId)"), 'outbound voice leadId must be workspace scoped')
+assert.ok(smsRoute.includes("supabase.rpc('is_workspace_admin'"), 'outbound SMS must require workspace administration')
+assert.ok(smsRoute.indexOf("supabase.rpc('is_workspace_admin'") < smsRoute.indexOf('messages.create'), 'outbound SMS authorization must precede provider action')
+assert.ok(smsRoute.includes(".eq('id', body.leadId).eq('workspace_id', workspaceId)"), 'outbound SMS leadId must be workspace scoped')
 
 assert.ok(integrityMigration.includes('alter table public.leads\n  alter column workspace_id set not null'), 'lead workspace ownership must be non-null')
 assert.ok(integrityMigration.includes("role in ('owner', 'admin', 'member')"), 'receptionist booking creator must be a workspace member')
