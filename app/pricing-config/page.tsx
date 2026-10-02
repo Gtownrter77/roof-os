@@ -11,21 +11,21 @@ export default function PricingConfigPage() {
   const [taxSource, setTaxSource] = useState('Owner-entered jurisdiction rates')
   const [selectedState, setSelectedState] = useState('GA')
   const [laborRates, setLaborRates] = useState({
-    roofing: { rate: 65, unit: 'sq', description: 'Roofing installation per square' },
-    siding: { rate: 55, unit: 'sq', description: 'Siding installation per square' },
-    windows: { rate: 75, unit: 'each', description: 'Window installation per unit' },
-    doors: { rate: 85, unit: 'each', description: 'Door installation per unit' },
-    gutters: { rate: 45, unit: 'ft', description: 'Gutter installation per linear foot' },
-    decking: { rate: 60, unit: 'sq', description: 'Deck installation per square' },
-    drywall: { rate: 40, unit: 'sq', description: 'Drywall installation per square' },
-    painting: { rate: 35, unit: 'sq', description: 'Painting per square' },
-    electrical: { rate: 95, unit: 'hr', description: 'Electrical work per hour' },
-    plumbing: { rate: 90, unit: 'hr', description: 'Plumbing work per hour' },
-    hvac: { rate: 100, unit: 'hr', description: 'HVAC work per hour' },
-    demo: { rate: 50, unit: 'hr', description: 'Demolition work per hour' },
-    cleanup: { rate: 35, unit: 'hr', description: 'Cleanup per hour' },
-    inspection: { rate: 75, unit: 'hr', description: 'Inspection per hour' },
-    consulting: { rate: 120, unit: 'hr', description: 'Consulting per hour' },
+    roofing: { rate: 0, unit: 'sq', description: 'Roofing installation per square' },
+    siding: { rate: 0, unit: 'sq', description: 'Siding installation per square' },
+    windows: { rate: 0, unit: 'each', description: 'Window installation per unit' },
+    doors: { rate: 0, unit: 'each', description: 'Door installation per unit' },
+    gutters: { rate: 0, unit: 'ft', description: 'Gutter installation per linear foot' },
+    decking: { rate: 0, unit: 'sq', description: 'Deck installation per square' },
+    drywall: { rate: 0, unit: 'sq', description: 'Drywall installation per square' },
+    painting: { rate: 0, unit: 'sq', description: 'Painting per square' },
+    electrical: { rate: 0, unit: 'hr', description: 'Electrical work per hour' },
+    plumbing: { rate: 0, unit: 'hr', description: 'Plumbing work per hour' },
+    hvac: { rate: 0, unit: 'hr', description: 'HVAC work per hour' },
+    demo: { rate: 0, unit: 'hr', description: 'Demolition work per hour' },
+    cleanup: { rate: 0, unit: 'hr', description: 'Cleanup per hour' },
+    inspection: { rate: 0, unit: 'hr', description: 'Inspection per hour' },
+    consulting: { rate: 0, unit: 'hr', description: 'Consulting per hour' },
   })
 
   const [materialMarkup, setMaterialMarkup] = useState(25)
@@ -40,7 +40,7 @@ export default function PricingConfigPage() {
   useEffect(() => {
     fetch('/api/pricing/labor-rates').then(async response => {
       const payload = await response.json()
-      if (response.ok && payload.rates) setLaborRates(prev => Object.fromEntries(Object.entries(prev).map(([key, value]) => [key, { ...value, rate: Number(payload.rates[key] ?? value.rate) }])) as typeof prev)
+      if (response.ok && payload.source === 'owner-managed' && payload.rates) setLaborRates(prev => Object.fromEntries(Object.entries(prev).map(([key, value]) => [key, { ...value, rate: Number(payload.rates[key] ?? 0) }])) as typeof prev)
       if (response.ok && payload.taxRates) setTaxRates({ state: Number(payload.taxRates.state ?? 0), county: Number(payload.taxRates.county ?? 0), city: Number(payload.taxRates.city ?? 0), specialDistrict: Number(payload.taxRates.specialDistrict ?? 0) })
       if (response.ok && typeof payload.taxSource === 'string' && payload.taxSource) setTaxSource(payload.taxSource)
       if (response.ok && payload.priceBook?.effective_at) setLastUpdate(new Date(payload.priceBook.effective_at))

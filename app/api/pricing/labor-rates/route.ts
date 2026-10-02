@@ -17,15 +17,15 @@ async function ownerClient() {
 export async function GET() {
   const { supabase, user, workspaceId } = await ownerClient()
   if (!user) return NextResponse.json({ error: 'Authentication required.' }, { status: 401 })
-  if (!workspaceId) return NextResponse.json({ rates: DEFAULT_RATES, taxRates: { state: 0, county: 0, city: 0, specialDistrict: 0 }, localTaxRate: 0, taxSource: '', source: 'defaults', editable: false, warning: 'No workspace is configured.' })
+  if (!workspaceId) return NextResponse.json({ rates: {}, taxRates: { state: 0, county: 0, city: 0, specialDistrict: 0 }, localTaxRate: 0, taxSource: '', source: 'none', editable: false, warning: 'No workspace is configured. Labor rates are Unknown.' })
   const membership = await requireWorkspaceMember(supabase, user.id, workspaceId)
   if (membership.response) return membership.response
   const { data: priceBook, error } = await supabase.from('price_books').select('id,name,market,source,effective_at,status,local_tax_rate,state_tax_rate,county_tax_rate,city_tax_rate,special_district_tax_rate,tax_source,price_book_items(sku,unit,unit_price,description)').eq('workspace_id', workspaceId).eq('source', 'owner-managed').in('status', ['draft', 'active']).order('effective_at', { ascending: false }).limit(1).maybeSingle()
   if (error) return NextResponse.json({ error: 'Could not load the owner-managed price book.', detail: error.message }, { status: 502 })
-  const rates = { ...DEFAULT_RATES }
-  for (const item of priceBook?.price_book_items ?? []) if (item.sku.startsWith('LABOR-')) rates[item.sku.slice(6) as RateKey] = Number(item.unit_price)
+  const rates: Partial<Record<RateKey, number>> = {}
+  for (const item of priceBook?.price_book_items ?? []) if (item.sku.startsWith('LABOR-') && item.sku.slice(6) in DEFAULT_RATES) rates[item.sku.slice(6) as RateKey] = Number(item.unit_price)
   const taxRates = { state: Number(priceBook?.state_tax_rate ?? 0), county: Number(priceBook?.county_tax_rate ?? 0), city: Number(priceBook?.city_tax_rate ?? 0), specialDistrict: Number(priceBook?.special_district_tax_rate ?? 0) }
-  return NextResponse.json({ rates, taxRates, localTaxRate: Number(priceBook?.local_tax_rate ?? Object.values(taxRates).reduce((sum, rate) => sum + rate, 0)), taxSource: priceBook?.tax_source ?? '', priceBook, source: priceBook ? 'owner-managed' : 'defaults', editable: true })
+  return NextResponse.json({ rates, taxRates, localTaxRate: Number(priceBook?.local_tax_rate ?? Object.values(taxRates).reduce((sum, rate) => sum + rate, 0)), taxSource: priceBook?.tax_source ?? '', priceBook, source: Object.keys(rates).length ? 'owner-managed' : 'none', editable: true })
 }
 
 export async function PUT(request: NextRequest) {
