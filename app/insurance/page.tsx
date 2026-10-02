@@ -14,97 +14,97 @@ export default function InsurancePage() {
       id: 1,
       name: 'Allstate',
       claims: '1-800-255-7828',
-      status: 'Available',
+      status: 'Unverified',
       states: ['All'],
       website: 'allstate.com',
-      processingTime: '2-4 days'
+      processingTime: 'Unknown'
     },
     {
       id: 2,
       name: 'State Farm',
       claims: '1-800-732-5246',
-      status: 'Available',
+      status: 'Unverified',
       states: ['All'],
       website: 'statefarm.com',
-      processingTime: '2-3 days'
+      processingTime: 'Unknown'
     },
     {
       id: 3,
       name: 'Progressive',
       claims: '1-800-274-4499',
-      status: 'Available',
+      status: 'Unverified',
       states: ['All'],
       website: 'progressive.com',
-      processingTime: '3-5 days'
+      processingTime: 'Unknown'
     },
     {
       id: 4,
       name: 'Liberty Mutual',
       claims: '1-800-225-2467',
-      status: 'Available',
+      status: 'Unverified',
       states: ['All'],
       website: 'libertymutual.com',
-      processingTime: '2-5 days'
+      processingTime: 'Unknown'
     },
     {
       id: 5,
       name: 'Farmers',
       claims: '1-800-435-7764',
-      status: 'Available',
+      status: 'Unverified',
       states: ['All'],
       website: 'farmers.com',
-      processingTime: '3-7 days'
+      processingTime: 'Unknown'
     },
     {
       id: 6,
       name: 'GEICO',
       claims: '1-800-841-3000',
-      status: 'Available',
+      status: 'Unverified',
       states: ['All'],
       website: 'geico.com',
-      processingTime: '2-3 days'
+      processingTime: 'Unknown'
     },
     {
       id: 7,
       name: 'Travelers',
       claims: '1-800-252-4633',
-      status: 'Available',
+      status: 'Unverified',
       states: ['All'],
       website: 'travelers.com',
-      processingTime: '3-5 days'
+      processingTime: 'Unknown'
     },
     {
       id: 8,
       name: 'Nationwide',
       claims: '1-800-421-3535',
-      status: 'Available',
+      status: 'Unverified',
       states: ['All'],
       website: 'nationwide.com',
-      processingTime: '2-4 days'
+      processingTime: 'Unknown'
     },
     {
       id: 9,
       name: 'American Family',
       claims: '1-800-692-6326',
-      status: 'Available',
+      status: 'Unverified',
       states: ['All'],
       website: 'amfam.com',
-      processingTime: '3-5 days'
+      processingTime: 'Unknown'
     },
     {
       id: 10,
       name: 'USAA',
       claims: '1-800-531-8111',
-      status: 'Available',
+      status: 'Unverified',
       states: ['All'],
       website: 'usaa.com',
-      processingTime: '1-3 days'
+      processingTime: 'Unknown'
     },
     {
       id: 11,
       name: 'The Hartford',
       claims: '1-800-243-5860',
-      status: 'Available',
+      status: 'Unverified',
       states: ['All'],
       website: 'thehartford.com',
       processingTime: '3-6 days'
@@ -113,10 +113,10 @@ export default function InsurancePage() {
       id: 12,
       name: 'Chubb',
       claims: '1-800-252-4678',
-      status: 'Available',
+      status: 'Unverified',
       states: ['All'],
       website: 'chubb.com',
-      processingTime: '2-4 days'
+      processingTime: 'Unknown'
     },
   ]
 
@@ -137,7 +137,7 @@ export default function InsurancePage() {
       <header className="bg-gradient-to-r from-green-600 to-teal-600 text-white shadow-lg sticky top-0 z-10">
         <div className="px-4 py-3 flex items-center">
           <button onClick={() => router.back()} className="text-white mr-3 text-xl">←</button>
-          <h1 className="text-xl font-bold">📞 Insurance Claims</h1>
+          <p className="text-sm text-amber-800 mb-2">Phone numbers and times are not a saved record. Status is unverified.</p><h1 className="text-xl font-bold">📞 Insurance Claims</h1>
           <span className="ml-2 bg-green-500 text-white text-xs px-2 py-0.5 rounded-full animate-pulse">24/7</span>
         </div>
       </header>
