@@ -556,3 +556,57 @@ On branch `upgrade/admin-page-20261002`:
 - `app/deck/page.tsx` and `app/doors-windows/page.tsx` keep their calculators and now say the result is a local example, not a saved bid.
 
 `npx tsc --noEmit` passed. `npm run build` passed and listed `/ai`, `/ai-train`, `/analytics`, `/chat`, `/deck`, and `/doors-windows`. No signed-in browser session was opened. Not on `main`.
+
+## Rule fix, 2026-10-02
+
+- Backup branch: `backup/pre-money-rule-fix-20261002`
+- Backup SHA: `6df7c849150423ccdfead732a5b2868c57974533`
+- Remote backup verified with `git ls-remote`.
+- This branch: `fix/no-unapproved-money-20261002`
+- Deck and door screens no longer display dollar figures. Price stays Unknown until a human approves it.
+- `npx tsc --noEmit` passed on this branch.
+- Signed-in production check is still open. This branch is not merged. Local build is not production verification.
+
+## Files 7-15, 2026-10-02
+
+- Backup: `backup/pre-files-7-15-20261002` at `dd4c568ba7b6570e7bb030622c31bb7b4b9c6742`.
+- Branch: `upgrade/files-7-15-20261002`.
+- Export no longer downloads fake people. Missing fields stay Unknown.
+- Help claims that were not checked now say Unknown.
+- Home Depot list no longer shows prices. Price stays Unknown.
+- Integrations, manual, notifications, plans, and predict are labeled local. They are not a live record.
+- `npx tsc --noEmit` passed. Not merged. Signed-in check is still open.
+
+## Checkpoint record, 2026-10-02
+
+- Commit: `fix: label files 7-15 and remove unapproved prices`
+- Full SHA: `5114603e044cac7957e1ac3521e65b5247fd1247`
+- Branch: `upgrade/files-7-15-20261002`
+- Branch URL: https://github.com/Gtownrter77/roof-os/tree/upgrade/files-7-15-20261002
+- Local check: `npx tsc --noEmit` passed before this commit.
+- Remote SHA match: `git ls-remote` returned `5114603e044cac7957e1ac3521e65b5247fd1247` for this branch.
+- `main` SHA: `6df7c849150423ccdfead732a5b2868c57974533`. This branch is not merged.
+- Open gate: signed-in production check. Not run. Not a pass.
+- Production: not verified. Local typecheck is not deployment evidence.
+- Next action: do not merge until the signed-in check is done.
+
+## Files 16-20, 2026-10-02
+
+- Backup: `backup/pre-files-16-20-20261002` at `8aaaa162fcd598390edf123cf10718c81b7d12b6`. Remote SHA matched.
+- Files: `app/quantum/page.tsx`, `app/repair/page.tsx`, `app/schedule/page.tsx`, `app/search/page.tsx`, `app/siding/page.tsx`.
+- Price displays on repair and siding stay Unknown.
+- `npx tsc --noEmit` passed.
+- Not merged. Signed-in production check is still open. That is not a pass.
+
+## Search and schedule, 2026-10-02
+
+- `app/search/page.tsx` searches saved leads in the current workspace. Fake lead rows removed.
+- `app/schedule/page.tsx` reads saved appointments. Fake report schedules removed.
+- `npx tsc --noEmit` passed.
+- Browser and production behavior not verified. Signed-in check is still open.
+
+## Export, 2026-10-02
+
+- `app/export/page.tsx` exports saved leads for the current workspace. Fake rows removed. Import is Unknown.
+- `npx tsc --noEmit` passed.
+- Browser and production not verified.

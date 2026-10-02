@@ -206,7 +206,7 @@ export default function DoorsWindowsPage() {
         </div>
       </header>
 
-      <main className="p-4"><p className="text-sm bg-white rounded-lg shadow p-4 mb-4">Local example only. Not saved. Not a bid. A real price stays Unknown until you approve it.</p>
+      <main className="p-4"><p className="text-sm bg-white rounded-lg shadow p-4 mb-4">Price is Unknown. This screen does not write a dollar figure. A human approves every price.</p>
         {/* Windows Section */}
         <div className="bg-white rounded-lg shadow-lg p-4 mb-4 border border-blue-200">
           <h3 className="font-semibold text-sm mb-3 flex items-center">

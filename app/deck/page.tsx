@@ -163,7 +163,7 @@ export default function DeckPage() {
         </div>
       </header>
 
-      <main className="p-4"><p className="text-sm bg-white rounded-lg shadow p-4 mb-4">Local example only. Not saved. Not a bid. A real price stays Unknown until you approve it.</p>
+      <main className="p-4"><p className="text-sm bg-white rounded-lg shadow p-4 mb-4">Price is Unknown. This screen does not write a dollar figure. A human approves every price.</p>
         {/* Inputs */}
         <div className="bg-white rounded-lg shadow-lg p-4 mb-4 border border-amber-200">
           <div className="grid grid-cols-2 gap-3">
@@ -239,11 +239,11 @@ export default function DeckPage() {
               <div className="grid grid-cols-3 gap-2">
                 <div className="text-center">
                   <p className="text-xs text-gray-500">Grand Total</p>
-                  <p className="text-2xl font-bold text-amber-600">${estimate.summary.grandTotal.toFixed(2)}</p>
+                  <p className="text-2xl font-bold text-amber-600">Unknown</p>
                 </div>
                 <div className="text-center">
                   <p className="text-xs text-gray-500">Per Sq Ft</p>
-                  <p className="text-xl font-bold text-orange-600">${estimate.summary.perSqFt.toFixed(2)}</p>
+                  <p className="text-xl font-bold text-orange-600">Unknown</p>
                 </div>
                 <div className="text-center">
                   <p className="text-xs text-gray-500">Total Sq Ft</p>
@@ -258,65 +258,65 @@ export default function DeckPage() {
               <div className="space-y-1">
                 <div className="flex justify-between text-sm border-b py-1">
                   <span>Decking</span>
-                  <span>${estimate.breakdown.decking.cost.toFixed(2)}</span>
+                  <span>Unknown</span>
                 </div>
                 <div className="flex justify-between text-sm border-b py-1">
                   <span>Framing</span>
-                  <span>${estimate.breakdown.framing.cost.toFixed(2)}</span>
+                  <span>Unknown</span>
                 </div>
                 {estimate.breakdown.railing.included && (
                   <div className="flex justify-between text-sm border-b py-1">
                     <span>Railing</span>
-                    <span>${estimate.breakdown.railing.cost.toFixed(2)}</span>
+                    <span>Unknown</span>
                   </div>
                 )}
                 {estimate.breakdown.stairs.included && (
                   <div className="flex justify-between text-sm border-b py-1">
                     <span>Stairs ({estimate.breakdown.stairs.count})</span>
-                    <span>${estimate.breakdown.stairs.cost.toFixed(2)}</span>
+                    <span>Unknown</span>
                   </div>
                 )}
                 {estimate.breakdown.lighting.included && (
                   <div className="flex justify-between text-sm border-b py-1">
                     <span>Lighting</span>
-                    <span>${estimate.breakdown.lighting.cost.toFixed(2)}</span>
+                    <span>Unknown</span>
                   </div>
                 )}
                 {estimate.breakdown.seating.included && (
                   <div className="flex justify-between text-sm border-b py-1">
                     <span>Seating</span>
-                    <span>${estimate.breakdown.seating.cost.toFixed(2)}</span>
+                    <span>Unknown</span>
                   </div>
                 )}
                 {estimate.breakdown.planters.included && (
                   <div className="flex justify-between text-sm border-b py-1">
                     <span>Planters</span>
-                    <span>${estimate.breakdown.planters.cost.toFixed(2)}</span>
+                    <span>Unknown</span>
                   </div>
                 )}
                 {estimate.breakdown.pergola.included && (
                   <div className="flex justify-between text-sm border-b py-1">
                     <span>Pergola</span>
-                    <span>${estimate.breakdown.pergola.cost.toFixed(2)}</span>
+                    <span>Unknown</span>
                   </div>
                 )}
                 {estimate.breakdown.hotTub.included && (
                   <div className="flex justify-between text-sm border-b py-1">
                     <span>Hot Tub Base</span>
-                    <span>${estimate.breakdown.hotTub.cost.toFixed(2)}</span>
+                    <span>Unknown</span>
                   </div>
                 )}
                 <div className="flex justify-between text-sm font-bold pt-2">
                   <span>Total Materials</span>
-                  <span>${estimate.summary.totalMaterials.toFixed(2)}</span>
+                  <span>Unknown</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span>Labor ({estimate.labor.hours.toFixed(0)} hrs @ ${estimate.labor.rate}/hr)</span>
-                  <span>${estimate.summary.totalLabor.toFixed(2)}</span>
+                  <span>Labor ({estimate.labor.hours.toFixed(0)} hrs rate Unknown)</span>
+                  <span>Unknown</span>
                 </div>
                 <div className="flex justify-between text-sm border-t pt-2 font-bold text-lg">
                   <span>Grand Total</span>
-                  <span className="text-amber-600">${estimate.summary.grandTotal.toFixed(2)}</span>
+                  <span className="text-amber-600">Unknown</span>
                 </div>
               </div>
             </div>

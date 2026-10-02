@@ -180,7 +180,7 @@ export default function SidingPage() {
         </div>
       </header>
 
-      <main className="p-4">
+      <main className="p-4"><p className="text-sm bg-white rounded-lg shadow p-4 mb-4">Price is Unknown. This screen does not write a dollar figure.</p>
         {/* Input */}
         <div className="bg-white rounded-lg shadow-lg p-4 mb-4 border border-blue-200">
           <div className="grid grid-cols-2 gap-3">
@@ -321,11 +321,11 @@ export default function SidingPage() {
               <div className="grid grid-cols-3 gap-2">
                 <div className="text-center">
                   <p className="text-xs text-gray-500">Grand Total</p>
-                  <p className="text-2xl font-bold text-blue-600">${estimate.summary.grandTotal.toFixed(2)}</p>
+                  <p className="text-2xl font-bold text-blue-600">Unknown</p>
                 </div>
                 <div className="text-center">
                   <p className="text-xs text-gray-500">Per Sq Ft</p>
-                  <p className="text-xl font-bold text-teal-600">${estimate.summary.perSqFt.toFixed(2)}</p>
+                  <p className="text-xl font-bold text-teal-600">Unknown</p>
                 </div>
                 <div className="text-center">
                   <p className="text-xs text-gray-500">Total Sq Ft</p>

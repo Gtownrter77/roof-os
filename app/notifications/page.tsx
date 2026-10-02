@@ -68,7 +68,7 @@ export default function NotificationsPage() {
         </div>
       </header>
 
-      <main className="p-4">
+      <main className="p-4"><p className="text-sm bg-white rounded-lg shadow p-4 mb-4">These alerts are not a live inbox.</p>
         <div className="flex justify-between items-center mb-4">
           <p className="text-sm text-gray-500">
             {unreadCount} unread • {notifications.length} total

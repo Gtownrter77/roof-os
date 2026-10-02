@@ -25,7 +25,7 @@ export default function IntegrationsPage() {
         </div>
       </header>
 
-      <main className="p-4">
+      <main className="p-4"><p className="text-sm bg-white rounded-lg shadow p-4 mb-4">Connection status is Unknown until a live check runs.</p>
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
           <p className="text-sm text-blue-800">🔗 Connect your favorite tools</p>
         </div>

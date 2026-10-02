@@ -144,3 +144,23 @@ On branch `upgrade/admin-page-20261002`:
 - `app/deck/page.tsx` and `app/doors-windows/page.tsx` keep their calculators and now say the result is a local example, not a saved bid.
 
 `npx tsc --noEmit` passed. `npm run build` passed and listed `/ai`, `/ai-train`, `/analytics`, `/chat`, `/deck`, and `/doors-windows`. No signed-in browser session was opened. Not on `main`.
+
+## Rule fix, 2026-10-02
+
+- Backup branch: `backup/pre-money-rule-fix-20261002`
+- Backup SHA: `6df7c849150423ccdfead732a5b2868c57974533`
+- Remote backup verified with `git ls-remote`.
+- This branch: `fix/no-unapproved-money-20261002`
+- Deck and door screens no longer display dollar figures. Price stays Unknown until a human approves it.
+- `npx tsc --noEmit` passed on this branch.
+- Signed-in production check is still open. This branch is not merged. Local build is not production verification.
+
+## Files 7-15, 2026-10-02
+
+- Backup: `backup/pre-files-7-15-20261002` at `dd4c568ba7b6570e7bb030622c31bb7b4b9c6742`.
+- Branch: `upgrade/files-7-15-20261002`.
+- Export no longer downloads fake people. Missing fields stay Unknown.
+- Help claims that were not checked now say Unknown.
+- Home Depot list no longer shows prices. Price stays Unknown.
+- Integrations, manual, notifications, plans, and predict are labeled local. They are not a live record.
+- `npx tsc --noEmit` passed. Not merged. Signed-in check is still open.

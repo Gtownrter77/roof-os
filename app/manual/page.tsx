@@ -366,7 +366,7 @@ export default function ManualPage() {
         </div>
       </header>
 
-      <main className="p-4">
+      <main className="p-4"><p className="text-sm bg-white rounded-lg shadow p-4 mb-4">This is a local guide. It is not a saved training record.</p>
         {/* Search & Filter */}
         <div className="bg-white rounded-lg shadow-lg p-4 mb-4 border border-blue-200">
           <div className="flex gap-2">
