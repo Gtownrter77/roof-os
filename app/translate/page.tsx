@@ -75,9 +75,9 @@ export default function TranslatePage() {
       Object.entries(translationMap).forEach(([eng, trans]) => {
         translatedText = translatedText.replace(new RegExp(eng, 'gi'), trans)
       })
-      setTranslated(translatedText || 'Translation not available for this language pair.')
+      setTranslated(translatedText ? `Word list only. Not a translation. ${translatedText}` : 'Unknown. No translation service was called.')
     } else {
-      setTranslated('Translation not available for this language pair.')
+      setTranslated('Unknown. No translation service was called.')
     }
   }
 
