@@ -86,89 +86,8 @@ export default function RepairPage() {
   }
 
   const calculateEstimate = () => {
-    setEstimate(null)
     setLoading(false)
     return
-    setTimeout(() => {
-      let totalBase = 0
-      let totalMaterial = 0
-      let totalLabor = 0
-      const selectedRepairs: string[] = []
-      const selectedDamage: string[] = []
-
-      Object.entries(repairPricing).forEach(([key, value]) => {
-        if (form[key as keyof typeof form] === true) {
-          const price = value.base
-          totalBase += price
-          totalMaterial += price * 0.6
-          totalLabor += price * 0.4
-          selectedRepairs.push(key.replace('Repair', ''))
-        }
-      })
-
-      let damageMultiplier = 1.0
-      Object.entries(damageMultipliers).forEach(([key, value]) => {
-        if (form[key as keyof typeof form] === true) {
-          damageMultiplier *= value
-          selectedDamage.push(key.replace('Damage', ''))
-        }
-      })
-
-      if (form.emergencyService) damageMultiplier *= 1.5
-      if (form.asap) damageMultiplier *= 1.3
-
-      let permitCost = 0
-      let inspectionCost = 0
-      if (form.permitRequired) permitCost = 200
-      if (form.inspectionRequired) inspectionCost = 150
-
-      let structuralCost = 0
-      if (form.structuralRepair) structuralCost = 800
-      if (form.foundationRepair) structuralCost += 2000
-
-      const total = (totalBase * damageMultiplier) + permitCost + inspectionCost + structuralCost
-      const laborRate = form.emergencyService ? 95 : 65
-      const laborHours = totalLabor / laborRate
-
-      setEstimate({
-        summary: {
-          total,
-          totalBase,
-          materialCost: totalMaterial * damageMultiplier,
-          laborCost: totalLabor * damageMultiplier,
-          damageMultiplier,
-          permitCost,
-          inspectionCost,
-          laborRate,
-          laborHours,
-          selectedRepairs,
-          selectedDamage,
-          severity: damageMultiplier > 2.5 ? 'Critical' : 
-                   damageMultiplier > 1.8 ? 'Severe' : 
-                   damageMultiplier > 1.3 ? 'Moderate' : 'Minor',
-        },
-        breakdown: {
-          baseEstimate: totalBase,
-          damageAdjustment: totalBase * (damageMultiplier - 1),
-          permitCost,
-          inspectionCost,
-          structuralCost,
-          totalMaterials: totalMaterial * damageMultiplier,
-          totalLabor: totalLabor * damageMultiplier,
-          total,
-        },
-        details: {
-          selectedRepairs: selectedRepairs,
-          selectedDamage: selectedDamage,
-          emergency: form.emergencyService,
-          asap: form.asap,
-          permits: form.permitRequired,
-          inspections: form.inspectionRequired,
-        }
-      })
-
-      setLoading(false)
-    }, 2000)
   }
 
   return (

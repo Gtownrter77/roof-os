@@ -65,37 +65,8 @@ export default function AIWizardPage() {
   }
 
   const askQuestion = () => {
-    if (!query.trim()) return
     setLoading(false)
     return
-    setTimeout(() => {
-      const lowerQuery = query.toLowerCase()
-      let foundAnswer = null
-      
-      for (const [key, value] of Object.entries(constructionKnowledge)) {
-        if (lowerQuery.includes(key)) {
-          foundAnswer = {
-            topic: key,
-            ...value,
-            confidence: null
-          }
-          break
-        }
-      }
-      
-      if (!foundAnswer) {
-        foundAnswer = {
-          topic: 'general',
-          answer: `I understand you're asking about "${query}". This is a complex construction topic. I recommend consulting with a licensed professional contractor or building inspector for specific guidance.`,
-          code: 'Local building codes may apply. Check with your municipality.',
-          confidence: 65
-        }
-      }
-      
-      setResponse(foundAnswer)
-      setHistory([{ query, response: foundAnswer, time: new Date().toLocaleTimeString() }, ...history])
-      setLoading(false)
-    }, 1500)
   }
 
   return (
