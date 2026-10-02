@@ -6,11 +6,11 @@
     },
     {
       "path": "/api/cron/inspection-quality",
-      "schedule": "*/15 * * * *"
+      "schedule": "0 5 * * *"
     },
     {
       "path": "/api/cron/receptionist-followups",
-      "schedule": "*/15 * * * *"
+      "schedule": "0 6 * * *"
     }
   ]
 }
