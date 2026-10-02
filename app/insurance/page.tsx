@@ -107,7 +107,7 @@ export default function InsurancePage() {
       status: 'Unverified',
       states: ['All'],
       website: 'thehartford.com',
-      processingTime: '3-6 days'
+      processingTime: 'Unknown'
     },
     {
       id: 12,
@@ -170,7 +170,7 @@ export default function InsurancePage() {
                   <h3 className="font-semibold text-sm">{company.name}</h3>
                   <p className="text-xs text-gray-500">Claims: {company.claims}</p>
                   <div className="flex gap-2 mt-1">
-                    <span className="bg-green-100 text-green-800 text-xs px-2 py-0.5 rounded">✓ Available</span>
+                    <span className="bg-gray-100 text-gray-700 text-xs px-2 py-0.5 rounded">Unverified</span>
                     <span className="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded">{company.processingTime}</span>
                   </div>
                 </div>
