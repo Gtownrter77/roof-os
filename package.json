@@ -23,7 +23,8 @@
     "test:receptionist": "node scripts/receptionist-check.mjs",
     "test:crm-missing-spokes": "node scripts/crm-missing-spokes-test.mjs",
     "test:agent-runtime": "node scripts/agent-runtime-test.mjs",
-    "test:prototype-guardrails": "node scripts/prototype-guardrail-test.mjs"
+    "test:prototype-guardrails": "node scripts/prototype-guardrail-test.mjs",
+    "test:inspection-quality-agent": "node scripts/inspection-quality-agent-test.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.2",
