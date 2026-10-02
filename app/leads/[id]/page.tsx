@@ -125,7 +125,7 @@ export default function LeadDetailPage() {
     const { error: updateError } = await supabase.from('leads').update({
       lost_reason: lostReason || null,
       lost_reason_detail: lostDetail.trim() || null,
-      lost_at: lead.lost_reason ? lead.lost_reason === lostReason ? lead.lost_reason ? undefined : null : new Date().toISOString() : new Date().toISOString(),
+      lost_at: lead.lost_reason ? undefined : new Date().toISOString(),
       updated_at: new Date().toISOString(),
     }).eq('id', lead.id)
     if (updateError) setError(updateError.message)
