@@ -8,9 +8,9 @@ This section is the current evidence boundary for this repository. Historical en
 
 - main currently resolves to 41162bb9359ffb26dac40dc993e59795af3a70e5.
 - CSP work is isolated on PR #71, branch fix/csp-nonce-20261002, head e25ebe21e7fe98fe0127d5a8069ac6ecbdec9bad.
-- GitHub Actions run #531 for that exact CSP head completed successfully. The web job passed production build, TypeScript, release-check, security-check, and the listed regression/API/auth/AI/photo/mobile tests; mobile, preview-build, and migration-safety also passed.
-- PR #71 is not merged.
-- The CSP branch is not evidence that main has the nonce change.
+- GitHub Actions run #531 for that exact CSP head completed successfully. PR #71 is not merged.
+- Backend hardening PR #72 is open at head 4c5063420dbc63aec857051ecc946ace17d34428. Its original backend-only scope was later expanded by commits 1c19f7d0a4c482b62ef9dad830b8f44221236aad and af309170939ece47fc5b12228a7ad8ab7a9e4e97, which add frontend route, prototype-disclosure, and Supabase-client/test changes. Therefore PR #72 must not currently be treated as backend-only.
+- PR #70 still proposes 043_inspection_activity_atomicity.sql and remains open. Production already contains a different 043 migration, so the migration prefix must be reconciled before PR #70 can be applied.
 
 ### Current Vercel evidence boundary
 
@@ -20,8 +20,11 @@ This section is the current evidence boundary for this repository. Historical en
 
 ### Current production Supabase observations
 
-Observed on project xksumagfbegdlapwysps:
+Observed directly on project xksumagfbegdlapwysps:
 
+- Production migration ledger now includes 20261002182249 — receptionist_workspace_integrity.
+- public.leads.workspace_id is NOT NULL.
+- public.book_receptionist_appointment exists as a SECURITY DEFINER function; repository migration source restricts EXECUTE to service_role.
 - leads: 2
 - estimates: 0
 - photo_estimate_workflows: 0
@@ -31,13 +34,13 @@ Observed on project xksumagfbegdlapwysps:
 - auth.mfa_challenges: 0
 - auth.mfa_amr_claims: 7
 
-These counts do not show that the requested end-to-end user test has occurred yet.
+The requested authenticated MFA → lead → estimate production workflow has still not been exercised in the currently observed data: there are 0 MFA factors and 0 estimates.
 
-Supabase security advisors currently report six authenticated SECURITY DEFINER functions exposed as callable RPCs and leaked-password protection disabled. These findings require backend review; they are not, by themselves, evidence of a tenant-isolation bypass.
+Supabase security advisors currently report six authenticated SECURITY DEFINER functions and leaked-password protection disabled. These require backend review; they are not, by themselves, evidence of a tenant-isolation bypass.
 
 ### Current verification rule
 
-Do not label production behavior VERIFIED unless the behavior was directly exercised and the evidence is recorded. Unexercised production workflows are UNVERIFIED.
+Do not label production behavior VERIFIED unless the behavior was directly exercised and the evidence is recorded. Schema/migration presence is evidence of deployment, not proof of end-to-end application behavior.
 
 # ROOF/OS Current State
 
