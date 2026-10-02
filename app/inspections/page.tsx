@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '../../lib/supabase/client'
 
@@ -20,7 +20,7 @@ function flatten(row: any): Session {
 
 export default function InspectionsPage() {
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const [sessions, setSessions] = useState<Session[]>([])
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
