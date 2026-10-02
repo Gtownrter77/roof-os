@@ -106,10 +106,12 @@ export default function PricingConfigPage() {
 
   const saveConfiguration = async () => {
     setSaveMessage('Saving owner-managed labor rates and local tax…')
-    const response = await fetch('/api/pricing/labor-rates', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ rates: Object.fromEntries(Object.entries(laborRates).filter(([, value]) => Number(value.rate) > 0).map(([key, value]) => [key, value.rate])), market: selectedState, taxRates, taxSource }) })
+    const rates = Object.fromEntries(Object.entries(laborRates).filter(([, value]) => Number(value.rate) > 0).map(([key, value]) => [key, value.rate]))
+    const response = await fetch('/api/pricing/labor-rates', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ rates, market: selectedState, taxRates, taxSource }) })
     const payload = await response.json()
     if (response.ok) setLastUpdate(new Date())
-    setSaveMessage(response.ok ? `Saved labor rates and ${payload.localTaxRate}% combined jurisdiction tax as draft price book ${payload.priceBookId}. Review and activate before use.` : (payload.error ?? 'Could not save pricing configuration.'))
+    const savedRates = Object.keys(rates).length
+    setSaveMessage(response.ok ? (savedRates ? `Saved ${savedRates} entered labor rate${savedRates === 1 ? '' : 's'} as draft price book ${payload.priceBookId}. Review and activate before use.` : 'No labor rate was entered. Tax was sent. No labor price was saved.') : (payload.error ?? 'Could not save pricing configuration.'))
   }
 
   const getTrendIcon = (trend: string) => {
