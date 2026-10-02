@@ -12,6 +12,18 @@ export default function SketchPage() {
   const [brushSize, setBrushSize] = useState(3)
   const [shapes, setShapes] = useState<any[]>([])
   const [measurements, setMeasurements] = useState<any[]>([])
+  useEffect(() => {
+    const saved = window.localStorage.getItem('roof-os-sketch')
+    if (!saved) return
+    try {
+      const draft = JSON.parse(saved)
+      if (Array.isArray(draft.measurements)) setMeasurements(draft.measurements)
+      if (Array.isArray(draft.shapes)) setShapes(draft.shapes)
+    } catch { /* ignore a bad local draft */ }
+  }, [])
+  useEffect(() => {
+    window.localStorage.setItem('roof-os-sketch', JSON.stringify({ measurements, shapes }))
+  }, [measurements, shapes])
   const [undoStack, setUndoStack] = useState<any[]>([])
 
   useEffect(() => {

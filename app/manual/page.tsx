@@ -177,7 +177,7 @@ export default function ManualPage() {
         { 
           step: 2, 
           title: 'Sketch Pad', 
-          description: 'Draw roof layouts and add measurements.',
+          description: 'A sketch stays in this browser only. It is not a saved roof measurement.',
           action: 'Go to Sketch Pad',
           tip: 'Use for complex roof designs'
         },
