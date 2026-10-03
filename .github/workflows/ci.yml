@@ -101,6 +101,8 @@ jobs:
           git checkout -B "${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}" "origin/${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}"
       - run: npm install --package-lock-only --ignore-scripts
         working-directory: apps/field
+      - run: npm audit fix --package-lock-only --ignore-scripts
+        working-directory: apps/field
       - name: Commit refreshed field lock
         shell: bash
         run: |
