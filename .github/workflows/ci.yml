@@ -49,6 +49,7 @@ jobs:
       - run: npm run test:siding-ai-authority
       - run: npm run test:payment-checkout
       - run: npm run test:status-health
+      - run: npm run test:ai-report-authority
       - run: npm run test:photo-full-report-flow
       - run: npm run test:measurement-estimate-authority
       - run: npm run test:ai-vision-contract
