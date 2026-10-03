@@ -1,13 +1,9 @@
 'use client'
 
-import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
 export default function VRPage() {
   const router = useRouter()
-  const [vrMode, setVrMode] = useState('explore')
-  const [view, setView] = useState('top')
-  const [recording, setRecording] = useState(false)
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 to-indigo-900 text-white pb-20">
@@ -15,72 +11,48 @@ export default function VRPage() {
         <div className="px-4 py-3 flex items-center">
           <button onClick={() => router.back()} className="text-white mr-3 text-xl">←</button>
           <h1 className="text-xl font-bold">🥽 VR Roof Walkthrough</h1>
-          <span className="ml-2 bg-green-500 text-white text-xs px-2 py-0.5 rounded-full animate-pulse">3D</span>
+          <span className="ml-2 bg-yellow-600 text-white text-xs px-2 py-0.5 rounded-full">CONCEPT PREVIEW</span>
         </div>
       </header>
 
       <main className="p-4">
-        {/* VR Viewport */}
         <div className="relative bg-gradient-to-br from-gray-900 to-purple-900 rounded-lg shadow-2xl p-4 mb-4 border border-purple-500">
           <div className="h-80 flex items-center justify-center">
-            <div className="relative w-full h-full">
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="text-center">
-                  <span className="text-8xl block mb-2">🏠</span>
-                  <p className="text-purple-300 text-sm">VR Roof View</p>
-                  <div className="flex justify-center space-x-4 mt-2">
-                    <span className="text-xs bg-purple-600 px-2 py-1 rounded">360°</span>
-                    <span className="text-xs bg-pink-600 px-2 py-1 rounded">3D</span>
-                  </div>
-                </div>
-              </div>
-              {/* VR overlays */}
-              <div className="absolute top-2 left-2 text-xs bg-black/50 px-2 py-1 rounded">
-                📍 View: {view === 'top' ? 'Top-Down' : 'Ground-Level'}
-              </div>
-              <div className="absolute bottom-2 left-2 text-xs bg-black/50 px-2 py-1 rounded">
-                🎮 Drag to look around
-              </div>
+            <div className="text-center">
+              <span className="text-8xl block mb-2">🏠</span>
+              <p className="text-purple-300 text-sm">VR walkthrough is not implemented.</p>
+              <p className="text-xs text-gray-400 mt-2">
+                No 3D roof model, measurements, recordings, pins, exports, or inspection findings are generated here.
+              </p>
             </div>
           </div>
         </div>
 
-        {/* VR Controls */}
-        <div className="grid grid-cols-4 gap-2 mb-4">
-          <button className="bg-purple-600 text-white p-3 rounded-lg font-semibold">🔄 Rotate</button>
-          <button className="bg-pink-600 text-white p-3 rounded-lg font-semibold">📏 Measure</button>
-          <button className="bg-indigo-600 text-white p-3 rounded-lg font-semibold">📍 Pin</button>
-          <button 
-            onClick={() => setRecording(!recording)}
-            className={`${recording ? 'bg-red-600' : 'bg-green-600'} text-white p-3 rounded-lg font-semibold`}
+        <div className="grid grid-cols-2 gap-2 mb-4">
+          <button type="button" disabled className="bg-purple-600 text-white p-3 rounded-lg font-semibold disabled:opacity-50">
+            🔄 Rotate — unavailable
+          </button>
+          <button type="button" disabled className="bg-pink-600 text-white p-3 rounded-lg font-semibold disabled:opacity-50">
+            📏 Measure — unavailable
+          </button>
+          <button type="button" disabled className="bg-indigo-600 text-white p-3 rounded-lg font-semibold disabled:opacity-50">
+            📍 Pin — unavailable
+          </button>
+          <button type="button" disabled className="bg-green-600 text-white p-3 rounded-lg font-semibold disabled:opacity-50">
+            🔴 Record — unavailable
+          </button>
+        </div>
+
+        <div className="bg-purple-900/50 rounded-lg p-4 border border-purple-500">
+          <p className="text-sm font-semibold">Use the implemented measurement workflow</p>
+          <p className="text-xs text-gray-300 mt-1">
+            Measurements must come from the persisted ROOF/OS measurement workflow, not this concept screen.
+          </p>
+          <button
+            onClick={() => router.push('/measure')}
+            className="w-full mt-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white p-3 rounded-lg font-semibold"
           >
-            {recording ? '⏹️ Stop' : '🔴 Record'}
-          </button>
-        </div>
-
-        {/* VR Stats */}
-        <div className="grid grid-cols-3 gap-2 mb-4">
-          <div className="bg-purple-900/50 rounded-lg p-3 text-center border border-purple-500">
-            <p className="text-xs text-purple-300">Area</p>
-            <p className="font-bold">1,245 sq ft</p>
-          </div>
-          <div className="bg-purple-900/50 rounded-lg p-3 text-center border border-purple-500">
-            <p className="text-xs text-purple-300">Roof Pitch</p>
-            <p className="font-bold">6/12</p>
-          </div>
-          <div className="bg-purple-900/50 rounded-lg p-3 text-center border border-purple-500">
-            <p className="text-xs text-purple-300">Material</p>
-            <p className="font-bold">Asphalt</p>
-          </div>
-        </div>
-
-        {/* Export Options */}
-        <div className="grid grid-cols-2 gap-2">
-          <button className="bg-gradient-to-r from-purple-600 to-pink-600 text-white p-3 rounded-lg font-semibold">
-            📸 Export 3D Model
-          </button>
-          <button className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white p-3 rounded-lg font-semibold">
-            📊 Share VR Tour
+            📐 Open Measurement
           </button>
         </div>
       </main>
