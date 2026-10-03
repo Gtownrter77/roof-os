@@ -1,10 +1,14 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { createClient } from '../../lib/supabase/client'
 
 export default function InsurancePage() {
   const router = useRouter()
+  const supabase = useMemo(() => createClient(), [])
+  const [imports, setImports] = useState<{id:string; provider:string; status:string; created_at:string}[]>([])
+  const [importStatus, setImportStatus] = useState('Loading saved claim imports.')
   const [search, setSearch] = useState('')
   const [selectedState, setSelectedState] = useState('All')
   const [callLog, setCallLog] = useState<any[]>([])
@@ -120,6 +124,24 @@ export default function InsurancePage() {
     },
   ]
 
+
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { if (!cancelled) setImportStatus('Sign in required.'); return }
+      const { data: workspaceId, error: workspaceError } = await supabase.rpc('current_workspace_id')
+      if (workspaceError || !workspaceId) { if (!cancelled) setImportStatus('No workspace is available.'); return }
+      const { data, error } = await supabase.from('claims_imports').select('id,provider,status,created_at').eq('workspace_id', workspaceId).order('created_at', { ascending: false }).limit(25)
+      if (cancelled) return
+      if (error) { setImportStatus(error.message); setImports([]); return }
+      setImports(data ?? [])
+      setImportStatus(data && data.length ? 'Saved claim imports only. Carrier phone numbers below are unverified.' : 'No saved claim imports. Carrier phone numbers below are unverified.')
+    }
+    load()
+    return () => { cancelled = true }
+  }, [supabase])
+
   const quickDial = (number: string, name: string) => {
     const now = new Date().toLocaleTimeString()
     setCallLog([{ name, number, time: now }, ...callLog])
@@ -138,11 +160,11 @@ export default function InsurancePage() {
         <div className="px-4 py-3 flex items-center">
           <button onClick={() => router.back()} className="text-white mr-3 text-xl">←</button>
           <p className="text-sm text-amber-800 mb-2">Phone numbers and times are not a saved record. Status is unverified.</p><h1 className="text-xl font-bold">📞 Insurance Claims</h1>
-          <span className="ml-2 bg-green-500 text-white text-xs px-2 py-0.5 rounded-full animate-pulse">24/7</span>
+          <span className="ml-2 bg-amber-500 text-white text-xs px-2 py-0.5 rounded-full">Unverified directory</span>
         </div>
       </header>
 
-      <main className="p-4">
+      <main className="p-4"><section className="bg-white rounded-lg shadow p-4 mb-4"><p className="text-sm">{importStatus}</p>{imports.map((row) => <div key={row.id} className="border-t mt-2 pt-2 text-sm"><p className="font-semibold">{row.provider}</p><p className="text-xs text-gray-500">{row.status} · {new Date(row.created_at).toLocaleString()}</p></div>)}</section>
         <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
           <p className="text-sm text-green-800 flex items-center">
             <span className="text-xl mr-2">📋</span>
