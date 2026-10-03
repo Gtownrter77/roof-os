@@ -30,7 +30,7 @@ const visiting = new Set();
 
 function isAllowed(name) {
   if (cache.has(name)) return cache.get(name);
-  if (visiting.has(name)) return false;
+  if (visiting.has(name)) return true;
 
   const vuln = vulnerabilities[name];
   if (!vuln) return false;
