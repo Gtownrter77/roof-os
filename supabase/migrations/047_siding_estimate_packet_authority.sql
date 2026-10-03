@@ -114,3 +114,66 @@ create policy estimate_review_packets_insert_approved_workflow on public.estimat
       ))
     )
   );
+
+
+create or replace function public.enforce_siding_estimate_packet_quantity()
+returns trigger
+language plpgsql
+set search_path = public
+as $$
+declare
+  source public.siding_measurements%rowtype;
+  old_quantity numeric;
+  new_quantity numeric;
+  old_item_quantity numeric;
+  new_item_quantity numeric;
+begin
+  if old.siding_measurement_id is null and new.siding_measurement_id is null then
+    return new;
+  end if;
+
+  if old.siding_measurement_id is null or new.siding_measurement_id is distinct from old.siding_measurement_id then
+    raise exception 'Siding measurement provenance cannot be added or changed after packet creation';
+  end if;
+
+  select * into source
+  from public.siding_measurements
+  where id = old.siding_measurement_id
+    and workspace_id = new.workspace_id;
+
+  if not found or source.status is distinct from 'verified' then
+    raise exception 'Verified siding measurement is required for packet updates';
+  end if;
+
+  begin
+    old_quantity := (old.estimate_snapshot #>> '{verifiedQuantities,sidingSqFt}')::numeric;
+    new_quantity := (new.estimate_snapshot #>> '{verifiedQuantities,sidingSqFt}')::numeric;
+    old_item_quantity := (old.estimate_snapshot #>> '{lineItems,0,quantity}')::numeric;
+    new_item_quantity := (new.estimate_snapshot #>> '{lineItems,0,quantity}')::numeric;
+  exception when others then
+    raise exception 'Invalid siding estimate quantity payload';
+  end;
+
+  if new_quantity is distinct from old_quantity
+     or new_item_quantity is distinct from old_item_quantity
+     or abs(new_quantity - source.order_area_sq_ft) > 0.01
+     or abs(new_item_quantity - source.order_area_sq_ft) > 0.01
+     or new.estimate_snapshot #>> '{measurementSource,measurementId}' is distinct from source.id::text
+     or new.estimate_snapshot #>> '{measurementSource,inspectionId}' is distinct from source.inspection_id::text
+     or new.estimate_snapshot #>> '{measurementSource,sourcePhotoId}' is distinct from source.source_photo_id::text
+     or new.estimate_snapshot #>> '{measurementSource,verifiedBy}' is distinct from source.verified_by::text
+     or (new.estimate_snapshot #>> '{measurementSource,verifiedAt}')::timestamptz is distinct from source.verified_at then
+    raise exception 'Siding estimate quantity/provenance is immutable and must match the verified measurement';
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists enforce_siding_estimate_packet_quantity on public.estimate_review_packets;
+create trigger enforce_siding_estimate_packet_quantity
+before update on public.estimate_review_packets
+for each row execute function public.enforce_siding_estimate_packet_quantity();
+
+revoke all on function public.enforce_siding_estimate_packet_quantity() from public, anon;
+grant execute on function public.enforce_siding_estimate_packet_quantity() to authenticated;
