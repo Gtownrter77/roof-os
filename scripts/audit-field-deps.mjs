@@ -19,7 +19,11 @@ const cache = new Map();
 
 function advisorySource(via) {
   if (!via || typeof via !== "object") return null;
-  return via.source ?? (typeof via.url === "string" ? via.url.split("/").pop() : null);
+  if (typeof via.url === "string") {
+    const parts = via.url.split("/").filter(Boolean);
+    return parts.at(-1) ?? null;
+  }
+  return typeof via.source === "string" ? via.source : null;
 }
 
 function collectAdvisories(name, visiting = new Set()) {
