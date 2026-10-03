@@ -10,8 +10,8 @@ export default function OnboardingPage() {
     companyName: '',
     phone: '',
     email: '',
-    state: 'GA',
-    role: 'owner'
+    state: '',
+    role: ''
   })
   const [error, setError] = useState('')
 
@@ -33,7 +33,7 @@ export default function OnboardingPage() {
     },
     { 
       title: 'Ready to Go! 🎉',
-      description: 'You\'re all set to start using ROOF/OS.',
+      description: 'Nothing has been saved yet. A workspace is not created on this screen.',
       icon: '🎊'
     }
   ]
@@ -41,6 +41,14 @@ export default function OnboardingPage() {
   const handleNext = () => {
     if (step === 2 && !form.companyName.trim()) {
       setError('Enter your company name to continue.')
+      return
+    }
+    if (step === 2 && !form.state.trim()) {
+      setError('Choose a state. GA is not assumed.')
+      return
+    }
+    if (step === 3 && !form.role) {
+      setError('Choose a role. Owner is not assumed.')
       return
     }
     setError('')
