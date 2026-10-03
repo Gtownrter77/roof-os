@@ -15,13 +15,17 @@ async function resolveCheckoutSession(stripe: Stripe, event: Stripe.Event) {
     return event.data.object as Stripe.Checkout.Session
   }
 
-  const object = event.data.object as Stripe.PaymentIntent | Stripe.Charge
-  const paymentIntentId =
-    event.type === 'payment_intent.payment_failed'
-      ? object.id
-      : typeof (object as Stripe.Charge).payment_intent === 'string'
-        ? (object as Stripe.Charge).payment_intent
-        : (object as Stripe.Charge).payment_intent?.id ?? null
+  let paymentIntentId: string | null = null
+
+  if (event.type === 'payment_intent.payment_failed') {
+    paymentIntentId = (event.data.object as Stripe.PaymentIntent).id
+  } else if (event.type === 'charge.refunded') {
+    const charge = event.data.object as Stripe.Charge
+    paymentIntentId =
+      typeof charge.payment_intent === 'string'
+        ? charge.payment_intent
+        : charge.payment_intent?.id ?? null
+  }
 
   if (!paymentIntentId) return null
 
