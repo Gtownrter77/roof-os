@@ -72,7 +72,8 @@ for (const route of routes) {
   const hasCronGuard = source.includes('CRON_SECRET')
   const hasStripeSignatureGuard = source.includes("stripe-signature") && source.includes('constructEvent')
   const hasTwilioSignatureGuard = source.includes('assertTwilioRequest')
-  if (!hasSessionGuard && !hasCronGuard && !hasStripeSignatureGuard && !hasTwilioSignatureGuard) {
+  const isPublicStatusRoute = route === join(root, 'app', 'api', 'status', 'route.ts')
+  if (!hasSessionGuard && !hasCronGuard && !hasStripeSignatureGuard && !hasTwilioSignatureGuard && !isPublicStatusRoute) {
     throw new Error(`API route has no visible session, cron, or verified provider webhook authentication guard: ${route}`)
   }
   if (source.includes('request.json()')) {
@@ -100,7 +101,14 @@ for (const route of routes) {
     && source.includes('size>maxBytes')
     && source.includes('AbortSignal.timeout(90000)')
     && source.includes('await readBoundedText(response)')
-    const boundedAerialGeometryFetch = route === join(root, 'app', 'api', 'measurements', 'aerial', 'route.ts')
+    const boundedStatusHealthFetch = isPublicStatusRoute
+    && fetchCallCount === 1
+    && source.includes('api.weather.gov')
+    && source.includes('AbortSignal.timeout(5_000)')
+    && source.includes('createAdminClient()')
+    && source.includes("from('workspaces')")
+    && source.includes("from('inspection-photos')")
+  const boundedAerialGeometryFetch = route === join(root, 'app', 'api', 'measurements', 'aerial', 'route.ts')
     && fetchCallCount === 2
     && (source.match(/new AbortController\(\)/g) ?? []).length === 2
     && (source.match(/const timer = setTimeout\(\(\) => controller\.abort\(\),/g) ?? []).length === 2
@@ -110,7 +118,7 @@ for (const route of routes) {
     && source.includes('async function providerText(')
     && source.includes('size > maxBytes')
   // D.3 keeps both abort timers active while stream-limiting storage and provider response bodies.
-  if (fetchCallCount > 0 && !boundedPhotoAnalysisFetch && !boundedAerialGeometryFetch && !boundedSidingAnalysisFetch) {
+  if (fetchCallCount > 0 && !boundedPhotoAnalysisFetch && !boundedAerialGeometryFetch && !boundedSidingAnalysisFetch && !boundedStatusHealthFetch) {
     throw new Error(`API route makes a network request without an approved bounded fetch helper: ${route}`)
   }
 }
