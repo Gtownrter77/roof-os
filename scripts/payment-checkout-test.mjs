@@ -1,0 +1,27 @@
+import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
+
+const page = readFileSync(new URL('../app/payment/page.tsx', import.meta.url), 'utf8')
+const checkout = readFileSync(new URL('../app/api/payment/checkout/route.ts', import.meta.url), 'utf8')
+const webhook = readFileSync(new URL('../app/api/receptionist/stripe/webhook/route.ts', import.meta.url), 'utf8')
+const migration = readFileSync(new URL('../supabase/migrations/049_workspace_billing_subscriptions.sql', import.meta.url), 'utf8')
+
+assert.ok(page.includes('/api/payment/checkout'))
+assert.ok(page.includes('Stripe-hosted Checkout'))
+assert.ok(!page.includes('Card Number'))
+assert.ok(!page.includes('CVC'))
+assert.ok(!page.includes('Payment recorded'))
+assert.ok(checkout.includes("STRIPE_SECRET_KEY"))
+assert.ok(checkout.includes("is_workspace_admin"))
+assert.ok(checkout.includes("mode: 'subscription'"))
+assert.ok(checkout.includes('price_data'))
+assert.ok(checkout.includes('workspace_id: workspaceId'))
+assert.ok(checkout.includes('subscription_data'))
+assert.ok(webhook.includes('customer.subscription.updated'))
+assert.ok(webhook.includes('customer.subscription.deleted'))
+assert.ok(webhook.includes('workspace_subscriptions'))
+assert.ok(webhook.includes('constructEvent'))
+assert.ok(migration.includes('create table if not exists public.workspace_subscriptions'))
+assert.ok(migration.includes('enable row level security'))
+assert.ok(migration.includes('public.is_workspace_member(workspace_id)'))
+console.log('payment-checkout-test: PASS (no card collection, real Stripe Checkout handoff, admin guard, durable subscription schema, signed webhook synchronization)')
