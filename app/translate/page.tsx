@@ -25,48 +25,6 @@ export default function TranslatePage() {
     { code: 'hi', name: 'Hindi', flag: '🇮🇳' },
   ]
 
-  const translations: Record<string, Record<string, string>> = {
-    'en-es': {
-      'Roof Inspection': 'Inspección de Techo',
-      'Estimate': 'Presupuesto',
-      'Damage': 'Daño',
-      'Repair': 'Reparación',
-      'Materials': 'Materiales',
-      'Labor': 'Mano de Obra',
-      'Total': 'Total',
-      'Schedule': 'Programar',
-      'Address': 'Dirección',
-      'Phone': 'Teléfono',
-      'Email': 'Correo Electrónico',
-    },
-    'en-fr': {
-      'Roof Inspection': 'Inspection de Toit',
-      'Estimate': 'Devis',
-      'Damage': 'Dommage',
-      'Repair': 'Réparation',
-      'Materials': 'Matériaux',
-      'Labor': 'Main-d\'œuvre',
-      'Total': 'Total',
-      'Schedule': 'Planifier',
-      'Address': 'Adresse',
-      'Phone': 'Téléphone',
-      'Email': 'Email',
-    },
-    'en-de': {
-      'Roof Inspection': 'Dachinspektion',
-      'Estimate': 'Kostenvoranschlag',
-      'Damage': 'Schaden',
-      'Repair': 'Reparatur',
-      'Materials': 'Materialien',
-      'Labor': 'Arbeitskosten',
-      'Total': 'Gesamt',
-      'Schedule': 'Termin vereinbaren',
-      'Address': 'Adresse',
-      'Phone': 'Telefon',
-      'Email': 'E-Mail',
-    }
-  }
-
   const translateText = () => {
     setTranslated('Unknown. No translation service was called.')
   }
