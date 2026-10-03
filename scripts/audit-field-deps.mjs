@@ -55,7 +55,11 @@ const blocking = Object.entries(vulnerabilities).filter(([name, vuln]) => {
 if (blocking.length) {
   console.error("Field dependency audit found blocking vulnerabilities:");
   for (const [name, vuln] of blocking) {
-    console.error(`- ${name}: ${vuln.severity}`);
+    const advisories = (vuln.via ?? [])
+      .filter((via) => via && typeof via === "object")
+      .map((via) => `${via.source ?? "unknown"}${via.url ? ` (${via.url})` : ""}`)
+      .join(", ");
+    console.error(`- ${name}: ${vuln.severity}${advisories ? ` — ${advisories}` : ""}`);
   }
   process.exit(1);
 }
