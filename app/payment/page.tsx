@@ -1,7 +1,6 @@
 'use client'
 
-import { useState } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useEffect, useState } from 'react'
 
 const plans = {
   starter: { price: 29, label: 'Starter' },
@@ -10,12 +9,14 @@ const plans = {
 } as const
 
 export default function PaymentPage() {
-  const searchParams = useSearchParams()
+  const [checkoutState, setCheckoutState] = useState<string | null>(null)
   const [selectedPlan, setSelectedPlan] = useState<keyof typeof plans>('pro')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  const checkoutState = searchParams.get('checkout')
+  useEffect(() => {
+    setCheckoutState(new URLSearchParams(window.location.search).get('checkout'))
+  }, [])
 
   async function startCheckout() {
     setLoading(true)
