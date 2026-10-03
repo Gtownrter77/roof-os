@@ -133,7 +133,7 @@ export default function SketchPage() {
         </div>
       </header>
 
-      <main className="p-4">
+      <main className="p-4"><p className="text-sm bg-white rounded-lg shadow p-4 mb-4">This sketch stays in this browser. It is not saved to an inspection. Measurements are not confirmed.</p>
         {/* Toolbar */}
         <div className="bg-white rounded-lg shadow-lg p-3 mb-4 flex flex-wrap gap-2">
           <button 
