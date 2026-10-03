@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 export default function PaymentPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
-  const [successMessage, setSuccessMessage] = useState('')
+  const [errorMessage, setErrorMessage] = useState('')
   const [selectedPlan, setSelectedPlan] = useState('pro')
 
   const plans = {
@@ -16,13 +16,7 @@ export default function PaymentPage() {
   }
 
   const handlePayment = () => {
-    setLoading(true)
-    setTimeout(() => {
-      // Non-blocking notice
-      setSuccessMessage(`Payment recorded. Active plan: ${plans[selectedPlan as keyof typeof plans].label}`)
-      setLoading(false)
-      router.push('/')
-    }, 2000)
+    setErrorMessage('Payment processing is not connected. No payment was submitted or recorded.')
   }
 
   return (
@@ -35,7 +29,7 @@ export default function PaymentPage() {
       </header>
 
       <main className="p-4">
-        {successMessage && <div className="bg-green-50 border border-green-200 text-green-800 p-3 rounded-lg mb-4 text-sm font-medium" role="status">{successMessage}</div>}
+        {errorMessage && <div className="bg-amber-50 border border-amber-300 text-amber-900 p-3 rounded-lg mb-4 text-sm font-medium" role="alert">{errorMessage}</div>}
         <div className="bg-white rounded-lg shadow p-6 mb-4">
           <h2 className="text-xl font-bold mb-2">Subscribe to ROOF/OS</h2>
           <p className="text-gray-500 text-sm">Choose your plan and start building</p>
@@ -92,11 +86,11 @@ export default function PaymentPage() {
           disabled={loading}
           className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold disabled:opacity-50"
         >
-          {loading ? '⏳ Processing...' : `💳 Subscribe $${plans[selectedPlan as keyof typeof plans].price}/mo`}
+          💳 Payment integration required
         </button>
 
         <p className="text-xs text-gray-400 text-center mt-2">
-          🔒 Secure payment processing • Cancel anytime
+          Payment provider integration is required before accepting payments.
         </p>
       </main>
 

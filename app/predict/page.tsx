@@ -41,7 +41,7 @@ export default function PredictPage() {
       <header className="bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg sticky top-0 z-10">
         <div className="px-4 py-3 flex items-center">
           <button onClick={() => router.back()} className="text-white mr-3 text-xl">←</button>
-          <h1 className="text-xl font-bold">🧠 Predictive AI</h1>
+          <h1 className="text-xl font-bold">🧠 Predictive AI (Prototype)</h1>
           <span className="ml-2 bg-yellow-500 text-white text-xs px-2 py-0.5 rounded-full animate-pulse">BETA</span>
         </div>
       </header>
@@ -62,7 +62,7 @@ export default function PredictPage() {
           disabled={loading}
           className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-3 rounded-lg font-semibold disabled:opacity-50"
         >
-          {loading ? '⏳ Analyzing...' : '🔮 Predict Future Damage'}
+          {loading ? '⏳ Analyzing...' : '🔮 Generate Demo Prediction'}
         </button>
 
         {prediction && (
