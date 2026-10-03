@@ -25,3 +25,84 @@ alter table public.aerial_measurements
 create index if not exists aerial_measurements_calibrated_idx
   on public.aerial_measurements(workspace_id, calibrated_at desc)
   where calibration_status = 'calibrated';
+
+
+-- Reviewers need to be able to accept/edit/reject suggestions created by another
+-- workspace member. Keep ownership/workspace linkage immutable while allowing
+-- workspace members to perform review updates.
+create or replace function public.prevent_aerial_geometry_owner_change()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if new.workspace_id <> old.workspace_id
+     or new.created_by <> old.created_by
+     or new.aerial_measurement_id <> old.aerial_measurement_id then
+    raise exception 'Aerial geometry ownership and workspace linkage are immutable';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists aerial_measurements_immutable_linkage on public.aerial_measurements;
+create trigger aerial_measurements_immutable_linkage
+before update on public.aerial_measurements
+for each row execute function public.prevent_aerial_geometry_owner_change();
+
+drop trigger if exists roof_planes_immutable_linkage on public.roof_planes;
+create trigger roof_planes_immutable_linkage
+before update on public.roof_planes
+for each row execute function public.prevent_aerial_geometry_owner_change();
+
+drop trigger if exists roof_edges_immutable_linkage on public.roof_edges;
+create trigger roof_edges_immutable_linkage
+before update on public.roof_edges
+for each row execute function public.prevent_aerial_geometry_owner_change();
+
+drop trigger if exists roof_objects_immutable_linkage on public.roof_objects;
+create trigger roof_objects_immutable_linkage
+before update on public.roof_objects
+for each row execute function public.prevent_aerial_geometry_owner_change();
+
+drop policy if exists aerial_measurements_write on public.aerial_measurements;
+drop policy if exists roof_planes_write on public.roof_planes;
+drop policy if exists roof_edges_write on public.roof_edges;
+drop policy if exists roof_objects_write on public.roof_objects;
+
+create policy aerial_measurements_insert on public.aerial_measurements
+for insert
+with check (public.is_workspace_member(workspace_id) and auth.uid() = created_by);
+
+create policy aerial_measurements_update on public.aerial_measurements
+for update
+using (public.is_workspace_member(workspace_id))
+with check (public.is_workspace_member(workspace_id));
+
+create policy roof_planes_insert on public.roof_planes
+for insert
+with check (public.is_workspace_member(workspace_id) and auth.uid() = created_by);
+
+create policy roof_planes_update on public.roof_planes
+for update
+using (public.is_workspace_member(workspace_id))
+with check (public.is_workspace_member(workspace_id));
+
+create policy roof_edges_insert on public.roof_edges
+for insert
+with check (public.is_workspace_member(workspace_id) and auth.uid() = created_by);
+
+create policy roof_edges_update on public.roof_edges
+for update
+using (public.is_workspace_member(workspace_id))
+with check (public.is_workspace_member(workspace_id));
+
+create policy roof_objects_insert on public.roof_objects
+for insert
+with check (public.is_workspace_member(workspace_id) and auth.uid() = created_by);
+
+create policy roof_objects_update on public.roof_objects
+for update
+using (public.is_workspace_member(workspace_id))
+with check (public.is_workspace_member(workspace_id));
