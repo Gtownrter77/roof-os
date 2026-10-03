@@ -12,10 +12,10 @@ export default function PlansPage() {
       id: 'starter',
       name: 'Starter',
             features: [
-        'Up to 50 leads',
-        'Basic inspections',
-        'Weather alerts',
-        'Email support'
+        'Lead limit Unknown',
+        'Inspection access Unknown',
+        'Weather alerts Unknown',
+        'Email support Unknown'
       ],
       button: 'Trial unavailable',
       popular: false
@@ -24,12 +24,12 @@ export default function PlansPage() {
       id: 'pro',
       name: 'Pro',
             features: [
-        'Unlimited leads',
-        'Report generation is Unknown until a saved report exists',
-        'Advanced analytics',
-        'Priority support',
-        'Camera integration',
-        'Voice assistant'
+        'Lead limit Unknown',
+        'Report generation Unknown',
+        'Analytics access Unknown',
+        'Support level Unknown',
+        'Camera integration Unknown',
+        'Voice assistant Unknown'
       ],
       button: 'Trial unavailable',
       popular: true
@@ -38,12 +38,12 @@ export default function PlansPage() {
       id: 'enterprise',
       name: 'Enterprise',
             features: [
-        'Everything in Pro',
-        'Multi-location support',
-        'Custom integrations',
-        'Dedicated support',
-        'White-label option',
-        'API access'
+        'Included features Unknown',
+        'Multi-location Unknown',
+        'Integrations Unknown',
+        'Support level Unknown',
+        'White-label Unknown',
+        'API access Unknown'
       ],
       button: 'Sales contact unavailable',
       popular: false
@@ -73,7 +73,7 @@ export default function PlansPage() {
             >
               {plan.popular && (
                 <span className="bg-blue-600 text-white text-xs px-3 py-1 rounded-full inline-block mb-2">
-                  ⭐ Most Popular
+                  Not verified
                 </span>
               )}
               <div className="flex justify-between items-start">
