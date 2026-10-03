@@ -1,116 +1,71 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { createClient } from '../../lib/supabase/client'
 
-interface DocumentItem {
-  id: number
-  name: string
-  status: 'Pending' | 'Signed'
-  date: string
-}
+type Estimate = { id: string; lead_id: string | null; status: string; created_at: string }
 
 export default function SignPage() {
   const router = useRouter()
-  const [signed, setSigned] = useState(false)
-  const [signature, setSignature] = useState('')
-  const [errorMessage, setErrorMessage] = useState('')
-  const [successMessage, setSuccessMessage] = useState('')
-  const [documents, setDocuments] = useState<DocumentItem[]>([
-    { id: 1, name: 'Work Authorization Contract - 4821 Whispering Pines', status: 'Pending', date: '2026-09-28' },
-    { id: 2, name: 'Notice of Cancellation & Lien Waiver - Sarah Jenkins', status: 'Signed', date: '2026-09-27' },
-    { id: 3, name: 'Certificate of Final Completion - Marcus Vance', status: 'Pending', date: '2026-09-29' },
-  ])
+  const supabase = useMemo(() => createClient(), [])
+  const [rows, setRows] = useState<Estimate[]>([])
+  const [estimateId, setEstimateId] = useState('')
+  const [name, setName] = useState('')
+  const [status, setStatus] = useState('Loading saved estimates.')
 
-  const handleSign = () => {
-    if (signature.trim().length < 3) {
-      setErrorMessage('Please enter your full legal name to generate e-signature.')
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { if (!cancelled) setStatus('Sign in required.'); return }
+      const { data: workspaceId, error: workspaceError } = await supabase.rpc('current_workspace_id')
+      if (workspaceError || !workspaceId) { if (!cancelled) setStatus('No workspace is available.'); return }
+      const { data, error } = await supabase.from('estimates').select('id,lead_id,status,created_at').eq('workspace_id', workspaceId).order('created_at', { ascending: false }).limit(50)
+      if (cancelled) return
+      if (error) { setStatus(error.message); setRows([]); return }
+      setRows(data ?? [])
+      setStatus(data && data.length ? 'Saved estimates only. A signature provider is Unknown.' : 'No saved estimates.')
+    }
+    load()
+    return () => { cancelled = true }
+  }, [supabase])
+
+  async function saveName() {
+    const estimate = rows.find((row) => row.id === estimateId)
+    const { data: { user } } = await supabase.auth.getUser()
+    const { data: workspaceId } = await supabase.rpc('current_workspace_id')
+    if (!user || !workspaceId || !estimate?.lead_id || name.trim().length < 3) {
+      setStatus('Choose an estimate linked to a lead and enter a name. This does not execute a contract.')
       return
     }
-    setErrorMessage('')
-    setSigned(true)
-    setSuccessMessage('Document legally executed and timestamped. Verification certificate stored.')
-    setDocuments((prev) =>
-      prev.map((d, i) => (i === 0 ? { ...d, status: 'Signed' as const } : d))
-    )
+    const body = `Typed name saved for estimate ${estimate.id}. Name: ${name.trim()}. Signature provider Unknown. Contract was not executed.`
+    const { error } = await supabase.from('lead_activity').insert({ lead_id: estimate.lead_id, workspace_id: workspaceId, user_id: user.id, kind: 'note', body })
+    setStatus(error ? error.message : 'Name saved on the lead. Contract was not executed.')
   }
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       <header className="bg-blue-600 text-white shadow-lg sticky top-0 z-10">
         <div className="px-4 py-3 flex items-center">
-          <button onClick={() => router.back()} className="text-white mr-3 text-xl">←</button>
-          <h1 className="text-xl font-bold">✍️ Document &amp; Contract Signing</h1>
+          <button onClick={() => router.back()} className="text-white mr-3 text-xl">Back</button>
+          <h1 className="text-xl font-bold">Estimates</h1>
         </div>
       </header>
-
-      <main className="p-4 max-w-3xl mx-auto space-y-4">
-        {errorMessage && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded-lg text-sm">
-            {errorMessage}
-          </div>
-        )}
-
-        {successMessage && (
-          <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg text-sm font-semibold">
-            {successMessage}
-          </div>
-        )}
-
-        <div className="bg-white rounded-lg shadow p-4">
-          <h3 className="font-semibold text-sm mb-3">📄 Pending Authorization Documents</h3>
-          <div className="divide-y">
-            {documents.map((doc) => (
-              <div key={doc.id} className="flex justify-between items-center py-2.5">
-                <div>
-                  <p className="font-medium text-sm text-gray-900">{doc.name}</p>
-                  <p className="text-xs text-gray-400">{doc.date}</p>
-                </div>
-                <span
-                  className={`text-xs px-2.5 py-1 rounded font-semibold ${
-                    doc.status === 'Signed' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'
-                  }`}
-                >
-                  {doc.status}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow p-4 space-y-3">
-          <h3 className="font-semibold text-sm">✍️ E-Sign Roofing Contract</h3>
-          <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center bg-gray-50">
-            <span className="text-3xl block mb-1">📝</span>
-            <p className="text-xs text-gray-500">Sign below with legal name for binding contractor authorization</p>
-            {signature && (
-              <p className="text-xl font-serif italic text-blue-700 mt-2 font-bold">{signature}</p>
-            )}
-          </div>
-
-          <input
-            type="text"
-            value={signature}
-            onChange={(e) => setSignature(e.target.value)}
-            placeholder="Type your full legal name (e.g. John Doe)"
-            className="w-full p-2.5 border rounded-lg text-sm"
-            disabled={signed}
-          />
-
-          <button
-            onClick={handleSign}
-            disabled={signed}
-            className={`w-full py-2.5 rounded-lg font-semibold text-sm transition-colors ${
-              signed ? 'bg-green-600 text-white cursor-default' : 'bg-blue-600 hover:bg-blue-500 text-white'
-            }`}
-          >
-            {signed ? '✅ Contract Legally Executed' : '✍️ Execute Legal Signature'}
+      <main className="p-4 space-y-3">
+        <p className="text-sm bg-white rounded-lg shadow p-4">{status}</p>
+        {rows.map((row) => (
+          <button key={row.id} onClick={() => setEstimateId(row.id)} className="w-full text-left bg-white rounded-lg shadow p-4">
+            <p className="font-semibold text-sm">Estimate {row.id.slice(0, 8)}</p>
+            <p className="text-xs text-gray-500">{row.status} · {new Date(row.created_at).toLocaleString()}</p>
+            <p className="text-xs text-gray-500">{estimateId === row.id ? 'Selected' : 'Not selected'}</p>
           </button>
-        </div>
-
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs text-blue-800">
-          🔒 ESIGN &amp; UETA Compliant • IP, Browser User Agent &amp; UTC Timestamp permanently recorded with Roof Passport.
-        </div>
+        ))}
+        <label className="block text-sm bg-white rounded-lg shadow p-4">Typed name
+          <input value={name} onChange={(event) => setName(event.target.value)} className="mt-1 w-full rounded border p-2" placeholder="Name" />
+        </label>
+        <button onClick={() => void saveName()} className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold">Save name on lead</button>
+        <p className="text-xs text-gray-600">This does not create a signed contract, store an IP address, or claim ESIGN compliance.</p>
       </main>
     </div>
   )
