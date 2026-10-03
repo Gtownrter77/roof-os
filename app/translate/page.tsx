@@ -68,17 +68,7 @@ export default function TranslatePage() {
   }
 
   const translateText = () => {
-    const key = `${fromLang}-${toLang}`
-    const translationMap = translations[key as keyof typeof translations]
-    if (translationMap) {
-      let translatedText = text
-      Object.entries(translationMap).forEach(([eng, trans]) => {
-        translatedText = translatedText.replace(new RegExp(eng, 'gi'), trans)
-      })
-      setTranslated(translatedText ? `Word list only. Not a translation. ${translatedText}` : 'Unknown. No translation service was called.')
-    } else {
-      setTranslated('Unknown. No translation service was called.')
-    }
+    setTranslated('Unknown. No translation service was called.')
   }
 
   return (
