@@ -259,10 +259,11 @@ export default function PricingConfigPage() {
                   <span className="text-xs font-medium">{getJobTypeLabel(key)}</span>
                 </div>
                 <div className="flex items-center gap-2 mt-1">
-                  <span className="text-xs text-gray-400">$</span>
+                  <span className="text-xs text-gray-400">{Number(value.rate) > 0 ? '$' : 'Unknown'}</span>
                   <input
                     type="number"
-                    value={value.rate}
+                    value={Number(value.rate) > 0 ? value.rate : ''}
+                    placeholder="Enter"
                     onChange={(e) => updateLaborRate(key, e.target.value)}
                     className="w-20 p-1 border rounded text-sm"
                     step="0.5"
