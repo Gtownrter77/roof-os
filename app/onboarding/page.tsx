@@ -134,7 +134,7 @@ export default function OnboardingPage() {
                 onChange={(e) => setForm({...form, state: e.target.value})}
                 className="w-full p-3 border rounded-lg"
               >
-                <option value="GA">Georgia</option>
+                <option value="">Choose a state</option><option value="GA">Georgia</option>
                 <option value="AL">Alabama</option>
                 <option value="SC">South Carolina</option>
                 <option value="NC">North Carolina</option>
