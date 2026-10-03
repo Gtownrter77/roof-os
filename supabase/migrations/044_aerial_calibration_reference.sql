@@ -37,9 +37,13 @@ security definer
 set search_path = public
 as $$
 begin
-  if new.workspace_id <> old.workspace_id
-     or new.created_by <> old.created_by
-     or new.aerial_measurement_id <> old.aerial_measurement_id then
+  if new.workspace_id is distinct from old.workspace_id
+     or new.created_by is distinct from old.created_by then
+    raise exception 'Aerial geometry ownership and workspace linkage are immutable';
+  end if;
+
+  if tg_table_name <> 'aerial_measurements'
+     and (to_jsonb(new)->>'aerial_measurement_id') is distinct from (to_jsonb(old)->>'aerial_measurement_id') then
     raise exception 'Aerial geometry ownership and workspace linkage are immutable';
   end if;
   return new;
