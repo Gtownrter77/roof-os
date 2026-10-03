@@ -106,7 +106,7 @@ export default function PricingPage() {
       profit: profit,
       taxes: taxes,
       total: total,
-      perSquare: total / (pricing.materials.shingles.quantity || 1),
+      perSquare: pricing.materials.shingles.quantity > 0 ? total / pricing.materials.shingles.quantity : 0,
     })
   }
 
