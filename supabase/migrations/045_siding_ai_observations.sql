@@ -1,0 +1,3 @@
+alter table public.siding_measurements add column if not exists ai_observation jsonb, add column if not exists ai_model_version text, add column if not exists ai_content_hash text, add column if not exists ai_analyzed_at timestamptz, add column if not exists ai_observation_status text not null default 'unverified' check (ai_observation_status in ('unverified','reviewed','rejected'));
+create index if not exists siding_measurements_source_photo_idx on public.siding_measurements(source_photo_id);
+create index if not exists siding_measurements_ai_hash_idx on public.siding_measurements(ai_content_hash);

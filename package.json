@@ -26,7 +26,10 @@
     "test:supabase-client-stability": "node scripts/supabase-client-stability-test.mjs",
     "test:agent-runtime": "node scripts/agent-runtime-test.mjs",
     "test:prototype-guardrails": "node scripts/prototype-guardrail-test.mjs",
-    "test:inspection-quality-agent": "node scripts/inspection-quality-agent-test.mjs"
+    "test:inspection-quality-agent": "node scripts/inspection-quality-agent-test.mjs",
+    "test:siding-measurement": "node scripts/siding-measurement-test.mjs",
+    "test:siding-authority": "node scripts/siding-authority-test.mjs",
+    "test:siding-ai-authority": "node scripts/siding-ai-authority-test.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.2",

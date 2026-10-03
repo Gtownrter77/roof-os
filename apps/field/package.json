@@ -4,33 +4,36 @@
   "main": "index.ts",
   "dependencies": {
     "@supabase/supabase-js": "^2.116.0",
-    "expo": "~58.0.2",
-    "expo-file-system": "~58.0.5",
-    "expo-image-picker": "~58.0.10",
-    "expo-linking": "~58.0.10",
-    "expo-location": "~58.0.10",
-    "expo-secure-store": "~58.0.2",
-    "expo-sqlite": "~58.0.8",
-    "expo-status-bar": "~58.0.3",
-    "react": "19.3.0",
-    "react-dom": "19.3.0",
-    "react-native": "0.88.0-rc.3",
+    "expo": "~57.0.26",
+    "expo-file-system": "~57.0.0",
+    "expo-image-picker": "~57.0.0",
+    "expo-linking": "~57.0.0",
+    "expo-location": "~57.0.0",
+    "expo-secure-store": "~57.0.0",
+    "expo-sqlite": "~57.0.3",
+    "expo-status-bar": "~57.0.0",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-native": "0.86.3",
     "react-native-web": "^0.21.2"
   },
   "devDependencies": {
-    "@types/react": "~19.3.0",
-    "typescript": "~6.0.3"
+    "@types/react": "~19.2.0",
+    "typescript": "~5.9.3"
   },
   "scripts": {
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "test:braces-mitigation": "node ../../scripts/test-field-braces-mitigation.cjs"
   },
   "private": true,
   "overrides": {
     "xcode": {
       "uuid": "^11.1.1"
-    }
+    },
+    "braces": "file:../../vendor/braces",
+    "node-forge": "github:Krysthyan/forge#ceba34402e329f0365134f23fe19898756527d65"
   }
 }
