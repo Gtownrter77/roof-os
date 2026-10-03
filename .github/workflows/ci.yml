@@ -93,6 +93,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Refresh from branch head
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin "${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}"
+          git checkout -B "${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}" "origin/${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}"
       - run: npm install --package-lock-only --ignore-scripts
         working-directory: apps/field
       - name: Commit refreshed field lock
