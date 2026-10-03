@@ -394,7 +394,7 @@ export default function ManualPage() {
           onClick={startTour}
           className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 rounded-lg font-semibold mb-4"
         >
-          🎯 Start Interactive Tour
+          Start local tour
         </button>
 
         {/* Tour Mode */}
@@ -424,7 +424,7 @@ export default function ManualPage() {
                     onClick={nextTourStep}
                     className="bg-blue-600 text-white px-3 py-1 rounded text-sm"
                   >
-                    {currentStep < allSteps.length - 1 ? 'Next →' : '✅ Done'}
+                    {currentStep < allSteps.length - 1 ? 'Next' : 'End tour'}
                   </button>
                 </div>
               </div>
