@@ -92,7 +92,7 @@ for (const route of routes) {
     && source.includes('await readBoundedBody(response, responseLimit,')
     && source.includes('Math.min(STORAGE_TIMEOUT_MS, deadline - Date.now())')
     && source.includes('Math.min(PROVIDER_TIMEOUT_MS, deadline - Date.now())')
-  const boundedSidingAnalysisFetch = route.endsWith(join('app', 'api', 'siding', 'analyze', 'route.ts'))
+  const boundedSidingAnalysisFetch = route.includes('/app/api/siding/analyze/route.ts')
     && fetchCallCount === 2
     && source.includes('async function getBytes(')
     && source.includes('async function readBoundedText(')
