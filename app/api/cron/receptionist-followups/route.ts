@@ -11,8 +11,16 @@ export async function POST(request: NextRequest) {
   const from = process.env.TWILIO_PHONE_NUMBER?.trim()
   const publicUrl = process.env.RECEPTIONIST_PUBLIC_URL?.trim()
   if (!accountSid || !authToken || !from || !publicUrl) return NextResponse.json({ error: 'Twilio and receptionist configuration is incomplete.' }, { status: 503 })
-  const hour = new Date().getHours()
-  if (hour < 8 || hour >= 20) return NextResponse.json({ processed: 0, skipped: 'quiet_hours' })
+  const timezone = process.env.RECEPTIONIST_TIMEZONE?.trim() || 'America/New_York'
+  let localHour: number
+  try {
+    const hourPart = new Intl.DateTimeFormat('en-US', { timeZone: timezone, hour: '2-digit', hour12: false }).formatToParts(new Date()).find((part) => part.type === 'hour')?.value
+    localHour = Number(hourPart)
+    if (!Number.isInteger(localHour)) throw new Error('Invalid local hour')
+  } catch {
+    return NextResponse.json({ error: 'RECEPTIONIST_TIMEZONE is invalid.' }, { status: 503 })
+  }
+  if (localHour < 8 || localHour >= 20) return NextResponse.json({ processed: 0, skipped: 'quiet_hours', timezone })
   const admin = createAdminClient()
   const { data: attempts, error } = await admin.from('receptionist_call_attempts').select('id,workspace_id,lead_id,phone,attempt_number').eq('direction', 'outbound').eq('status', 'queued').not('next_attempt_at', 'is', null).lte('next_attempt_at', new Date().toISOString()).order('created_at', { ascending: true }).limit(25)
   if (error) return NextResponse.json({ error: 'Could not read follow-up queue.', detail: error.message }, { status: 502 })
@@ -25,8 +33,14 @@ export async function POST(request: NextRequest) {
   for (const attempt of attempts || []) {
     const { data: claimed } = await admin.from('receptionist_call_attempts').update({ status: 'ringing' }).eq('id', attempt.id).eq('status', 'queued').select('id').maybeSingle()
     if (!claimed) continue
-    const { data: optOut } = await admin.from('receptionist_consents').select('id').eq('workspace_id', attempt.workspace_id).eq('phone', attempt.phone).eq('channel', 'voice').eq('state', 'revoked').order('captured_at', { ascending: false }).limit(1).maybeSingle()
-    if (optOut) {
+    const { data: latestConsent, error: consentError } = await admin.from('receptionist_consents').select('id,state').eq('workspace_id', attempt.workspace_id).eq('phone', attempt.phone).eq('channel', 'voice').order('captured_at', { ascending: false }).limit(1).maybeSingle()
+    if (consentError) {
+      await admin.from('receptionist_call_attempts').update({ status: 'queued' }).eq('id', attempt.id).eq('status', 'ringing')
+      failures.push({ attemptId: attempt.id, error: `Consent lookup failed: ${consentError.message}` })
+      failed += 1
+      continue
+    }
+    if (latestConsent?.state === 'revoked') {
       await admin.from('receptionist_call_attempts').update({ status: 'opted_out' }).eq('id', attempt.id)
       optedOut += 1
       continue

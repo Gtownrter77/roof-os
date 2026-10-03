@@ -1,116 +1,45 @@
 'use client'
 
-import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-
-interface DocumentItem {
-  id: number
-  name: string
-  status: 'Pending' | 'Signed'
-  date: string
-}
 
 export default function SignPage() {
   const router = useRouter()
-  const [signed, setSigned] = useState(false)
-  const [signature, setSignature] = useState('')
-  const [errorMessage, setErrorMessage] = useState('')
-  const [successMessage, setSuccessMessage] = useState('')
-  const [documents, setDocuments] = useState<DocumentItem[]>([
-    { id: 1, name: 'Work Authorization Contract - 4821 Whispering Pines', status: 'Pending', date: '2026-09-28' },
-    { id: 2, name: 'Notice of Cancellation & Lien Waiver - Sarah Jenkins', status: 'Signed', date: '2026-09-27' },
-    { id: 3, name: 'Certificate of Final Completion - Marcus Vance', status: 'Pending', date: '2026-09-29' },
-  ])
-
-  const handleSign = () => {
-    if (signature.trim().length < 3) {
-      setErrorMessage('Please enter your full legal name to generate e-signature.')
-      return
-    }
-    setErrorMessage('')
-    setSigned(true)
-    setSuccessMessage('Document legally executed and timestamped. Verification certificate stored.')
-    setDocuments((prev) =>
-      prev.map((d, i) => (i === 0 ? { ...d, status: 'Signed' as const } : d))
-    )
-  }
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       <header className="bg-blue-600 text-white shadow-lg sticky top-0 z-10">
         <div className="px-4 py-3 flex items-center">
           <button onClick={() => router.back()} className="text-white mr-3 text-xl">←</button>
-          <h1 className="text-xl font-bold">✍️ Document &amp; Contract Signing</h1>
+          <h1 className="text-xl font-bold">✍️ Document Signing</h1>
         </div>
       </header>
 
       <main className="p-4 max-w-3xl mx-auto space-y-4">
-        {errorMessage && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded-lg text-sm">
-            {errorMessage}
-          </div>
-        )}
-
-        {successMessage && (
-          <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg text-sm font-semibold">
-            {successMessage}
-          </div>
-        )}
+        <div className="bg-yellow-50 border border-yellow-200 text-yellow-900 rounded-lg p-4">
+          <h2 className="font-semibold">Digital signature workflow is not connected.</h2>
+          <p className="text-sm mt-2">
+            This screen does not create a legal signature, execute a contract, store a certificate,
+            or claim ESIGN/UETA compliance. No fabricated documents or signed records are shown.
+          </p>
+        </div>
 
         <div className="bg-white rounded-lg shadow p-4">
-          <h3 className="font-semibold text-sm mb-3">📄 Pending Authorization Documents</h3>
-          <div className="divide-y">
-            {documents.map((doc) => (
-              <div key={doc.id} className="flex justify-between items-center py-2.5">
-                <div>
-                  <p className="font-medium text-sm text-gray-900">{doc.name}</p>
-                  <p className="text-xs text-gray-400">{doc.date}</p>
-                </div>
-                <span
-                  className={`text-xs px-2.5 py-1 rounded font-semibold ${
-                    doc.status === 'Signed' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'
-                  }`}
-                >
-                  {doc.status}
-                </span>
-              </div>
-            ))}
-          </div>
+          <h2 className="font-semibold text-sm">Required before customer use</h2>
+          <ul className="text-sm text-gray-600 mt-2 space-y-1 list-disc pl-5">
+            <li>Load the actual workspace document and its immutable version.</li>
+            <li>Capture the signer identity and consent against the real document.</li>
+            <li>Persist the signature evidence and audit event server-side.</li>
+            <li>Verify the completed document before presenting it as executed.</li>
+          </ul>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-4 space-y-3">
-          <h3 className="font-semibold text-sm">✍️ E-Sign Roofing Contract</h3>
-          <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center bg-gray-50">
-            <span className="text-3xl block mb-1">📝</span>
-            <p className="text-xs text-gray-500">Sign below with legal name for binding contractor authorization</p>
-            {signature && (
-              <p className="text-xl font-serif italic text-blue-700 mt-2 font-bold">{signature}</p>
-            )}
-          </div>
-
-          <input
-            type="text"
-            value={signature}
-            onChange={(e) => setSignature(e.target.value)}
-            placeholder="Type your full legal name (e.g. John Doe)"
-            className="w-full p-2.5 border rounded-lg text-sm"
-            disabled={signed}
-          />
-
-          <button
-            onClick={handleSign}
-            disabled={signed}
-            className={`w-full py-2.5 rounded-lg font-semibold text-sm transition-colors ${
-              signed ? 'bg-green-600 text-white cursor-default' : 'bg-blue-600 hover:bg-blue-500 text-white'
-            }`}
-          >
-            {signed ? '✅ Contract Legally Executed' : '✍️ Execute Legal Signature'}
-          </button>
-        </div>
-
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs text-blue-800">
-          🔒 ESIGN &amp; UETA Compliant • IP, Browser User Agent &amp; UTC Timestamp permanently recorded with Roof Passport.
-        </div>
+        <button
+          type="button"
+          disabled
+          className="w-full bg-gray-300 text-gray-600 py-3 rounded-lg font-semibold cursor-not-allowed"
+        >
+          Signature unavailable until the persisted signing workflow is implemented
+        </button>
       </main>
     </div>
   )

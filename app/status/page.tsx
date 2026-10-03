@@ -1,54 +1,79 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { createClient } from '../../lib/supabase/client'
+
+type ServiceStatus = 'online' | 'offline' | 'checking' | 'unknown'
+
+type StatusState = {
+  database: ServiceStatus
+  api: ServiceStatus
+  weather: ServiceStatus
+  storage: ServiceStatus
+}
 
 export default function StatusPage() {
   const router = useRouter()
-  const [status, setStatus] = useState({
+  const supabase = useMemo(() => createClient(), [])
+  const [status, setStatus] = useState<StatusState>({
     database: 'checking',
-    api: 'checking',
-    weather: 'checking',
-    storage: 'checking',
-    uptime: '99.9%'
+    api: 'online',
+    weather: 'unknown',
+    storage: 'unknown',
   })
 
   useEffect(() => {
-    setTimeout(() => {
-      setStatus({
-        database: 'online',
-        api: 'online',
-        weather: 'online',
-        storage: 'online',
-        uptime: '99.9%'
-      })
-    }, 1000)
-  }, [])
+    let active = true
 
-  const getStatusColor = (status: string) => {
-    switch(status) {
+    async function checkDatabase() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        if (active) setStatus((current) => ({ ...current, database: 'offline' }))
+        return
+      }
+
+      const { data: workspaceId, error } = await supabase.rpc('current_workspace_id')
+      if (!active) return
+      setStatus((current) => ({
+        ...current,
+        database: error || !workspaceId ? 'offline' : 'online',
+      }))
+    }
+
+    void checkDatabase()
+    return () => {
+      active = false
+    }
+  }, [supabase])
+
+  const getStatusColor = (value: ServiceStatus) => {
+    switch (value) {
       case 'online': return 'bg-green-500'
       case 'offline': return 'bg-red-500'
       case 'checking': return 'bg-yellow-500'
-      default: return 'bg-gray-500'
+      default: return 'bg-gray-400'
     }
   }
 
-  const getStatusText = (status: string) => {
-    switch(status) {
+  const getStatusText = (value: ServiceStatus) => {
+    switch (value) {
       case 'online': return 'Online'
       case 'offline': return 'Offline'
-      case 'checking': return 'Checking...'
-      default: return 'Unknown'
+      case 'checking': return 'Checking…'
+      default: return 'Not checked'
     }
   }
 
-  const services = [
-    { name: 'Database', key: 'database' },
-    { name: 'API', key: 'api' },
+  const services: Array<{ name: string; key: keyof StatusState }> = [
+    { name: 'Application', key: 'api' },
+    { name: 'Database / workspace', key: 'database' },
     { name: 'Weather Service', key: 'weather' },
     { name: 'Storage', key: 'storage' },
   ]
+
+  const hasFailure = Object.values(status).some((value) => value === 'offline')
+  const hasUnknown = Object.values(status).some((value) => value === 'unknown' || value === 'checking')
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
@@ -61,9 +86,13 @@ export default function StatusPage() {
 
       <main className="p-4">
         <div className="bg-white rounded-lg shadow p-6 text-center mb-4">
-          <div className="text-4xl mb-2">🟢</div>
-          <h2 className="text-xl font-bold">All Systems Operational</h2>
-          <p className="text-sm text-gray-500">Uptime: {status.uptime}</p>
+          <div className="text-4xl mb-2">{hasFailure ? '🔴' : hasUnknown ? '🟡' : '🟢'}</div>
+          <h2 className="text-xl font-bold">
+            {hasFailure ? 'A checked service is unavailable' : hasUnknown ? 'Status partially verified' : 'Checked services operational'}
+          </h2>
+          <p className="text-sm text-gray-500 mt-2">
+            This page reports only checks actually performed from the current session. Uptime is not inferred.
+          </p>
         </div>
 
         <div className="space-y-2">
@@ -71,11 +100,9 @@ export default function StatusPage() {
             <div key={service.key} className="bg-white rounded-lg shadow p-4 flex justify-between items-center">
               <div>
                 <p className="font-medium">{service.name}</p>
-                <p className={`text-sm ${status[service.key as keyof typeof status] === 'online' ? 'text-green-600' : 'text-yellow-600'}`}>
-                  {getStatusText(status[service.key as keyof typeof status])}
-                </p>
+                <p className="text-sm text-gray-600">{getStatusText(status[service.key])}</p>
               </div>
-              <div className={`w-3 h-3 rounded-full ${getStatusColor(status[service.key as keyof typeof status])}`} />
+              <div className={`w-3 h-3 rounded-full ${getStatusColor(status[service.key])}`} />
             </div>
           ))}
         </div>

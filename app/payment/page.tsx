@@ -3,54 +3,49 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
+const plans = {
+  starter: { price: 29, label: 'Starter' },
+  pro: { price: 79, label: 'Pro' },
+  enterprise: { price: 199, label: 'Enterprise' },
+} as const
+
+type PlanKey = keyof typeof plans
+
 export default function PaymentPage() {
   const router = useRouter()
-  const [loading, setLoading] = useState(false)
-  const [successMessage, setSuccessMessage] = useState('')
-  const [selectedPlan, setSelectedPlan] = useState('pro')
-
-  const plans = {
-    starter: { price: 29, label: 'Starter' },
-    pro: { price: 79, label: 'Pro' },
-    enterprise: { price: 199, label: 'Enterprise' }
-  }
-
-  const handlePayment = () => {
-    setLoading(true)
-    setTimeout(() => {
-      // Non-blocking notice
-      setSuccessMessage(`Payment recorded. Active plan: ${plans[selectedPlan as keyof typeof plans].label}`)
-      setLoading(false)
-      router.push('/')
-    }, 2000)
-  }
+  const [selectedPlan, setSelectedPlan] = useState<PlanKey>('pro')
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       <header className="bg-blue-600 text-white shadow-lg sticky top-0 z-10">
         <div className="px-4 py-3 flex items-center">
           <button onClick={() => router.back()} className="text-white mr-3 text-xl">←</button>
-          <h1 className="text-xl font-bold">💳 Payment</h1>
+          <h1 className="text-xl font-bold">💳 Billing</h1>
         </div>
       </header>
 
       <main className="p-4">
-        {successMessage && <div className="bg-green-50 border border-green-200 text-green-800 p-3 rounded-lg mb-4 text-sm font-medium" role="status">{successMessage}</div>}
+        <div className="bg-yellow-50 border border-yellow-200 text-yellow-900 rounded-lg p-4 mb-4 text-sm">
+          <p className="font-semibold">Subscription checkout is not configured.</p>
+          <p className="mt-1">
+            No card data is collected and no payment is reported as successful from this screen.
+            A real subscription requires a server-side Stripe checkout flow and verified webhook state.
+          </p>
+        </div>
+
         <div className="bg-white rounded-lg shadow p-6 mb-4">
-          <h2 className="text-xl font-bold mb-2">Subscribe to ROOF/OS</h2>
-          <p className="text-gray-500 text-sm">Choose your plan and start building</p>
+          <h2 className="text-xl font-bold mb-2">ROOF/OS plans</h2>
+          <p className="text-gray-500 text-sm">Select a plan to prepare the intended subscription tier.</p>
         </div>
 
         <div className="space-y-3 mb-4">
-          {Object.entries(plans).map(([key, plan]) => (
+          {(Object.entries(plans) as Array<[PlanKey, typeof plans[PlanKey]]>).map(([key, plan]) => (
             <button
               key={key}
               onClick={() => setSelectedPlan(key)}
-              className={`w-full bg-white rounded-lg shadow p-4 flex justify-between items-center border-2 ${
-                selectedPlan === key ? 'border-blue-500' : 'border-transparent'
-              }`}
+              className={`w-full bg-white rounded-lg shadow p-4 flex justify-between items-center border-2 ${selectedPlan === key ? 'border-blue-500' : 'border-transparent'}`}
             >
-              <div>
+              <div className="text-left">
                 <p className="font-semibold">{plan.label}</p>
                 <p className="text-sm text-gray-500">${plan.price}/month</p>
               </div>
@@ -59,48 +54,19 @@ export default function PaymentPage() {
           ))}
         </div>
 
-        <div className="bg-white rounded-lg shadow p-4 mb-4">
-          <h3 className="font-semibold text-sm mb-3">Payment Method</h3>
-          <div className="space-y-3">
-            <input
-              type="text"
-              className="w-full p-3 border rounded-lg"
-              placeholder="Card Number"
-            />
-            <div className="grid grid-cols-2 gap-3">
-              <input
-                type="text"
-                className="w-full p-3 border rounded-lg"
-                placeholder="MM/YY"
-              />
-              <input
-                type="text"
-                className="w-full p-3 border rounded-lg"
-                placeholder="CVC"
-              />
-            </div>
-            <input
-              type="text"
-              className="w-full p-3 border rounded-lg"
-              placeholder="Name on Card"
-            />
-          </div>
+        <div className="bg-white rounded-lg shadow p-4">
+          <p className="text-sm font-medium">Selected plan</p>
+          <p className="text-lg font-bold mt-1">{plans[selectedPlan].label}</p>
+          <p className="text-sm text-gray-500">${plans[selectedPlan].price}/month</p>
+          <button
+            type="button"
+            disabled
+            className="w-full mt-4 bg-gray-300 text-gray-600 py-3 rounded-lg font-semibold cursor-not-allowed"
+          >
+            Checkout unavailable until billing is configured
+          </button>
         </div>
-
-        <button
-          onClick={handlePayment}
-          disabled={loading}
-          className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold disabled:opacity-50"
-        >
-          {loading ? '⏳ Processing...' : `💳 Subscribe $${plans[selectedPlan as keyof typeof plans].price}/mo`}
-        </button>
-
-        <p className="text-xs text-gray-400 text-center mt-2">
-          🔒 Secure payment processing • Cancel anytime
-        </p>
       </main>
-
-
     </div>
   )
 }
