@@ -83,6 +83,20 @@ jobs:
         run: npm run build
       - run: npx tsc --noEmit
 
+  refresh-field-lock:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --package-lock-only --ignore-scripts
+        working-directory: apps/field
+      - uses: actions/upload-artifact@v4
+        with:
+          name: field-package-lock
+          path: apps/field/package-lock.json
+
   migration-safety:
     runs-on: ubuntu-latest
     steps:
