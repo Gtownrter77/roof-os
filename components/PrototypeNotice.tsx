@@ -7,6 +7,8 @@ const PROTOTYPE_PATHS = [
   '/portal', '/schedule', '/drone', '/invoices', '/sign', '/integrations', '/admin', '/pricing', '/exterior',
   '/deck', '/siding', '/repair', '/doors-windows', '/manual', '/logistics', '/homedepot', '/insurance', '/insurance-intel',
   '/chat', '/notifications', '/status',
+  // Simulated or non-authoritative surfaces that must not be mistaken for production workflow
+  '/ai', '/ai-train', '/codes', '/predict', '/ready', '/export',
 ]
 
 export default function PrototypeNotice() {
