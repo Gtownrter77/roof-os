@@ -1,5 +1,8 @@
 name: ROOF OS CI
 
+permissions:
+  contents: write
+
 on:
   push:
     branches: ['**']
@@ -92,10 +95,19 @@ jobs:
           node-version: 22
       - run: npm install --package-lock-only --ignore-scripts
         working-directory: apps/field
-      - uses: actions/upload-artifact@v4
-        with:
-          name: field-package-lock
-          path: apps/field/package-lock.json
+      - name: Commit refreshed field lock
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- apps/field/package-lock.json; then
+            echo 'Field lock already current.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add apps/field/package-lock.json
+          git commit -m 'fix(field): refresh Expo dependency lockfile'
+          git push origin HEAD:${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}
 
   migration-safety:
     runs-on: ubuntu-latest
