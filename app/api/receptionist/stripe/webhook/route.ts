@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
         stripe_subscription_id: subscription.id,
         plan: session.metadata.plan,
         status: subscription.status,
-        current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+        current_period_end: subscription.items.data[0]?.current_period_end ? new Date(subscription.items.data[0].current_period_end * 1000).toISOString() : null,
         updated_at: new Date().toISOString(),
       }, { onConflict: 'workspace_id' })
       if (error) return new Response('Could not persist subscription', { status: 502 })
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
     if (!workspaceId) return new Response('ok')
     const { error } = await admin.from('workspace_subscriptions').update({
       status: subscription.status,
-      current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+      current_period_end: subscription.items.data[0]?.current_period_end ? new Date(subscription.items.data[0].current_period_end * 1000).toISOString() : null,
       updated_at: new Date().toISOString(),
     }).eq('workspace_id', workspaceId).eq('stripe_subscription_id', subscription.id)
     if (error) return new Response('Could not update subscription', { status: 502 })
