@@ -217,11 +217,11 @@ export default function PricingConfigPage() {
             </div>
             <div>
               <label className="text-xs text-gray-500">State tax rate</label>
-              <input type="number" value={taxRates.state} onChange={e => setTaxRates({ ...taxRates, state: parseFloat(e.target.value) || 0 })} className="w-full p-2 border rounded-lg text-sm" step="0.0001" min="0" max="100" />
+              <input type="number" value={Number(taxRates.state) > 0 ? taxRates.state : ""} placeholder="Enter" onChange={e => setTaxRates({ ...taxRates, state: parseFloat(e.target.value) || 0 })} className="w-full p-2 border rounded-lg text-sm" step="0.0001" min="0" max="100" />
             </div>
           </div>
           <div className="grid grid-cols-3 gap-2 mt-3">
-            {([['county','County'],['city','City / municipality'],['specialDistrict','Special district']] as const).map(([key, label]) => <label key={key} className="text-xs text-gray-500">{label}<input type="number" value={taxRates[key]} onChange={e => setTaxRates({ ...taxRates, [key]: parseFloat(e.target.value) || 0 })} className="w-full mt-1 p-2 border rounded-lg text-sm" step="0.0001" min="0" max="100" /></label>)}
+            {([['county','County'],['city','City / municipality'],['specialDistrict','Special district']] as const).map(([key, label]) => <label key={key} className="text-xs text-gray-500">{label}<input type="number" value={Number(taxRates[key]) > 0 ? taxRates[key] : ""} placeholder="Enter" onChange={e => setTaxRates({ ...taxRates, [key]: parseFloat(e.target.value) || 0 })} className="w-full mt-1 p-2 border rounded-lg text-sm" step="0.0001" min="0" max="100" /></label>)}
           </div>
           <label className="block mt-3 text-xs text-gray-500">Tax jurisdiction / source
             <input
