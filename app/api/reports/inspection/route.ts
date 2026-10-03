@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '../../../../lib/supabase/server'
-import { fetchWithTimeout, readJson } from '../../../../lib/api-security'
+import { fetchWithTimeout, isUuid, readJson } from '../../../../lib/api-security'
 
 const USER_AGENT = 'ROOF-OS/1.0 (https://github.com/Gtownrter77/roof-os)'
 const FEET_PER_METER = 3.28084
@@ -25,7 +25,13 @@ export async function POST(request: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Authentication required.' }, { status: 401 })
   const parsedBody = await readJson(request)
   if ('error' in parsedBody) return NextResponse.json({ error: parsedBody.error }, { status: parsedBody.status })
-  const body = parsedBody.body as { address?: string; roofSquares?: number; gutterLf?: number; photoCount?: number }
+  const body = parsedBody.body as { address?: string; roofSquares?: number; gutterLf?: number; photoCount?: number; inspectionId?: string }
+  if (!isUuid(body.inspectionId)) return NextResponse.json({ error: 'A saved inspection is required.' }, { status: 400 })
+  const { data: workspaceId } = await supabase.rpc('current_workspace_id')
+  if (!workspaceId) return NextResponse.json({ error: 'No workspace is available.' }, { status: 403 })
+  const { data: inspection, error: inspectionError } = await supabase.from('inspection_sessions').select('id,lead_id').eq('id', body.inspectionId).eq('workspace_id', workspaceId).maybeSingle()
+  if (inspectionError) return NextResponse.json({ error: 'Could not load the inspection.' }, { status: 503 })
+  if (!inspection) return NextResponse.json({ error: 'That inspection is not in this workspace.' }, { status: 404 })
   const address = body.address?.trim() ?? ''
   const roofSquares = Number(body.roofSquares); const gutterLf = Number(body.gutterLf); const photoCount = Number(body.photoCount ?? 0)
   if (!address || address.length > 512) return NextResponse.json({ error: 'Property address must contain 1–512 characters.' }, { status: 400 })
@@ -58,7 +64,6 @@ export async function POST(request: NextRequest) {
   const nwsPayload = nwsResponse?.ok ? await nwsResponse.json().catch(() => null) as { features?: WeatherFeature[] } | null : null
   const stormCandidateCount = (Array.isArray(nwsPayload?.features) ? nwsPayload.features : []).slice(0, 50).filter((feature) => /hail|tornado|thunderstorm|wind|hurricane|tropical|flood|ice|winter storm|derecho/i.test(`${feature.properties?.event ?? ''} ${feature.properties?.headline ?? ''}`)).length
 
-  const { data: workspaceId } = await supabase.rpc('current_workspace_id')
   const { data: activePriceBook } = workspaceId
     ? await supabase.from('price_books').select('id,name,effective_at,local_tax_rate,tax_source').eq('workspace_id', workspaceId).eq('source', 'owner-managed').eq('status', 'active').order('effective_at', { ascending: false }).limit(1).maybeSingle()
     : { data: null }
@@ -66,5 +71,5 @@ export async function POST(request: NextRequest) {
     ? { status: 'active', priceBookId: activePriceBook.id, name: activePriceBook.name, effectiveAt: activePriceBook.effective_at, localTaxRate: Number(activePriceBook.local_tax_rate), taxSource: activePriceBook.tax_source ?? 'owner-entered local rate' }
     : { status: 'unavailable', localTaxRate: null, taxSource: null }
 
-  return NextResponse.json({ report: { title: `ROOF/OS Inspection Report — ${address}`, status: 'needs_review', generatedAt: new Date().toISOString(), address, geocode: { latitude, longitude, displayName: geocoded[0].display_name }, evidence: { photoCount, footprintSqFt, stormCandidateCount, measurementSource: 'manual quantities supplied by user; unverified' }, quantities: { roofSquares, gutterLf }, pricing, sources: { footprint: '© OpenStreetMap contributors', storms: nwsUrl, parcelVerification: 'https://www.arcgis.com/home/search.html?q=parcel%20viewer' }, requiredReview: ['Confirm property and parcel', 'Review photos and footprint against aerial/drone evidence', 'Verify roof/gutter quantities', 'Review NOAA candidates as corroborating evidence only', 'Attach or confirm an approved price book', 'Human approval before external use'] } })
+  return NextResponse.json({ report: { title: `ROOF/OS inspection packet — ${address}`, inspectionId: inspection.id, status: 'needs_review', generatedAt: new Date().toISOString(), address, geocode: { latitude, longitude, displayName: geocoded[0].display_name }, evidence: { photoCount, footprintSqFt, stormCandidateCount, measurementSource: 'manual quantities supplied by user; unverified' }, quantities: { roofSquares, gutterLf }, pricing, sources: { footprint: '© OpenStreetMap contributors', storms: nwsUrl, parcelVerification: 'https://www.arcgis.com/home/search.html?q=parcel%20viewer' }, requiredReview: ['Confirm property and parcel', 'Review photos and footprint against aerial/drone evidence', 'Verify roof/gutter quantities', 'Review NOAA candidates as corroborating evidence only', 'Attach or confirm an approved price book', 'Human approval before external use'] } })
 }
