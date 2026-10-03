@@ -1,18 +1,48 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { createClient } from '../../lib/supabase/client'
 
 export default function AIWizardPage() {
   const router = useRouter()
+  const supabase = useMemo(() => createClient(), [])
+  const [leads, setLeads] = useState<{id:string; name:string|null}[]>([])
+  const [leadId, setLeadId] = useState('')
+  const [status, setStatus] = useState('Loading saved leads.')
   const [query, setQuery] = useState('')
   const [loading, setLoading] = useState(false)
   const [response, setResponse] = useState<any>(null)
   const [history, setHistory] = useState<any[]>([])
 
-  const askQuestion = () => {
+
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { if (!cancelled) setStatus('Sign in required.'); return }
+      const { data: workspaceId, error: workspaceError } = await supabase.rpc('current_workspace_id')
+      if (workspaceError || !workspaceId) { if (!cancelled) setStatus('No workspace is available.'); return }
+      const { data, error } = await supabase.from('leads').select('id,name').eq('workspace_id', workspaceId).order('created_at', { ascending: false }).limit(50)
+      if (cancelled) return
+      if (error) { setStatus(error.message); return }
+      setLeads(data ?? [])
+      setStatus(data && data.length ? 'Choose a lead. No model is called.' : 'No saved leads.')
+    }
+    load()
+    return () => { cancelled = true }
+  }, [supabase])
+
+  const askQuestion = async () => {
+    if (!query.trim()) { setStatus('Enter a question first.'); return }
+    setLoading(true)
+    const { data: { user } } = await supabase.auth.getUser()
+    const { data: workspaceId } = await supabase.rpc('current_workspace_id')
+    if (!user || !workspaceId || !leadId) { setStatus('A signed-in workspace and a saved lead are required.'); setLoading(false); return }
+    const body = `Question saved. No model called. Question: ${query.trim()}. Answer Unknown.`
+    const { error } = await supabase.from('lead_activity').insert({ lead_id: leadId, workspace_id: workspaceId, user_id: user.id, kind: 'note', body })
+    setStatus(error ? error.message : 'Question saved on the lead. Answer remains Unknown.')
     setLoading(false)
-    return
   }
 
   return (
@@ -25,7 +55,7 @@ export default function AIWizardPage() {
         </div>
       </header>
 
-      <main className="p-4"><p className="text-sm bg-white rounded-lg shadow p-4 mb-4">No model was called. Result is Unknown.</p>
+      <main className="p-4"><label className="block text-sm bg-white rounded-lg shadow p-4 mb-4">Saved lead<select value={leadId} onChange={(event) => setLeadId(event.target.value)} className="mt-1 w-full rounded border p-2"><option value="">Choose a lead</option>{leads.map((lead) => <option key={lead.id} value={lead.id}>{lead.name || lead.id}</option>)}</select><p className="text-xs text-gray-500 mt-2">{status}</p></label><p className="text-sm bg-white rounded-lg shadow p-4 mb-4">No model was called. Result is Unknown.</p>
         <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg shadow-lg p-4 mb-4 border border-indigo-200">
           <div className="flex items-center">
             <span className="text-3xl mr-3">🧙</span>

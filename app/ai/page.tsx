@@ -1,10 +1,15 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { createClient } from '../../lib/supabase/client'
 
 export default function AIPage() {
   const router = useRouter()
+  const supabase = useMemo(() => createClient(), [])
+  const [leads, setLeads] = useState<{id:string; name:string|null}[]>([])
+  const [leadId, setLeadId] = useState('')
+  const [status, setStatus] = useState('Loading saved leads.')
   const [loading, setLoading] = useState(false)
   const [report, setReport] = useState('')
   const [inspectionData, setInspectionData] = useState({
@@ -18,9 +23,34 @@ export default function AIPage() {
     recommendations: 'Replace damaged shingles, inspect flashing'
   })
 
-  const generateReport = () => {
+
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { if (!cancelled) setStatus('Sign in required.'); return }
+      const { data: workspaceId, error: workspaceError } = await supabase.rpc('current_workspace_id')
+      if (workspaceError || !workspaceId) { if (!cancelled) setStatus('No workspace is available.'); return }
+      const { data, error } = await supabase.from('leads').select('id,name').eq('workspace_id', workspaceId).order('created_at', { ascending: false }).limit(50)
+      if (cancelled) return
+      if (error) { setStatus(error.message); return }
+      setLeads(data ?? [])
+      setStatus(data && data.length ? 'Choose a lead. No model is called.' : 'No saved leads.')
+    }
+    load()
+    return () => { cancelled = true }
+  }, [supabase])
+
+  const generateReport = async () => {
+    setLoading(true)
+    setReport('')
+    const { data: { user } } = await supabase.auth.getUser()
+    const { data: workspaceId } = await supabase.rpc('current_workspace_id')
+    if (!user || !workspaceId || !leadId) { setStatus('A signed-in workspace and a saved lead are required.'); setLoading(false); return }
+    const body = `Inspection notes saved. Address: ${inspectionData.address || 'Unknown'}. City: ${inspectionData.city || 'Unknown'}. State: ${inspectionData.state || 'Unknown'}. Date: ${inspectionData.date || 'Unknown'}. Inspector: ${inspectionData.inspector || 'Unknown'}. Condition: ${inspectionData.roofCondition || 'Unknown'}. Storm: ${inspectionData.stormDamage || 'Unknown'}. Notes: ${inspectionData.recommendations || 'none'}. No model called. Report not generated.`
+    const { error } = await supabase.from('lead_activity').insert({ lead_id: leadId, workspace_id: workspaceId, user_id: user.id, kind: 'note', body })
+    setStatus(error ? error.message : 'Notes saved on the lead. No report was generated.')
     setLoading(false)
-    return
   }
 
   const downloadReport = () => {
@@ -42,7 +72,7 @@ export default function AIPage() {
         </div>
       </header>
 
-      <main className="p-4"><p className="text-sm bg-white rounded-lg shadow p-4 mb-4">No model was called. Result is Unknown.</p><p className="text-sm bg-white rounded-lg shadow p-4 mb-4">This draft stays in this browser. It is not saved, not an inspection, and not a bid.</p>
+      <main className="p-4"><label className="block text-sm bg-white rounded-lg shadow p-4 mb-4">Saved lead<select value={leadId} onChange={(event) => setLeadId(event.target.value)} className="mt-1 w-full rounded border p-2"><option value="">Choose a lead</option>{leads.map((lead) => <option key={lead.id} value={lead.id}>{lead.name || lead.id}</option>)}</select><p className="text-xs text-gray-500 mt-2">{status}</p></label><p className="text-sm bg-white rounded-lg shadow p-4 mb-4">No model was called. Result is Unknown.</p><p className="text-sm bg-white rounded-lg shadow p-4 mb-4">This draft stays in this browser. It is not saved, not an inspection, and not a bid.</p>
         {/* Input Section */}
         <div className="bg-white rounded-lg shadow p-4 mb-4">
           <h2 className="font-semibold text-sm mb-3">📝 Inspection Details</h2>
