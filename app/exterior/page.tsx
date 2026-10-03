@@ -1,10 +1,14 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { createClient } from '../../lib/supabase/client'
 
 export default function ExteriorPage() {
   const router = useRouter()
+  const supabase = useMemo(() => createClient(), [])
+  const [leads, setLeads] = useState<{id:string; name:string|null}[]>([])
+  const [leadId, setLeadId] = useState('')
   const [loading, setLoading] = useState(false)
   const [measurements, setMeasurements] = useState({
     linearFeet: 0,
@@ -32,7 +36,23 @@ export default function ExteriorPage() {
     'Zinc'
   ]
 
+
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user || cancelled) return
+      const { data: workspaceId } = await supabase.rpc('current_workspace_id')
+      if (!workspaceId || cancelled) return
+      const { data } = await supabase.from('leads').select('id,name').eq('workspace_id', workspaceId).order('created_at', { ascending: false }).limit(50)
+      if (!cancelled) setLeads(data ?? [])
+    }
+    load()
+    return () => { cancelled = true }
+  }, [supabase])
+
   const calculateEstimate = async () => {
+    if (!leadId) { setSaveMessage('Choose a saved lead before saving. An unlinked measurement is not saved.'); return }
     if (!Number.isFinite(measurements.linearFeet) || measurements.linearFeet <= 0) {
       setSaveMessage('Enter measured linear feet before saving. No default quantity is assumed.')
       return
@@ -48,7 +68,7 @@ export default function ExteriorPage() {
     const response = await fetch('/api/measurements/manual', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ gutterLf: measurements.linearFeet, notes: 'Exterior estimator manual capture; roof geometry requires separate review.' }),
+      body: JSON.stringify({ leadId, gutterLf: measurements.linearFeet, notes: 'Exterior estimator manual capture; roof geometry requires separate review.' }),
     })
     const result = await response.json()
     setSaveMessage(response.ok ? `Saved measurement ${result.measurement.id}; it remains unverified until review.` : (result.error ?? 'Could not save measurement.'))
@@ -64,7 +84,7 @@ export default function ExteriorPage() {
         </div>
       </header>
 
-      <main className="p-4"><p className="text-sm bg-white rounded-lg shadow p-4 mb-4">Price is Unknown. This screen does not write a bid.</p>
+      <main className="p-4"><p className="text-sm bg-white rounded-lg shadow p-4 mb-4">Price is Unknown. This screen does not write a bid.</p><label className="block text-sm bg-white rounded-lg shadow p-4 mb-4">Saved lead<select value={leadId} onChange={(event) => setLeadId(event.target.value)} className="mt-1 w-full rounded border p-2"><option value="">Choose a lead</option>{leads.map((lead) => <option key={lead.id} value={lead.id}>{lead.name || lead.id}</option>)}</select></label>
         {/* Measurements Input */}
         <div className="bg-white rounded-lg shadow-lg p-4 mb-4">
           <h3 className="font-semibold text-sm mb-3">📐 Measurements</h3>
