@@ -38,5 +38,30 @@ export async function POST(request: NextRequest) {
   if (status === 'paid' && object.metadata?.invoice_id) {
     await admin.from('invoices').update({ status: 'paid', updated_at: new Date().toISOString() }).eq('id', object.metadata.invoice_id).eq('workspace_id', paymentLink.workspace_id)
   }
+  if (event.type === 'checkout.session.completed' && object.mode === 'subscription' && object.subscription && object.metadata?.workspace_id && object.metadata?.plan) {
+    const subscription = await stripe.subscriptions.retrieve(
+      typeof object.subscription === 'string' ? object.subscription : object.subscription.id
+    )
+    await admin.from('workspace_subscriptions').upsert({
+      workspace_id: object.metadata.workspace_id,
+      stripe_customer_id: typeof object.customer === 'string' ? object.customer : null,
+      stripe_subscription_id: subscription.id,
+      plan: object.metadata.plan,
+      status: subscription.status,
+      current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'workspace_id' })
+  }
+  if (event.type === 'customer.subscription.updated' || event.type === 'customer.subscription.deleted') {
+    const subscription = event.data.object as Stripe.Subscription
+    const workspaceId = subscription.metadata?.workspace_id
+    if (workspaceId) {
+      await admin.from('workspace_subscriptions').update({
+        status: subscription.status,
+        current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+        updated_at: new Date().toISOString(),
+      }).eq('workspace_id', workspaceId).eq('stripe_subscription_id', subscription.id)
+    }
+  }
   return new Response('ok')
 }
