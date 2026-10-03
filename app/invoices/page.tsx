@@ -7,6 +7,7 @@ import { createClient } from '../../lib/supabase/client'
 type Invoice = { id: string; invoice_number: string; amount_cents: number; currency: string; status: string; due_at: string | null; created_at: string }
 
 function money(cents: number, currency: string) {
+  if (!currency) return 'Unknown'
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: currency.toUpperCase() }).format(cents / 100)
 }
 
@@ -48,8 +49,8 @@ export default function InvoicesPage() {
         <p className="text-sm bg-white rounded-lg shadow p-4">{status}</p>
         <div className="grid grid-cols-2 gap-3">
           <div className="bg-white rounded-lg shadow p-4">
-            <p className="text-xs text-gray-500">Paid in this list</p>
-            <p className="text-xl font-bold">{rows.length ? money(paidCents, rows[0].currency || 'usd') : 'Unknown'}</p>
+            <p className="text-xs text-gray-500">Saved status paid. Provider not checked.</p>
+            <p className="text-xl font-bold">{paid.length ? money(paidCents, paid[0].currency) : 'Unknown'}</p>
           </div>
           <div className="bg-white rounded-lg shadow p-4">
             <p className="text-xs text-gray-500">Issued</p>
@@ -59,7 +60,7 @@ export default function InvoicesPage() {
         {rows.map((row) => (
           <div key={row.id} className="bg-white rounded-lg shadow p-4">
             <p className="font-semibold text-sm">{row.invoice_number}</p>
-            <p className="text-sm">{money(row.amount_cents, row.currency || 'usd')}</p>
+            <p className="text-sm">{money(row.amount_cents, row.currency)}</p>
             <p className="text-xs text-gray-500">{row.status} · {row.created_at ? new Date(row.created_at).toLocaleString() : 'Unknown'}</p>
           </div>
         ))}
