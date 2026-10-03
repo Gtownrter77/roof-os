@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 export default function CodesPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
-  const [selectedState, setSelectedState] = useState('GA')
+  const [selectedState, setSelectedState] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('Roofing')
   const [results, setResults] = useState<any>(null)
   const [searchQuery, setSearchQuery] = useState('')
@@ -86,7 +86,7 @@ export default function CodesPage() {
             <div>
               <label className="text-xs text-gray-500">ZIP code lookup</label>
               <input value={zipCode} onChange={(e) => setZipCode(e.target.value)} placeholder="Enter ZIP to resolve locality" className="w-full p-2 border rounded-lg text-sm" />
-              <p className="text-xs text-gray-400 mt-1">ZIP lookup identifies the locality and state code family; verify local amendments before use.</p>
+              <p className="text-xs text-gray-400 mt-1">ZIP lookup identifies the locality only. Code text is Unknown.</p>
             </div>
             <div className="grid grid-cols-2 gap-3">
             <div>
