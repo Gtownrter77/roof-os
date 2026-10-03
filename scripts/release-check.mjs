@@ -97,7 +97,7 @@ for (const route of routes) {
     && source.includes('async function getBytes(')
     && source.includes('async function readBoundedText(')
     && source.includes('size>MAX')
-    && source.includes('size > maxBytes')
+    && source.includes('size>maxBytes')
     && source.includes('AbortSignal.timeout(90000)')
     && source.includes('await readBoundedText(response)')
     const boundedAerialGeometryFetch = route === join(root, 'app', 'api', 'measurements', 'aerial', 'route.ts')
