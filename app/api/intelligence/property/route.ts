@@ -46,6 +46,13 @@ export async function GET(request: NextRequest) {
     hasAddress: Boolean(lead.address),
   })
 
+  if (sessionIds.length === 0) {
+    return NextResponse.json({
+      property: { id: lead.id, name: lead.name, address: lead.address, status: lead.status },
+      intelligence: { ...result, score: null, productionReady: false },
+      disclaimer: 'No inspection is saved for this lead. A score was not written.',
+    })
+  }
   const { error: readinessError } = await supabase.from('job_readiness').upsert({
     workspace_id: workspaceId,
     lead_id: leadId,
