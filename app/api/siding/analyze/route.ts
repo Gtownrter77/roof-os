@@ -29,9 +29,9 @@ export async function POST(request:NextRequest){try{
  const parts=(outer as any)?.candidates?.[0]?.content?.parts;if(!Array.isArray(parts))return bad('AI provider returned no analysis.',502)
  let candidate:unknown;try{candidate=JSON.parse(parts.filter((p:any)=>typeof p?.text==='string').map((p:any)=>p.text).join(''))}catch{return bad('AI provider returned malformed observation JSON.',502)}
  let observation;try{observation=validateSidingVisionObservation(candidate)}catch{return bad('AI response failed siding observation validation.',502)}
- const {data:existing}=await supabase.from('siding_measurements').select('id').eq('workspace_id',workspaceId).eq('source_photo_id',body.photoId).maybeSingle()
+ const {data:existing}=await supabase.from('siding_measurements').select('id,status').eq('workspace_id',workspaceId).eq('source_photo_id',body.photoId).maybeSingle()
  const ai={ai_observation:observation,ai_model_version:MODEL,ai_content_hash:hash,ai_analyzed_at:new Date().toISOString(),ai_observation_status:'unverified'}
- if(existing){const {data,error}=await supabase.from('siding_measurements').update(ai).eq('id',existing.id).eq('workspace_id',workspaceId).select('*').single();if(error)return bad('AI observation could not be saved.',502);return NextResponse.json({measurement:data,observation})}
+ if(existing?.status==='unverified'){const {data,error}=await supabase.from('siding_measurements').update(ai).eq('id',existing.id).eq('workspace_id',workspaceId).eq('status','unverified').select('*').single();if(error)return bad('AI observation could not be saved.',502);return NextResponse.json({measurement:data,observation})}
  const {data:created,error}=await supabase.from('siding_measurements').insert({workspace_id:workspaceId,inspection_id:body.inspectionId,source_photo_id:body.photoId,elevation:observation.elevation,created_by:auth.data.user.id,...ai}).select('*').single()
  if(error)return bad('AI observation could not be saved.',502);return NextResponse.json({measurement:created,observation},{status:201})
 }catch(e){return bad(e instanceof Error?e.message:'Siding AI analysis failed.',500)}}
