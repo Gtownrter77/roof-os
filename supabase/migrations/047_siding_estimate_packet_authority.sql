@@ -93,7 +93,7 @@ create policy estimate_review_packets_insert_approved_workflow on public.estimat
     public.is_workspace_member(workspace_id)
     and auth.uid() = created_by
     and (
-      public.is_valid_approved_photo_estimate_packet(
+      (siding_measurement_id is null and public.is_valid_approved_photo_estimate_packet(
         workspace_id,
         inspection_id,
         measurement_id,
@@ -102,8 +102,8 @@ create policy estimate_review_packets_insert_approved_workflow on public.estimat
         price_source,
         formula_version,
         estimate_snapshot
-      )
-      or public.is_valid_approved_siding_estimate_packet(
+      ))
+      or (photo_estimate_workflow_id is null and public.is_valid_approved_siding_estimate_packet(
         workspace_id,
         inspection_id,
         siding_measurement_id,
@@ -111,6 +111,6 @@ create policy estimate_review_packets_insert_approved_workflow on public.estimat
         price_source,
         formula_version,
         estimate_snapshot
-      )
+      ))
     )
   );
