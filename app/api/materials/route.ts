@@ -5,6 +5,8 @@ export async function GET(request: NextRequest) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Authentication required.' }, { status: 401 })
+  const { data: workspaceId, error: workspaceError } = await supabase.rpc('current_workspace_id')
+  if (workspaceError || !workspaceId) return NextResponse.json({ error: 'No workspace is available.' }, { status: 403 })
   const query = request.nextUrl.searchParams.get('q')?.trim() ?? ''
   const category = request.nextUrl.searchParams.get('category')?.trim()
   let builder = supabase.from('material_catalog').select('id,category,subcategory,brand,product_line,product_name,variant,unit,coverage_per_unit,color_options,search_terms').eq('active', true).order('category').order('brand').order('product_name').limit(100)
