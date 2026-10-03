@@ -87,7 +87,7 @@ for (const route of routes) {
     && source.includes('async function readBoundedBody(')
     && source.includes('async function fetchBytesWithinBudget(')
     && source.includes('async function fetchTextWithinTimeout(')
-    && source.includes('size>maxBytes')
+    && source.includes('size > maxBytes')
     && source.includes('await readBoundedBody(response, remainingBytes,')
     && source.includes('await readBoundedBody(response, responseLimit,')
     && source.includes('Math.min(STORAGE_TIMEOUT_MS, deadline - Date.now())')
