@@ -17,7 +17,7 @@ export default function PassportPage() {
   const [inspections, setInspections] = useState(0)
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
-  const [form, setForm] = useState({ manufacturer: 'GAF', material_system: 'Timberline HDZ', color: '', install_date: '' })
+  const [form, setForm] = useState({ manufacturer: '', material_system: '', color: '', install_date: '' })
 
   useEffect(() => {
     async function load() {
