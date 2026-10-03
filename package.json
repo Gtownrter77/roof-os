@@ -32,7 +32,9 @@
     "test:siding-ai-authority": "node scripts/siding-ai-authority-test.mjs",
     "test:payment-checkout": "node scripts/payment-checkout-test.mjs",
     "test:status-health": "node scripts/status-health-check-test.mjs",
-    "test:invoices-live-data": "node scripts/invoices-live-data-test.mjs"
+    "test:invoices-live-data": "node scripts/invoices-live-data-test.mjs",
+    "test:ai-report-authority": "node scripts/ai-report-authority-test.mjs",
+    "test:notifications-live-data": "node scripts/notifications-live-data-test.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.2",
