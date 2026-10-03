@@ -40,6 +40,8 @@ jobs:
       - run: npm run test:inspection-quality-agent
       - run: npm run test:prototype-guardrails
       - run: npm run test:photo-estimate-flow
+      - run: npm run test:siding-measurement
+      - run: npm run test:siding-authority
       - run: npm run test:photo-full-report-flow
       - run: npm run test:measurement-estimate-authority
       - run: npm run test:ai-vision-contract
@@ -114,6 +116,11 @@ jobs:
           grep -q "roof_planes_workspace_consistency" supabase/migrations/041_aerial_workspace_consistency.sql
           grep -q "manager_approval_signature" supabase/migrations/042_golden_report_review_controls.sql
           grep -q "is_valid_approved_photo_estimate_packet" supabase/migrations/038_estimate_packet_photo_workflow_source.sql
+          grep -q "siding_measurements" supabase/migrations/044_siding_measurements.sql
+          grep -q "ai_observation" supabase/migrations/045_siding_ai_observations.sql
+          grep -q "verified_by" supabase/migrations/046_siding_measurement_verification.sql
+          grep -q "is_valid_approved_siding_estimate_packet" supabase/migrations/047_siding_estimate_packet_authority.sql
+          grep -q "siding_measurement_id" supabase/migrations/047_siding_estimate_packet_authority.sql
           grep -q "estimate_review_packets_insert_approved_workflow" supabase/migrations/038_estimate_packet_photo_workflow_source.sql
           grep -q "accept_workspace_invitation" supabase/migrations/028_invitation_acceptance_transaction.sql
           grep -q "query month must be the current UTC month" supabase/migrations/035_retailer_quota_hardening.sql
