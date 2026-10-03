@@ -1,5 +1,39 @@
 # ROOF/OS Current State
 
+## 2026-10-03 Continuous Audit Addendum
+
+**Audit branch:** `upgrade/mako-continuous-20261003`  
+**Latest verified branch commit before this documentation update:** `47376706ba892a2c1882e60af88cfe120c2623f5`  
+**Current `main` observed from GitHub:** `c83af0b60caa6928d13c47f88dba9f31cd7cd58c`  
+**PR:** #85, open and currently not mergeable.  
+**Latest branch status observed:** Vercel pending; no completed CI workflow run is attached to the latest commits, so build/typecheck/release-check are not claimed as passed.
+
+### Continuous-audit cleanup completed
+
+- Removed fabricated drone telemetry, live connection claims, simulated scans, damage findings, and invented aerial asset URLs.
+- Removed fabricated supplement candidates and preset dollar amounts.
+- Removed hardcoded pricing/ROI/profit claims from pricing, deck, repair, and upsell prototype surfaces.
+- Removed hardcoded construction answers, code claims, costs, lifespans, and confidence scores from the AI Wizard.
+- Removed hardcoded state sales-tax references from the pricing configuration UI.
+- Removed hardcoded labor-rate defaults from the pricing API; an unconfigured workspace is explicitly reported as unconfigured.
+- Changed integrations to report **Unknown** until live evidence exists.
+- Changed insurance call logging to report that the dialer was opened; it no longer claims that a call connected.
+- Kept AI roof measurement review-gated: AI suggestions remain non-authoritative until human calibration/review.
+
+### Verification boundary
+
+GitHub verified each code update by commit SHA. It did not provide a completed CI run for the latest branch commits during this audit, and Vercel remained pending at the last observed check. No passing production build or deployment is claimed.
+
+### Remaining release-level loose ends
+
+1. Reconcile/update PR #85 against current `main`; it is currently diverged and not mergeable.
+2. Obtain a fresh CI run for the final branch tree and inspect every failing job.
+3. Resolve dependency-audit findings using the diagnostic output before closing that gate.
+4. Verify Supabase migration application/runtime state for the newest aerial/pricing migrations; repository presence is not production evidence.
+5. Complete remaining live tenant/RLS, Storage, auth/MFA, cron/provider, mobile, and Vercel environment gates documented below.
+
+---
+
 ## 2026-10-02 Post-MFA Remediation Addendum
 
 **Actual main after evidence-sync merge:** `7918fa5e7c277b9e2c8d2b6c3686a0dee85ff425`
