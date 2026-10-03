@@ -34,7 +34,8 @@ export default function SearchPage() {
       setResults([])
       return
     }
-    const { data, error } = await supabase.from('leads').select('id,name,address,status').eq('workspace_id', workspaceId).or(`name.ilike.%${term}%,address.ilike.%${term}%`).limit(25)
+    const safe = term.replace(/[%_,]/g, ' ')
+    const { data, error } = await supabase.from('leads').select('id,name,address,status').eq('workspace_id', workspaceId).or(`name.ilike.%${safe}%,address.ilike.%${safe}%`).limit(25)
     if (error) {
       setStatus(error.message)
       setResults([])
