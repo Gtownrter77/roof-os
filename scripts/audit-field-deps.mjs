@@ -56,10 +56,18 @@ if (blocking.length) {
   console.error("Field dependency audit found blocking vulnerabilities:");
   for (const [name, vuln] of blocking) {
     const advisories = (vuln.via ?? [])
-      .filter((via) => via && typeof via === "object")
-      .map((via) => `${via.source ?? "unknown"}${via.url ? ` (${via.url})` : ""}`)
+      .map((via) => {
+        if (typeof via === "string") return `dependency:${via}`;
+        if (!via || typeof via !== "object") return "unknown";
+        return `${via.source ?? "unknown"}${via.url ? ` (${via.url})` : ""}`;
+      })
       .join(", ");
-    console.error(`- ${name}: ${vuln.severity}${advisories ? ` — ${advisories}` : ""}`);
+    const fix = vuln.fixAvailable
+      ? typeof vuln.fixAvailable === "object"
+        ? `fix:${vuln.fixAvailable.name}@${vuln.fixAvailable.version}${vuln.fixAvailable.isSemVerMajor ? " (major)" : ""}`
+        : "fixAvailable"
+      : "no-fix";
+    console.error(`- ${name}: ${vuln.severity} — ${fix}${advisories ? ` — ${advisories}` : ""}`);
   }
   process.exit(1);
 }
