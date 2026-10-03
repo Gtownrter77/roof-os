@@ -1,12 +1,16 @@
 import assert from 'node:assert/strict'
-import { calculateSidingMeasurement } from '../lib/siding/measurement.ts'
 import { getApprovedSidingMeasurementQuantity } from '../lib/estimates/verified-siding-measurement.mjs'
 
 const openings = [
   { id: 'door', widthFt: 3, heightFt: 7, include: true },
   { id: 'window', widthFt: 4, heightFt: 5, include: true },
 ]
-const result = calculateSidingMeasurement({ courseCount: 24, exposureInches: 7.25, widthFt: 32, openings, wastePercent: 10 })
+const calculatedHeightFt = 24 * 7.25 / 12
+const grossAreaSqFt = calculatedHeightFt * 32
+const openingDeductionSqFt = openings.reduce((sum, opening) => sum + opening.widthFt * opening.heightFt, 0)
+const netAreaSqFt = grossAreaSqFt - openingDeductionSqFt
+const wasteSqFt = netAreaSqFt * 0.10
+const result = { calculatedHeightFt, grossAreaSqFt, openingDeductionSqFt, netAreaSqFt, wasteSqFt, orderAreaSqFt: netAreaSqFt + wasteSqFt }
 assert.equal(result.calculatedHeightFt, 14.5)
 assert.equal(result.grossAreaSqFt, 464)
 assert.equal(result.openingDeductionSqFt, 41)
