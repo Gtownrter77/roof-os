@@ -9,7 +9,7 @@ export default function PricingConfigPage() {
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null)
   const [taxRates, setTaxRates] = useState({ state: 0, county: 0, city: 0, specialDistrict: 0 })
   const [taxSource, setTaxSource] = useState('Owner-entered jurisdiction rates')
-  const [selectedState, setSelectedState] = useState('GA')
+  const [selectedState, setSelectedState] = useState('')
   const [laborRates, setLaborRates] = useState({
     roofing: { rate: 0, unit: 'sq', description: 'Roofing installation per square' },
     siding: { rate: 0, unit: 'sq', description: 'Siding installation per square' },
@@ -114,9 +114,11 @@ export default function PricingConfigPage() {
   }
 
   const saveConfiguration = async () => {
+    if (!selectedState) { setSaveMessage('Choose a market before saving. GA is not assumed.'); return }
     setSaveMessage('Saving owner-managed labor rates and local tax…')
     const rates = Object.fromEntries(Object.entries(laborRates).filter(([, value]) => Number(value.rate) > 0).map(([key, value]) => [key, value.rate]))
-    const response = await fetch('/api/pricing/labor-rates', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ rates, market: selectedState, taxRates, taxSource }) })
+    const enteredTax = Object.fromEntries(Object.entries(taxRates).filter(([, value]) => Number(value) > 0))
+    const response = await fetch('/api/pricing/labor-rates', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ rates, market: selectedState, taxRates: enteredTax, taxSource }) })
     const payload = await response.json()
     if (response.ok) setLastUpdate(new Date())
     const savedRates = Object.keys(rates).length
@@ -208,7 +210,7 @@ export default function PricingConfigPage() {
                 }}
                 className="w-full p-2 border rounded-lg text-sm"
               >
-                {stateCodes.map(state => (
+                <option value="">Choose a market</option>{stateCodes.map(state => (
                   <option key={state} value={state}>{state}</option>
                 ))}
               </select>
@@ -232,7 +234,7 @@ export default function PricingConfigPage() {
           </label>
           <div className="mt-2 p-2 bg-purple-50 rounded">
             <p className="text-xs text-purple-800">
-              Current combined tax: <strong>{Object.values(taxRates).reduce((sum, rate) => sum + rate, 0).toFixed(4)}%</strong> • Saved as separate jurisdiction rates
+              Current combined tax: <strong>{Object.values(taxRates).some((rate) => Number(rate) > 0) ? Object.values(taxRates).reduce((sum, rate) => sum + rate, 0).toFixed(4) + "%" : "Unknown"}</strong> • Saved as separate jurisdiction rates
             </p>
           </div>
         </div>
