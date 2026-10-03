@@ -1,12 +1,17 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { createClient } from '../../lib/supabase/client'
 
 export default function DeckPage() {
   const router = useRouter()
+  const supabase = useMemo(() => createClient(), [])
   const [loading, setLoading] = useState(false)
   const [estimate, setEstimate] = useState<any>(null)
+  const [leads, setLeads] = useState<{id:string; name:string|null}[]>([])
+  const [leadId, setLeadId] = useState('')
+  const [status, setStatus] = useState('Loading saved leads.')
 
   const [form, setForm] = useState({
     deckSize: 0,
@@ -37,10 +42,34 @@ export default function DeckPage() {
   const railingTypes = ['Wood', 'Composite', 'Metal', 'Glass', 'Cable']
   const complexities = ['Standard', 'Complex', 'Custom', 'Luxury']
 
-  const calculateEstimate = () => {
+
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { if (!cancelled) setStatus('Sign in required.'); return }
+      const { data: workspaceId, error: workspaceError } = await supabase.rpc('current_workspace_id')
+      if (workspaceError || !workspaceId) { if (!cancelled) setStatus('No workspace is available.'); return }
+      const { data, error } = await supabase.from('leads').select('id,name').eq('workspace_id', workspaceId).order('created_at', { ascending: false }).limit(50)
+      if (cancelled) return
+      if (error) { setStatus(error.message); return }
+      setLeads(data ?? [])
+      setStatus(data && data.length ? 'Choose a lead. Price stays Unknown.' : 'No saved leads.')
+    }
+    load()
+    return () => { cancelled = true }
+  }, [supabase])
+
+  const calculateEstimate = async () => {
     setEstimate(null)
+    setLoading(true)
+    const { data: { user } } = await supabase.auth.getUser()
+    const { data: workspaceId } = await supabase.rpc('current_workspace_id')
+    if (!user || !workspaceId || !leadId) { setStatus('A signed-in workspace and a saved lead are required.'); setLoading(false); return }
+    const body = `Deck measurements saved. Measurements: ${JSON.stringify(form)}. Price Unknown. No dollar figure written.`
+    const { error } = await supabase.from('lead_activity').insert({ lead_id: leadId, workspace_id: workspaceId, user_id: user.id, kind: 'note', body })
+    setStatus(error ? error.message : 'Saved on the lead. Price remains Unknown.')
     setLoading(false)
-    return
   }
 
   return (
@@ -53,7 +82,7 @@ export default function DeckPage() {
         </div>
       </header>
 
-      <main className="p-4"><p className="text-sm bg-white rounded-lg shadow p-4 mb-4">Price is Unknown. This screen does not write a dollar figure. A human approves every price.</p>
+      <main className="p-4"><p className="text-sm bg-white rounded-lg shadow p-4 mb-4">Price is Unknown. This screen does not write a dollar figure. A human approves every price.</p><label className="block text-sm bg-white rounded-lg shadow p-4 mb-4">Saved lead<select value={leadId} onChange={(event) => setLeadId(event.target.value)} className="mt-1 w-full rounded border p-2"><option value="">Choose a lead</option>{leads.map((lead) => <option key={lead.id} value={lead.id}>{lead.name || lead.id}</option>)}</select><p className="text-xs text-gray-500 mt-2">{status}</p></label>
         {/* Inputs */}
         <div className="bg-white rounded-lg shadow-lg p-4 mb-4 border border-amber-200">
           <div className="grid grid-cols-2 gap-3">
