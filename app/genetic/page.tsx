@@ -11,30 +11,10 @@ export default function GeneticPage() {
   const [solutions, setSolutions] = useState<any[]>([])
 
   const evolve = () => {
-    setEvolving(true)
-    let gen = 0
-    const interval = setInterval(() => {
-      gen++
-      setGenerations(gen)
-      const score = null
-      setBestScore(0)
-      
-      setSolutions(prev => {
-        const newSolution = {
-          generation: gen,
-          score: score,
-          materials: ['Asphalt', 'Metal', 'Tile', 'Slate'][gen % 4],
-          cost: 'simulation',
-          lifespan: 'simulation'
-        }
-        return [newSolution, ...prev].slice(0, 6)
-      })
-
-      if (gen >= 50 || score > 98) {
-        clearInterval(interval)
-        setEvolving(false)
-      }
-    }, 500)
+    setEvolving(false)
+    setGenerations(0)
+    setBestScore(0)
+    setSolutions([])
   }
 
   return (
@@ -42,7 +22,7 @@ export default function GeneticPage() {
       <header className="bg-gradient-to-r from-green-600 to-teal-600 text-white shadow-lg sticky top-0 z-10">
         <div className="px-4 py-3 flex items-center">
           <button onClick={() => router.back()} className="text-white mr-3 text-xl">←</button>
-          <h1 className="text-xl font-bold">🧬 Genetic AI Optimizer</h1>
+          <h1 className="text-xl font-bold">🧬 Material comparison</h1>
           <span className="ml-2 bg-teal-500 text-white text-xs px-2 py-0.5 rounded-full animate-pulse">SIMULATION</span>
         </div>
       </header>
