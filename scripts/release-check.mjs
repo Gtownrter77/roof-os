@@ -92,7 +92,15 @@ for (const route of routes) {
     && source.includes('await readBoundedBody(response, responseLimit,')
     && source.includes('Math.min(STORAGE_TIMEOUT_MS, deadline - Date.now())')
     && source.includes('Math.min(PROVIDER_TIMEOUT_MS, deadline - Date.now())')
-  const boundedAerialGeometryFetch = route === join(root, 'app', 'api', 'measurements', 'aerial', 'route.ts')
+  const boundedSidingAnalysisFetch = route === join(root, 'app', 'api', 'siding', 'analyze', 'route.ts')
+    && fetchCallCount === 2
+    && source.includes('async function getBytes(')
+    && source.includes('async function readBoundedText(')
+    && source.includes('size > MAX')
+    && source.includes('size > maxBytes')
+    && source.includes('AbortSignal.timeout(90000)')
+    && source.includes('await readBoundedText(response)')
+    const boundedAerialGeometryFetch = route === join(root, 'app', 'api', 'measurements', 'aerial', 'route.ts')
     && fetchCallCount === 2
     && (source.match(/new AbortController\(\)/g) ?? []).length === 2
     && (source.match(/const timer = setTimeout\(\(\) => controller\.abort\(\),/g) ?? []).length === 2
@@ -102,7 +110,7 @@ for (const route of routes) {
     && source.includes('async function providerText(')
     && source.includes('size > maxBytes')
   // D.3 keeps both abort timers active while stream-limiting storage and provider response bodies.
-  if (fetchCallCount > 0 && !boundedPhotoAnalysisFetch && !boundedAerialGeometryFetch) {
+  if (fetchCallCount > 0 && !boundedPhotoAnalysisFetch && !boundedAerialGeometryFetch && !boundedSidingAnalysisFetch) {
     throw new Error(`API route makes a network request without an approved bounded fetch helper: ${route}`)
   }
 }
