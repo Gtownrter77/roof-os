@@ -66,8 +66,8 @@ export async function GET(request: NextRequest) {
     if (!response) { results.push({ watchlistId: item.id, provider: item.provider, status: 'provider_timeout' }); continue }
     const text = await response.text()
     let payload: unknown
-    try { payload = JSON.parse(text) } catch { payload = { message: text.slice(0, 500) } }
-    if (!response.ok) { results.push({ watchlistId: item.id, provider: item.provider, status: 'provider_error', code: response.status }); continue }
+    try { payload = JSON.parse(text) } catch { results.push({ watchlistId: item.id, provider: item.provider, status: 'provider_not_json' }); continue }
+    if (!response.ok || !payload || typeof payload !== 'object') { results.push({ watchlistId: item.id, provider: item.provider, status: 'provider_error', code: response.status }); continue }
 
     const { error: insertError } = await supabase.from('retailer_price_snapshots').insert({ workspace_id: item.workspace_id, provider: item.provider, query: item.query, zipcode: item.zipcode, store_id: item.store_id, source_url: apiUrl.toString(), response: payload, expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), created_by: null })
     results.push({ watchlistId: item.id, provider: item.provider, status: insertError ? 'cache_error' : 'refreshed' })
