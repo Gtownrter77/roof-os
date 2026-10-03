@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
       const stripe = new Stripe(stripeKey)
       const subscription = await stripe.subscriptions.retrieve(
         typeof session.subscription === 'string' ? session.subscription : session.subscription.id
-      )
+      ) as unknown as Stripe.Subscription
       const { error } = await admin.from('workspace_subscriptions').upsert({
         workspace_id: session.metadata.workspace_id,
         stripe_customer_id: typeof session.customer === 'string' ? session.customer : null,
