@@ -12,7 +12,7 @@ export default function WarrantyPage() {
   const supabase = createClient()
   const [rows, setRows] = useState<Warranty[]>([])
   const [leads, setLeads] = useState<LeadOption[]>([])
-  const [form, setForm] = useState({ leadId: '', manufacturer: 'GAF', product_line: 'Timberline HDZ', expires_at: '', missing_items: '' })
+  const [form, setForm] = useState({ leadId: '', manufacturer: '', product_line: '', expires_at: '', missing_items: '' })
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
 
@@ -45,7 +45,7 @@ export default function WarrantyPage() {
       created_by: user.id,
     })
     if (insertError) setError(insertError.message)
-    else { setForm({ leadId: '', manufacturer: 'GAF', product_line: 'Timberline HDZ', expires_at: '', missing_items: '' }); await load() }
+    else { setForm({ leadId: '', manufacturer: '', product_line: '', expires_at: '', missing_items: '' }); await load() }
     setSaving(false)
   }
 
