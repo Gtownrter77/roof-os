@@ -138,7 +138,7 @@ export default function InsurancePage() {
         <div className="px-4 py-3 flex items-center">
           <button onClick={() => router.back()} className="text-white mr-3 text-xl">←</button>
           <h1 className="text-xl font-bold">📞 Insurance Claims</h1>
-          <span className="ml-2 bg-green-500 text-white text-xs px-2 py-0.5 rounded-full animate-pulse">24/7</span>
+          <span className="ml-2 bg-slate-500 text-white text-xs px-2 py-0.5 rounded-full">DIRECTORY</span>
         </div>
       </header>
 
@@ -170,8 +170,7 @@ export default function InsurancePage() {
                   <h3 className="font-semibold text-sm">{company.name}</h3>
                   <p className="text-xs text-gray-500">Claims: {company.claims}</p>
                   <div className="flex gap-2 mt-1">
-                    <span className="bg-green-100 text-green-800 text-xs px-2 py-0.5 rounded">✓ Available</span>
-                    <span className="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded">{company.processingTime}</span>
+                    <span className="bg-slate-100 text-slate-700 text-xs px-2 py-0.5 rounded">Contact details not live-verified here</span>
                   </div>
                 </div>
                 <button
@@ -219,7 +218,7 @@ export default function InsurancePage() {
                 </div>
                 <div className="text-right">
                   <p className="text-xs text-gray-400">{call.time}</p>
-                  <span className="text-xs text-green-600">✓ Connected</span>
+                  <span className="text-xs text-slate-600">Dialer opened; call outcome unknown</span>
                 </div>
               </div>
             ))}
