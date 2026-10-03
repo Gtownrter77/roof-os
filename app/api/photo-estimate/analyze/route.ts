@@ -349,6 +349,7 @@ export async function POST(request: NextRequest) {
       throw new RouteError(502, 'The AI provider response did not satisfy the required observation contract.')
     }
     if (analysis.model_id !== MODEL_ID) throw new RouteError(502, 'The AI provider response did not identify the configured model.')
+    if (!Array.isArray(analysis.image_audit) || analysis.image_audit.length !== preparedPhotos.length) throw new RouteError(502, 'The AI provider did not return one audit row for each photo. No finding was saved.')
 
     const { data: saved, error: saveError } = await supabase
       .from('photo_estimate_workflows')
