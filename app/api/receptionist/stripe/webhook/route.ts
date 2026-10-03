@@ -21,7 +21,7 @@ async function resolveCheckoutSession(stripe: Stripe, event: Stripe.Event) {
       ? object.id
       : typeof (object as Stripe.Charge).payment_intent === 'string'
         ? (object as Stripe.Charge).payment_intent
-        : null
+        : (object as Stripe.Charge).payment_intent?.id ?? null
 
   if (!paymentIntentId) return null
 
