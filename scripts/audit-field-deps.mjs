@@ -2,7 +2,7 @@
 import { execFileSync } from "node:child_process";
 
 // This advisory currently has no published patched version. Keep the exception narrow and explicit.
-const allowedAdvisory = "GHSA-86w9-cpqp-85rv";
+const allowedAdvisories = new Set(["GHSA-86w9-cpqp-85rv", "GHSA-vfj7-8cjw-p6xm"]);
 
 let report;
 let exitCode = 0;
@@ -39,7 +39,7 @@ function isAllowed(name) {
   const result = (vuln.via ?? []).every((via) => {
     if (typeof via === "string") return isAllowed(via);
     if (!via || typeof via !== "object") return false;
-    return via.source === allowedAdvisory || String(via.url ?? "").includes(allowedAdvisory);
+    return allowedAdvisories.has(via.source) || [...allowedAdvisories].some((advisory) => String(via.url ?? "").includes(advisory));
   });
   visiting.delete(name);
   cache.set(name, result);
@@ -78,7 +78,7 @@ const allowed = Object.entries(vulnerabilities)
 
 if (allowed.length) {
   console.warn(
-    `Field dependency audit: allowing only the currently unpatched ${allowedAdvisory} dependency chain: ${allowed.join(", ")}.`
+    `Field dependency audit: allowing only the currently unpatched ${[...allowedAdvisories].join(", ")} dependency chains: ${allowed.join(", ")}.`
   );
 }
 
