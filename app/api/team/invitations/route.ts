@@ -29,7 +29,8 @@ export async function POST(request: NextRequest) {
   if ('error' in parsedBody) return NextResponse.json({ error: parsedBody.error }, { status: parsedBody.status })
   const body = parsedBody.body as { email?: string; role?: 'admin' | 'member' }
   const email = body.email?.trim().toLowerCase() ?? ''
-  const role = body.role ?? 'member'
+  if (!body.role) return NextResponse.json({ error: 'Choose a role. Member is not assumed.' }, { status: 400 })
+  const role = body.role
   if (!EMAIL_RE.test(email)) return NextResponse.json({ error: 'A valid invite email is required.' }, { status: 400 })
   if (!['admin', 'member'].includes(role)) return NextResponse.json({ error: 'Role must be admin or member.' }, { status: 400 })
   if (email === user.email?.toLowerCase()) return NextResponse.json({ error: 'You are already a workspace member.' }, { status: 409 })
@@ -54,5 +55,5 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invitation was recorded but email delivery failed.', detail: inviteError instanceof Error ? inviteError.message : 'Unknown delivery error.' }, { status: 502 })
   }
 
-  return NextResponse.json({ invitation: data, delivery: 'sent' }, { status: 201 })
+  return NextResponse.json({ invitation: data, delivery: 'requested' }, { status: 201 })
 }

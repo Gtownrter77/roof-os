@@ -13,7 +13,11 @@ export default function ActivityPage() {
 
   useEffect(() => {
     const load = async () => {
-      const { data, error: queryError } = await supabase.from('lead_activity').select('id,lead_id,kind,body,created_at').order('created_at', { ascending: false }).limit(50)
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { setError('Sign in required.'); setActivities([]); setLoading(false); return }
+      const { data: workspaceId, error: workspaceError } = await supabase.rpc('current_workspace_id')
+      if (workspaceError || !workspaceId) { setError('No workspace is available.'); setActivities([]); setLoading(false); return }
+      const { data, error: queryError } = await supabase.from('lead_activity').select('id,lead_id,kind,body,created_at').eq('workspace_id', workspaceId).order('created_at', { ascending: false }).limit(50)
       if (queryError) setError(queryError.message)
       else setActivities(data ?? [])
       setLoading(false)

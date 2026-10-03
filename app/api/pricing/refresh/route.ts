@@ -116,7 +116,7 @@ export async function POST() {
       created_by: user.id
     })
 
-    results.push({ query: item.query, provider, status: insertError ? 'cache_error' : 'refreshed' })
+    results.push({ query: item.query, provider, status: insertError ? 'cache_error' : 'cached', price: null, error: insertError?.message ?? null })
   }
 
   return NextResponse.json({

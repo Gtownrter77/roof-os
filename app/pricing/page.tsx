@@ -6,30 +6,46 @@ import { useRouter } from 'next/navigation'
 export default function PricingPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
+  const [draftNote, setDraftNote] = useState('Not saved. Refresh will drop these entries.')
   const [pricing, setPricing] = useState({
     materials: {
-      shingles: { price: 95, unit: 'sq', quantity: 0 },
-      underlayment: { price: 45, unit: 'roll', quantity: 0 },
-      flashing: { price: 8, unit: 'ft', quantity: 0 },
-      gutters: { price: 12, unit: 'ft', quantity: 0 },
-      dripEdge: { price: 3, unit: 'ft', quantity: 0 },
-      iceWaterShield: { price: 65, unit: 'roll', quantity: 0 },
-      ridgeVent: { price: 4, unit: 'ft', quantity: 0 },
-      starterShingles: { price: 2.5, unit: 'ft', quantity: 0 },
+      shingles: { price: 0, unit: 'sq', quantity: 0 },
+      underlayment: { price: 0, unit: 'roll', quantity: 0 },
+      flashing: { price: 0, unit: 'ft', quantity: 0 },
+      gutters: { price: 0, unit: 'ft', quantity: 0 },
+      dripEdge: { price: 0, unit: 'ft', quantity: 0 },
+      iceWaterShield: { price: 0, unit: 'roll', quantity: 0 },
+      ridgeVent: { price: 0, unit: 'ft', quantity: 0 },
+      starterShingles: { price: 0, unit: 'ft', quantity: 0 },
     },
     labor: {
-      tearOff: { rate: 55, unit: 'sq', quantity: 0 },
-      installation: { rate: 65, unit: 'sq', quantity: 0 },
-      flashingWork: { rate: 85, unit: 'hr', quantity: 0 },
-      gutterWork: { rate: 75, unit: 'hr', quantity: 0 },
-      cleanup: { rate: 50, unit: 'hr', quantity: 0 },
+      tearOff: { rate: 0, unit: 'sq', quantity: 0 },
+      installation: { rate: 0, unit: 'sq', quantity: 0 },
+      flashingWork: { rate: 0, unit: 'hr', quantity: 0 },
+      gutterWork: { rate: 0, unit: 'hr', quantity: 0 },
+      cleanup: { rate: 0, unit: 'hr', quantity: 0 },
     },
-    overhead: 0.15,
-    profit: 0.10,
-    salesTax: 0.07,
-    permits: 250,
-    dumpFees: 150,
+    overhead: 0,
+    profit: 0,
+    salesTax: 0,
+    permits: 0,
+    dumpFees: 0,
   })
+
+
+  useEffect(() => {
+    const saved = window.localStorage.getItem('roof-os-pricing-draft')
+    if (!saved) return
+    try {
+      setPricing(JSON.parse(saved))
+      setDraftNote('Loaded from this browser only. This is not a price book.')
+    } catch {
+      setDraftNote('Saved draft could not be read.')
+    }
+  }, [])
+  useEffect(() => {
+    window.localStorage.setItem('roof-os-pricing-draft', JSON.stringify(pricing))
+  }, [pricing])
 
   const [totals, setTotals] = useState({
     materials: 0,
@@ -90,7 +106,7 @@ export default function PricingPage() {
       profit: profit,
       taxes: taxes,
       total: total,
-      perSquare: total / (pricing.materials.shingles.quantity || 1),
+      perSquare: pricing.materials.shingles.quantity > 0 ? total / pricing.materials.shingles.quantity : 0,
     })
   }
 
@@ -131,7 +147,7 @@ export default function PricingPage() {
         </div>
       </header>
 
-      <main className="p-4">
+      <main className="p-4"><p className="text-sm bg-white rounded-lg shadow p-4 mb-4">Price is Unknown until a person enters it. No default supplier price is used. {draftNote}</p>
         {/* Quick Input */}
         <div className="bg-white rounded-lg shadow p-4 mb-4">
           <h3 className="font-semibold text-sm mb-3">📐 Quick Estimate</h3>
@@ -152,7 +168,7 @@ export default function PricingPage() {
         <div className="bg-white rounded-lg shadow p-4 mb-4">
           <h3 className="font-semibold text-sm mb-3 flex justify-between">
             <span>🧱 Materials</span>
-            <span className="text-green-600">${totals.materials.toFixed(2)}</span>
+            <span className="text-green-600">{totals.materials ? totals.materials.toFixed(2) : "Unknown"}</span>
           </h3>
           <div className="space-y-2">
             {Object.entries(pricing.materials).map(([key, item]) => (
@@ -171,7 +187,7 @@ export default function PricingPage() {
                   className="p-1 border rounded text-xs w-full"
                 />
                 <span className="text-xs font-medium text-right">
-                  ${(item.price * item.quantity).toFixed(2)}
+                  {item.price && item.quantity ? (item.price * item.quantity).toFixed(2) : "Unknown"}
                 </span>
               </div>
             ))}
@@ -182,7 +198,7 @@ export default function PricingPage() {
         <div className="bg-white rounded-lg shadow p-4 mb-4">
           <h3 className="font-semibold text-sm mb-3 flex justify-between">
             <span>👷 Labor</span>
-            <span className="text-green-600">${totals.labor.toFixed(2)}</span>
+            <span className="text-green-600">{totals.labor ? totals.labor.toFixed(2) : "Unknown"}</span>
           </h3>
           <div className="space-y-2">
             {Object.entries(pricing.labor).map(([key, item]) => (
@@ -201,7 +217,7 @@ export default function PricingPage() {
                   className="p-1 border rounded text-xs w-full"
                 />
                 <span className="text-xs font-medium text-right">
-                  ${(item.rate * item.quantity).toFixed(2)}
+                  {item.rate && item.quantity ? (item.rate * item.quantity).toFixed(2) : "Unknown"}
                 </span>
               </div>
             ))}
@@ -220,7 +236,7 @@ export default function PricingPage() {
                 onChange={(e) => setPricing({...pricing, overhead: Number(e.target.value) / 100})}
                 className="w-full p-2 border rounded text-sm"
               />
-              <span className="text-xs text-green-600">${totals.overhead.toFixed(2)}</span>
+              <span className="text-xs text-green-600">{totals.overhead ? totals.overhead.toFixed(2) : "Unknown"}</span>
             </div>
             <div>
               <label className="text-xs text-gray-500">Profit %</label>
@@ -230,7 +246,7 @@ export default function PricingPage() {
                 onChange={(e) => setPricing({...pricing, profit: Number(e.target.value) / 100})}
                 className="w-full p-2 border rounded text-sm"
               />
-              <span className="text-xs text-green-600">${totals.profit.toFixed(2)}</span>
+              <span className="text-xs text-green-600">{totals.profit ? totals.profit.toFixed(2) : "Unknown"}</span>
             </div>
           </div>
         </div>
@@ -240,32 +256,32 @@ export default function PricingPage() {
           <div className="space-y-2">
             <div className="flex justify-between">
               <span className="text-sm">Materials</span>
-              <span className="font-medium">${totals.materials.toFixed(2)}</span>
+              <span className="font-medium">{totals.materials ? totals.materials.toFixed(2) : "Unknown"}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-sm">Labor</span>
-              <span className="font-medium">${totals.labor.toFixed(2)}</span>
+              <span className="font-medium">{totals.labor ? totals.labor.toFixed(2) : "Unknown"}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-sm">Overhead</span>
-              <span className="font-medium">${totals.overhead.toFixed(2)}</span>
+              <span className="font-medium">{totals.overhead ? totals.overhead.toFixed(2) : "Unknown"}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-sm">Profit</span>
-              <span className="font-medium">${totals.profit.toFixed(2)}</span>
+              <span className="font-medium">{totals.profit ? totals.profit.toFixed(2) : "Unknown"}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-sm">Taxes</span>
-              <span className="font-medium">${totals.taxes.toFixed(2)}</span>
+              <span className="font-medium">{totals.taxes ? totals.taxes.toFixed(2) : "Unknown"}</span>
             </div>
             <div className="border-t pt-2 border-blue-300">
               <div className="flex justify-between text-lg font-bold">
                 <span>Total Estimate</span>
-                <span className="text-blue-600">${totals.total.toFixed(2)}</span>
+                <span className="text-blue-600">{totals.total ? totals.total.toFixed(2) : "Unknown"}</span>
               </div>
               <div className="flex justify-between text-sm text-gray-500">
                 <span>Per Square</span>
-                <span>${totals.perSquare.toFixed(2)}</span>
+                <span>{totals.perSquare ? totals.perSquare.toFixed(2) : "Unknown"}</span>
               </div>
             </div>
           </div>

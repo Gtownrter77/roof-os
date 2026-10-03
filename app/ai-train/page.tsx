@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
 export default function AITrainPage() {
@@ -10,6 +10,19 @@ export default function AITrainPage() {
   const [showGuide, setShowGuide] = useState(false)
   const [completedSteps, setCompletedSteps] = useState<number[]>([])
   const [currentPhase, setCurrentPhase] = useState('welcome')
+  useEffect(() => {
+    const saved = window.localStorage.getItem('roof-os-checklist')
+    if (!saved) return
+    try {
+      const draft = JSON.parse(saved)
+      if (typeof draft.jobType === 'string') setJobType(draft.jobType)
+      if (typeof draft.currentStep === 'number') setCurrentStep(draft.currentStep)
+      if (Array.isArray(draft.completedSteps)) setCompletedSteps(draft.completedSteps)
+    } catch { /* ignore a bad local draft */ }
+  }, [])
+  useEffect(() => {
+    window.localStorage.setItem('roof-os-checklist', JSON.stringify({ jobType, currentStep, completedSteps }))
+  }, [jobType, currentStep, completedSteps])
 
   const jobTypes = [
     'Roof Replacement',
@@ -112,7 +125,7 @@ export default function AITrainPage() {
           steps: [
             { id: 4, title: 'Photo Documentation', description: 'Take photos of ALL damage.', image: '📸', tip: 'Use the Photo Verify tool.' },
             { id: 5, title: 'Measure Damage', description: 'Measure affected areas.', image: '📐', tip: 'Use the Pitch Gauge.' },
-            { id: 6, title: 'Estimate Repairs', description: 'Generate repair estimate.', image: '💰', tip: 'Use the Repair Engine.' },
+            { id: 6, title: 'Review repairs', description: 'A repair price is Unknown until a person enters it.', image: '💰', tip: 'Do not invent a repair price.' },
           ]
         },
         {
@@ -221,7 +234,7 @@ export default function AITrainPage() {
         }
       }
     } else {
-      alert('🎉 Training Complete! You are now ready for the job!')
+      alert('Checklist finished on this screen. It is not saved and it does not certify the job.')
       setShowGuide(false)
     }
   }
@@ -345,7 +358,7 @@ export default function AITrainPage() {
       <header className="bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-lg sticky top-0 z-10">
         <div className="px-4 py-3 flex items-center">
           <button onClick={() => router.back()} className="text-white mr-3 text-xl">←</button>
-          <h1 className="text-xl font-bold">🎓 AI Training Center</h1>
+          <h1 className="text-xl font-bold">Job checklist</h1>
           <span className="ml-2 bg-yellow-500 text-black text-xs px-2 py-0.5 rounded-full">NEW</span>
         </div>
       </header>
@@ -355,7 +368,7 @@ export default function AITrainPage() {
         <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg shadow-lg p-6 mb-4 border-2 border-green-500">
           <div className="text-center">
             <span className="text-6xl block mb-3">🎓</span>
-            <h2 className="text-2xl font-bold text-green-800">Job checklist</h2><p className="text-sm text-green-800 mt-2">This is a local checklist. It is not a trained model, and progress is not saved.</p>
+            <h2 className="text-2xl font-bold text-green-800">Job checklist</h2><p className="text-sm text-green-800 mt-2">This checklist stays in this browser only. It is not a trained model and it is not a job certification.</p>
             <p className="text-green-600 text-sm">Step-by-step hand-holding for every job</p>
           </div>
         </div>

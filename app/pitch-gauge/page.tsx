@@ -53,7 +53,7 @@ export default function PitchGaugePage() {
       <header className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-lg sticky top-0 z-10">
         <div className="px-4 py-3 flex items-center">
           <button onClick={() => router.back()} className="text-white mr-3 text-xl">←</button>
-          <h1 className="text-xl font-bold">📐 AR Pitch Gauge</h1>
+          <h1 className="text-xl font-bold">📐 Camera preview</h1>
           <span className="ml-2 bg-green-500 text-white text-xs px-2 py-0.5 rounded-full animate-pulse">REVIEW-GATED</span>
         </div>
       </header>
@@ -85,7 +85,7 @@ export default function PitchGaugePage() {
             <div className="absolute inset-0 flex items-center justify-center bg-black/70">
               <div className="text-center">
                 <span className="text-4xl block mb-2">📐</span>
-                <p className="text-white text-sm">Tap "Start Camera" to measure pitch</p>
+                <p className="text-white text-sm">Camera preview only. Pitch is Unknown until saved in the measurement workflow.</p>
               </div>
             </div>
           )}
@@ -100,7 +100,7 @@ export default function PitchGaugePage() {
               cameraActive ? 'bg-green-600 text-white' : 'bg-blue-600 text-white'
             }`}
           >
-            {cameraActive ? '📷 Camera Active' : '📷 Start Camera'}
+            {cameraActive ? 'Preview on' : 'Open camera preview'}
           </button>
           <button
             onClick={measurePitch}
@@ -113,12 +113,12 @@ export default function PitchGaugePage() {
           </button>
         </div>
 
-        {/* Current Measurement */}
+        {/* Unsaved angle */}
         {pitch !== null && (
           <div className="bg-gradient-to-r from-blue-900/50 to-cyan-900/50 rounded-lg p-4 mb-4 border border-blue-500 animate-fadeIn">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-gray-400">Current Measurement</p>
+                <p className="text-xs text-gray-400">Unsaved angle</p>
                 <p className="text-3xl font-bold text-white">{pitch}/12</p>
                 <p className="text-sm text-blue-300">{angle}° angle</p>
               </div>

@@ -42,14 +42,14 @@ export default function ProfilePage() {
 
       const metadata = user.user_metadata || {}
       setProfile({
-        name: String(metadata.full_name || metadata.name || user.email || 'User'),
-        email: user.email || '',
-        role: String(activeMembership?.role || 'member').replace(/^./, (value) => value.toUpperCase()),
-        phone: String(metadata.phone || 'Not provided'),
+        name: String(metadata.full_name || metadata.name || user.email || 'Unknown'),
+        email: user.email || 'Unknown',
+        role: activeMembership?.role ? String(activeMembership.role) : 'Unknown',
+        phone: String(metadata.phone || 'Unknown'),
         company: String(
           activeMembership?.workspaces && typeof activeMembership.workspaces === 'object' && 'name' in activeMembership.workspaces
             ? activeMembership.workspaces.name
-            : metadata.company_name || 'Workspace'
+            : metadata.company_name || 'Unknown'
         ),
       })
     }

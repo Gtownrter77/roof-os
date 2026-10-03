@@ -1,101 +1,48 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { createClient } from '../../lib/supabase/client'
 
 export default function AIWizardPage() {
   const router = useRouter()
+  const supabase = useMemo(() => createClient(), [])
+  const [leads, setLeads] = useState<{id:string; name:string|null}[]>([])
+  const [leadId, setLeadId] = useState('')
+  const [status, setStatus] = useState('Loading saved leads.')
   const [query, setQuery] = useState('')
   const [loading, setLoading] = useState(false)
   const [response, setResponse] = useState<any>(null)
   const [history, setHistory] = useState<any[]>([])
 
-  const constructionKnowledge: Record<string, any> = {
-    'roof': {
-      answer: 'Your roof should be inspected annually. Common issues include: missing shingles, leaks around flashing, and gutter blockages. Average roof replacement costs $8,000-$15,000 depending on materials and size.',
-      code: 'Check local building codes for minimum pitch requirements (typically 3:12 for asphalt shingles).',
-      materials: ['Asphalt', 'Metal', 'Tile', 'Slate'],
-      lifespan: '15-50 years depending on material'
-    },
-    'siding': {
-      answer: 'Siding protects your home from weather. Vinyl is most affordable, HardiePlank offers durability, and wood gives classic look. Average installation costs $6-$12 per square foot.',
-      code: 'Weather-resistant barrier required behind all siding. Minimum lap spacing varies by material.',
-      materials: ['Vinyl', 'HardiePlank', 'Wood', 'Fiber Cement'],
-      lifespan: '20-50 years'
-    },
-    'windows': {
-      answer: 'Energy-efficient windows save money. Look for ENERGY STAR certified, Low-E glass, and argon gas fill. Average cost: $600-$1,200 per window installed.',
-      code: 'Egress requirements: minimum 5.7 sq ft opening for bedrooms. Tempered glass required near doors.',
-      materials: ['Vinyl', 'Wood', 'Aluminum', 'Fiberglass'],
-      lifespan: '20-30 years'
-    },
-    'deck': {
-      answer: 'Deck construction requires proper footings, framing, and decking. Composite decking is low-maintenance but costs more upfront.',
-      code: 'Guard rails required for decks over 30" high. Stair treads must be at least 10" deep.',
-      materials: ['Composite', 'Wood', 'PVC', 'Aluminum'],
-      lifespan: '15-30 years'
-    },
-    'gutters': {
-      answer: 'Gutters should be cleaned twice yearly. Seamless gutters are preferred. Downspouts should direct water away from foundation.',
-      code: 'Minimum pitch: 1/4 inch per 10 feet. Downspouts every 40 feet of gutter.',
-      materials: ['Aluminum', 'Copper', 'Steel', 'Vinyl'],
-      lifespan: '20-50 years'
-    },
-    'permit': {
-      answer: 'Most exterior work requires permits. Costs vary by county. Always verify before starting work.',
-      code: 'Permits typically required for: new roofs (over 100 sq ft), siding replacement, window replacement, decks over 30" high.',
-      timeline: '1-4 weeks for permit approval'
-    },
-    'foundation': {
-      answer: 'Foundation issues include cracks, settling, and water intrusion. Professional inspection recommended for major concerns.',
-      code: 'Minimum footing depth: 12" below frost line. Proper drainage essential.',
-      materials: ['Concrete', 'Poured', 'Block', 'Slab'],
-      lifespan: '100+ years'
-    },
-    'structural': {
-      answer: 'Structural integrity is crucial. Signs of issues include cracks, sagging floors, sticking doors, and water stains.',
-      code: 'Load-bearing walls require proper engineering. Trusses must be designed for snow loads.',
-      inspection: 'Professional engineer inspection recommended for structural concerns.'
-    },
-    'energy': {
-      answer: 'Energy efficiency improves with proper insulation, windows, and HVAC. Average savings: 15-30% on utility bills.',
-      code: 'Minimum insulation: R-38 in attics, R-13 in walls. Energy Star certification available.',
-      savings: '$200-$500 annually'
-    }
-  }
 
-  const askQuestion = () => {
-    if (!query.trim()) return
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { if (!cancelled) setStatus('Sign in required.'); return }
+      const { data: workspaceId, error: workspaceError } = await supabase.rpc('current_workspace_id')
+      if (workspaceError || !workspaceId) { if (!cancelled) setStatus('No workspace is available.'); return }
+      const { data, error } = await supabase.from('leads').select('id,name').eq('workspace_id', workspaceId).order('created_at', { ascending: false }).limit(50)
+      if (cancelled) return
+      if (error) { setStatus(error.message); return }
+      setLeads(data ?? [])
+      setStatus(data && data.length ? 'Choose a lead. No model is called.' : 'No saved leads.')
+    }
+    load()
+    return () => { cancelled = true }
+  }, [supabase])
+
+  const askQuestion = async () => {
+    if (!query.trim()) { setStatus('Enter a question first.'); return }
     setLoading(true)
-    
-    setTimeout(() => {
-      const lowerQuery = query.toLowerCase()
-      let foundAnswer = null
-      
-      for (const [key, value] of Object.entries(constructionKnowledge)) {
-        if (lowerQuery.includes(key)) {
-          foundAnswer = {
-            topic: key,
-            ...value,
-            confidence: null
-          }
-          break
-        }
-      }
-      
-      if (!foundAnswer) {
-        foundAnswer = {
-          topic: 'general',
-          answer: `I understand you're asking about "${query}". This is a complex construction topic. I recommend consulting with a licensed professional contractor or building inspector for specific guidance.`,
-          code: 'Local building codes may apply. Check with your municipality.',
-          confidence: 65
-        }
-      }
-      
-      setResponse(foundAnswer)
-      setHistory([{ query, response: foundAnswer, time: new Date().toLocaleTimeString() }, ...history])
-      setLoading(false)
-    }, 1500)
+    const { data: { user } } = await supabase.auth.getUser()
+    const { data: workspaceId } = await supabase.rpc('current_workspace_id')
+    if (!user || !workspaceId || !leadId) { setStatus('A signed-in workspace and a saved lead are required.'); setLoading(false); return }
+    const body = `Question saved. No model called. Question: ${query.trim()}. Answer Unknown.`
+    const { error } = await supabase.from('lead_activity').insert({ lead_id: leadId, workspace_id: workspaceId, user_id: user.id, kind: 'note', body })
+    setStatus(error ? error.message : 'Question saved on the lead. Answer remains Unknown.')
+    setLoading(false)
   }
 
   return (
@@ -108,7 +55,7 @@ export default function AIWizardPage() {
         </div>
       </header>
 
-      <main className="p-4">
+      <main className="p-4"><label className="block text-sm bg-white rounded-lg shadow p-4 mb-4">Saved lead<select value={leadId} onChange={(event) => setLeadId(event.target.value)} className="mt-1 w-full rounded border p-2"><option value="">Choose a lead</option>{leads.map((lead) => <option key={lead.id} value={lead.id}>{lead.name || lead.id}</option>)}</select><p className="text-xs text-gray-500 mt-2">{status}</p></label><p className="text-sm bg-white rounded-lg shadow p-4 mb-4">No model was called. Result is Unknown.</p>
         <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg shadow-lg p-4 mb-4 border border-indigo-200">
           <div className="flex items-center">
             <span className="text-3xl mr-3">🧙</span>

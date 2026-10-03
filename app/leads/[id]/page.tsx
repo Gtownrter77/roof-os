@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '../../../lib/supabase/client'
 
 const STATUSES = ['new', 'assigned', 'qualified', 'inspection_scheduled', 'inspected', 'report_pending', 'report_approved', 'won', 'lost']
@@ -40,12 +40,14 @@ type Activity = { id: string; kind: string; body: string; created_at: string }
 export default function LeadDetailPage() {
   const params = useParams<{ id: string }>()
   const router = useRouter()
+  const activityMissing = useSearchParams().get('activity') === 'not-saved'
   const supabase = createClient()
   const leadId = params.id
   const [lead, setLead] = useState<Lead | null>(null)
   const [activity, setActivity] = useState<Activity[]>([])
   const [note, setNote] = useState('')
   const [apptAt, setApptAt] = useState('')
+  const [apptEnd, setApptEnd] = useState('')
   const [nextAction, setNextAction] = useState('')
   const [nextActionDue, setNextActionDue] = useState('')
   const [lostReason, setLostReason] = useState('')
@@ -148,16 +150,18 @@ export default function LeadDetailPage() {
   }
 
   async function scheduleInspection() {
-    if (!lead || !apptAt) return
+    if (!lead || !apptAt || !apptEnd) { setError('Start and end are required. No duration was assumed.'); return }
     setSaving(true); setError('')
     const { user, workspaceId } = await ctx()
     if (!user || !workspaceId) { setError('No workspace available.'); setSaving(false); return }
     const start = new Date(apptAt)
-    const end = new Date(start.getTime() + 60 * 60 * 1000)
+    const end = new Date(apptEnd)
+    if (!(end > start)) { setError('End must be after start.'); setSaving(false); return }
     const { error: insertError } = await supabase.from('appointments').insert({ workspace_id: workspaceId, lead_id: lead.id, title: `Inspection: ${lead.name}`, appointment_type: 'inspection', starts_at: start.toISOString(), ends_at: end.toISOString(), location: lead.address, created_by: user.id })
     if (insertError) { setError(insertError.message); setSaving(false); return }
-    await supabase.from('leads').update({ status: 'inspection_scheduled', next_action: 'Complete inspection', next_action_due: start.toISOString(), next_action_owner_id: user.id, updated_at: new Date().toISOString() }).eq('id', lead.id)
-    setApptAt('')
+    const { error: updateError } = await supabase.from('leads').update({ status: 'inspection_scheduled', next_action_due: start.toISOString(), updated_at: new Date().toISOString() }).eq('id', lead.id)
+    if (updateError) { setError(updateError.message); setSaving(false); return }
+    setApptAt(''); setApptEnd('')
     await load()
     setSaving(false)
   }
@@ -168,7 +172,7 @@ export default function LeadDetailPage() {
     const { user, workspaceId } = await ctx()
     if (!user || !workspaceId) { setError('No workspace available.'); setSaving(false); return }
     const { data, error: insertError } = await supabase.from('inspection_sessions').insert({ workspace_id: workspaceId, lead_id: lead.id, created_by: user.id, status: 'in_progress' }).select('id').single()
-    if (insertError) { setError(insertError.message); setSaving(false); return }
+    if (insertError || !data?.id) { setError(insertError?.message ?? 'Inspection was not created.'); setSaving(false); return }
     router.push(`/camera?inspection=${data.id}&lead=${lead.id}`)
   }
 
@@ -226,8 +230,8 @@ export default function LeadDetailPage() {
 
           <div className="bg-white rounded-lg shadow p-4 mb-4 space-y-2">
             <h2 className="font-semibold">Schedule inspection</h2>
-            <input type="datetime-local" value={apptAt} onChange={(e) => setApptAt(e.target.value)} className="w-full border rounded p-2 text-sm" />
-            <button disabled={saving || !apptAt} onClick={() => void scheduleInspection()} className="w-full bg-blue-600 text-white py-2 rounded font-semibold disabled:opacity-60">Save on calendar</button>
+            <input type="datetime-local" value={apptAt} onChange={(e) => setApptAt(e.target.value)} className="w-full border rounded p-2 text-sm" /><input type="datetime-local" value={apptEnd} onChange={(e) => setApptEnd(e.target.value)} className="w-full border rounded p-2 text-sm" />
+            <button disabled={saving || !apptAt || !apptEnd} onClick={() => void scheduleInspection()} className="w-full bg-blue-600 text-white py-2 rounded font-semibold disabled:opacity-60">Save on calendar</button>
             <button disabled={saving} onClick={() => void startInspection()} className="w-full bg-gray-900 text-white py-2 rounded font-semibold disabled:opacity-60">Start inspection now</button>
           </div>
           <div className="bg-white rounded-lg shadow p-4">

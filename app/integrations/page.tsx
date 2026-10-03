@@ -6,14 +6,14 @@ export default function IntegrationsPage() {
   const router = useRouter()
 
   const integrations = [
-    { name: 'Google Calendar', icon: '📅', status: 'Connected', color: 'bg-blue-100 text-blue-800' },
-    { name: 'Slack', icon: '💬', status: 'Connected', color: 'bg-purple-100 text-purple-800' },
-    { name: 'QuickBooks', icon: '📊', status: 'Disconnected', color: 'bg-gray-100 text-gray-800' },
-    { name: 'Stripe', icon: '💳', status: 'Connected', color: 'bg-green-100 text-green-800' },
-    { name: 'Gmail', icon: '📧', status: 'Connected', color: 'bg-red-100 text-red-800' },
-    { name: 'HubSpot', icon: '📈', status: 'Disconnected', color: 'bg-gray-100 text-gray-800' },
-    { name: 'Dropbox', icon: '📁', status: 'Connected', color: 'bg-blue-100 text-blue-800' },
-    { name: 'Zapier', icon: '⚡', status: 'Disconnected', color: 'bg-gray-100 text-gray-800' },
+    { name: 'Google Calendar', icon: '📅', status: 'Unknown', color: 'bg-gray-100 text-gray-700' },
+    { name: 'Slack', icon: '💬', status: 'Unknown', color: 'bg-gray-100 text-gray-700' },
+    { name: 'QuickBooks', icon: '📊', status: 'Unknown', color: 'bg-gray-100 text-gray-700' },
+    { name: 'Stripe', icon: '💳', status: 'Unknown', color: 'bg-gray-100 text-gray-700' },
+    { name: 'Gmail', icon: '📧', status: 'Unknown', color: 'bg-gray-100 text-gray-700' },
+    { name: 'HubSpot', icon: '📈', status: 'Unknown', color: 'bg-gray-100 text-gray-700' },
+    { name: 'Dropbox', icon: '📁', status: 'Unknown', color: 'bg-gray-100 text-gray-700' },
+    { name: 'Zapier', icon: '⚡', status: 'Unknown', color: 'bg-gray-100 text-gray-700' },
   ]
 
   return (
@@ -27,7 +27,7 @@ export default function IntegrationsPage() {
 
       <main className="p-4"><p className="text-sm bg-white rounded-lg shadow p-4 mb-4">Connection status is Unknown until a live check runs.</p>
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
-          <p className="text-sm text-blue-800">🔗 Connect your favorite tools</p>
+          <p className="text-sm text-blue-800">No live connection check has run.</p>
         </div>
 
         <div className="grid grid-cols-2 gap-3">

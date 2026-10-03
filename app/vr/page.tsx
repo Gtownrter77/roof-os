@@ -39,48 +39,43 @@ export default function VRPage() {
                 📍 View: {view === 'top' ? 'Top-Down' : 'Ground-Level'}
               </div>
               <div className="absolute bottom-2 left-2 text-xs bg-black/50 px-2 py-1 rounded">
-                🎮 Drag to look around
+                No camera or model is loaded
               </div>
             </div>
           </div>
         </div>
 
         {/* VR Controls */}
-        <div className="grid grid-cols-4 gap-2 mb-4">
-          <button className="bg-purple-600 text-white p-3 rounded-lg font-semibold">🔄 Rotate</button>
-          <button className="bg-pink-600 text-white p-3 rounded-lg font-semibold">📏 Measure</button>
-          <button className="bg-indigo-600 text-white p-3 rounded-lg font-semibold">📍 Pin</button>
-          <button 
-            onClick={() => setRecording(!recording)}
-            className={`${recording ? 'bg-red-600' : 'bg-green-600'} text-white p-3 rounded-lg font-semibold`}
-          >
-            {recording ? '⏹️ Stop' : '🔴 Record'}
-          </button>
+        <div className="grid grid-cols-2 gap-2 mb-4">
+          <button disabled className="bg-gray-700 text-white p-3 rounded-lg font-semibold opacity-70">Measure unavailable</button>
+          <button disabled className="bg-gray-700 text-white p-3 rounded-lg font-semibold opacity-70">Pin unavailable</button>
+          <button disabled className="bg-gray-700 text-white p-3 rounded-lg font-semibold opacity-70">Record unavailable</button>
+          <button disabled className="bg-gray-700 text-white p-3 rounded-lg font-semibold opacity-70">Rotate unavailable</button>
         </div>
 
         {/* VR Stats */}
         <div className="grid grid-cols-3 gap-2 mb-4">
           <div className="bg-purple-900/50 rounded-lg p-3 text-center border border-purple-500">
             <p className="text-xs text-purple-300">Area</p>
-            <p className="font-bold">1,245 sq ft</p>
+            <p className="font-bold">Unknown</p>
           </div>
           <div className="bg-purple-900/50 rounded-lg p-3 text-center border border-purple-500">
             <p className="text-xs text-purple-300">Roof Pitch</p>
-            <p className="font-bold">6/12</p>
+            <p className="font-bold">Unknown</p>
           </div>
           <div className="bg-purple-900/50 rounded-lg p-3 text-center border border-purple-500">
             <p className="text-xs text-purple-300">Material</p>
-            <p className="font-bold">Asphalt</p>
+            <p className="font-bold">Unknown</p>
           </div>
         </div>
 
         {/* Export Options */}
         <div className="grid grid-cols-2 gap-2">
-          <button className="bg-gradient-to-r from-purple-600 to-pink-600 text-white p-3 rounded-lg font-semibold">
-            📸 Export 3D Model
+          <button disabled className="bg-gray-700 text-white p-3 rounded-lg font-semibold opacity-70">
+            3D export unavailable
           </button>
-          <button className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white p-3 rounded-lg font-semibold">
-            📊 Share VR Tour
+          <button disabled className="bg-gray-700 text-white p-3 rounded-lg font-semibold opacity-70">
+            VR tour share unavailable
           </button>
         </div>
       </main>

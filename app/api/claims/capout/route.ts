@@ -7,7 +7,7 @@ import { fetchWithTimeout, isUuid, parseProviderBody, readJson, requireWorkspace
 const CAPOUT_API = 'https://api.capout.ai'
 const CAPOUT_TIMEOUT_MS = 15_000
 
-type RequestBody = { sourceUrl?: string; workspaceId?: string; market?: string }
+type RequestBody = { sourceUrl?: string; workspaceId?: string; market?: string; leadId?: string }
 
 function isAuthorizedStorageUrl(sourceUrl: string) {
   try {
@@ -41,6 +41,10 @@ export async function POST(request: NextRequest) {
   if (!isUuid(body.workspaceId)) return NextResponse.json({ error: 'workspaceId must be a valid workspace UUID.' }, { status: 400 })
   const member = await requireWorkspaceMember(supabase, user.id, body.workspaceId)
   if (member.response) return member.response
+  if (!isUuid(body.leadId)) return NextResponse.json({ error: 'A saved lead is required.' }, { status: 400 })
+  const { data: lead, error: leadError } = await supabase.from('leads').select('id').eq('id', body.leadId).eq('workspace_id', body.workspaceId).maybeSingle()
+  if (leadError) return NextResponse.json({ error: 'Could not load the lead.' }, { status: 503 })
+  if (!lead) return NextResponse.json({ error: 'That lead is not in this workspace.' }, { status: 404 })
   if (!body.sourceUrl || body.sourceUrl.length > 2048 || !isAuthorizedStorageUrl(body.sourceUrl)) {
     return NextResponse.json({ error: 'sourceUrl must be a signed URL for an authorized ROOF/OS inspection asset.' }, { status: 400 })
   }
@@ -65,7 +69,7 @@ export async function POST(request: NextRequest) {
     source_sha256: sourceSha256,
     status: 'received',
     market: body.market ?? null,
-    metadata: { source: 'signed_inspection_storage_url' },
+    metadata: { source: 'signed_inspection_storage_url', lead_id: body.leadId },
     created_by: user.id,
   }).select('id, workspace_id, status, source_sha256').single()
   if (importError || !importRecord) return NextResponse.json({ error: 'Could not record the authorized claims import.' }, { status: 502 })
@@ -94,7 +98,7 @@ export async function POST(request: NextRequest) {
   const { data: updatedImport, error: updateError } = await supabase.from('claims_imports').update({
     status: 'processing',
     external_document_id: typeof providerResult.document_id === 'string' ? providerResult.document_id : null,
-    metadata: { source: 'signed_inspection_storage_url', providerResult },
+    metadata: { source: 'signed_inspection_storage_url', lead_id: body.leadId, providerResult },
   }).eq('id', importRecord.id).select('id, workspace_id, status, external_document_id, source_sha256').single()
   if (updateError || !updatedImport) return NextResponse.json({ error: 'CapOut accepted the upload, but ROOF/OS could not update the import state.', importId: importRecord.id }, { status: 502 })
 

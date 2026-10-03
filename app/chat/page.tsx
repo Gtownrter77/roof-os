@@ -1,132 +1,67 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { createClient } from '../../lib/supabase/client'
+
+type Message = { id: string; body: string; created_at: string; user_id: string }
 
 export default function ChatPage() {
   const router = useRouter()
-  const [messages, setMessages] = useState<{id:number,user:string,message:string,time:string,avatar:string}[]>([])
-  const [newMessage, setNewMessage] = useState('')
-  const [activeChat, setActiveChat] = useState('local')
+  const supabase = useMemo(() => createClient(), [])
+  const [rows, setRows] = useState<Message[]>([])
+  const [body, setBody] = useState('')
+  const [status, setStatus] = useState('Checking workspace messages.')
+  const [userId, setUserId] = useState('')
 
-  const chats = [
-    { id: 'local', name: 'This browser only', icon: '💬', unread: 0 },
-  ]
+  async function load() {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { setStatus('Sign in required.'); return }
+    setUserId(user.id)
+    const { data: workspaceId, error: workspaceError } = await supabase.rpc('current_workspace_id')
+    if (workspaceError || !workspaceId) { setStatus('No workspace is available.'); return }
+    const { data, error } = await supabase.from('workspace_messages').select('id,body,created_at,user_id').eq('workspace_id', workspaceId).order('created_at', { ascending: true }).limit(100)
+    if (error) { setStatus(error.message); setRows([]); return }
+    setRows(data ?? [])
+    setStatus(data && data.length ? 'Saved workspace messages.' : 'No saved messages. Migration 044 must be applied before a send can persist.')
+  }
 
-  const sendMessage = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!newMessage.trim()) return
-    setMessages([...messages, {
-      id: Date.now(),
-      user: 'You',
-      message: newMessage,
-      time: 'Just now',
-      avatar: '👤'
-    }])
-    setNewMessage('')
+  useEffect(() => { load() }, [supabase])
+
+  async function send(event: React.FormEvent) {
+    event.preventDefault()
+    const text = body.trim()
+    if (!text) return
+    const { data: { user } } = await supabase.auth.getUser()
+    const { data: workspaceId } = await supabase.rpc('current_workspace_id')
+    if (!user || !workspaceId) { setStatus('Sign in and workspace are required.'); return }
+    const { error } = await supabase.from('workspace_messages').insert({ workspace_id: workspaceId, user_id: user.id, body: text })
+    if (error) { setStatus(error.message); return }
+    setBody('')
+    await load()
   }
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       <header className="bg-blue-600 text-white shadow-lg sticky top-0 z-10">
         <div className="px-4 py-3 flex items-center">
-          <button onClick={() => router.back()} className="text-white mr-3 text-xl">←</button>
-          <h1 className="text-xl font-bold">💬 Chat</h1>
-          
+          <button onClick={() => router.back()} className="text-white mr-3 text-xl">Back</button>
+          <h1 className="text-xl font-bold">Chat</h1>
         </div>
       </header>
-
-      <main className="p-4"><p className="text-sm bg-white rounded-lg shadow p-4 mb-4">Messages stay in this browser. They are not saved and are not a team chat.</p>
-        {/* Chat List */}
-        <div className="bg-white rounded-lg shadow mb-4">
-          <div className="p-3 border-b">
-            <p className="text-sm font-medium">Chats</p>
+      <main className="p-4 space-y-3">
+        <p className="text-sm bg-white rounded-lg shadow p-4">{status}</p>
+        {rows.map((row) => (
+          <div key={row.id} className="bg-white rounded-lg shadow p-4">
+            <p className="text-sm">{row.body}</p>
+            <p className="text-xs text-gray-500">{row.user_id === userId ? 'You' : 'Workspace member'} · {new Date(row.created_at).toLocaleString()}</p>
           </div>
-          {chats.map((chat) => (
-            <button
-              key={chat.id}
-              onClick={() => setActiveChat(chat.id)}
-              className={`w-full p-3 flex items-center justify-between border-b last:border-0 ${
-                activeChat === chat.id ? 'bg-blue-50' : ''
-              }`}
-            >
-              <div className="flex items-center space-x-3">
-                <span className="text-2xl">{chat.icon}</span>
-                <div className="text-left">
-                  <p className="font-medium">{chat.name}</p>
-                  <p className="text-xs text-gray-500">Click to chat</p>
-                </div>
-              </div>
-              {chat.unread > 0 && (
-                <span className="bg-blue-600 text-white text-xs px-2 py-0.5 rounded-full">
-                  {chat.unread}
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
-
-        {/* Messages */}
-        <div className="bg-white rounded-lg shadow p-4 mb-4">
-          <p className="text-xs text-gray-400 text-center mb-3">
-            {activeChat === 'team' ? 'Team Chat' : `Chat with ${activeChat}`}
-          </p>
-          <div className="space-y-2 max-h-60 overflow-y-auto">
-            {messages.map((msg) => (
-              <div key={msg.id} className="flex items-start space-x-2">
-                <span className="text-xl">{msg.avatar}</span>
-                <div className="flex-1">
-                  <div className="flex justify-between items-center">
-                    <p className="font-medium text-sm">{msg.user}</p>
-                    <p className="text-xs text-gray-400">{msg.time}</p>
-                  </div>
-                  <p className="text-sm text-gray-600">{msg.message}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Message Input */}
-        <form onSubmit={sendMessage} className="flex gap-2">
-          <input
-            type="text"
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            placeholder="Type a message..."
-            className="flex-1 p-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
-          />
-          <button
-            type="submit"
-            className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold"
-          >
-            Send
-          </button>
+        ))}
+        <form onSubmit={send} className="flex gap-2">
+          <input value={body} onChange={(event) => setBody(event.target.value)} className="flex-1 p-3 border rounded-lg" placeholder="Message this workspace" />
+          <button className="bg-blue-600 text-white px-4 py-3 rounded-lg font-semibold">Send</button>
         </form>
       </main>
-
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around py-2 px-4">
-        <button onClick={() => router.push('/')} className="flex flex-col items-center text-gray-400">
-          <span className="text-xl">🏠</span>
-          <span className="text-xs">Home</span>
-        </button>
-        <button onClick={() => router.push('/chat')} className="flex flex-col items-center text-blue-600">
-          <span className="text-xl">💬</span>
-          <span className="text-xs">Chat</span>
-        </button>
-        <button onClick={() => router.push('/activity')} className="flex flex-col items-center text-gray-400">
-          <span className="text-xl">📊</span>
-          <span className="text-xs">Activity</span>
-        </button>
-        <button onClick={() => router.push('/notifications')} className="flex flex-col items-center text-gray-400">
-          <span className="text-xl">🔔</span>
-          <span className="text-xs">Alerts</span>
-        </button>
-        <button onClick={() => router.push('/settings')} className="flex flex-col items-center text-gray-400">
-          <span className="text-xl">⚙️</span>
-          <span className="text-xs">Settings</span>
-        </button>
-      </nav>
     </div>
   )
 }

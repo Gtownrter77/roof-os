@@ -6,29 +6,29 @@ import { useRouter } from 'next/navigation'
 export default function PricingConfigPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
-  const [lastUpdate, setLastUpdate] = useState<Date>(new Date())
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null)
   const [taxRates, setTaxRates] = useState({ state: 0, county: 0, city: 0, specialDistrict: 0 })
   const [taxSource, setTaxSource] = useState('Owner-entered jurisdiction rates')
-  const [selectedState, setSelectedState] = useState('GA')
+  const [selectedState, setSelectedState] = useState('')
   const [laborRates, setLaborRates] = useState({
-    roofing: { rate: 65, unit: 'sq', description: 'Roofing installation per square' },
-    siding: { rate: 55, unit: 'sq', description: 'Siding installation per square' },
-    windows: { rate: 75, unit: 'each', description: 'Window installation per unit' },
-    doors: { rate: 85, unit: 'each', description: 'Door installation per unit' },
-    gutters: { rate: 45, unit: 'ft', description: 'Gutter installation per linear foot' },
-    decking: { rate: 60, unit: 'sq', description: 'Deck installation per square' },
-    drywall: { rate: 40, unit: 'sq', description: 'Drywall installation per square' },
-    painting: { rate: 35, unit: 'sq', description: 'Painting per square' },
-    electrical: { rate: 95, unit: 'hr', description: 'Electrical work per hour' },
-    plumbing: { rate: 90, unit: 'hr', description: 'Plumbing work per hour' },
-    hvac: { rate: 100, unit: 'hr', description: 'HVAC work per hour' },
-    demo: { rate: 50, unit: 'hr', description: 'Demolition work per hour' },
-    cleanup: { rate: 35, unit: 'hr', description: 'Cleanup per hour' },
-    inspection: { rate: 75, unit: 'hr', description: 'Inspection per hour' },
-    consulting: { rate: 120, unit: 'hr', description: 'Consulting per hour' },
+    roofing: { rate: 0, unit: 'sq', description: 'Roofing installation per square' },
+    siding: { rate: 0, unit: 'sq', description: 'Siding installation per square' },
+    windows: { rate: 0, unit: 'each', description: 'Window installation per unit' },
+    doors: { rate: 0, unit: 'each', description: 'Door installation per unit' },
+    gutters: { rate: 0, unit: 'ft', description: 'Gutter installation per linear foot' },
+    decking: { rate: 0, unit: 'sq', description: 'Deck installation per square' },
+    drywall: { rate: 0, unit: 'sq', description: 'Drywall installation per square' },
+    painting: { rate: 0, unit: 'sq', description: 'Painting per square' },
+    electrical: { rate: 0, unit: 'hr', description: 'Electrical work per hour' },
+    plumbing: { rate: 0, unit: 'hr', description: 'Plumbing work per hour' },
+    hvac: { rate: 0, unit: 'hr', description: 'HVAC work per hour' },
+    demo: { rate: 0, unit: 'hr', description: 'Demolition work per hour' },
+    cleanup: { rate: 0, unit: 'hr', description: 'Cleanup per hour' },
+    inspection: { rate: 0, unit: 'hr', description: 'Inspection per hour' },
+    consulting: { rate: 0, unit: 'hr', description: 'Consulting per hour' },
   })
 
-  const [materialMarkup, setMaterialMarkup] = useState(25)
+  const [materialMarkup, setMaterialMarkup] = useState(0)
   const [priceHistory, setPriceHistory] = useState<any[]>([])
   const [dailyPrices, setDailyPrices] = useState<any>(null)
   const [selectedJobType, setSelectedJobType] = useState('roofing')
@@ -40,7 +40,7 @@ export default function PricingConfigPage() {
   useEffect(() => {
     fetch('/api/pricing/labor-rates').then(async response => {
       const payload = await response.json()
-      if (response.ok && payload.rates) setLaborRates(prev => Object.fromEntries(Object.entries(prev).map(([key, value]) => [key, { ...value, rate: Number(payload.rates[key] ?? value.rate) }])) as typeof prev)
+      if (response.ok && payload.source === 'owner-managed' && payload.rates) setLaborRates(prev => Object.fromEntries(Object.entries(prev).map(([key, value]) => [key, { ...value, rate: Number(payload.rates[key] ?? 0) }])) as typeof prev)
       if (response.ok && payload.taxRates) setTaxRates({ state: Number(payload.taxRates.state ?? 0), county: Number(payload.taxRates.county ?? 0), city: Number(payload.taxRates.city ?? 0), specialDistrict: Number(payload.taxRates.specialDistrict ?? 0) })
       if (response.ok && typeof payload.taxSource === 'string' && payload.taxSource) setTaxSource(payload.taxSource)
       if (response.ok && payload.priceBook?.effective_at) setLastUpdate(new Date(payload.priceBook.effective_at))
@@ -56,20 +56,20 @@ export default function PricingConfigPage() {
     return () => window.clearTimeout(timer)
   }, [materialQuery])
 
-  const stateSalesTax: Record<string, number> = {
-    'AL': 4.0, 'AK': 0, 'AZ': 5.6, 'AR': 6.5, 'CA': 7.25, 'CO': 2.9, 'CT': 6.35,
-    'DE': 0, 'FL': 6.0, 'GA': 4.0, 'HI': 4.0, 'ID': 6.0, 'IL': 6.25, 'IN': 7.0,
-    'IA': 6.0, 'KS': 6.5, 'KY': 6.0, 'LA': 4.45, 'ME': 5.5, 'MD': 6.0, 'MA': 6.25,
-    'MI': 6.0, 'MN': 6.875, 'MS': 7.0, 'MO': 4.225, 'MT': 0, 'NE': 5.5, 'NV': 6.85,
-    'NH': 0, 'NJ': 6.625, 'NM': 5.125, 'NY': 4.0, 'NC': 4.75, 'ND': 5.0, 'OH': 5.75,
-    'OK': 4.5, 'OR': 0, 'PA': 6.0, 'RI': 7.0, 'SC': 6.0, 'SD': 4.5, 'TN': 7.0,
-    'TX': 6.25, 'UT': 4.85, 'VT': 6.0, 'VA': 5.3, 'WA': 6.5, 'WV': 6.0, 'WI': 5.0,
-    'WY': 4.0
-  }
+  const stateCodes = ['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY']
 
-  const generateDailyPrices = () => {
-    setLoading(false)
+  const generateDailyPrices = async () => {
+    setLoading(true)
     setDailyPrices(null)
+    try {
+      const response = await fetch('/api/pricing/refresh', { method: 'POST' })
+      const payload = await response.json()
+      setSaveMessage(response.ok ? `Refresh returned ${payload.count ?? 0} result${payload.count === 1 ? '' : 's'}. A result is a cached provider response, not a saved price.` : (payload.error ?? 'Price source is not connected.'))
+    } catch {
+      setSaveMessage('Price source is not connected.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const updateLaborRate = (jobType: string, rate: string) => {
@@ -114,11 +114,15 @@ export default function PricingConfigPage() {
   }
 
   const saveConfiguration = async () => {
+    if (!selectedState) { setSaveMessage('Choose a market before saving. GA is not assumed.'); return }
     setSaveMessage('Saving owner-managed labor rates and local tax…')
-    const response = await fetch('/api/pricing/labor-rates', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ rates: Object.fromEntries(Object.entries(laborRates).map(([key, value]) => [key, value.rate])), market: selectedState, taxRates, taxSource }) })
+    const rates = Object.fromEntries(Object.entries(laborRates).filter(([, value]) => Number(value.rate) > 0).map(([key, value]) => [key, value.rate]))
+    const enteredTax = Object.fromEntries(Object.entries(taxRates).filter(([, value]) => Number(value) > 0))
+    const response = await fetch('/api/pricing/labor-rates', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ rates, market: selectedState, taxRates: enteredTax, taxSource }) })
     const payload = await response.json()
     if (response.ok) setLastUpdate(new Date())
-    setSaveMessage(response.ok ? `Saved labor rates and ${payload.localTaxRate}% combined jurisdiction tax as draft price book ${payload.priceBookId}. Review and activate before use.` : (payload.error ?? 'Could not save pricing configuration.'))
+    const savedRates = Object.keys(rates).length
+    setSaveMessage(response.ok && payload.priceBookId ? `Saved ${payload.itemCount ?? savedRates} entered labor rate item${(payload.itemCount ?? savedRates) === 1 ? '' : 's'} as draft price book ${payload.priceBookId}. Review and activate before use.` : (payload.error ?? 'Could not save pricing configuration.'))
   }
 
   const getTrendIcon = (trend: string) => {
@@ -145,14 +149,14 @@ export default function PricingConfigPage() {
           <div className="flex justify-between items-center">
             <div>
               <p className="text-xs text-gray-500">Last Price Update</p>
-              <p className="font-bold text-sm">{lastUpdate.toLocaleString()}</p>
+              <p className="font-bold text-sm">{lastUpdate ? lastUpdate.toLocaleString() : "Unknown"}</p>
             </div>
             <button
               onClick={generateDailyPrices}
               disabled={loading}
               className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold disabled:opacity-50"
             >
-              {loading ? '⏳ Loading...' : '🔄 Connect a price source'}
+              {loading ? '⏳ Loading...' : '🔄 Refresh saved watchlist'}
             </button>
           </div>
         </div>
@@ -202,25 +206,22 @@ export default function PricingConfigPage() {
                 value={selectedState}
                 onChange={(e) => {
                   setSelectedState(e.target.value)
-                  setTaxRates(prev => ({ ...prev, state: stateSalesTax[e.target.value] || 0 }))
-                  setTaxSource(`${e.target.value} state reference — verify county and municipal rates before approval`)
+                  setTaxSource('Tax rate is Unknown until a person enters it.')
                 }}
                 className="w-full p-2 border rounded-lg text-sm"
               >
-                {Object.keys(stateSalesTax).sort().map(state => (
-                  <option key={state} value={state}>
-                    {state} ({stateSalesTax[state]}%)
-                  </option>
+                <option value="">Choose a market</option>{stateCodes.map(state => (
+                  <option key={state} value={state}>{state}</option>
                 ))}
               </select>
             </div>
             <div>
               <label className="text-xs text-gray-500">State tax rate</label>
-              <input type="number" value={taxRates.state} onChange={e => setTaxRates({ ...taxRates, state: parseFloat(e.target.value) || 0 })} className="w-full p-2 border rounded-lg text-sm" step="0.0001" min="0" max="100" />
+              <input type="number" value={Number(taxRates.state) > 0 ? taxRates.state : ""} placeholder="Enter" onChange={e => setTaxRates({ ...taxRates, state: parseFloat(e.target.value) || 0 })} className="w-full p-2 border rounded-lg text-sm" step="0.0001" min="0" max="100" />
             </div>
           </div>
           <div className="grid grid-cols-3 gap-2 mt-3">
-            {([['county','County'],['city','City / municipality'],['specialDistrict','Special district']] as const).map(([key, label]) => <label key={key} className="text-xs text-gray-500">{label}<input type="number" value={taxRates[key]} onChange={e => setTaxRates({ ...taxRates, [key]: parseFloat(e.target.value) || 0 })} className="w-full mt-1 p-2 border rounded-lg text-sm" step="0.0001" min="0" max="100" /></label>)}
+            {([['county','County'],['city','City / municipality'],['specialDistrict','Special district']] as const).map(([key, label]) => <label key={key} className="text-xs text-gray-500">{label}<input type="number" value={Number(taxRates[key]) > 0 ? taxRates[key] : ""} placeholder="Enter" onChange={e => setTaxRates({ ...taxRates, [key]: parseFloat(e.target.value) || 0 })} className="w-full mt-1 p-2 border rounded-lg text-sm" step="0.0001" min="0" max="100" /></label>)}
           </div>
           <label className="block mt-3 text-xs text-gray-500">Tax jurisdiction / source
             <input
@@ -233,7 +234,7 @@ export default function PricingConfigPage() {
           </label>
           <div className="mt-2 p-2 bg-purple-50 rounded">
             <p className="text-xs text-purple-800">
-              Current combined tax: <strong>{Object.values(taxRates).reduce((sum, rate) => sum + rate, 0).toFixed(4)}%</strong> • Saved as separate jurisdiction rates
+              Current combined tax: <strong>{Object.values(taxRates).some((rate) => Number(rate) > 0) ? Object.values(taxRates).reduce((sum, rate) => sum + rate, 0).toFixed(4) + "%" : "Unknown"}</strong> • Saved as separate jurisdiction rates
             </p>
           </div>
         </div>
@@ -260,10 +261,11 @@ export default function PricingConfigPage() {
                   <span className="text-xs font-medium">{getJobTypeLabel(key)}</span>
                 </div>
                 <div className="flex items-center gap-2 mt-1">
-                  <span className="text-xs text-gray-400">$</span>
+                  <span className="text-xs text-gray-400">{Number(value.rate) > 0 ? '$' : 'Unknown'}</span>
                   <input
                     type="number"
-                    value={value.rate}
+                    value={Number(value.rate) > 0 ? value.rate : ''}
+                    placeholder="Enter"
                     onChange={(e) => updateLaborRate(key, e.target.value)}
                     className="w-20 p-1 border rounded text-sm"
                     step="0.5"
@@ -316,7 +318,7 @@ export default function PricingConfigPage() {
             </div>
             <div className="flex-1 text-center">
               <p className="text-xs text-gray-500">Current Margin</p>
-              <p className="text-xl font-bold text-green-600">{materialMarkup}%</p>
+              <p className="text-xl font-bold text-green-600">{materialMarkup ? materialMarkup + "%" : "Unknown"}</p>
             </div>
           </div>
         </div>

@@ -25,60 +25,8 @@ export default function TranslatePage() {
     { code: 'hi', name: 'Hindi', flag: '🇮🇳' },
   ]
 
-  const translations: Record<string, Record<string, string>> = {
-    'en-es': {
-      'Roof Inspection': 'Inspección de Techo',
-      'Estimate': 'Presupuesto',
-      'Damage': 'Daño',
-      'Repair': 'Reparación',
-      'Materials': 'Materiales',
-      'Labor': 'Mano de Obra',
-      'Total': 'Total',
-      'Schedule': 'Programar',
-      'Address': 'Dirección',
-      'Phone': 'Teléfono',
-      'Email': 'Correo Electrónico',
-    },
-    'en-fr': {
-      'Roof Inspection': 'Inspection de Toit',
-      'Estimate': 'Devis',
-      'Damage': 'Dommage',
-      'Repair': 'Réparation',
-      'Materials': 'Matériaux',
-      'Labor': 'Main-d\'œuvre',
-      'Total': 'Total',
-      'Schedule': 'Planifier',
-      'Address': 'Adresse',
-      'Phone': 'Téléphone',
-      'Email': 'Email',
-    },
-    'en-de': {
-      'Roof Inspection': 'Dachinspektion',
-      'Estimate': 'Kostenvoranschlag',
-      'Damage': 'Schaden',
-      'Repair': 'Reparatur',
-      'Materials': 'Materialien',
-      'Labor': 'Arbeitskosten',
-      'Total': 'Gesamt',
-      'Schedule': 'Termin vereinbaren',
-      'Address': 'Adresse',
-      'Phone': 'Telefon',
-      'Email': 'E-Mail',
-    }
-  }
-
   const translateText = () => {
-    const key = `${fromLang}-${toLang}`
-    const translationMap = translations[key as keyof typeof translations]
-    if (translationMap) {
-      let translatedText = text
-      Object.entries(translationMap).forEach(([eng, trans]) => {
-        translatedText = translatedText.replace(new RegExp(eng, 'gi'), trans)
-      })
-      setTranslated(translatedText || 'Translation not available for this language pair.')
-    } else {
-      setTranslated('Translation not available for this language pair.')
-    }
+    setTranslated('Unknown. No translation service was called.')
   }
 
   return (
@@ -95,7 +43,7 @@ export default function TranslatePage() {
           <div className="flex items-center">
             <span className="text-3xl mr-3">🌐</span>
             <div>
-              <h3 className="font-semibold">Multi-Language Translation</h3>
+              <h3 className="font-semibold">Word list</h3>
               <p className="text-xs text-gray-500">Translate estimates, reports, and communications</p>
             </div>
           </div>
@@ -149,7 +97,7 @@ export default function TranslatePage() {
         {translated && (
           <div className="mt-4 bg-white rounded-lg shadow-lg p-4 border-2 border-green-500">
             <h3 className="font-semibold text-sm mb-2 flex items-center">
-              <span className="text-xl mr-2">📝</span> Translation
+              <span className="text-xl mr-2">📝</span> Word list result
             </h3>
             <p className="text-gray-700">{translated}</p>
             <div className="mt-3 flex gap-2">

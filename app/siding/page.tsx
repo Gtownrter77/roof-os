@@ -1,12 +1,17 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { createClient } from '../../lib/supabase/client'
 
 export default function SidingPage() {
   const router = useRouter()
+  const supabase = useMemo(() => createClient(), [])
   const [loading, setLoading] = useState(false)
   const [estimate, setEstimate] = useState<any>(null)
+  const [leads, setLeads] = useState<{id:string; name:string|null}[]>([])
+  const [leadId, setLeadId] = useState('')
+  const [status, setStatus] = useState('Loading saved leads.')
   const [codeCheck, setCodeCheck] = useState<any>(null)
 
   const [form, setForm] = useState({
@@ -85,89 +90,35 @@ export default function SidingPage() {
     }
   }
 
-  const calculateEstimate = () => {
+
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { if (!cancelled) setStatus('Sign in required.'); return }
+      const { data: workspaceId, error: workspaceError } = await supabase.rpc('current_workspace_id')
+      if (workspaceError || !workspaceId) { if (!cancelled) setStatus('No workspace is available.'); return }
+      const { data, error } = await supabase.from('leads').select('id,name').eq('workspace_id', workspaceId).order('created_at', { ascending: false }).limit(50)
+      if (cancelled) return
+      if (error) { setStatus(error.message); return }
+      setLeads(data ?? [])
+      setStatus(data && data.length ? 'Choose a lead. Price stays Unknown.' : 'No saved leads.')
+    }
+    load()
+    return () => { cancelled = true }
+  }, [supabase])
+
+  const calculateEstimate = async () => {
+    setEstimate(null)
     setLoading(true)
-    setTimeout(() => {
-      const sqFt = form.squareFeet || 1000
-      const waste = sqFt * (form.wasteFactor / 100)
-      const totalSqFt = sqFt + waste
-
-      const sidingPrices = {
-        'Vinyl': 180,
-        'HardiePlank': 320,
-        'Wood': 300,
-        'Fiber Cement': 290,
-        'Engineered Wood': 260,
-        'Metal': 350,
-        'Brick Veneer': 650,
-      }
-
-      const basePrice = sidingPrices[form.sidingType as keyof typeof sidingPrices] || 180
-      const materialCost = (totalSqFt / 100) * basePrice
-
-      // Accessories
-      const linearFt = sqFt * 0.15
-      const trimCost = form.includesTrim ? linearFt * 4.50 : 0
-      const soffitCost = form.includesSoffit ? linearFt * 6.00 : 0
-      const fasciaCost = form.includesFascia ? linearFt * 5.00 : 0
-      const cornerPostsCost = form.includesCornerPosts ? (sqFt / 100) * 45 : 0
-      const jChannelCost = form.includesJChannel ? linearFt * 2.50 : 0
-      const startStripCost = form.includesStartStrip ? (sqFt / 100) * 25 : 0
-      const underlaymentCost = form.includesUnderlayment ? (sqFt / 100) * 65 : 0
-      const insulationCost = form.includesInsulation ? (sqFt / 100) * 85 : 0
-      const scaffoldingCost = form.includesScaffolding ? sqFt * 0.50 : 0
-
-      const laborCost = (sqFt / 100) * (form.sidingType === 'HardiePlank' ? 75 : 55) * 1.5
-
-      const totalMaterials = materialCost + trimCost + soffitCost + fasciaCost + 
-        cornerPostsCost + jChannelCost + startStripCost + underlaymentCost + 
-        insulationCost + scaffoldingCost
-      
-      const totalLabor = laborCost
-      const overhead = totalMaterials * 0.15
-      const profit = (totalMaterials + totalLabor + overhead) * 0.10
-      const grandTotal = totalMaterials + totalLabor + overhead + profit
-
-      setEstimate({
-        summary: {
-          totalSqFt: totalSqFt,
-          materialCost: materialCost,
-          laborCost: totalLabor,
-          totalMaterials,
-          totalLabor,
-          overhead,
-          profit,
-          grandTotal,
-          perSqFt: grandTotal / sqFt,
-        },
-        breakdown: {
-          siding: { cost: materialCost, sqFt: totalSqFt, pricePerSq: basePrice },
-          trim: { cost: trimCost, included: form.includesTrim },
-          soffit: { cost: soffitCost, included: form.includesSoffit },
-          fascia: { cost: fasciaCost, included: form.includesFascia },
-          cornerPosts: { cost: cornerPostsCost, included: form.includesCornerPosts },
-          jChannel: { cost: jChannelCost, included: form.includesJChannel },
-          startStrip: { cost: startStripCost, included: form.includesStartStrip },
-          underlayment: { cost: underlaymentCost, included: form.includesUnderlayment },
-          insulation: { cost: insulationCost, included: form.includesInsulation },
-          scaffolding: { cost: scaffoldingCost, included: form.includesScaffolding },
-        }
-      })
-
-      // Check building codes
-      const stateCode = codeData[form.state as keyof typeof codeData]
-      if (stateCode) {
-        setCodeCheck({
-          requirements: stateCode.requirements,
-          permits: stateCode.permits,
-          inspections: stateCode.inspections,
-          energyCode: stateCode.energyCode,
-          compliant: true
-        })
-      }
-
-      setLoading(false)
-    }, 1500)
+    const { data: { user } } = await supabase.auth.getUser()
+    const { data: workspaceId } = await supabase.rpc('current_workspace_id')
+    if (!user || !workspaceId || !leadId) { setStatus('A signed-in workspace and a saved lead are required.'); setLoading(false); return }
+    const selected = Object.entries(form).filter(([, value]) => value === true).map(([key]) => key)
+    const body = `Siding checklist saved. Selected: ${selected.join(', ') || 'none'}. Measurements: ${JSON.stringify(form)}. Price Unknown. No dollar figure written.`
+    const { error } = await supabase.from('lead_activity').insert({ lead_id: leadId, workspace_id: workspaceId, user_id: user.id, kind: 'note', body })
+    setStatus(error ? error.message : 'Saved on the lead. Price remains Unknown.')
+    setLoading(false)
   }
 
   return (
@@ -180,7 +131,7 @@ export default function SidingPage() {
         </div>
       </header>
 
-      <main className="p-4"><p className="text-sm bg-white rounded-lg shadow p-4 mb-4">Price is Unknown. This screen does not write a dollar figure.</p>
+      <main className="p-4"><p className="text-sm bg-white rounded-lg shadow p-4 mb-4">Price is Unknown. This screen does not write a dollar figure.</p><label className="block text-sm bg-white rounded-lg shadow p-4 mb-4">Saved lead<select value={leadId} onChange={(event) => setLeadId(event.target.value)} className="mt-1 w-full rounded border p-2"><option value="">Choose a lead</option>{leads.map((lead) => <option key={lead.id} value={lead.id}>{lead.name || lead.id}</option>)}</select><p className="text-xs text-gray-500 mt-2">{status}</p></label>
         {/* Input */}
         <div className="bg-white rounded-lg shadow-lg p-4 mb-4 border border-blue-200">
           <div className="grid grid-cols-2 gap-3">

@@ -20,151 +20,15 @@ export default function UpsellPage() {
     'Commercial Roofing'
   ]
 
-  const upsellDatabase: Record<string, any> = {
-    'Roof Replacement': {
-      primary: [
-        { 
-          name: 'Premium Shingles', 
-          upgrade: 'Architectural shingles vs 3-tab',
-          costIncrease: '$500-$2,000',
-          roi: '87%',
-          profitMargin: '35%',
-          customerBenefit: '40-year warranty, better curb appeal',
-          priority: 'High'
-        },
-        { 
-          name: 'Ice & Water Shield', 
-          upgrade: 'Full coverage vs minimal',
-          costIncrease: '$300-$800',
-          roi: '92%',
-          profitMargin: '40%',
-          customerBenefit: 'Prevents ice dam damage, longer roof life',
-          priority: 'High'
-        }
-      ],
-      crossSell: [
-        { 
-          name: 'Gutter Guards', 
-          description: 'Prevent clogs and damage',
-          cost: '$800-$2,000',
-          profit: '40%',
-          priority: 'High'
-        },
-        { 
-          name: 'Skylight Installation', 
-          description: 'Add natural light to attic',
-          cost: '$1,500-$3,500',
-          profit: '35%',
-          priority: 'Medium'
-        }
-      ]
-    },
-    'Siding Installation': {
-      primary: [
-        { 
-          name: 'Premium Siding Material', 
-          upgrade: 'HardiePlank vs Vinyl',
-          costIncrease: '$2,000-$6,000',
-          roi: '92%',
-          profitMargin: '38%',
-          customerBenefit: '100-year lifespan, fire resistant, no rot',
-          priority: 'High'
-        }
-      ],
-      crossSell: [
-        { 
-          name: 'Window Replacement', 
-          description: 'Match new siding with new windows',
-          cost: '$3,000-$8,000',
-          profit: '30%',
-          priority: 'High'
-        }
-      ]
-    },
-    'Window Replacement': {
-      primary: [
-        { 
-          name: 'Energy-Efficient Glass', 
-          upgrade: 'Low-E argon vs standard',
-          costIncrease: '$200-$500/window',
-          roi: '95%',
-          profitMargin: '35%',
-          customerBenefit: '30% energy savings, UV protection',
-          priority: 'High'
-        }
-      ],
-      crossSell: [
-        { 
-          name: 'Door Replacement', 
-          description: 'Complete entry upgrade',
-          cost: '$1,500-$4,000',
-          profit: '30%',
-          priority: 'High'
-        }
-      ]
-    },
-    'Deck Construction': {
-      primary: [
-        { 
-          name: 'Premium Decking', 
-          upgrade: 'Composite vs wood',
-          costIncrease: '$2,000-$5,000',
-          roi: '90%',
-          profitMargin: '35%',
-          customerBenefit: 'No maintenance, 25-year warranty, no splinters',
-          priority: 'High'
-        }
-      ],
-      crossSell: [
-        { 
-          name: 'Pergola', 
-          description: 'Covered deck area',
-          cost: '$2,500-$6,000',
-          profit: '30%',
-          priority: 'High'
-        }
-      ]
-    },
-    'Gutter Replacement': {
-      primary: [
-        { 
-          name: 'Copper Gutters', 
-          upgrade: 'Copper vs aluminum',
-          costIncrease: '$1,000-$3,000',
-          roi: '92%',
-          profitMargin: '40%',
-          customerBenefit: '100-year lifespan, premium appearance',
-          priority: 'High'
-        }
-      ],
-      crossSell: [
-        { 
-          name: 'Downspout Extensions', 
-          description: 'Better water management',
-          cost: '$200-$500',
-          profit: '40%',
-          priority: 'Medium'
-        }
-      ]
-    }
-  }
-
   const getUpsells = () => {
     if (!selectedProject) {
       alert('Please select a project type')
       return
     }
     
-    setLoading(true)
-    setTimeout(() => {
-      const data = upsellDatabase[selectedProject as keyof typeof upsellDatabase]
-      if (data) {
-        setUpsells(data)
-      } else {
-        setUpsells({ primary: [], crossSell: [] })
-      }
-      setLoading(false)
-    }, 800)
+    setUpsells(null)
+    setLoading(false)
+    return
   }
 
   const getPriorityColor = (priority: string) => {
@@ -195,12 +59,12 @@ export default function UpsellPage() {
       <header className="bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-lg sticky top-0 z-10">
         <div className="px-4 py-3 flex items-center">
           <button onClick={() => router.back()} className="text-white mr-3 text-xl">←</button>
-          <h1 className="text-xl font-bold">💰 AI Upsell Engine</h1>
+          <h1 className="text-xl font-bold">Upsell list</h1>
           <span className="ml-2 bg-green-500 text-white text-xs px-2 py-0.5 rounded-full animate-pulse">PRO</span>
         </div>
       </header>
 
-      <main className="p-4">
+      <main className="p-4"><p className="text-sm bg-white rounded-lg shadow p-4 mb-4">Price is Unknown. This screen does not write a bid.</p>
         <div className="bg-white rounded-lg shadow-lg p-4 mb-4 border border-amber-200">
           <h3 className="font-semibold text-sm mb-3 flex items-center">
             <span className="text-xl mr-2">🎯</span> Select Project Type
@@ -234,7 +98,7 @@ export default function UpsellPage() {
                 </div>
                 <div className="text-right">
                   <p className="text-xs text-gray-500">Estimated Profit</p>
-                  <p className="text-xl font-bold text-green-600">+${(totalUpsellPotential() * 0.35).toFixed(0)}</p>
+                  <p className="text-xl font-bold text-green-600">+Unknown</p>
                 </div>
               </div>
             </div>

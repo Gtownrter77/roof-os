@@ -43,6 +43,8 @@ export async function POST(request: NextRequest) {
     if (!inspection) return NextResponse.json({ error: 'The inspection does not belong to this workspace.' }, { status: 400 })
   }
 
+  if (!body.leadId && !body.inspectionId) return NextResponse.json({ error: 'A lead or an inspection is required. An unlinked measurement is not saved.' }, { status: 400 })
+
   if (body.leadId) {
     if (!isUuid(body.leadId)) return NextResponse.json({ error: 'leadId must be a valid UUID.' }, { status: 400 })
     const { data: lead, error: leadError } = await supabase

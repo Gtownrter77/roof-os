@@ -12,7 +12,7 @@ export default function ManualPage() {
   const [tourMode, setTourMode] = useState(false)
 
   const categories = [
-    'All', 'Getting Started', 'Leads', 'Estimating', 'AI Features', 
+    'All', 'Getting Started', 'Leads', 'Estimating', 'Review tools', 
     'Tools', 'Compliance', 'Logistics', 'Training', 'Settings'
   ]
 
@@ -33,21 +33,21 @@ export default function ManualPage() {
         { 
           step: 2, 
           title: 'Set Up Your Profile', 
-          description: 'Add your company name, logo, and contact information.',
+          description: 'Profile fields are saved only when the settings save returns a row.',
           action: 'Go to Settings → Profile',
-          tip: 'Add your company logo for professional estimates'
+          tip: 'A logo is not an estimate.'
         },
         { 
           step: 3, 
           title: 'Configure Your Pricing', 
-          description: 'Set up your labor rates, material markup, and sales tax.',
+          description: 'A labor rate is saved only when a person enters one.',
           action: 'Go to Pricing Configuration',
           tip: 'Update labor rates based on your market'
         },
         { 
           step: 4, 
           title: 'Start Your First Lead', 
-          description: 'Create your first lead and begin the workflow.',
+          description: 'The new-lead form writes a lead only when the save returns a row.',
           action: 'Click + New Lead',
           tip: 'Enter as much detail as possible'
         }
@@ -69,7 +69,7 @@ export default function ManualPage() {
         { 
           step: 2, 
           title: 'Lead Status Tracking', 
-          description: 'Track leads through the pipeline: New → Assigned → Contacting → Qualified → Inspection Scheduled → Inspected → Report Pending → Report Approved → Estimate → Won/Lost.',
+          description: 'Saved lead statuses are new, assigned, qualified, inspection_scheduled, inspected, report_pending, report_approved, won, and lost. A status changes only when a person saves it.',
           action: 'Update status in lead details',
           tip: 'Keep statuses updated for accurate pipeline'
         },
@@ -97,29 +97,29 @@ export default function ManualPage() {
       steps: [
         { 
           step: 1, 
-          title: 'Photo AI Estimation', 
-          description: 'Take a photo and let AI generate a complete estimate.',
+          title: 'Photo review', 
+          description: 'Take a photo. A complete estimate is Unknown until a person reviews it.',
           action: 'Go to Photo AI',
           tip: 'Take clear photos from multiple angles'
         },
         { 
           step: 2, 
-          title: 'Xactimate-Style Pricing', 
-          description: 'Use professional pricing with materials, labor, overhead, and profit.',
+          title: 'Pricing', 
+          description: 'Price is Unknown until a person enters it.',
           action: 'Go to Pricing',
           tip: 'Adjust rates based on your market'
         },
         { 
           step: 3, 
-          title: 'Supplement Engine', 
-          description: 'Automatically detect additional work needed.',
+          title: 'Supplement review', 
+          description: 'Additional work is Unknown until a person reviews it.',
           action: 'Go to Supplement',
           tip: 'Review all supplements before approving'
         },
         { 
           step: 4, 
           title: 'Exterior Estimating', 
-          description: 'Estimate gutters, siding, windows, doors, decks, and more.',
+          description: 'Measurements can be entered. A price is Unknown until a person enters it.',
           action: 'Go to Exterior or Siding',
           tip: 'Enter accurate measurements for best results'
         }
@@ -127,35 +127,35 @@ export default function ManualPage() {
     },
     {
       id: 'ai-features',
-      category: 'AI Features',
-      title: '🤖 AI Features Guide',
+      category: 'Review tools',
+      title: 'Review tools',
       icon: '🤖',
       steps: [
         { 
           step: 1, 
-          title: 'AI Photo Verification', 
-          description: 'Ensure all required photos are captured with AI checking.',
+          title: 'Photo checklist', 
+          description: 'Required photos are Unknown until saved inspection photos are reviewed.',
           action: 'Go to Photo Verify',
           tip: 'Cover all elevations and slopes'
         },
         { 
           step: 2, 
-          title: 'AI Construction Wizard', 
-          description: 'Ask any construction question and get instant answers.',
+          title: 'Construction notes', 
+          description: 'No model answer is returned from this screen.',
           action: 'Go to AI Wizard',
           tip: 'Ask about codes, materials, or best practices'
         },
         { 
           step: 3, 
-          title: 'AI Upsell Engine', 
-          description: 'Discover opportunities to increase project value.',
+          title: 'Upsell list', 
+          description: 'No offer is generated. A price is Unknown.',
           action: 'Go to Upsell',
           tip: 'Focus on high-priority upgrades first'
         },
         { 
           step: 4, 
-          title: 'AI Training Center', 
-          description: 'Step-by-step guidance for every job type.',
+          title: 'Job checklist', 
+          description: 'A local checklist. It does not certify the job.',
           action: 'Go to Training Center',
           tip: 'Perfect for new employee onboarding'
         }
@@ -170,28 +170,28 @@ export default function ManualPage() {
         { 
           step: 1, 
           title: 'AR Pitch Gauge', 
-          description: 'Measure roof pitch using your phone camera.',
+          description: 'Pitch is Unknown until a person enters a measured pitch.',
           action: 'Go to Pitch Gauge',
           tip: 'Point camera at roof edge for accuracy'
         },
         { 
           step: 2, 
           title: 'Sketch Pad', 
-          description: 'Draw roof layouts and add measurements.',
+          description: 'A sketch stays in this browser only. It is not a saved roof measurement.',
           action: 'Go to Sketch Pad',
           tip: 'Use for complex roof designs'
         },
         { 
           step: 3, 
-          title: 'Drone Integration', 
-          description: 'Connect and control drones for aerial inspections.',
+          title: 'Drone', 
+          description: 'No drone is connected. Scan and measurement are Unknown.',
           action: 'Go to Drone',
           tip: 'Scan the entire roof from above'
         },
         { 
           step: 4, 
-          title: 'Home Depot Direct', 
-          description: 'Search and order materials instantly.',
+          title: 'Home Depot snapshots', 
+          description: 'A saved snapshot can be listed. Price and order status are Unknown.',
           action: 'Go to Home Depot',
           tip: 'Add items to cart for quick checkout'
         }
@@ -206,28 +206,28 @@ export default function ManualPage() {
         { 
           step: 1, 
           title: 'Building Codes', 
-          description: 'Access building codes for all 50 states.',
+          description: 'A local table is not a permit decision. Unknown unless a ZIP lookup returns a record.',
           action: 'Go to Codes',
           tip: 'Check local codes before estimating'
         },
         { 
           step: 2, 
           title: 'Insurance Intelligence', 
-          description: 'Check state appraisal laws, matching laws, and permit requirements.',
+          description: 'Insurance rules are Unknown until a saved record is loaded.',
           action: 'Go to Insurance Intel',
           tip: 'Enter address to check permit requirements'
         },
         { 
           step: 3, 
           title: 'Insurance Claims Directory', 
-          description: 'Quick dial insurance claims departments.',
+          description: 'A phone number is Unknown until it comes from a saved record.',
           action: 'Go to Insurance',
           tip: 'Save time with one-tap calling'
         },
         { 
           step: 4, 
           title: 'Permit Flagging', 
-          description: 'Auto-flag properties that need roof permits.',
+          description: 'No property is auto-flagged. Permit status is Unknown.',
           action: 'Enter address in Insurance Intel',
           tip: 'Always verify permit requirements'
         }
@@ -242,21 +242,21 @@ export default function ManualPage() {
         { 
           step: 1, 
           title: 'Dumpster Rentals', 
-          description: 'Find and order dumpsters near your job site.',
+          description: 'No dumpster order is placed from this screen.',
           action: 'Go to Logistics',
           tip: 'Rubber wheel trailers are preferred'
         },
         { 
           step: 2, 
           title: 'Porta John Rentals', 
-          description: 'Order portable restrooms for your job site.',
+          description: 'No restroom order is placed from this screen.',
           action: 'Go to Logistics',
           tip: 'Order deluxe units with hand washing stations'
         },
         { 
           step: 3, 
           title: 'Material Ordering', 
-          description: 'Order materials directly from Home Depot.',
+          description: 'No material order is placed. Price is Unknown.',
           action: 'Go to Home Depot',
           tip: 'Check daily prices for best deals'
         }
@@ -270,15 +270,15 @@ export default function ManualPage() {
       steps: [
         { 
           step: 1, 
-          title: 'AI Training Center', 
-          description: 'Step-by-step job training with hand-holding guidance.',
+          title: 'Job checklist', 
+          description: 'A local checklist. It does not certify the job.',
           action: 'Go to Training Center',
           tip: 'Select job type and follow each step'
         },
         { 
           step: 2, 
           title: 'Multi-Language Support', 
-          description: 'Translate estimates and communications into 12 languages.',
+          description: 'A word list only. No translation service is called.',
           action: 'Go to Translate',
           tip: 'Useful for non-English speaking clients'
         },
@@ -300,9 +300,9 @@ export default function ManualPage() {
         { 
           step: 1, 
           title: 'Pricing Configuration', 
-          description: 'Set labor rates, material markup, and sales tax.',
+          description: 'A labor rate is saved only when a person enters one. Markup and tax are Unknown until entered on the pricing screen.',
           action: 'Go to Pricing Config',
-          tip: 'Update daily for accurate estimates'
+          tip: 'Do not treat an empty rate as a price.'
         },
         { 
           step: 2, 
@@ -314,9 +314,9 @@ export default function ManualPage() {
         { 
           step: 3, 
           title: 'Dark Mode', 
-          description: 'Toggle between light and dark mode.',
+          description: 'The theme control is on the header. Battery effect is Unknown.',
           action: 'Click 🌙 or ☀️ in header',
-          tip: 'Dark mode saves battery on Android'
+          tip: 'Battery effect is Unknown.'
         }
       ]
     }
@@ -394,7 +394,7 @@ export default function ManualPage() {
           onClick={startTour}
           className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 rounded-lg font-semibold mb-4"
         >
-          🎯 Start Interactive Tour
+          Start local tour
         </button>
 
         {/* Tour Mode */}
@@ -424,7 +424,7 @@ export default function ManualPage() {
                     onClick={nextTourStep}
                     className="bg-blue-600 text-white px-3 py-1 rounded text-sm"
                   >
-                    {currentStep < allSteps.length - 1 ? 'Next →' : '✅ Done'}
+                    {currentStep < allSteps.length - 1 ? 'Next' : 'End tour'}
                   </button>
                 </div>
               </div>
@@ -478,18 +478,18 @@ export default function ManualPage() {
                           'Configure Your Pricing': '/pricing-config',
                           'Start Your First Lead': '/leads/new',
                           'Adding a New Lead': '/leads/new',
-                          'Photo AI Estimation': '/photo-estimate',
-                          'Xactimate-Style Pricing': '/pricing',
-                          'Supplement Engine': '/supplement',
+                          'Photo review': '/photo-estimate',
+                          'Pricing': '/pricing',
+                          'Supplement review': '/supplement',
                           'Exterior Estimating': '/exterior',
-                          'AI Photo Verification': '/photo-verify',
-                          'AI Construction Wizard': '/ai-wizard',
-                          'AI Upsell Engine': '/upsell',
-                          'AI Training Center': '/ai-train',
+                          'Photo checklist': '/photo-verify',
+                          'Construction notes': '/ai-wizard',
+                          'Upsell list': '/upsell',
+                          'Job checklist': '/ai-train',
                           'AR Pitch Gauge': '/pitch-gauge',
                           'Sketch Pad': '/sketch',
-                          'Drone Integration': '/drone',
-                          'Home Depot Direct': '/homedepot',
+                          'Drone': '/drone',
+                          'Home Depot snapshots': '/homedepot',
                           'Building Codes': '/codes',
                           'Insurance Intelligence': '/insurance-intel',
                           'Insurance Claims Directory': '/insurance',

@@ -1,12 +1,17 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { createClient } from '../../lib/supabase/client'
 
 export default function DoorsWindowsPage() {
   const router = useRouter()
+  const supabase = useMemo(() => createClient(), [])
   const [loading, setLoading] = useState(false)
   const [estimate, setEstimate] = useState<any>(null)
+  const [leads, setLeads] = useState<{id:string; name:string|null}[]>([])
+  const [leadId, setLeadId] = useState('')
+  const [status, setStatus] = useState('Loading saved leads.')
   const [items, setItems] = useState<any[]>([])
 
   const [form, setForm] = useState({
@@ -53,147 +58,38 @@ export default function DoorsWindowsPage() {
   const doorSizes = ['30x80', '32x80', '34x80', '36x80', '42x84', '48x96']
   const garageSizes = ['14x7', '16x7', '18x8', '20x8', '24x8', '30x10']
 
-  const calculateEstimate = () => {
+
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { if (!cancelled) setStatus('Sign in required.'); return }
+      const { data: workspaceId, error: workspaceError } = await supabase.rpc('current_workspace_id')
+      if (workspaceError || !workspaceId) { if (!cancelled) setStatus('No workspace is available.'); return }
+      const { data, error } = await supabase.from('leads').select('id,name').eq('workspace_id', workspaceId).order('created_at', { ascending: false }).limit(50)
+      if (cancelled) return
+      if (error) { setStatus(error.message); return }
+      setLeads(data ?? [])
+      setStatus(data && data.length ? 'Choose a lead. Price stays Unknown.' : 'No saved leads.')
+    }
+    load()
+    return () => { cancelled = true }
+  }, [supabase])
+
+  const calculateEstimate = async () => {
+    setEstimate(null)
     setLoading(true)
-
-    setTimeout(() => {
-      // Window calculations
-      const windowPrices = {
-        'Double Hung': { 'Vinyl': 450, 'Wood': 800, 'Aluminum': 350, 'Fiberglass': 700, 'Composite': 600, 'Steel': 550 },
-        'Casement': { 'Vinyl': 500, 'Wood': 900, 'Aluminum': 400, 'Fiberglass': 750, 'Composite': 650, 'Steel': 600 },
-        'Slider': { 'Vinyl': 400, 'Wood': 750, 'Aluminum': 350, 'Fiberglass': 650, 'Composite': 550, 'Steel': 500 },
-        'Awning': { 'Vinyl': 480, 'Wood': 850, 'Aluminum': 380, 'Fiberglass': 720, 'Composite': 620, 'Steel': 570 },
-        'Bay': { 'Vinyl': 1200, 'Wood': 2000, 'Aluminum': 1100, 'Fiberglass': 1800, 'Composite': 1600, 'Steel': 1400 },
-        'Bow': { 'Vinyl': 1500, 'Wood': 2500, 'Aluminum': 1400, 'Fiberglass': 2200, 'Composite': 2000, 'Steel': 1800 },
-        'Picture': { 'Vinyl': 350, 'Wood': 700, 'Aluminum': 300, 'Fiberglass': 600, 'Composite': 500, 'Steel': 450 },
-      }
-
-      const doorPrices = {
-        'Entry Door': { 'Steel': 800, 'Wood': 1500, 'Fiberglass': 1200, 'Aluminum': 900, 'Glass': 1800, 'Iron': 2000 },
-        'French Door': { 'Steel': 1200, 'Wood': 2000, 'Fiberglass': 1600, 'Aluminum': 1400, 'Glass': 2200, 'Iron': 2500 },
-        'Sliding Door': { 'Steel': 1000, 'Wood': 1800, 'Fiberglass': 1400, 'Aluminum': 1100, 'Glass': 1600, 'Iron': 1900 },
-        'Patio Door': { 'Steel': 1100, 'Wood': 1900, 'Fiberglass': 1500, 'Aluminum': 1200, 'Glass': 1700, 'Iron': 2000 },
-        'Storm Door': { 'Steel': 400, 'Wood': 600, 'Fiberglass': 500, 'Aluminum': 350, 'Glass': 700, 'Iron': 800 },
-        'Screen Door': { 'Steel': 200, 'Wood': 300, 'Fiberglass': 250, 'Aluminum': 180, 'Glass': 350, 'Iron': 400 },
-      }
-
-      const garagePrices = {
-        'Sectional': { 'Steel': 1200, 'Wood': 1800, 'Aluminum': 1400, 'Fiberglass': 1600 },
-        'Roll-up': { 'Steel': 1500, 'Wood': 2000, 'Aluminum': 1600, 'Fiberglass': 1800 },
-        'Tilt-up': { 'Steel': 1000, 'Wood': 1600, 'Aluminum': 1200, 'Fiberglass': 1400 },
-        'Side-hinged': { 'Steel': 900, 'Wood': 1400, 'Aluminum': 1100, 'Fiberglass': 1300 },
-      }
-
-      // Window calculation
-      const wCount = form.windows.count || 0
-      const wType = form.windows.type
-      const wMaterial = form.windows.material
-      const wBasePrice = windowPrices[wType as keyof typeof windowPrices]?.[wMaterial as keyof typeof windowPrices['Double Hung']] || 450
-      let wCost = wCount * wBasePrice
-      
-      // Add window options
-      if (form.windows.hasGrids) wCost += wCount * 50
-      if (form.windows.hasLowE) wCost += wCount * 75
-      if (form.windows.hasArgon) wCost += wCount * 60
-      if (form.windows.isImpact) wCost += wCount * 200
-
-      // Door calculation
-      const dCount = form.doors.count || 0
-      const dType = form.doors.type
-      const dMaterial = form.doors.material
-      const dBasePrice = doorPrices[dType as keyof typeof doorPrices]?.[dMaterial as keyof typeof doorPrices['Entry Door']] || 800
-      let dCost = dCount * dBasePrice
-
-      if (form.doors.hasSidelites) dCost += dCount * 400
-      if (form.doors.hasTransom) dCost += dCount * 300
-      if (form.doors.isFrench) dCost += dCount * 200
-      if (form.doors.isSliding) dCost += dCount * 150
-      if (form.doors.isPatio) dCost += dCount * 250
-
-      // Garage door calculation
-      const gCount = form.garage.count || 0
-      const gType = form.garage.type
-      const gMaterial = form.garage.material
-      const gBasePrice = garagePrices[gType as keyof typeof garagePrices]?.[gMaterial as keyof typeof garagePrices['Sectional']] || 1200
-      let gCost = gCount * gBasePrice
-
-      if (form.garage.hasWindows) gCost += gCount * 300
-      if (form.garage.hasInsulation) gCost += gCount * 200
-      if (form.garage.hasOpener) gCost += gCount * 400
-
-      // Labor costs
-      const wLabor = wCount * 150
-      const dLabor = dCount * 200
-      const gLabor = gCount * 250
-
-      // Total
-      const totalMaterials = wCost + dCost + gCost
-      const totalLabor = wLabor + dLabor + gLabor
-      const overhead = totalMaterials * 0.15
-      const profit = (totalMaterials + totalLabor + overhead) * 0.10
-      const grandTotal = totalMaterials + totalLabor + overhead + profit
-
-      setEstimate({
-        windows: {
-          count: wCount,
-          type: wType,
-          material: wMaterial,
-          size: form.windows.size,
-          cost: wCost,
-          options: {
-            grids: form.windows.hasGrids,
-            lowE: form.windows.hasLowE,
-            argon: form.windows.hasArgon,
-            impact: form.windows.isImpact,
-          },
-          labor: wLabor,
-        },
-        doors: {
-          count: dCount,
-          type: dType,
-          material: dMaterial,
-          size: form.doors.size,
-          cost: dCost,
-          options: {
-            sidelites: form.doors.hasSidelites,
-            transom: form.doors.hasTransom,
-            french: form.doors.isFrench,
-            sliding: form.doors.isSliding,
-            patio: form.doors.isPatio,
-          },
-          labor: dLabor,
-        },
-        garage: {
-          count: gCount,
-          type: gType,
-          material: gMaterial,
-          size: form.garage.size,
-          cost: gCost,
-          options: {
-            windows: form.garage.hasWindows,
-            insulation: form.garage.hasInsulation,
-            opener: form.garage.hasOpener,
-          },
-          labor: gLabor,
-        },
-        totalMaterials,
-        totalLabor,
-        overhead,
-        profit,
-        grandTotal,
-        perUnit: {
-          windows: wCount > 0 ? wCost / wCount : 0,
-          doors: dCount > 0 ? dCost / dCount : 0,
-          garage: gCount > 0 ? gCost / gCount : 0,
-        }
-      })
-
-      setLoading(false)
-    }, 1500)
+    const { data: { user } } = await supabase.auth.getUser()
+    const { data: workspaceId } = await supabase.rpc('current_workspace_id')
+    if (!user || !workspaceId || !leadId) { setStatus('A signed-in workspace and a saved lead are required.'); setLoading(false); return }
+    const body = `Door and window measurements saved. Measurements: ${JSON.stringify(form)}. Price Unknown. No dollar figure written.`
+    const { error } = await supabase.from('lead_activity').insert({ lead_id: leadId, workspace_id: workspaceId, user_id: user.id, kind: 'note', body })
+    setStatus(error ? error.message : 'Saved on the lead. Price remains Unknown.')
+    setLoading(false)
   }
 
   const formatCurrency = (num: number) => {
-    return '$' + num.toFixed(2)
+    return 'Unknown'
   }
 
   return (
@@ -206,7 +102,7 @@ export default function DoorsWindowsPage() {
         </div>
       </header>
 
-      <main className="p-4"><p className="text-sm bg-white rounded-lg shadow p-4 mb-4">Price is Unknown. This screen does not write a dollar figure. A human approves every price.</p>
+      <main className="p-4"><p className="text-sm bg-white rounded-lg shadow p-4 mb-4">Price is Unknown. This screen does not write a dollar figure. A human approves every price.</p><label className="block text-sm bg-white rounded-lg shadow p-4 mb-4">Saved lead<select value={leadId} onChange={(event) => setLeadId(event.target.value)} className="mt-1 w-full rounded border p-2"><option value="">Choose a lead</option>{leads.map((lead) => <option key={lead.id} value={lead.id}>{lead.name || lead.id}</option>)}</select><p className="text-xs text-gray-500 mt-2">{status}</p></label>
         {/* Windows Section */}
         <div className="bg-white rounded-lg shadow-lg p-4 mb-4 border border-blue-200">
           <h3 className="font-semibold text-sm mb-3 flex items-center">

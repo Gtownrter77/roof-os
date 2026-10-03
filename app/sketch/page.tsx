@@ -12,6 +12,18 @@ export default function SketchPage() {
   const [brushSize, setBrushSize] = useState(3)
   const [shapes, setShapes] = useState<any[]>([])
   const [measurements, setMeasurements] = useState<any[]>([])
+  useEffect(() => {
+    const saved = window.localStorage.getItem('roof-os-sketch')
+    if (!saved) return
+    try {
+      const draft = JSON.parse(saved)
+      if (Array.isArray(draft.measurements)) setMeasurements(draft.measurements)
+      if (Array.isArray(draft.shapes)) setShapes(draft.shapes)
+    } catch { /* ignore a bad local draft */ }
+  }, [])
+  useEffect(() => {
+    window.localStorage.setItem('roof-os-sketch', JSON.stringify({ measurements, shapes }))
+  }, [measurements, shapes])
   const [undoStack, setUndoStack] = useState<any[]>([])
 
   useEffect(() => {
@@ -121,7 +133,7 @@ export default function SketchPage() {
         </div>
       </header>
 
-      <main className="p-4">
+      <main className="p-4"><p className="text-sm bg-white rounded-lg shadow p-4 mb-4">This sketch stays in this browser. It is not saved to an inspection. Measurements are not confirmed.</p>
         {/* Toolbar */}
         <div className="bg-white rounded-lg shadow-lg p-3 mb-4 flex flex-wrap gap-2">
           <button 

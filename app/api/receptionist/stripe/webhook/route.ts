@@ -35,8 +35,8 @@ export async function POST(request: NextRequest) {
   const { error: eventError } = await admin.from('receptionist_events').upsert({ workspace_id: paymentLink.workspace_id, event_key: `stripe:${event.id}`, event_type: event.type, provider: 'stripe', payload: event }, { onConflict: 'workspace_id,event_key' })
   if (eventError) return new Response('Could not persist webhook event', { status: 502 })
   await admin.from('receptionist_payment_links').update({ status, updated_at: new Date().toISOString() }).eq('id', paymentLink.id)
-  if (status === 'paid' && object.metadata?.invoice_id) {
-    await admin.from('invoices').update({ status: 'paid', updated_at: new Date().toISOString() }).eq('id', object.metadata.invoice_id).eq('workspace_id', paymentLink.workspace_id)
+  if (status === 'paid' && object.metadata?.invoice_id && typeof object.amount_total === 'number') {
+    await admin.from('invoices').update({ status: 'paid', updated_at: new Date().toISOString() }).eq('id', object.metadata.invoice_id).eq('workspace_id', paymentLink.workspace_id).eq('amount_cents', object.amount_total)
   }
   return new Response('ok')
 }

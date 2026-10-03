@@ -1,12 +1,17 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { createClient } from '../../lib/supabase/client'
 
 export default function RepairPage() {
   const router = useRouter()
+  const supabase = useMemo(() => createClient(), [])
   const [loading, setLoading] = useState(false)
   const [estimate, setEstimate] = useState<any>(null)
+  const [leads, setLeads] = useState<{id:string; name:string|null}[]>([])
+  const [leadId, setLeadId] = useState('')
+  const [status, setStatus] = useState('Loading saved leads.')
 
   const [form, setForm] = useState({
     stormDamage: false,
@@ -47,28 +52,6 @@ export default function RepairPage() {
     asap: false,
   })
 
-  const repairPricing: Record<string, any> = {
-    roofRepair: { base: 300, perSqFt: 2.5, urgency: 'High' },
-    sidingRepair: { base: 200, perSqFt: 1.5, urgency: 'Medium' },
-    windowRepair: { base: 150, perUnit: 75, urgency: 'High' },
-    doorRepair: { base: 100, perUnit: 50, urgency: 'Medium' },
-    gutterRepair: { base: 100, perFoot: 2, urgency: 'High' },
-    deckRepair: { base: 200, perSqFt: 3, urgency: 'Medium' },
-    floorRepair: { base: 150, perSqFt: 2, urgency: 'Medium' },
-    drywallRepair: { base: 100, perSqFt: 1.5, urgency: 'Low' },
-    paintRepair: { base: 80, perSqFt: 0.5, urgency: 'Low' },
-    trimRepair: { base: 50, perFoot: 1.5, urgency: 'Low' },
-    chimneyRepair: { base: 300, perUnit: 150, urgency: 'High' },
-    drivewayRepair: { base: 200, perSqFt: 4, urgency: 'Low' },
-    landscapingRepair: { base: 150, perArea: 2, urgency: 'Low' },
-    structuralRepair: { base: 1000, perUnit: 500, urgency: 'Critical' },
-    electricalRepair: { base: 150, perUnit: 75, urgency: 'High' },
-    plumbingRepair: { base: 120, perUnit: 60, urgency: 'High' },
-    hvacRepair: { base: 200, perUnit: 100, urgency: 'High' },
-    insulationRepair: { base: 150, perSqFt: 1.5, urgency: 'Medium' },
-    foundationRepair: { base: 2000, perUnit: 1000, urgency: 'Critical' },
-  }
-
   const damageMultipliers: Record<string, number> = {
     stormDamage: 1.3,
     hailDamage: 1.2,
@@ -85,88 +68,35 @@ export default function RepairPage() {
     pestDamage: 1.4,
   }
 
-  const calculateEstimate = () => {
+
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { if (!cancelled) setStatus('Sign in required.'); return }
+      const { data: workspaceId, error: workspaceError } = await supabase.rpc('current_workspace_id')
+      if (workspaceError || !workspaceId) { if (!cancelled) setStatus('No workspace is available.'); return }
+      const { data, error } = await supabase.from('leads').select('id,name').eq('workspace_id', workspaceId).order('created_at', { ascending: false }).limit(50)
+      if (cancelled) return
+      if (error) { setStatus(error.message); return }
+      setLeads(data ?? [])
+      setStatus(data && data.length ? 'Choose a lead. Price stays Unknown.' : 'No saved leads.')
+    }
+    load()
+    return () => { cancelled = true }
+  }, [supabase])
+
+  const calculateEstimate = async () => {
+    setEstimate(null)
     setLoading(true)
-    setTimeout(() => {
-      let totalBase = 0
-      let totalMaterial = 0
-      let totalLabor = 0
-      const selectedRepairs: string[] = []
-      const selectedDamage: string[] = []
-
-      Object.entries(repairPricing).forEach(([key, value]) => {
-        if (form[key as keyof typeof form] === true) {
-          const price = value.base
-          totalBase += price
-          totalMaterial += price * 0.6
-          totalLabor += price * 0.4
-          selectedRepairs.push(key.replace('Repair', ''))
-        }
-      })
-
-      let damageMultiplier = 1.0
-      Object.entries(damageMultipliers).forEach(([key, value]) => {
-        if (form[key as keyof typeof form] === true) {
-          damageMultiplier *= value
-          selectedDamage.push(key.replace('Damage', ''))
-        }
-      })
-
-      if (form.emergencyService) damageMultiplier *= 1.5
-      if (form.asap) damageMultiplier *= 1.3
-
-      let permitCost = 0
-      let inspectionCost = 0
-      if (form.permitRequired) permitCost = 200
-      if (form.inspectionRequired) inspectionCost = 150
-
-      let structuralCost = 0
-      if (form.structuralRepair) structuralCost = 800
-      if (form.foundationRepair) structuralCost += 2000
-
-      const total = (totalBase * damageMultiplier) + permitCost + inspectionCost + structuralCost
-      const laborRate = form.emergencyService ? 95 : 65
-      const laborHours = totalLabor / laborRate
-
-      setEstimate({
-        summary: {
-          total,
-          totalBase,
-          materialCost: totalMaterial * damageMultiplier,
-          laborCost: totalLabor * damageMultiplier,
-          damageMultiplier,
-          permitCost,
-          inspectionCost,
-          laborRate,
-          laborHours,
-          selectedRepairs,
-          selectedDamage,
-          severity: damageMultiplier > 2.5 ? 'Critical' : 
-                   damageMultiplier > 1.8 ? 'Severe' : 
-                   damageMultiplier > 1.3 ? 'Moderate' : 'Minor',
-        },
-        breakdown: {
-          baseEstimate: totalBase,
-          damageAdjustment: totalBase * (damageMultiplier - 1),
-          permitCost,
-          inspectionCost,
-          structuralCost,
-          totalMaterials: totalMaterial * damageMultiplier,
-          totalLabor: totalLabor * damageMultiplier,
-          total,
-        },
-        details: {
-          selectedRepairs: selectedRepairs,
-          selectedDamage: selectedDamage,
-          emergency: form.emergencyService,
-          asap: form.asap,
-          permits: form.permitRequired,
-          inspections: form.inspectionRequired,
-        }
-      })
-
-      setLoading(false)
-    }, 2000)
+    const { data: { user } } = await supabase.auth.getUser()
+    const { data: workspaceId } = await supabase.rpc('current_workspace_id')
+    if (!user || !workspaceId || !leadId) { setStatus('A signed-in workspace and a saved lead are required.'); setLoading(false); return }
+    const selected = Object.entries(form).filter(([, value]) => value === true).map(([key]) => key)
+    const body = `Repair checklist saved. Selected: ${selected.join(', ') || 'none'}. Measurements: ${JSON.stringify(form)}. Price Unknown. No dollar figure written.`
+    const { error } = await supabase.from('lead_activity').insert({ lead_id: leadId, workspace_id: workspaceId, user_id: user.id, kind: 'note', body })
+    setStatus(error ? error.message : 'Saved on the lead. Price remains Unknown.')
+    setLoading(false)
   }
 
   return (
@@ -179,7 +109,7 @@ export default function RepairPage() {
         </div>
       </header>
 
-      <main className="p-4"><p className="text-sm bg-white rounded-lg shadow p-4 mb-4">Price is Unknown. This screen does not write a dollar figure.</p>
+      <main className="p-4"><p className="text-sm bg-white rounded-lg shadow p-4 mb-4">Price is Unknown. This screen does not write a dollar figure.</p><label className="block text-sm bg-white rounded-lg shadow p-4 mb-4">Saved lead<select value={leadId} onChange={(event) => setLeadId(event.target.value)} className="mt-1 w-full rounded border p-2"><option value="">Choose a lead</option>{leads.map((lead) => <option key={lead.id} value={lead.id}>{lead.name || lead.id}</option>)}</select><p className="text-xs text-gray-500 mt-2">{status}</p></label>
         {/* Damage Types */}
         <div className="bg-white rounded-lg shadow-lg p-4 mb-4 border border-red-200">
           <h3 className="font-semibold text-sm mb-2 flex items-center">

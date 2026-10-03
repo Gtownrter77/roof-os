@@ -15,6 +15,7 @@ function CameraInner() {
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [inspectionId, setInspectionId] = useState(search.get('inspection') || '')
+  const [album, setAlbum] = useState('damage')
   const leadId = search.get('lead') || ''
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -48,11 +49,10 @@ function CameraInner() {
         const path = `${workspaceId}/${user.id}/${sessionId}/${photoId}.${extension}`
         const { error: uploadError } = await supabase.storage.from('inspection-photos').upload(path, photo.file, { contentType: photo.file.type, upsert: false })
         if (uploadError) throw new Error(uploadError.message)
-        const { error: metaError } = await supabase.from('inspection_photos').insert({ inspection_id: sessionId, workspace_id: workspaceId, uploaded_by: user.id, object_path: path, mime_type: photo.file.type || 'image/jpeg', file_size_bytes: photo.file.size, album: 'damage', upload_status: 'uploaded' })
+        const { error: metaError } = await supabase.from('inspection_photos').insert({ inspection_id: sessionId, workspace_id: workspaceId, uploaded_by: user.id, object_path: path, mime_type: photo.file.type || 'image/jpeg', file_size_bytes: photo.file.size, album, upload_status: 'uploaded' })
         if (metaError) throw new Error(metaError.message)
       }
-      if (leadId) await supabase.from('leads').update({ status: 'inspected', updated_at: new Date().toISOString() }).eq('id', leadId)
-      setMessage(`${photos.length} photo${photos.length === 1 ? '' : 's'} saved to inspection ${sessionId.slice(0, 8)}.`)
+      setMessage(`${photos.length} photo${photos.length === 1 ? '' : 's'} saved to inspection ${sessionId.slice(0, 8)}. Lead status was not changed.`)
       photos.forEach((photo) => URL.revokeObjectURL(photo.preview))
       setPhotos([])
     } catch (err) {
@@ -67,7 +67,7 @@ function CameraInner() {
       <main className="p-4">
         <p className="text-xs text-gray-500 mb-3">{inspectionId ? `Inspection ${inspectionId.slice(0, 8)}` : 'A new inspection session will be created on upload.'}{leadId ? ' · linked lead' : ''}</p>
         <input type="file" ref={fileInputRef} accept="image/*" capture="environment" multiple className="hidden" onChange={handleFileSelect} />
-        <button onClick={() => fileInputRef.current?.click()} className="w-full bg-blue-600 text-white py-4 rounded-lg font-semibold text-lg">Take photo</button>
+        <label className="block text-sm mb-2">Album<label className="block"><select value={album} onChange={(event) => setAlbum(event.target.value)} className="w-full p-3 border rounded-lg mt-1"><option value="damage">damage</option><option value="north">north</option><option value="south">south</option><option value="east">east</option><option value="west">west</option><option value="roof-top">roof-top</option><option value="closeup-damage">closeup-damage</option></select></label></label><button onClick={() => fileInputRef.current?.click()} className="w-full bg-blue-600 text-white py-4 rounded-lg font-semibold text-lg">Take photo</button>
         {error && <p className="text-sm text-red-600 mt-4">{error}</p>}
         {message && <p className="text-sm text-green-700 mt-4">{message}</p>}
         {photos.length > 0 && (

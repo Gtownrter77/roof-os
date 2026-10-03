@@ -1,10 +1,14 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { createClient } from '../../lib/supabase/client'
 
 export default function ExteriorPage() {
   const router = useRouter()
+  const supabase = useMemo(() => createClient(), [])
+  const [leads, setLeads] = useState<{id:string; name:string|null}[]>([])
+  const [leadId, setLeadId] = useState('')
   const [loading, setLoading] = useState(false)
   const [measurements, setMeasurements] = useState({
     linearFeet: 0,
@@ -32,7 +36,23 @@ export default function ExteriorPage() {
     'Zinc'
   ]
 
+
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user || cancelled) return
+      const { data: workspaceId } = await supabase.rpc('current_workspace_id')
+      if (!workspaceId || cancelled) return
+      const { data } = await supabase.from('leads').select('id,name').eq('workspace_id', workspaceId).order('created_at', { ascending: false }).limit(50)
+      if (!cancelled) setLeads(data ?? [])
+    }
+    load()
+    return () => { cancelled = true }
+  }, [supabase])
+
   const calculateEstimate = async () => {
+    if (!leadId) { setSaveMessage('Choose a saved lead before saving. An unlinked measurement is not saved.'); return }
     if (!Number.isFinite(measurements.linearFeet) || measurements.linearFeet <= 0) {
       setSaveMessage('Enter measured linear feet before saving. No default quantity is assumed.')
       return
@@ -41,14 +61,14 @@ export default function ExteriorPage() {
   }
 
   const formatCurrency = (num: number) => {
-    return '$' + num.toFixed(2)
+    return 'Unknown'
   }
 
   const saveMeasurement = async () => {
     const response = await fetch('/api/measurements/manual', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ gutterLf: measurements.linearFeet, notes: 'Exterior estimator manual capture; roof geometry requires separate review.' }),
+      body: JSON.stringify({ leadId, gutterLf: measurements.linearFeet, notes: 'Exterior estimator manual capture; roof geometry requires separate review.' }),
     })
     const result = await response.json()
     setSaveMessage(response.ok ? `Saved measurement ${result.measurement.id}; it remains unverified until review.` : (result.error ?? 'Could not save measurement.'))
@@ -64,7 +84,7 @@ export default function ExteriorPage() {
         </div>
       </header>
 
-      <main className="p-4">
+      <main className="p-4"><p className="text-sm bg-white rounded-lg shadow p-4 mb-4">Price is Unknown. This screen does not write a bid.</p><label className="block text-sm bg-white rounded-lg shadow p-4 mb-4">Saved lead<select value={leadId} onChange={(event) => setLeadId(event.target.value)} className="mt-1 w-full rounded border p-2"><option value="">Choose a lead</option>{leads.map((lead) => <option key={lead.id} value={lead.id}>{lead.name || lead.id}</option>)}</select></label>
         {/* Measurements Input */}
         <div className="bg-white rounded-lg shadow-lg p-4 mb-4">
           <h3 className="font-semibold text-sm mb-3">📐 Measurements</h3>
@@ -211,81 +231,6 @@ export default function ExteriorPage() {
           Save Measurement for Review
         </button>
 
-        {estimate && (
-          <div className="mt-4 space-y-4 animate-fadeIn">
-            {/* Summary */}
-            <div className="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg shadow-lg p-4 border border-blue-200">
-              <div className="grid grid-cols-3 gap-2">
-                <div className="text-center">
-                  <p className="text-xs text-gray-500">Total Estimate</p>
-                  <p className="text-xl font-bold text-blue-600">{formatCurrency(estimate.grandTotal)}</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-xs text-gray-500">Per Linear Ft</p>
-                  <p className="text-xl font-bold text-cyan-600">{formatCurrency(estimate.perLinearFoot)}</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-xs text-gray-500">Total Sq Ft</p>
-                  <p className="text-xl font-bold text-green-600">{estimate.squareFootage.toFixed(0)}</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Breakdown */}
-            <div className="bg-white rounded-lg shadow-lg p-4">
-              <h3 className="font-semibold text-sm mb-3">📋 Cost Breakdown</h3>
-              <div className="space-y-2">
-                {estimate.breakdown.map((item: any, i: number) => (
-                  <div key={i} className="flex justify-between items-center border-b py-2 last:border-0">
-                    <div>
-                      <p className="text-sm font-medium">{item.item}</p>
-                      <p className="text-xs text-gray-400">
-                        {item.quantity} {item.unit} @ {formatCurrency(item.price)}
-                      </p>
-                    </div>
-                    <p className="font-bold">{formatCurrency(item.cost)}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Totals */}
-            <div className="bg-white rounded-lg shadow-lg p-4 border-2 border-blue-300">
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-sm">Total Materials</span>
-                  <span>{formatCurrency(estimate.totalMaterials)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm">Total Labor</span>
-                  <span>{formatCurrency(estimate.totalLabor)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm">Overhead (15%)</span>
-                  <span>{formatCurrency(estimate.overhead)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm">Profit (10%)</span>
-                  <span>{formatCurrency(estimate.profit)}</span>
-                </div>
-                <div className="border-t pt-2 flex justify-between font-bold text-lg">
-                  <span>Grand Total</span>
-                  <span className="text-blue-600">{formatCurrency(estimate.grandTotal)}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Actions */}
-            <div className="grid grid-cols-2 gap-2">
-              <button className="bg-blue-600 text-white py-2 rounded-lg text-sm font-semibold">
-                📄 Generate Report
-              </button>
-              <button className="bg-green-600 text-white py-2 rounded-lg text-sm font-semibold">
-                ✉️ Send Estimate
-              </button>
-            </div>
-          </div>
-        )}
       </main>
 
       <nav className="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around py-2 px-4">

@@ -6,10 +6,10 @@ import { useRouter } from 'next/navigation'
 export default function HelpPage() {
   const router = useRouter()
   const [faqs] = useState([
-    { q: 'How do I add a new lead?', a: 'Click the + New Lead button on the dashboard or leads page.' },
+    { q: 'How do I add a new lead?', a: 'Open Leads. A new lead saves only after the form is submitted.' },
     { q: 'How do I take photos?', a: 'Go to Camera page and tap Take Photo. Photo save status is Unknown on this page.' },
     { q: 'What is StormScore?', a: 'Unknown on this page.' },
-    { q: 'How do I export data?', a: 'Go to Export page and choose CSV or PDF format.' },
+    { q: 'How do I export data?', a: 'Open Export. A file is created only after that page runs. PDF is Unknown on this page.' },
     { q: 'What are SLA targets?', a: 'Response time targets. Unknown on this page.' },
   ])
 
@@ -26,15 +26,9 @@ export default function HelpPage() {
         <div className="bg-white rounded-lg shadow p-4 mb-4">
           <h2 className="font-semibold text-sm mb-3">📞 Contact Support</h2>
           <div className="space-y-2">
-            <button className="w-full bg-blue-600 text-white py-2 rounded-lg text-sm">
-              📧 Email Support
-            </button>
-            <button className="w-full bg-green-600 text-white py-2 rounded-lg text-sm">
-              💬 Live Chat
-            </button>
-            <button className="w-full bg-gray-200 text-gray-700 py-2 rounded-lg text-sm">
-              📱 Call: 1-800-ROOF-OS
-            </button>
+            <button disabled className="w-full bg-gray-200 text-gray-700 py-2 rounded-lg text-sm">Email support unavailable</button>
+            <button disabled className="w-full bg-gray-200 text-gray-700 py-2 rounded-lg text-sm">Live chat unavailable</button>
+            <button disabled className="w-full bg-gray-200 text-gray-700 py-2 rounded-lg text-sm">Phone support Unknown</button>
           </div>
         </div>
 
@@ -51,7 +45,7 @@ export default function HelpPage() {
         </div>
 
         <div className="mt-4 text-center">
-          <p className="text-xs text-gray-400">ROOF/OS v2.0 • Documentation available</p>
+          <p className="text-xs text-gray-400">Support delivery is Unknown. Documentation status is Unknown.</p>
         </div>
       </main>
 

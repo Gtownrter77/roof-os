@@ -1,10 +1,14 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { createClient } from '../../lib/supabase/client'
 
 export default function InsurancePage() {
   const router = useRouter()
+  const supabase = useMemo(() => createClient(), [])
+  const [imports, setImports] = useState<{id:string; provider:string; status:string; created_at:string}[]>([])
+  const [importStatus, setImportStatus] = useState('Loading saved claim imports.')
   const [search, setSearch] = useState('')
   const [selectedState, setSelectedState] = useState('All')
   const [callLog, setCallLog] = useState<any[]>([])
@@ -14,111 +18,129 @@ export default function InsurancePage() {
       id: 1,
       name: 'Allstate',
       claims: '1-800-255-7828',
-      status: 'Available',
+      status: 'Unverified',
       states: ['All'],
       website: 'allstate.com',
-      processingTime: '2-4 days'
+      processingTime: 'Unknown'
     },
     {
       id: 2,
       name: 'State Farm',
       claims: '1-800-732-5246',
-      status: 'Available',
+      status: 'Unverified',
       states: ['All'],
       website: 'statefarm.com',
-      processingTime: '2-3 days'
+      processingTime: 'Unknown'
     },
     {
       id: 3,
       name: 'Progressive',
       claims: '1-800-274-4499',
-      status: 'Available',
+      status: 'Unverified',
       states: ['All'],
       website: 'progressive.com',
-      processingTime: '3-5 days'
+      processingTime: 'Unknown'
     },
     {
       id: 4,
       name: 'Liberty Mutual',
       claims: '1-800-225-2467',
-      status: 'Available',
+      status: 'Unverified',
       states: ['All'],
       website: 'libertymutual.com',
-      processingTime: '2-5 days'
+      processingTime: 'Unknown'
     },
     {
       id: 5,
       name: 'Farmers',
       claims: '1-800-435-7764',
-      status: 'Available',
+      status: 'Unverified',
       states: ['All'],
       website: 'farmers.com',
-      processingTime: '3-7 days'
+      processingTime: 'Unknown'
     },
     {
       id: 6,
       name: 'GEICO',
       claims: '1-800-841-3000',
-      status: 'Available',
+      status: 'Unverified',
       states: ['All'],
       website: 'geico.com',
-      processingTime: '2-3 days'
+      processingTime: 'Unknown'
     },
     {
       id: 7,
       name: 'Travelers',
       claims: '1-800-252-4633',
-      status: 'Available',
+      status: 'Unverified',
       states: ['All'],
       website: 'travelers.com',
-      processingTime: '3-5 days'
+      processingTime: 'Unknown'
     },
     {
       id: 8,
       name: 'Nationwide',
       claims: '1-800-421-3535',
-      status: 'Available',
+      status: 'Unverified',
       states: ['All'],
       website: 'nationwide.com',
-      processingTime: '2-4 days'
+      processingTime: 'Unknown'
     },
     {
       id: 9,
       name: 'American Family',
       claims: '1-800-692-6326',
-      status: 'Available',
+      status: 'Unverified',
       states: ['All'],
       website: 'amfam.com',
-      processingTime: '3-5 days'
+      processingTime: 'Unknown'
     },
     {
       id: 10,
       name: 'USAA',
       claims: '1-800-531-8111',
-      status: 'Available',
+      status: 'Unverified',
       states: ['All'],
       website: 'usaa.com',
-      processingTime: '1-3 days'
+      processingTime: 'Unknown'
     },
     {
       id: 11,
       name: 'The Hartford',
       claims: '1-800-243-5860',
-      status: 'Available',
+      status: 'Unverified',
       states: ['All'],
       website: 'thehartford.com',
-      processingTime: '3-6 days'
+      processingTime: 'Unknown'
     },
     {
       id: 12,
       name: 'Chubb',
       claims: '1-800-252-4678',
-      status: 'Available',
+      status: 'Unverified',
       states: ['All'],
       website: 'chubb.com',
-      processingTime: '2-4 days'
+      processingTime: 'Unknown'
     },
   ]
+
+
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { if (!cancelled) setImportStatus('Sign in required.'); return }
+      const { data: workspaceId, error: workspaceError } = await supabase.rpc('current_workspace_id')
+      if (workspaceError || !workspaceId) { if (!cancelled) setImportStatus('No workspace is available.'); return }
+      const { data, error } = await supabase.from('claims_imports').select('id,provider,status,created_at').eq('workspace_id', workspaceId).order('created_at', { ascending: false }).limit(25)
+      if (cancelled) return
+      if (error) { setImportStatus(error.message); setImports([]); return }
+      setImports(data ?? [])
+      setImportStatus(data && data.length ? 'Saved claim imports only. Carrier phone numbers below are unverified.' : 'No saved claim imports. Carrier phone numbers below are unverified.')
+    }
+    load()
+    return () => { cancelled = true }
+  }, [supabase])
 
   const quickDial = (number: string, name: string) => {
     const now = new Date().toLocaleTimeString()
@@ -137,12 +159,12 @@ export default function InsurancePage() {
       <header className="bg-gradient-to-r from-green-600 to-teal-600 text-white shadow-lg sticky top-0 z-10">
         <div className="px-4 py-3 flex items-center">
           <button onClick={() => router.back()} className="text-white mr-3 text-xl">←</button>
-          <h1 className="text-xl font-bold">📞 Insurance Claims</h1>
-          <span className="ml-2 bg-green-500 text-white text-xs px-2 py-0.5 rounded-full animate-pulse">24/7</span>
+          <p className="text-sm text-amber-800 mb-2">Phone numbers and times are not a saved record. Status is unverified.</p><h1 className="text-xl font-bold">📞 Insurance Claims</h1>
+          <span className="ml-2 bg-amber-500 text-white text-xs px-2 py-0.5 rounded-full">Unverified directory</span>
         </div>
       </header>
 
-      <main className="p-4">
+      <main className="p-4"><section className="bg-white rounded-lg shadow p-4 mb-4"><p className="text-sm">{importStatus}</p>{imports.map((row) => <div key={row.id} className="border-t mt-2 pt-2 text-sm"><p className="font-semibold">{row.provider}</p><p className="text-xs text-gray-500">{row.status} · {new Date(row.created_at).toLocaleString()}</p></div>)}</section>
         <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
           <p className="text-sm text-green-800 flex items-center">
             <span className="text-xl mr-2">📋</span>
@@ -170,7 +192,7 @@ export default function InsurancePage() {
                   <h3 className="font-semibold text-sm">{company.name}</h3>
                   <p className="text-xs text-gray-500">Claims: {company.claims}</p>
                   <div className="flex gap-2 mt-1">
-                    <span className="bg-green-100 text-green-800 text-xs px-2 py-0.5 rounded">✓ Available</span>
+                    <span className="bg-gray-100 text-gray-700 text-xs px-2 py-0.5 rounded">Unverified</span>
                     <span className="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded">{company.processingTime}</span>
                   </div>
                 </div>
@@ -178,7 +200,7 @@ export default function InsurancePage() {
                   onClick={() => quickDial(company.claims, company.name)}
                   className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-semibold flex items-center"
                 >
-                  📞 Call
+                  Dial unverified number
                 </button>
               </div>
               <div className="mt-2 flex gap-2">
@@ -210,7 +232,7 @@ export default function InsurancePage() {
         {/* Call Log */}
         {callLog.length > 0 && (
           <div className="mt-4 bg-white rounded-lg shadow-lg p-4">
-            <h3 className="font-semibold text-sm mb-3">📜 Recent Calls</h3>
+            <h3 className="font-semibold text-sm mb-3">Dial attempts</h3><p className="text-xs text-gray-500 mb-2">A dial attempt is not a confirmed call.</p>
             {callLog.map((call, i) => (
               <div key={i} className="flex justify-between items-center border-b py-2">
                 <div>

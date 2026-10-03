@@ -12,7 +12,10 @@ export function assertTwilioRequest(request: Request, params: Record<string, str
   const { authToken } = requireTwilioConfig()
   const signature = request.headers.get('x-twilio-signature')
   if (!signature) throw new Error('Missing Twilio signature')
-  const url = new URL(request.url).toString()
+  const incoming = new URL(request.url)
+  const proto = request.headers.get('x-forwarded-proto')
+  const host = request.headers.get('x-forwarded-host') || request.headers.get('host')
+  const url = proto && host ? `${proto}://${host}${incoming.pathname}${incoming.search}` : incoming.toString()
   if (!twilio.validateRequest(authToken, signature, url, params)) throw new Error('Invalid Twilio signature')
 }
 

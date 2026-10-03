@@ -24,18 +24,18 @@ export default function NewLeadPage() {
       address: form.address.trim(),
       phone: form.phone || null,
       email: form.email || null,
-      source: form.source || 'manual',
+      source: form.source.trim() || null,
       notes: form.notes || null,
       owner_id: user.id,
       workspace_id: workspaceId,
       status: 'new',
-      next_action: form.nextAction.trim() || 'First contact',
+      next_action: form.nextAction.trim() || null,
       next_action_due: nextDue,
-      next_action_owner_id: user.id,
+      next_action_owner_id: form.nextAction.trim() ? user.id : null,
     }).select('id').single()
     if (insertError || !data) { setError(insertError?.message ?? 'Lead was not created.'); setSaving(false); return }
-    await supabase.from('lead_activity').insert({ lead_id: data.id, workspace_id: workspaceId, user_id: user.id, kind: 'created', body: form.notes || `Lead created from ${form.source || 'manual'}` })
-    router.push(`/leads/${data.id}`)
+    const { error: activityError } = await supabase.from('lead_activity').insert({ lead_id: data.id, workspace_id: workspaceId, user_id: user.id, kind: 'created', body: form.notes.trim() || 'Lead created. No source was entered.' })
+    router.push(activityError ? `/leads/${data.id}?activity=not-saved` : `/leads/${data.id}`)
   }
 
   return (
@@ -48,7 +48,7 @@ export default function NewLeadPage() {
         <input type="tel" placeholder="Phone" className="w-full p-3 border rounded-lg" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
         <input type="email" placeholder="Email" className="w-full p-3 border rounded-lg" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
         <input type="text" placeholder="Source (storm, referral, website)" className="w-full p-3 border rounded-lg" value={form.source} onChange={(e) => setForm({ ...form, source: e.target.value })} />
-        <input type="text" placeholder="Next action (default: First contact)" className="w-full p-3 border rounded-lg" value={form.nextAction} onChange={(e) => setForm({ ...form, nextAction: e.target.value })} />
+        <input type="text" placeholder="Next action (Unknown if empty)" className="w-full p-3 border rounded-lg" value={form.nextAction} onChange={(e) => setForm({ ...form, nextAction: e.target.value })} />
         <input type="datetime-local" aria-label="Next action due" className="w-full p-3 border rounded-lg" value={form.nextActionDue} onChange={(e) => setForm({ ...form, nextActionDue: e.target.value })} />
         <textarea placeholder="First note" className="w-full p-3 border rounded-lg" rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
         {error && <p className="text-sm text-red-600">{error}</p>}

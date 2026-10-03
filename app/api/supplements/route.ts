@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '../../../lib/supabase/server'
-import { readJson } from '../../../lib/api-security'
+import { isUuid, readJson } from '../../../lib/api-security'
 
 export async function GET() {
   const supabase = await createClient()
@@ -21,15 +21,20 @@ export async function POST(request: NextRequest) {
   if (!workspaceId) return NextResponse.json({ error: 'No workspace is configured.' }, { status: 400 })
   const parsedBody = await readJson(request)
   if ('error' in parsedBody) return NextResponse.json({ error: parsedBody.error }, { status: parsedBody.status })
-  const body = parsedBody.body as { leadId?: string; jobAddress?: string; title?: string; description?: string; additionalCost?: number; materials?: string[]; laborDescription?: string; urgency?: string; evidence?: Record<string, unknown> }
+  const body = parsedBody.body as { leadId?: string; estimateId?: string; jobAddress?: string; title?: string; description?: string; additionalCost?: number; materials?: string[]; laborDescription?: string; urgency?: string; evidence?: Record<string, unknown> }
+  if (!isUuid(body.estimateId)) return NextResponse.json({ error: 'A saved estimate is required.' }, { status: 400 })
+  const { data: estimate, error: estimateError } = await supabase.from('estimates').select('id').eq('id', body.estimateId).eq('workspace_id', workspaceId).maybeSingle()
+  if (estimateError) return NextResponse.json({ error: 'Could not load the estimate.' }, { status: 503 })
+  if (!estimate) return NextResponse.json({ error: 'That estimate is not in this workspace.' }, { status: 404 })
   const title = body.title?.trim() ?? ''
   const jobAddress = body.jobAddress?.trim() ?? ''
   if (!title || !jobAddress) return NextResponse.json({ error: 'Job address and supplement title are required.' }, { status: 400 })
-  const cost = Number(body.additionalCost ?? 0)
+  if (body.additionalCost == null || Number.isNaN(Number(body.additionalCost))) return NextResponse.json({ error: 'Cost is Unknown until a person enters it.' }, { status: 400 })
+  const cost = Number(body.additionalCost)
   if (!Number.isFinite(cost) || cost < 0) return NextResponse.json({ error: 'Additional cost must be a non-negative number.' }, { status: 400 })
   const urgency = body.urgency ?? 'medium'
   if (!['low','medium','high','critical'].includes(urgency)) return NextResponse.json({ error: 'Invalid urgency.' }, { status: 400 })
-  const { data, error } = await supabase.from('supplements').insert({ workspace_id: workspaceId, lead_id: body.leadId ?? null, job_address: jobAddress, title, description: body.description?.trim() ?? '', additional_cost: cost, materials: body.materials ?? [], labor_description: body.laborDescription?.trim() ?? null, urgency, evidence: body.evidence ?? {}, created_by: user.id }).select('id,title,status,additional_cost,created_at').single()
+  const { data, error } = await supabase.from('supplements').insert({ workspace_id: workspaceId, lead_id: body.leadId ?? null, job_address: jobAddress, title, description: body.description?.trim() ?? '', additional_cost: cost, materials: body.materials ?? [], labor_description: body.laborDescription?.trim() ?? null, urgency, evidence: { ...(body.evidence ?? {}), estimate_id: body.estimateId }, created_by: user.id }).select('id,title,status,additional_cost,created_at').single()
   if (error) return NextResponse.json({ error: 'Could not create supplement.', detail: error.message }, { status: 502 })
   return NextResponse.json({ supplement: data, warning: 'Supplement remains needs_review until an authorized user approves it.' }, { status: 201 })
 }
