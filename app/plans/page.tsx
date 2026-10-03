@@ -11,23 +11,19 @@ export default function PlansPage() {
     {
       id: 'starter',
       name: 'Starter',
-      price: '29',
-      period: '/month',
-      features: [
+            features: [
         'Up to 50 leads',
         'Basic inspections',
         'Weather alerts',
         'Email support'
       ],
-      button: 'Start Free Trial',
+      button: 'Trial unavailable',
       popular: false
     },
     {
       id: 'pro',
       name: 'Pro',
-      price: '79',
-      period: '/month',
-      features: [
+            features: [
         'Unlimited leads',
         'Report generation is Unknown until a saved report exists',
         'Advanced analytics',
@@ -35,15 +31,13 @@ export default function PlansPage() {
         'Camera integration',
         'Voice assistant'
       ],
-      button: 'Start Free Trial',
+      button: 'Trial unavailable',
       popular: true
     },
     {
       id: 'enterprise',
       name: 'Enterprise',
-      price: '199',
-      period: '/month',
-      features: [
+            features: [
         'Everything in Pro',
         'Multi-location support',
         'Custom integrations',
@@ -51,7 +45,7 @@ export default function PlansPage() {
         'White-label option',
         'API access'
       ],
-      button: 'Contact Sales',
+      button: 'Sales contact unavailable',
       popular: false
     }
   ]
@@ -68,7 +62,7 @@ export default function PlansPage() {
       <main className="p-4"><p className="text-sm bg-white rounded-lg shadow p-4 mb-4">This plan screen does not write a price.</p>
         <div className="text-center mb-6">
           <h2 className="text-2xl font-bold">Choose Your Plan</h2>
-          <p className="text-sm text-gray-500">Start free, upgrade anytime</p>
+          <p className="text-sm text-gray-500">No plan price is stored. A trial is not started.</p>
         </div>
 
         <div className="space-y-4">
@@ -87,12 +81,10 @@ export default function PlansPage() {
                   <h3 className="text-xl font-bold">{plan.name}</h3>
                   <div className="mt-1">
                     <span className="text-3xl font-bold">Unknown</span>
-                    <span className="text-gray-500 text-sm">{plan.period}</span>
+                    
                   </div>
                 </div>
-                <button 
-                  className={`px-6 py-2 rounded-lg font-semibold Unknown`}
-                >
+                <button disabled className="px-6 py-2 rounded-lg font-semibold bg-gray-200 text-gray-600">
                   {plan.button}
                 </button>
               </div>
