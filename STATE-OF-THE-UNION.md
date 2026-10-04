@@ -208,3 +208,8 @@ This path requires the repository Actions secret `EXPO_TOKEN`. The workflow has 
 ## 2026-10-04 clean-install bundle fix
 
 The EAS JavaScript bundle failure was reproduced locally and fixed. The cause was a broken clean-install link to the vendored `braces` mitigation plus an undeclared top-level `fill-range` dependency. The field app now uses a field-local vendored package path and explicitly installs `fill-range`. Fresh `npm ci`, `braces` loading, Android Expo embedding, TypeScript, mobile release, offline-sync, and security checks pass locally. APK artifact verification remains pending on the next EAS run.
+
+
+## 2026-10-04 EAS artifact download correction
+
+The Android EAS build itself completed after the clean-install fix. The remaining workflow failure was only an invalid EAS CLI download command. The workflow now downloads by the completed build ID and uploads a normalized APK artifact. Full APK artifact verification is pending the next workflow run.

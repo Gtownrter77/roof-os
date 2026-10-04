@@ -43,14 +43,19 @@ jobs:
         run: npx expo config --json > /tmp/expo-config.json
 
       - name: Build Android APK with EAS
-        run: npx eas-cli@latest build --platform android --profile preview --non-interactive --wait
+        run: npx eas-cli@latest build --platform android --profile preview --non-interactive --wait --json > /tmp/eas-build.json
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
 
       - name: Download the completed APK
         run: |
           mkdir -p ../../artifacts
-          npx eas-cli@latest build:download --latest --platform android --path ../../artifacts/roof-os-field-preview.apk --non-interactive
+          BUILD_ID=$(node -e 'const fs=require("fs"); const value=JSON.parse(fs.readFileSync("/tmp/eas-build.json","utf8")); const build=Array.isArray(value) ? value[0] : value; if (!build?.id) throw new Error("EAS build JSON did not contain a build id"); console.log(build.id);')
+          mkdir -p /tmp/eas-apk-download
+          (cd /tmp/eas-apk-download && npx eas-cli@latest build:download --build-id "$BUILD_ID" --non-interactive)
+          APK=$(find /tmp/eas-apk-download -maxdepth 2 -type f -name '*.apk' -print -quit)
+          test -n "$APK"
+          cp "$APK" ../../artifacts/roof-os-field-preview.apk
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
 

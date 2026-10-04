@@ -655,3 +655,8 @@ The workflow requires a repository Actions secret named `EXPO_TOKEN`. No APK art
 ## 2026-10-04 clean-install bundle fix
 
 The first EAS APK attempt authenticated successfully but failed during Bundle JavaScript. The failure was reproduced with clean `npm ci`: the field override linked `braces` to the wrong relative location, and `fill-range` was not installed where the vendored package could resolve it. The focused fix moves the vendored mitigation package under `apps/field/vendor/braces`, updates the override, and declares `fill-range` explicitly. Fresh `npm ci` plus `npx expo export:embed --eager --platform android --dev false` now passes locally. A new EAS run is still required for the APK artifact.
+
+
+## 2026-10-04 EAS artifact download correction
+
+The corrected Android build reached EAS and completed successfully, but the workflow failed because EAS CLI 24.10.0 rejected `build:download --latest --path`. The workflow now captures the completed build JSON, extracts its build ID, downloads with `--build-id`, and uploads the normalized APK artifact. A new workflow run is required to verify the full artifact path.

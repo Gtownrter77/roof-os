@@ -39,3 +39,8 @@ The repository must have an `EXPO_TOKEN` Actions secret with permission to build
 ## 2026-10-04 clean-install bundle fix
 
 The Android EAS bundle failure was reproduced locally. A clean `npm ci` created a broken link for the repository's vendored `braces` mitigation, and the vendored package could not resolve `fill-range`. The field app now keeps the mitigation package under `apps/field/vendor/braces`, points the npm override to that field-local package, and declares `fill-range` explicitly in the field dependencies. A fresh `npm ci` now loads `braces` and completes `npx expo export:embed --eager --platform android --dev false` successfully.
+
+
+## 2026-10-04 EAS artifact download correction
+
+EAS CLI 24.10.0 does not support `build:download --latest --path`. The APK workflow now requests JSON from the completed build, extracts the returned build ID, downloads with `build:download --build-id`, normalizes the downloaded `.apk` name, and uploads it as the GitHub Actions artifact.
