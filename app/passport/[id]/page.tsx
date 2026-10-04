@@ -45,6 +45,7 @@ export default function PassportPage() {
 
   async function createPassport() {
     if (!lead) return
+    const supabase = createClient()
     setSaving(true); setError('')
     const { data: { user } } = await supabase.auth.getUser()
     const { data: workspaceId } = await supabase.rpc('current_workspace_id')
