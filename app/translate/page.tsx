@@ -77,7 +77,7 @@ export default function TranslatePage() {
       return
     }
 
-    const key = `${fromLang}-${toLang}`
+    const key = fromLang + '-' + toLang
     const translationMap = translations[key as keyof typeof translations]
     if (!translationMap) {
       setTranslated('')
@@ -87,20 +87,7 @@ export default function TranslatePage() {
 
     let translatedText = text
     Object.entries(translationMap).forEach(([source, target]) => {
-      const escaped = source.replace(/[.*+?^$\{}()|[\]\\]/g, '\\  const translateText = () => {
-    const key = `${fromLang}-${toLang}`
-    const translationMap = translations[key as keyof typeof translations]
-    if (translationMap) {
-      let translatedText = text
-      Object.entries(translationMap).forEach(([eng, trans]) => {
-        translatedText = translatedText.replace(new RegExp(eng, 'gi'), trans)
-      })
-      setTranslated(translatedText || 'Translation not available for this language pair.')
-    } else {
-      setTranslated('Translation not available for this language pair.')
-    }
-  }')
-      translatedText = translatedText.replace(new RegExp(escaped, 'gi'), target)
+      translatedText = translatedText.replace(new RegExp(source, 'gi'), target)
     })
     setTranslated(translatedText)
   }
