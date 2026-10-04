@@ -58,6 +58,7 @@ export default function TasksPage() {
   const addTask = async (event: React.FormEvent) => {
     event.preventDefault()
     if (!form.title.trim()) return
+    const supabase = createClient()
     setSaving(true); setError('')
     const { data: { user } } = await supabase.auth.getUser()
     const { data: workspaceId } = await supabase.rpc('current_workspace_id')
