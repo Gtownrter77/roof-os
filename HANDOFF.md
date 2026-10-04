@@ -610,3 +610,36 @@ On branch `upgrade/admin-page-20261002`:
 - `app/export/page.tsx` exports saved leads for the current workspace. Fake rows removed. Import is Unknown.
 - `npx tsc --noEmit` passed.
 - Browser and production not verified.
+
+
+## 2026-10-04 Mobile field batch 1 — branch validation
+
+**Scope:** `apps/field` only. No database migration was added.
+
+**Branch:** `mobile/field-batch-1-job-agenda-photo-albums`
+
+### Implemented on this branch
+
+1. **Job/lead picker:** loads workspace-visible leads and attaches the selected lead to the local inspection draft and remote inspection session.
+2. **Today agenda:** loads upcoming appointments and open tasks and displays the next eight items in the field app.
+3. **Photo album selection:** lets the field user choose `general`, `before`, `damage`, `measurements`, or `completed`; the choice is retained in the offline queue and uploaded to `inspection_photos.album`.
+
+These are additive upgrades to the existing camera, GPS, measurement, offline-draft, retry, and private-storage workflows. No existing feature was intentionally removed.
+
+### Validation evidence
+
+- Field TypeScript compile: **PASS** (`npx tsc --noEmit`)
+- Existing mobile release check: **PASS** (`node scripts/mobile-release-check.mjs`)
+- Repository security check: **PASS** (`node scripts/security-check.mjs`)
+- `git diff --check`: **PASS**
+- Expo web export: **PASS** after temporary local installation of the existing vendored `braces` dependency workaround
+- Expo config validation: **PASS**
+- Browser smoke check: **PASS** for the exported sign-in screen at mobile-sized browser viewport
+
+### Evidence limits
+
+The authenticated feature screen was not verified against a live Supabase session in this environment. A signed Android APK was not produced. The branch has not been merged to `main`. Do not describe this batch as production-ready until a real authenticated device/emulator check and APK build are completed.
+
+### Next gate
+
+Run an authenticated mobile smoke test for lead loading, agenda loading, local draft persistence, selected photo album persistence, and sync. Do not start the next feature batch until that gate is green.

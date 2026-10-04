@@ -172,3 +172,27 @@ The project still has partial or blocked areas including full two-user/two-works
 Supabase's pre-existing advisor findings remain documented: six authenticated SECURITY DEFINER warnings, disabled leaked-password protection, and performance/indexing notices. These were intentionally not altered during receptionist hardening.
 
 **Current conclusion:** receptionist backend hardening and its production database integrity scope are **VERIFIED COMPLETE**. Whole-product commercial verification remains a separate, incomplete track.
+
+
+## 2026-10-04 Mobile field batch 1 — current evidence
+
+**Branch:** `mobile/field-batch-1-job-agenda-photo-albums`
+
+The first mobile-only upgrade batch is implemented on a separate branch: a workspace lead/job picker, a Today agenda for appointments and open tasks, and selectable photo albums carried through the offline queue and private Storage metadata.
+
+The work is additive to the existing mobile login, camera capture, GPS, manual measurement, local draft, retry queue, workspace-scoped sync, and private inspection-photo upload paths. No database migration was added and no existing feature was intentionally removed.
+
+### Verification
+
+- Field TypeScript compile: **VERIFIED PASS**.
+- Existing mobile release contract check: **VERIFIED PASS**.
+- Repository security check: **VERIFIED PASS**.
+- Diff whitespace check: **VERIFIED PASS**.
+- Expo web export and Expo config validation: **VERIFIED PASS** after a temporary local dependency workaround for the repository's vendored `braces` package.
+- Browser smoke rendering: **VERIFIED PASS** for the exported sign-in screen.
+
+### Remaining evidence boundary
+
+The authenticated mobile feature screen has not yet been verified with a live Supabase session in this environment. A signed Android APK has not been produced. The branch is not merged to `main`. Therefore this batch is **PARTIAL**, not commercially verified or release-complete.
+
+The next gate is an authenticated device/emulator smoke test covering lead selection, agenda loading, offline draft persistence, photo album persistence, and sync. The next feature batch must not start until that gate is green.
