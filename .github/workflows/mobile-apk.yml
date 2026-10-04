@@ -1,0 +1,63 @@
+name: ROOF OS Mobile APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Git ref to build
+        required: true
+        default: main
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build-preview-apk:
+    name: Build preview APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: apps/field
+    steps:
+      - name: Check out requested ref
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/field/package-lock.json
+
+      - name: Install field dependencies
+        run: npm ci
+
+      - name: Compile the field app
+        run: npx tsc --noEmit
+
+      - name: Validate Expo configuration
+        run: npx expo config --json > /tmp/expo-config.json
+
+      - name: Build Android APK with EAS
+        run: npx eas-cli@latest build --platform android --profile preview --non-interactive --wait
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Download the completed APK
+        run: |
+          mkdir -p ../../artifacts
+          npx eas-cli@latest build:download --latest --platform android --path ../../artifacts/roof-os-field-preview.apk --non-interactive
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: roof-os-field-preview-apk
+          path: artifacts/roof-os-field-preview.apk
+          if-no-files-found: error
+          retention-days: 14

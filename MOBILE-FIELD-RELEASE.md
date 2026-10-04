@@ -21,3 +21,16 @@ The release also persists the latest draft location, provides sign-in/sign-out s
 Set `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY`, and `EXPO_PUBLIC_WEB_APP_URL` in the EAS build environment. Apply the repository migrations to the target Supabase project. Use a real authenticated account to verify offline reopen, multi-photo upload, retry behavior, and cross-workspace isolation on representative iOS and Android devices.
 
 This release is a **shippable internal/pilot field app**, not a claim-approved estimating product. It does not certify measurements, approve estimates, send customer communications, or replace the required human review workflow.
+
+
+## 2026-10-04 APK build path
+
+A manual GitHub Actions workflow now provides the repeatable APK path:
+
+```text
+.github/workflows/mobile-apk.yml
+```
+
+Run it from GitHub Actions with the branch or commit to build. It installs the field app, runs TypeScript and Expo configuration checks, starts an EAS Android preview build, waits for completion, downloads the APK, and uploads `roof-os-field-preview.apk` as a workflow artifact retained for 14 days.
+
+The repository must have an `EXPO_TOKEN` Actions secret with permission to build this Expo project. The workflow does not print the token. A successful workflow run with the uploaded artifact is the APK verification evidence; creating the workflow alone is not an APK build.

@@ -643,3 +643,10 @@ The authenticated feature screen was not verified against a live Supabase sessio
 ### Next gate
 
 Run an authenticated mobile smoke test for lead loading, agenda loading, local draft persistence, selected photo album persistence, and sync. Do not start the next feature batch until that gate is green.
+
+
+## 2026-10-04 APK build path
+
+Added `.github/workflows/mobile-apk.yml`. It is a manual, branch-selectable workflow that installs the field app, compiles TypeScript, validates Expo configuration, runs `eas-cli build --platform android --profile preview --wait`, downloads the completed APK, and uploads `roof-os-field-preview-apk` for 14 days.
+
+The workflow requires a repository Actions secret named `EXPO_TOKEN`. No APK artifact exists yet; the workflow must be run successfully before APK verification can be marked complete.

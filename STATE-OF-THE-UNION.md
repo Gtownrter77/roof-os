@@ -196,3 +196,10 @@ The work is additive to the existing mobile login, camera capture, GPS, manual m
 The authenticated mobile feature screen has not yet been verified with a live Supabase session in this environment. A signed Android APK has not been produced. The branch is not merged to `main`. Therefore this batch is **PARTIAL**, not commercially verified or release-complete.
 
 The next gate is an authenticated device/emulator smoke test covering lead selection, agenda loading, offline draft persistence, photo album persistence, and sync. The next feature batch must not start until that gate is green.
+
+
+## 2026-10-04 APK build path
+
+A manual workflow was added at `.github/workflows/mobile-apk.yml`. It accepts a branch or commit, installs and compiles the field app, validates Expo configuration, starts an EAS Android preview build, waits for completion, downloads the APK, and uploads it as the `roof-os-field-preview-apk` artifact.
+
+This path requires the repository Actions secret `EXPO_TOKEN`. The workflow has not yet produced an artifact, so APK verification remains **BLOCKED/PENDING** until a successful run is observed.
