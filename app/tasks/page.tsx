@@ -9,7 +9,6 @@ type LeadOption = { id: string; name: string }
 
 export default function TasksPage() {
   const router = useRouter()
-  const supabase = createClient()
   const [tasks, setTasks] = useState<Task[]>([])
   const [leads, setLeads] = useState<LeadOption[]>([])
   const [form, setForm] = useState({ title: '', dueAt: '', leadId: '', notes: '' })
@@ -18,18 +17,43 @@ export default function TasksPage() {
   const [saving, setSaving] = useState(false)
 
   const loadTasks = async () => {
+    const supabase = createClient()
     setLoading(true)
     const [{ data, error: queryError }, leadRes] = await Promise.all([
       supabase.from('tasks').select('id,title,status,due_at,notes,lead_id').order('due_at', { ascending: true, nullsFirst: false }).limit(100),
       supabase.from('leads').select('id,name').order('created_at', { ascending: false }).limit(100),
     ])
-    if (queryError) setError(queryError.message)
-    else setTasks((data ?? []) as Task[])
-    setLeads(leadRes.data ?? [])
+    if (queryError) {
+      setError(queryError.message)
+    } else {
+      setTasks((data ?? []) as Task[])
+    }
+    if (leadRes.error) setError(leadRes.error.message)
+    else setLeads(leadRes.data ?? [])
     setLoading(false)
   }
 
-  useEffect(() => { void loadTasks() }, [])
+  useEffect(() => {
+    let cancelled = false
+
+    async function load() {
+      const supabase = createClient()
+      setLoading(true)
+      const [{ data, error: queryError }, leadRes] = await Promise.all([
+        supabase.from('tasks').select('id,title,status,due_at,notes,lead_id').order('due_at', { ascending: true, nullsFirst: false }).limit(100),
+        supabase.from('leads').select('id,name').order('created_at', { ascending: false }).limit(100),
+      ])
+      if (cancelled) return
+      if (queryError) setError(queryError.message)
+      else setTasks((data ?? []) as Task[])
+      if (leadRes.error) setError(leadRes.error.message)
+      else setLeads(leadRes.data ?? [])
+      setLoading(false)
+    }
+
+    void load()
+    return () => { cancelled = true }
+  }, [])
 
   const addTask = async (event: React.FormEvent) => {
     event.preventDefault()
@@ -45,10 +69,20 @@ export default function TasksPage() {
   }
 
   const toggleTask = async (task: Task) => {
+    const supabase = createClient()
     const nextStatus = task.status === 'completed' ? 'open' : 'completed'
-    const { error: updateError } = await supabase.from('tasks').update({ status: nextStatus, updated_at: new Date().toISOString() }).eq('id', task.id)
+    const { data: workspaceId } = await supabase.rpc('current_workspace_id')
+    if (!workspaceId) {
+      setError('No workspace is available.')
+      return
+    }
+    const { error: updateError } = await supabase
+      .from('tasks')
+      .update({ status: nextStatus, updated_at: new Date().toISOString() })
+      .eq('id', task.id)
+      .eq('workspace_id', workspaceId)
     if (updateError) setError(updateError.message)
-    else setTasks(tasks.map((item) => item.id === task.id ? { ...item, status: nextStatus } : item))
+    else setTasks((current) => current.map((item) => item.id === task.id ? { ...item, status: nextStatus } : item))
   }
 
   return (
