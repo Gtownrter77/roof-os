@@ -166,6 +166,11 @@ export default function CodesPage() {
 
   const searchCodes = async () => {
     setLoading(true)
+    if (!zipCode.trim()) {
+      setResults({ error: 'Enter a ZIP code to perform a current locality lookup. Embedded snapshots are reference data only and are not used for production guidance.' })
+      setLoading(false)
+      return
+    }
     if (zipCode.trim()) {
       try {
         const response = await fetch(`/api/building-codes?zip=${encodeURIComponent(zipCode)}&category=${encodeURIComponent(selectedCategory)}`)
@@ -178,24 +183,17 @@ export default function CodesPage() {
       }
       return
     }
-    setTimeout(() => {
-      const stateData = codeDatabase[selectedState as keyof typeof codeDatabase]
-      if (stateData) {
-        const categoryData = stateData[selectedCategory as keyof typeof stateData]
-        if (categoryData) {
-          setResults(categoryData)
-        } else {
-          setResults({ error: 'Category not found for this state' })
-        }
-      } else {
-        setResults({ error: 'State not found in database' })
-      }
-      setLoading(false)
-    }, 800)
+    setLoading(false)
   }
 
   const searchByQuery = () => {
     if (!searchQuery.trim()) return
+    if (!zipCode.trim()) {
+      setResults({ error: 'Enter a ZIP code before searching building-code references. Production code guidance must be resolved to a locality.' })
+      return
+    }
+    setResults({ error: 'Use the ZIP lookup above to retrieve the current locality-specific code family. The embedded snapshots are not used for production guidance.' })
+    return
     setLoading(true)
     setTimeout(() => {
       // Search all states and categories
@@ -224,7 +222,7 @@ export default function CodesPage() {
         <div className="px-4 py-3 flex items-center">
           <button onClick={() => router.back()} className="text-white mr-3 text-xl">←</button>
           <h1 className="text-xl font-bold">📋 Building Codes</h1>
-          <span className="ml-2 bg-amber-500 text-white text-xs px-2 py-0.5 rounded-full">ZIP + REVIEW</span>
+          <span className="ml-2 bg-amber-500 text-white text-xs px-2 py-0.5 rounded-full">LOCALITY LOOKUP</span>
         </div>
       </header>
 
@@ -256,7 +254,7 @@ export default function CodesPage() {
             <div>
               <label className="text-xs text-gray-500">ZIP code lookup</label>
               <input value={zipCode} onChange={(e) => setZipCode(e.target.value)} placeholder="Enter ZIP to resolve locality" className="w-full p-2 border rounded-lg text-sm" />
-              <p className="text-xs text-gray-400 mt-1">ZIP lookup identifies the locality and state code family; verify local amendments before use.</p>
+              <p className="text-xs text-gray-400 mt-1">ZIP lookup resolves the locality. Verify local amendments before use. Embedded snapshots are not used for production guidance.</p>
             </div>
             <div className="grid grid-cols-2 gap-3">
             <div>
