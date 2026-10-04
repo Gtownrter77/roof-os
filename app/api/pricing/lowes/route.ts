@@ -24,7 +24,8 @@ export async function GET(request: NextRequest) {
   if (zipcode && !/^\d{5}$/.test(zipcode)) return NextResponse.json({ error: 'zipcode must be five digits.' }, { status: 400 })
   if (storeId && !/^\d{1,12}$/.test(storeId)) return NextResponse.json({ error: 'storeId must contain digits only.' }, { status: 400 })
 
-  const { data: cached } = await supabase.from('retailer_price_snapshots')
+  let cacheQuery = supabase
+    .from('retailer_price_snapshots')
     .select('response, retrieved_at, expires_at, source_url')
     .eq('workspace_id', workspaceId).eq('provider', 'lowes').eq('query', query)
   cacheQuery = zipcode ? cacheQuery.eq('zipcode', zipcode) : cacheQuery.is('zipcode', null)
