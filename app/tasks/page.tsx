@@ -9,7 +9,6 @@ type LeadOption = { id: string; name: string }
 
 export default function TasksPage() {
   const router = useRouter()
-  const supabase = createClient()
   const [tasks, setTasks] = useState<Task[]>([])
   const [leads, setLeads] = useState<LeadOption[]>([])
   const [form, setForm] = useState({ title: '', dueAt: '', leadId: '', notes: '' })
@@ -19,12 +18,17 @@ export default function TasksPage() {
 
   const loadTasks = async () => {
     setLoading(true)
+    const supabase = createClient()
     const [{ data, error: queryError }, leadRes] = await Promise.all([
       supabase.from('tasks').select('id,title,status,due_at,notes,lead_id').order('due_at', { ascending: true, nullsFirst: false }).limit(100),
       supabase.from('leads').select('id,name').order('created_at', { ascending: false }).limit(100),
     ])
-    if (queryError) setError(queryError.message)
-    else setTasks((data ?? []) as Task[])
+    if (queryError || leadRes.error) {
+      setError(queryError?.message ?? leadRes.error?.message ?? 'Could not load tasks.')
+      setLoading(false)
+      return
+    }
+    setTasks((data ?? []) as Task[])
     setLeads(leadRes.data ?? [])
     setLoading(false)
   }
@@ -35,6 +39,7 @@ export default function TasksPage() {
     event.preventDefault()
     if (!form.title.trim()) return
     setSaving(true); setError('')
+    const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     const { data: workspaceId } = await supabase.rpc('current_workspace_id')
     if (!user || !workspaceId) { setError('No workspace is available.'); setSaving(false); return }
@@ -46,9 +51,10 @@ export default function TasksPage() {
 
   const toggleTask = async (task: Task) => {
     const nextStatus = task.status === 'completed' ? 'open' : 'completed'
+    const supabase = createClient()
     const { error: updateError } = await supabase.from('tasks').update({ status: nextStatus, updated_at: new Date().toISOString() }).eq('id', task.id)
     if (updateError) setError(updateError.message)
-    else setTasks(tasks.map((item) => item.id === task.id ? { ...item, status: nextStatus } : item))
+    else setTasks((current) => current.map((item) => item.id === task.id ? { ...item, status: nextStatus } : item))
   }
 
   return (
