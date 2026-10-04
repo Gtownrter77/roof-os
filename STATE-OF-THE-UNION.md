@@ -203,3 +203,8 @@ The next gate is an authenticated device/emulator smoke test covering lead selec
 A manual workflow was added at `.github/workflows/mobile-apk.yml`. It accepts a branch or commit, installs and compiles the field app, validates Expo configuration, starts an EAS Android preview build, waits for completion, downloads the APK, and uploads it as the `roof-os-field-preview-apk` artifact.
 
 This path requires the repository Actions secret `EXPO_TOKEN`. The workflow has not yet produced an artifact, so APK verification remains **BLOCKED/PENDING** until a successful run is observed.
+
+
+## 2026-10-04 clean-install bundle fix
+
+The EAS JavaScript bundle failure was reproduced locally and fixed. The cause was a broken clean-install link to the vendored `braces` mitigation plus an undeclared top-level `fill-range` dependency. The field app now uses a field-local vendored package path and explicitly installs `fill-range`. Fresh `npm ci`, `braces` loading, Android Expo embedding, TypeScript, mobile release, offline-sync, and security checks pass locally. APK artifact verification remains pending on the next EAS run.

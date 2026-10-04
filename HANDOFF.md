@@ -650,3 +650,8 @@ Run an authenticated mobile smoke test for lead loading, agenda loading, local d
 Added `.github/workflows/mobile-apk.yml`. It is a manual, branch-selectable workflow that installs the field app, compiles TypeScript, validates Expo configuration, runs `eas-cli build --platform android --profile preview --wait`, downloads the completed APK, and uploads `roof-os-field-preview-apk` for 14 days.
 
 The workflow requires a repository Actions secret named `EXPO_TOKEN`. No APK artifact exists yet; the workflow must be run successfully before APK verification can be marked complete.
+
+
+## 2026-10-04 clean-install bundle fix
+
+The first EAS APK attempt authenticated successfully but failed during Bundle JavaScript. The failure was reproduced with clean `npm ci`: the field override linked `braces` to the wrong relative location, and `fill-range` was not installed where the vendored package could resolve it. The focused fix moves the vendored mitigation package under `apps/field/vendor/braces`, updates the override, and declares `fill-range` explicitly. Fresh `npm ci` plus `npx expo export:embed --eager --platform android --dev false` now passes locally. A new EAS run is still required for the APK artifact.
