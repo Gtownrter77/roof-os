@@ -26,7 +26,7 @@ export default function CodesPage() {
     'Energy Efficiency', 'Environmental', 'Zoning', 'Permits'
   ]
 
-  // Comprehensive building code database
+  // Reference snapshots only. ZIP lookups use the current review endpoint.
   const codeDatabase: Record<string, Record<string, any>> = {
     'GA': {
       'Roofing': {
@@ -194,6 +194,26 @@ export default function CodesPage() {
     }, 800)
   }
 
+  const exportCodeReport = () => {
+    if (!results) return
+
+    const payload = {
+      type: 'roof-os-building-code-reference',
+      state: selectedState,
+      category: selectedCategory,
+      zip: zipCode.trim() || null,
+      results,
+      exportedAt: new Date().toISOString(),
+      warning: 'Reference data only. Verify the current locally adopted code, amendments, permits, and inspection requirements with the governing authority before use.',
+    }
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
+    const link = document.createElement('a')
+    link.download = 'roof-os-building-code-reference-' + new Date().toISOString().slice(0, 10) + '.json'
+    link.href = URL.createObjectURL(blob)
+    link.click()
+    URL.revokeObjectURL(link.href)
+  }
+
   const searchByQuery = () => {
     if (!searchQuery.trim()) return
     setLoading(true)
@@ -224,11 +244,14 @@ export default function CodesPage() {
         <div className="px-4 py-3 flex items-center">
           <button onClick={() => router.back()} className="text-white mr-3 text-xl">←</button>
           <h1 className="text-xl font-bold">📋 Building Codes</h1>
-          <span className="ml-2 bg-amber-500 text-white text-xs px-2 py-0.5 rounded-full">ZIP + REVIEW</span>
+          <span className="ml-2 bg-amber-500 text-white text-xs px-2 py-0.5 rounded-full">REFERENCE + ZIP</span>
         </div>
       </header>
 
       <main className="p-4">
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
+          <p className="text-xs text-amber-900">Building-code content on this page is a reference snapshot, not legal or permit authority. ZIP results should be verified against the current local adoption and amendments.</p>
+        </div>
         {/* Search */}
         <div className="bg-white rounded-lg shadow-lg p-4 mb-4 border border-blue-200">
           <h3 className="font-semibold text-sm mb-3">🔍 Search Codes</h3>
@@ -416,8 +439,8 @@ export default function CodesPage() {
             )}
 
             {/* Export */}
-            <button className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold">
-              📄 Export Code Report
+            <button type="button" onClick={exportCodeReport} className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold">
+              📄 Export Reference
             </button>
           </div>
         )}
