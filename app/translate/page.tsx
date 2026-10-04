@@ -7,6 +7,7 @@ export default function TranslatePage() {
   const router = useRouter()
   const [text, setText] = useState('')
   const [translated, setTranslated] = useState('')
+  const [actionMessage, setActionMessage] = useState('')
   const [fromLang, setFromLang] = useState('en')
   const [toLang, setToLang] = useState('es')
 
@@ -68,6 +69,25 @@ export default function TranslatePage() {
   }
 
   const translateText = () => {
+    setActionMessage('')
+    const trimmed = text.trim()
+    if (!trimmed) {
+      setTranslated('')
+      setActionMessage('Enter text to translate.')
+      return
+    }
+
+    const key = `${fromLang}-${toLang}`
+    const translationMap = translations[key as keyof typeof translations]
+    if (!translationMap) {
+      setTranslated('')
+      setActionMessage('This language pair is not available in the local construction phrasebook yet.')
+      return
+    }
+
+    let translatedText = text
+    Object.entries(translationMap).forEach(([source, target]) => {
+      const escaped = source.replace(/[.*+?^$\{}()|[\]\\]/g, '\\  const translateText = () => {
     const key = `${fromLang}-${toLang}`
     const translationMap = translations[key as keyof typeof translations]
     if (translationMap) {
@@ -78,6 +98,35 @@ export default function TranslatePage() {
       setTranslated(translatedText || 'Translation not available for this language pair.')
     } else {
       setTranslated('Translation not available for this language pair.')
+    }
+  }')
+      translatedText = translatedText.replace(new RegExp(escaped, 'gi'), target)
+    })
+    setTranslated(translatedText)
+  }
+
+  const copyTranslation = async () => {
+    if (!translated) return
+    try {
+      await navigator.clipboard.writeText(translated)
+      setActionMessage('Translation copied.')
+    } catch {
+      setActionMessage('Copy is not available in this browser.')
+    }
+  }
+
+  const shareTranslation = async () => {
+    if (!translated) return
+    if (!navigator.share) {
+      setActionMessage('Sharing is not available in this browser.')
+      return
+    }
+    try {
+      await navigator.share({ text: translated })
+      setActionMessage('Translation shared.')
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return
+      setActionMessage('Could not share the translation.')
     }
   }
 
@@ -96,7 +145,7 @@ export default function TranslatePage() {
             <span className="text-3xl mr-3">🌐</span>
             <div>
               <h3 className="font-semibold">Multi-Language Translation</h3>
-              <p className="text-xs text-gray-500">Translate estimates, reports, and communications</p>
+              <p className="text-xs text-gray-500">Translate common construction phrases without a remote translation service.</p>
             </div>
           </div>
         </div>
@@ -153,15 +202,16 @@ export default function TranslatePage() {
             </h3>
             <p className="text-gray-700">{translated}</p>
             <div className="mt-3 flex gap-2">
-              <button className="bg-blue-600 text-white text-xs px-3 py-1 rounded">📋 Copy</button>
-              <button className="bg-green-600 text-white text-xs px-3 py-1 rounded">📤 Share</button>
+              <button type="button" onClick={() => void copyTranslation()} className="bg-blue-600 text-white text-xs px-3 py-1 rounded">📋 Copy</button>
+              <button type="button" onClick={() => void shareTranslation()} className="bg-green-600 text-white text-xs px-3 py-1 rounded">📤 Share</button>
             </div>
           </div>
         )}
 
+        {actionMessage && <p className="mt-3 text-sm text-blue-800 bg-blue-50 rounded p-3" role="status">{actionMessage}</p>}
         <div className="mt-4 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
           <p className="text-xs text-yellow-800">
-            💡 Common construction phrases available in 12 languages
+            💡 The built-in phrasebook currently supports English to Spanish, French, and German.
           </p>
         </div>
       </main>
