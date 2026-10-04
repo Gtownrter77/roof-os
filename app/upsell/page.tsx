@@ -158,20 +158,6 @@ export default function UpsellPage() {
     return colors[priority] || 'bg-gray-100 text-gray-800'
   }
 
-  const totalUpsellPotential = () => {
-    if (!upsells || !upsells.primary) return 0
-    let total = 0
-    upsells.primary.forEach((item: any) => {
-      const cost = item.costIncrease ? parseFloat(item.costIncrease.replace(/[^0-9.-]+/g, '')) : 0
-      total += cost
-    })
-    upsells.crossSell?.forEach((item: any) => {
-      const cost = item.cost ? parseFloat(item.cost.replace(/[^0-9.-]+/g, '')) : 0
-      total += cost
-    })
-    return total
-  }
-
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       <header className="bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-lg sticky top-0 z-10">
