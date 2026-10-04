@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 export default function PricingConfigPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
-  const [lastUpdate, setLastUpdate] = useState<Date>(new Date())
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null)
   const [taxRates, setTaxRates] = useState({ state: 0, county: 0, city: 0, specialDistrict: 0 })
   const [taxSource, setTaxSource] = useState('Owner-entered jurisdiction rates')
   const [selectedState, setSelectedState] = useState('GA')
@@ -29,10 +29,6 @@ export default function PricingConfigPage() {
   })
 
   const [materialMarkup, setMaterialMarkup] = useState(25)
-  const [priceHistory, setPriceHistory] = useState<any[]>([])
-  const [dailyPrices, setDailyPrices] = useState<any>(null)
-  const [selectedJobType, setSelectedJobType] = useState('roofing')
-  const [customRate, setCustomRate] = useState('')
   const [saveMessage, setSaveMessage] = useState('')
   const [materialQuery, setMaterialQuery] = useState('')
   const [materials, setMaterials] = useState<any[]>([])
@@ -67,9 +63,20 @@ export default function PricingConfigPage() {
     'WY': 4.0
   }
 
-  const generateDailyPrices = () => {
-    setLoading(false)
-    setDailyPrices(null)
+  const refreshRetailerPrices = async () => {
+    setLoading(true)
+    setSaveMessage('Refreshing the approved retailer watchlist…')
+    try {
+      const response = await fetch('/api/pricing/refresh', { method: 'POST' })
+      const payload = await response.json()
+      if (!response.ok) throw new Error(payload.error ?? 'Could not refresh retailer pricing.')
+      setLastUpdate(new Date())
+      setSaveMessage(`Retailer refresh complete: ${payload.count ?? 0} watchlist item(s) processed. These values remain reference-only until owner review.`)
+    } catch (error) {
+      setSaveMessage(error instanceof Error ? error.message : 'Could not refresh retailer pricing.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const updateLaborRate = (jobType: string, rate: string) => {
@@ -145,43 +152,17 @@ export default function PricingConfigPage() {
           <div className="flex justify-between items-center">
             <div>
               <p className="text-xs text-gray-500">Last Price Update</p>
-              <p className="font-bold text-sm">{lastUpdate.toLocaleString()}</p>
+              <p className="font-bold text-sm">{lastUpdate ? lastUpdate.toLocaleString() : 'No saved price-book update yet'}</p>
             </div>
             <button
-              onClick={generateDailyPrices}
+              onClick={() => void refreshRetailerPrices()}
               disabled={loading}
               className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold disabled:opacity-50"
             >
-              {loading ? '⏳ Loading...' : '🔄 Connect a price source'}
+              {loading ? '⏳ Refreshing…' : '🔄 Refresh retailer watchlist'}
             </button>
           </div>
         </div>
-
-        {/* Daily Material Prices */}
-        {dailyPrices && (
-          <div className="bg-white rounded-lg shadow-lg p-4 mb-4 border border-green-200">
-            <h3 className="font-semibold text-sm mb-3 flex items-center">
-              <span className="text-xl mr-2">📊</span> Daily Material Prices
-            </h3>
-            <div className="grid grid-cols-2 gap-2">
-              {Object.entries(dailyPrices).map(([key, value]: [string, any]) => (
-                <div key={key} className="bg-gray-50 rounded-lg p-2 border border-gray-200">
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs font-medium capitalize">{key}</span>
-                    <span className={`text-xs ${getTrendColor(value.change)}`}>
-                      {getTrendIcon(value.trend)} {value.change}%
-                    </span>
-                  </div>
-                  <p className="text-lg font-bold">${value.current}</p>
-                  <p className="text-xs text-gray-400">Base: ${value.base}</p>
-                </div>
-              ))}
-            </div>
-            <div className="mt-2 text-xs text-gray-400 text-center">
-              Imported source values only — every value must carry a source, market, and effective date.
-            </div>
-          </div>
-        )}
 
         <div className="bg-amber-50 rounded-lg shadow-sm p-4 mb-4 border border-amber-200">
           <h3 className="font-semibold text-sm mb-2">Current claims pricing is not connected</h3>
@@ -276,27 +257,6 @@ export default function PricingConfigPage() {
           </div>
           {saveMessage && <p className="mt-3 text-xs text-blue-800 bg-blue-50 rounded p-2">{saveMessage}</p>}
         </div>
-
-        {/* Price History */}
-        {priceHistory.length > 0 && (
-          <div className="bg-white rounded-lg shadow-lg p-4 mb-4 border border-gray-200">
-            <h3 className="font-semibold text-sm mb-3 flex items-center">
-              <span className="text-xl mr-2">📜</span> Price History
-            </h3>
-            <div className="space-y-1 max-h-48 overflow-y-auto">
-              {priceHistory.slice(0, 7).map((entry, i) => (
-                <div key={i} className="flex justify-between items-center border-b py-1 text-sm">
-                  <span className="text-gray-600">{entry.date}</span>
-                  <div className="flex gap-3">
-                    <span className="text-xs">🪙 ${entry.prices?.shingles?.current || '-'}</span>
-                    <span className="text-xs">🪵 ${entry.prices?.lumber?.current || '-'}</span>
-                    <span className="text-xs">🪟 ${entry.prices?.windows?.current || '-'}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
 
         {/* Markup & Summary */}
         <div className="bg-white rounded-lg shadow-lg p-4 mb-4 border border-blue-200">
