@@ -8,19 +8,29 @@ type Item = { title: string; why: string; href: string }
 
 export default function BriefPage() {
   const router = useRouter()
-  const supabase = createClient()
   const [items, setItems] = useState<Item[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    let cancelled = false
+
     async function load() {
+      const supabase = createClient()
       const now = new Date().toISOString()
-      const [{ data: cold }, { data: tasks }, { data: warranties }, { data: sessions }] = await Promise.all([
+      const [{ data: cold, error: coldError }, { data: tasks, error: tasksError }, { data: warranties, error: warrantiesError }, { data: sessions, error: sessionsError }] = await Promise.all([
         supabase.from('leads').select('id,name,status,created_at').in('status', ['new', 'qualified', 'report_pending']).order('created_at', { ascending: true }).limit(20),
         supabase.from('tasks').select('id,title,due_at,lead_id,status').eq('status', 'open').limit(20),
         supabase.from('warranties').select('id,manufacturer,registration_status,lead_id,missing_items').in('registration_status', ['not_started', 'packet_ready']).limit(20),
         supabase.from('inspection_sessions').select('id,lead_id,status').eq('status', 'in_progress').limit(20),
       ])
+      if (cancelled) return
+      const firstError = coldError ?? tasksError ?? warrantiesError ?? sessionsError
+      if (firstError) {
+        setError(firstError.message)
+        setLoading(false)
+        return
+      }
       const next: Item[] = []
       ;(cold ?? []).forEach((lead) => next.push({ title: `Move ${lead.name}`, why: `Stuck in ${lead.status.replaceAll('_', ' ')}`, href: `/leads/${lead.id}` }))
       ;(tasks ?? []).filter((task) => task.due_at && task.due_at < now).forEach((task) => next.push({ title: task.title, why: 'Overdue follow-up', href: task.lead_id ? `/leads/${task.lead_id}` : '/tasks' }))
@@ -30,7 +40,8 @@ export default function BriefPage() {
       setLoading(false)
     }
     void load()
-  }, [supabase])
+    return () => { cancelled = true }
+  }, [])
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 pb-24">
@@ -38,7 +49,8 @@ export default function BriefPage() {
       <h1 className="text-2xl font-bold">Owner brief</h1>
       <p className="text-sm text-gray-600 mb-4">Exceptions only. Not another dashboard to hunt through.</p>
       {loading && <p className="text-sm text-gray-500">Building today’s exceptions…</p>}
-      {!loading && items.length === 0 && <p className="text-sm text-gray-500">No blockers in the current records.</p>}
+      {error && <p className="text-sm text-red-600">{error}</p>}
+      {!loading && !error && items.length === 0 && <p className="text-sm text-gray-500">No blockers in the current records.</p>}
       {items.map((item, index) => (
         <button key={`${item.href}-${index}`} onClick={() => router.push(item.href)} className="w-full text-left bg-white rounded-lg shadow p-4 mb-3">
           <p className="font-semibold">{item.title}</p>
