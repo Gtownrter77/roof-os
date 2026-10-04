@@ -164,7 +164,7 @@ export default function UpsellPage() {
         <div className="px-4 py-3 flex items-center">
           <button onClick={() => router.back()} className="text-white mr-3 text-xl">←</button>
           <h1 className="text-xl font-bold">💰 Upsell Suggestions</h1>
-          <span className="ml-2 bg-green-500 text-white text-xs px-2 py-0.5 rounded-full >REFERENCE</span>
+          <span className="ml-2 bg-green-500 text-white text-xs px-2 py-0.5 rounded-full">REFERENCE</span>
         </div>
       </header>
 
