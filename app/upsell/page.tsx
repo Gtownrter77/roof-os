@@ -8,6 +8,7 @@ export default function UpsellPage() {
   const [selectedProject, setSelectedProject] = useState('')
   const [upsells, setUpsells] = useState<any>(null)
   const [loading, setLoading] = useState(false)
+  const [message, setMessage] = useState('')
 
   const projectTypes = [
     'Roof Replacement',
@@ -26,18 +27,12 @@ export default function UpsellPage() {
         { 
           name: 'Premium Shingles', 
           upgrade: 'Architectural shingles vs 3-tab',
-          costIncrease: '$500-$2,000',
-          roi: '87%',
-          profitMargin: '35%',
           customerBenefit: '40-year warranty, better curb appeal',
           priority: 'High'
         },
         { 
           name: 'Ice & Water Shield', 
           upgrade: 'Full coverage vs minimal',
-          costIncrease: '$300-$800',
-          roi: '92%',
-          profitMargin: '40%',
           customerBenefit: 'Prevents ice dam damage, longer roof life',
           priority: 'High'
         }
@@ -46,15 +41,11 @@ export default function UpsellPage() {
         { 
           name: 'Gutter Guards', 
           description: 'Prevent clogs and damage',
-          cost: '$800-$2,000',
-          profit: '40%',
           priority: 'High'
         },
         { 
           name: 'Skylight Installation', 
           description: 'Add natural light to attic',
-          cost: '$1,500-$3,500',
-          profit: '35%',
           priority: 'Medium'
         }
       ]
@@ -64,9 +55,6 @@ export default function UpsellPage() {
         { 
           name: 'Premium Siding Material', 
           upgrade: 'HardiePlank vs Vinyl',
-          costIncrease: '$2,000-$6,000',
-          roi: '92%',
-          profitMargin: '38%',
           customerBenefit: '100-year lifespan, fire resistant, no rot',
           priority: 'High'
         }
@@ -75,8 +63,6 @@ export default function UpsellPage() {
         { 
           name: 'Window Replacement', 
           description: 'Match new siding with new windows',
-          cost: '$3,000-$8,000',
-          profit: '30%',
           priority: 'High'
         }
       ]
@@ -86,9 +72,6 @@ export default function UpsellPage() {
         { 
           name: 'Energy-Efficient Glass', 
           upgrade: 'Low-E argon vs standard',
-          costIncrease: '$200-$500/window',
-          roi: '95%',
-          profitMargin: '35%',
           customerBenefit: '30% energy savings, UV protection',
           priority: 'High'
         }
@@ -97,8 +80,6 @@ export default function UpsellPage() {
         { 
           name: 'Door Replacement', 
           description: 'Complete entry upgrade',
-          cost: '$1,500-$4,000',
-          profit: '30%',
           priority: 'High'
         }
       ]
@@ -108,9 +89,6 @@ export default function UpsellPage() {
         { 
           name: 'Premium Decking', 
           upgrade: 'Composite vs wood',
-          costIncrease: '$2,000-$5,000',
-          roi: '90%',
-          profitMargin: '35%',
           customerBenefit: 'No maintenance, 25-year warranty, no splinters',
           priority: 'High'
         }
@@ -119,8 +97,6 @@ export default function UpsellPage() {
         { 
           name: 'Pergola', 
           description: 'Covered deck area',
-          cost: '$2,500-$6,000',
-          profit: '30%',
           priority: 'High'
         }
       ]
@@ -130,9 +106,6 @@ export default function UpsellPage() {
         { 
           name: 'Copper Gutters', 
           upgrade: 'Copper vs aluminum',
-          costIncrease: '$1,000-$3,000',
-          roi: '92%',
-          profitMargin: '40%',
           customerBenefit: '100-year lifespan, premium appearance',
           priority: 'High'
         }
@@ -141,8 +114,6 @@ export default function UpsellPage() {
         { 
           name: 'Downspout Extensions', 
           description: 'Better water management',
-          cost: '$200-$500',
-          profit: '40%',
           priority: 'Medium'
         }
       ]
@@ -151,20 +122,31 @@ export default function UpsellPage() {
 
   const getUpsells = () => {
     if (!selectedProject) {
-      alert('Please select a project type')
+      setMessage('Select a project type first.')
       return
     }
-    
+
+    setMessage('')
     setLoading(true)
-    setTimeout(() => {
-      const data = upsellDatabase[selectedProject as keyof typeof upsellDatabase]
-      if (data) {
-        setUpsells(data)
-      } else {
-        setUpsells({ primary: [], crossSell: [] })
-      }
-      setLoading(false)
-    }, 800)
+    const data = upsellDatabase[selectedProject as keyof typeof upsellDatabase]
+    setUpsells(data ?? { primary: [], crossSell: [] })
+    setLoading(false)
+  }
+
+  const copyProposal = async () => {
+    if (!upsells) return
+    const lines = [
+      'ROOF/OS upsell suggestions',
+      'Project: ' + selectedProject,
+      ...(upsells.primary ?? []).map((item: any) => 'Upgrade: ' + item.name + ' — ' + item.upgrade),
+      ...(upsells.crossSell ?? []).map((item: any) => 'Cross-sell: ' + item.name + ' — ' + item.description),
+    ]
+    try {
+      await navigator.clipboard.writeText(lines.join('\n'))
+      setMessage('Upsell suggestions copied. Pricing must come from the active owner-managed price book.')
+    } catch {
+      setMessage('Copy is not available in this browser.')
+    }
   }
 
   const getPriorityColor = (priority: string) => {
@@ -176,27 +158,13 @@ export default function UpsellPage() {
     return colors[priority] || 'bg-gray-100 text-gray-800'
   }
 
-  const totalUpsellPotential = () => {
-    if (!upsells || !upsells.primary) return 0
-    let total = 0
-    upsells.primary.forEach((item: any) => {
-      const cost = item.costIncrease ? parseFloat(item.costIncrease.replace(/[^0-9.-]+/g, '')) : 0
-      total += cost
-    })
-    upsells.crossSell?.forEach((item: any) => {
-      const cost = item.cost ? parseFloat(item.cost.replace(/[^0-9.-]+/g, '')) : 0
-      total += cost
-    })
-    return total
-  }
-
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       <header className="bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-lg sticky top-0 z-10">
         <div className="px-4 py-3 flex items-center">
           <button onClick={() => router.back()} className="text-white mr-3 text-xl">←</button>
-          <h1 className="text-xl font-bold">💰 AI Upsell Engine</h1>
-          <span className="ml-2 bg-green-500 text-white text-xs px-2 py-0.5 rounded-full animate-pulse">PRO</span>
+          <h1 className="text-xl font-bold">💰 Upsell Suggestions</h1>
+          <span className="ml-2 bg-green-500 text-white text-xs px-2 py-0.5 rounded-full >REFERENCE</span>
         </div>
       </header>
 
@@ -227,16 +195,8 @@ export default function UpsellPage() {
         {upsells && (
           <div className="space-y-4 animate-fadeIn">
             <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-lg shadow-lg p-4 border-2 border-amber-500">
-              <div className="flex justify-between items-center">
-                <div>
-                  <p className="text-xs text-gray-500">Total Upsell Potential</p>
-                  <p className="text-2xl font-bold text-amber-600">${totalUpsellPotential().toLocaleString()}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-xs text-gray-500">Estimated Profit</p>
-                  <p className="text-xl font-bold text-green-600">+${(totalUpsellPotential() * 0.35).toFixed(0)}</p>
-                </div>
-              </div>
+              <p className="font-semibold text-sm">Reference suggestions only</p>
+              <p className="text-xs text-gray-600 mt-1">No ROI, margin, or selling price is calculated here. Use the active owner-managed price book before quoting a customer.</p>
             </div>
 
             {upsells.primary && upsells.primary.length > 0 && (
@@ -259,20 +219,6 @@ export default function UpsellPage() {
                         {item.priority}
                       </span>
                     </div>
-                    <div className="grid grid-cols-3 gap-2 mt-2 text-xs">
-                      <div>
-                        <span className="text-gray-500">Added Cost:</span>
-                        <span className="font-bold block">{item.costIncrease}</span>
-                      </div>
-                      <div>
-                        <span className="text-gray-500">ROI:</span>
-                        <span className="font-bold block text-green-600">{item.roi}</span>
-                      </div>
-                      <div>
-                        <span className="text-gray-500">Margin:</span>
-                        <span className="font-bold block text-blue-600">{item.profitMargin}</span>
-                      </div>
-                    </div>
                     <p className="text-xs text-gray-600 mt-2">✅ {item.customerBenefit}</p>
                   </div>
                 ))}
@@ -289,10 +235,6 @@ export default function UpsellPage() {
                     <div key={i} className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                       <p className="font-medium text-sm">{item.name}</p>
                       <p className="text-xs text-gray-500">{item.description}</p>
-                      <div className="flex justify-between items-center mt-2">
-                        <span className="text-xs font-bold text-blue-600">{item.cost}</span>
-                        <span className="text-xs text-green-600">{item.profit} margin</span>
-                      </div>
                       <span className={`text-xs px-2 py-0.5 rounded ${
                         item.priority === 'High' ? 'bg-red-100 text-red-800' :
                         item.priority === 'Medium' ? 'bg-yellow-100 text-yellow-800' :
@@ -307,13 +249,14 @@ export default function UpsellPage() {
             )}
 
             <div className="grid grid-cols-2 gap-2">
-              <button className="bg-amber-600 text-white py-2 rounded-lg text-sm font-semibold">
-                📄 Generate Upsell Proposal
+              <button type="button" onClick={() => void copyProposal()} className="bg-amber-600 text-white py-2 rounded-lg text-sm font-semibold">
+                📋 Copy Proposal
               </button>
-              <button className="bg-orange-600 text-white py-2 rounded-lg text-sm font-semibold">
-                💰 Add to Estimate
+              <button type="button" onClick={() => router.push('/pricing')} className="bg-orange-600 text-white py-2 rounded-lg text-sm font-semibold">
+                💰 Open Estimate
               </button>
             </div>
+            {message && <p className="mt-3 text-sm text-blue-800 bg-blue-50 rounded p-3" role="status">{message}</p>}
           </div>
         )}
       </main>
