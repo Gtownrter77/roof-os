@@ -27,7 +27,9 @@ export async function GET(request: NextRequest) {
   const { data: cached } = await supabase.from('retailer_price_snapshots')
     .select('response, retrieved_at, expires_at, source_url')
     .eq('workspace_id', workspaceId).eq('provider', 'lowes').eq('query', query)
-    .eq('zipcode', zipcode ?? null).eq('store_id', storeId ?? null)
+  cacheQuery = zipcode ? cacheQuery.eq('zipcode', zipcode) : cacheQuery.is('zipcode', null)
+  cacheQuery = storeId ? cacheQuery.eq('store_id', storeId) : cacheQuery.is('store_id', null)
+  const { data: cached } = await cacheQuery
     .gt('expires_at', new Date().toISOString()).order('retrieved_at', { ascending: false }).limit(1).maybeSingle()
   if (cached) return NextResponse.json({ provider: 'lowes', cached: true, source: 'retailer_reference_only', ...cached })
 
