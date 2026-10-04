@@ -9,26 +9,35 @@ type Lead = { id: string; name: string; address: string; status: string }
 
 export default function Home() {
   const router = useRouter()
-  const supabase = createClient()
   const [recentLeads, setRecentLeads] = useState<Lead[]>([])
   const [counts, setCounts] = useState({ leads: 0, openTasks: 0, warranties: 0 })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    let cancelled = false
+
     async function load() {
+      const supabase = createClient()
       const [leadsRes, recentRes, tasksRes, warrantyRes] = await Promise.all([
         supabase.from('leads').select('id', { count: 'exact', head: true }),
         supabase.from('leads').select('id,name,address,status').order('created_at', { ascending: false }).limit(5),
         supabase.from('tasks').select('id', { count: 'exact', head: true }).eq('status', 'open'),
         supabase.from('warranties').select('id', { count: 'exact', head: true }).in('registration_status', ['not_started', 'packet_ready']),
       ])
-      if (recentRes.error) setError(recentRes.error.message)
-      else setRecentLeads(recentRes.data || [])
+      if (cancelled) return
+      const firstError = leadsRes.error ?? recentRes.error ?? tasksRes.error ?? warrantyRes.error
+      if (firstError) {
+        setError(firstError.message)
+        setLoading(false)
+        return
+      }
+      setRecentLeads(recentRes.data || [])
       setCounts({ leads: leadsRes.count ?? 0, openTasks: tasksRes.count ?? 0, warranties: warrantyRes.count ?? 0 })
       setLoading(false)
     }
     void load()
+    return () => { cancelled = true }
   }, [])
 
   return (
