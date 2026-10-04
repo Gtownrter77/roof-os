@@ -34,3 +34,8 @@ A manual GitHub Actions workflow now provides the repeatable APK path:
 Run it from GitHub Actions with the branch or commit to build. It installs the field app, runs TypeScript and Expo configuration checks, starts an EAS Android preview build, waits for completion, downloads the APK, and uploads `roof-os-field-preview.apk` as a workflow artifact retained for 14 days.
 
 The repository must have an `EXPO_TOKEN` Actions secret with permission to build this Expo project. The workflow does not print the token. A successful workflow run with the uploaded artifact is the APK verification evidence; creating the workflow alone is not an APK build.
+
+
+## 2026-10-04 clean-install bundle fix
+
+The Android EAS bundle failure was reproduced locally. A clean `npm ci` created a broken link for the repository's vendored `braces` mitigation, and the vendored package could not resolve `fill-range`. The field app now keeps the mitigation package under `apps/field/vendor/braces`, points the npm override to that field-local package, and declares `fill-range` explicitly in the field dependencies. A fresh `npm ci` now loads `braces` and completes `npx expo export:embed --eager --platform android --dev false` successfully.
