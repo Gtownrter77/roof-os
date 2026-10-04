@@ -1,210 +1,251 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-
-type Measurement = { text: string; id: number }
-type Tool = 'pencil' | 'line' | 'rectangle' | 'circle'
-type Point = { x: number; y: number }
-
-const CANVAS_HEIGHT = 400
-const CANVAS_SCALE = 2
 
 export default function SketchPage() {
   const router = useRouter()
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const historyRef = useRef<ImageData[]>([])
-  const strokeStartRef = useRef<Point | null>(null)
-  const beforeStrokeRef = useRef<ImageData | null>(null)
   const [isDrawing, setIsDrawing] = useState(false)
-  const [tool, setTool] = useState<Tool>('pencil')
+  const [tool, setTool] = useState('pencil')
   const [color, setColor] = useState('#2563EB')
   const [brushSize, setBrushSize] = useState(3)
-  const [measurements, setMeasurements] = useState<Measurement[]>([])
-
-  const drawGrid = (ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) => {
-    ctx.strokeStyle = '#e5e7eb'
-    ctx.lineWidth = 0.5
-    for (let x = 0; x < canvas.width / CANVAS_SCALE; x += 20) {
-      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height / CANVAS_SCALE); ctx.stroke()
-    }
-    for (let y = 0; y < canvas.height / CANVAS_SCALE; y += 20) {
-      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width / CANVAS_SCALE, y); ctx.stroke()
-    }
-  }
+  const [shapes, setShapes] = useState<any[]>([])
+  const [measurements, setMeasurements] = useState<any[]>([])
+  const [undoStack, setUndoStack] = useState<any[]>([])
 
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
-    canvas.width = Math.max(1, Math.round(canvas.offsetWidth)) * CANVAS_SCALE
-    canvas.height = CANVAS_HEIGHT * CANVAS_SCALE
     const ctx = canvas.getContext('2d')
     if (!ctx) return
-    ctx.scale(CANVAS_SCALE, CANVAS_SCALE)
-    drawGrid(ctx, canvas)
-    historyRef.current = [ctx.getImageData(0, 0, canvas.width, canvas.height)]
+    
+    // Set canvas size
+    canvas.width = canvas.offsetWidth * 2
+    canvas.height = 400 * 2
+    ctx.scale(2, 2)
+    
+    // Draw grid
+    drawGrid(ctx)
   }, [])
 
-  const getPoint = (event: React.PointerEvent<HTMLCanvasElement>): Point => {
-    const rect = canvasRef.current?.getBoundingClientRect()
-    return rect ? { x: event.clientX - rect.left, y: event.clientY - rect.top } : { x: 0, y: 0 }
+  const drawGrid = (ctx: CanvasRenderingContext2D) => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    ctx.strokeStyle = '#e5e7eb'
+    ctx.lineWidth = 0.5
+    
+    // Vertical lines
+    for (let x = 0; x < canvas.width / 2; x += 20) {
+      ctx.beginPath()
+      ctx.moveTo(x, 0)
+      ctx.lineTo(x, canvas.height / 2)
+      ctx.stroke()
+    }
+    
+    // Horizontal lines
+    for (let y = 0; y < canvas.height / 2; y += 20) {
+      ctx.beginPath()
+      ctx.moveTo(0, y)
+      ctx.lineTo(canvas.width / 2, y)
+      ctx.stroke()
+    }
   }
 
-  const drawShape = (ctx: CanvasRenderingContext2D, start: Point, end: Point) => {
+  const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+    
+    setIsDrawing(true)
+    const rect = canvas.getBoundingClientRect()
+    const x = ('touches' in e) ? e.touches[0].clientX - rect.left : e.clientX - rect.left
+    const y = ('touches' in e) ? e.touches[0].clientY - rect.top : e.clientY - rect.top
+    
+    ctx.beginPath()
+    ctx.moveTo(x, y)
+  }
+
+  const draw = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    if (!isDrawing) return
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+    
+    const rect = canvas.getBoundingClientRect()
+    const x = ('touches' in e) ? e.touches[0].clientX - rect.left : e.clientX - rect.left
+    const y = ('touches' in e) ? e.touches[0].clientY - rect.top : e.clientY - rect.top
+    
     ctx.strokeStyle = color
     ctx.lineWidth = brushSize
     ctx.lineCap = 'round'
     ctx.lineJoin = 'round'
-    ctx.beginPath()
-    if (tool === 'line') {
-      ctx.moveTo(start.x, start.y)
-      ctx.lineTo(end.x, end.y)
-    } else if (tool === 'rectangle') {
-      ctx.rect(start.x, start.y, end.x - start.x, end.y - start.y)
-    } else if (tool === 'circle') {
-      ctx.ellipse((start.x + end.x) / 2, (start.y + end.y) / 2, Math.abs(end.x - start.x) / 2, Math.abs(end.y - start.y) / 2, 0, 0, Math.PI * 2)
-    }
+    ctx.lineTo(x, y)
     ctx.stroke()
   }
 
-  const startDrawing = (event: React.PointerEvent<HTMLCanvasElement>) => {
-    const canvas = canvasRef.current
-    const ctx = canvas?.getContext('2d')
-    if (!canvas || !ctx) return
-    const start = getPoint(event)
-    beforeStrokeRef.current = ctx.getImageData(0, 0, canvas.width, canvas.height)
-    strokeStartRef.current = start
-    setIsDrawing(true)
-    canvas.setPointerCapture(event.pointerId)
-    if (tool === 'pencil') {
-      ctx.strokeStyle = color
-      ctx.lineWidth = brushSize
-      ctx.lineCap = 'round'
-      ctx.lineJoin = 'round'
-      ctx.beginPath()
-      ctx.moveTo(start.x, start.y)
-    }
-  }
-
-  const draw = (event: React.PointerEvent<HTMLCanvasElement>) => {
-    if (!isDrawing) return
-    const canvas = canvasRef.current
-    const ctx = canvas?.getContext('2d')
-    const start = strokeStartRef.current
-    if (!canvas || !ctx || !start) return
-    const current = getPoint(event)
-    if (tool === 'pencil') {
-      ctx.strokeStyle = color
-      ctx.lineWidth = brushSize
-      ctx.lineTo(current.x, current.y)
-      ctx.stroke()
-    } else if (beforeStrokeRef.current) {
-      ctx.putImageData(beforeStrokeRef.current, 0, 0)
-      drawShape(ctx, start, current)
-    }
-  }
-
-  const stopDrawing = (event?: React.PointerEvent<HTMLCanvasElement>) => {
-    if (!isDrawing) return
-    const canvas = canvasRef.current
-    const ctx = canvas?.getContext('2d')
-    if (!canvas || !ctx) return
-    const start = strokeStartRef.current
-    if (tool !== 'pencil' && start && beforeStrokeRef.current) {
-      const end = event ? getPoint(event) : start
-      ctx.putImageData(beforeStrokeRef.current, 0, 0)
-      drawShape(ctx, start, end)
-    } else {
-      ctx.closePath()
-    }
-    historyRef.current.push(beforeStrokeRef.current ?? ctx.getImageData(0, 0, canvas.width, canvas.height))
-    if (event && canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId)
-    beforeStrokeRef.current = null
-    strokeStartRef.current = null
+  const stopDrawing = () => {
     setIsDrawing(false)
-  }
-
-  const undo = () => {
-    if (historyRef.current.length <= 1) return
-    historyRef.current.pop()
-    const previous = historyRef.current[historyRef.current.length - 1]
     const canvas = canvasRef.current
-    const ctx = canvas?.getContext('2d')
-    if (canvas && ctx) ctx.putImageData(previous, 0, 0)
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+    ctx.closePath()
   }
 
   const clearCanvas = () => {
     const canvas = canvasRef.current
-    const ctx = canvas?.getContext('2d')
-    if (!canvas || !ctx) return
-    ctx.clearRect(0, 0, canvas.width / CANVAS_SCALE, canvas.height / CANVAS_SCALE)
-    drawGrid(ctx, canvas)
-    historyRef.current = [ctx.getImageData(0, 0, canvas.width, canvas.height)]
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+    
+    ctx.clearRect(0, 0, canvas.width / 2, canvas.height / 2)
+    drawGrid(ctx)
   }
 
   const addMeasurement = () => {
-    const value = prompt('Enter field measurement (e.g., 24ft x 18ft)')?.trim()
-    if (value) setMeasurements((current) => [...current, { text: value, id: Date.now() }])
-  }
-
-  const downloadSketch = () => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const link = document.createElement('a')
-    link.download = `roof-os-sketch-${new Date().toISOString().slice(0, 10)}.png`
-    link.href = canvas.toDataURL('image/png')
-    link.click()
+    const measurement = prompt('Enter measurement (e.g., 24ft x 18ft):')
+    if (measurement) {
+      setMeasurements([...measurements, { text: measurement, id: Date.now() }])
+    }
   }
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       <header className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-lg sticky top-0 z-10">
         <div className="px-4 py-3 flex items-center">
-          <button type="button" onClick={() => router.back()} className="text-white mr-3 text-xl" aria-label="Go back">←</button>
+          <button onClick={() => router.back()} className="text-white mr-3 text-xl">←</button>
           <h1 className="text-xl font-bold">✏️ Sketch Pad</h1>
         </div>
       </header>
+
       <main className="p-4">
+        {/* Toolbar */}
         <div className="bg-white rounded-lg shadow-lg p-3 mb-4 flex flex-wrap gap-2">
-          {([
-            ['pencil', '✏️', 'Pencil'],
-            ['line', '📏', 'Line'],
-            ['rectangle', '⬜', 'Rectangle'],
-            ['circle', '⭕', 'Ellipse'],
-          ] as const).map(([value, icon, label]) => (
-            <button key={value} type="button" onClick={() => setTool(value)} aria-label={label} aria-pressed={tool === value} className={`p-2 rounded ${tool === value ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100'}`}>
-              {icon}
-            </button>
-          ))}
+          <button 
+            onClick={() => setTool('pencil')}
+            className={`p-2 rounded ${tool === 'pencil' ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100'}`}
+          >
+            ✏️
+          </button>
+          <button 
+            onClick={() => setTool('line')}
+            className={`p-2 rounded ${tool === 'line' ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100'}`}
+          >
+            📏
+          </button>
+          <button 
+            onClick={() => setTool('rectangle')}
+            className={`p-2 rounded ${tool === 'rectangle' ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100'}`}
+          >
+            ⬜
+          </button>
+          <button 
+            onClick={() => setTool('circle')}
+            className={`p-2 rounded ${tool === 'circle' ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100'}`}
+          >
+            ⭕
+          </button>
           <div className="w-px h-8 bg-gray-300 mx-1" />
-          <input type="color" value={color} aria-label="Drawing color" onChange={(e) => setColor(e.target.value)} className="w-8 h-8 rounded border" />
-          <select value={brushSize} aria-label="Brush size" onChange={(e) => setBrushSize(Number(e.target.value))} className="border rounded p-1 text-sm">
-            <option value={1}>1</option><option value={3}>3</option><option value={5}>5</option><option value={10}>10</option><option value={15}>15</option>
+          <input 
+            type="color" 
+            value={color} 
+            onChange={(e) => setColor(e.target.value)}
+            className="w-8 h-8 rounded border"
+          />
+          <select 
+            value={brushSize} 
+            onChange={(e) => setBrushSize(Number(e.target.value))}
+            className="border rounded p-1 text-sm"
+          >
+            <option value={1}>1</option>
+            <option value={3}>3</option>
+            <option value={5}>5</option>
+            <option value={10}>10</option>
+            <option value={15}>15</option>
           </select>
-          <button type="button" onClick={undo} className="p-2 rounded hover:bg-gray-100" aria-label="Undo last stroke">↩️</button>
-          <button type="button" onClick={clearCanvas} className="p-2 rounded text-red-600 hover:bg-red-50" aria-label="Clear sketch">🗑️</button>
-          <button type="button" onClick={addMeasurement} className="bg-green-100 text-green-600 p-2 rounded">📐 Add Measurement</button>
+          <button onClick={clearCanvas} className="text-red-600 hover:bg-red-50 p-2 rounded">
+            🗑️
+          </button>
+          <button onClick={addMeasurement} className="bg-green-100 text-green-600 p-2 rounded">
+            📐 Add Measurement
+          </button>
         </div>
+
+        {/* Canvas */}
         <div className="bg-white rounded-lg shadow-lg overflow-hidden border-2 border-gray-200">
-          <canvas ref={canvasRef} className="w-full h-80 touch-none" onPointerDown={startDrawing} onPointerMove={draw} onPointerUp={stopDrawing} onPointerCancel={stopDrawing} />
+          <canvas
+            ref={canvasRef}
+            className="w-full h-80 touch-none"
+            onMouseDown={startDrawing}
+            onMouseMove={draw}
+            onMouseUp={stopDrawing}
+            onMouseLeave={stopDrawing}
+            onTouchStart={startDrawing}
+            onTouchMove={draw}
+            onTouchEnd={stopDrawing}
+          />
         </div>
+
+        {/* Measurements */}
         {measurements.length > 0 && (
           <div className="mt-4 bg-white rounded-lg shadow-lg p-4">
             <h3 className="font-semibold text-sm mb-2">📐 Measurements</h3>
-            {measurements.map((measurement) => (
-              <div key={measurement.id} className="flex justify-between items-center border-b py-1">
-                <span>{measurement.text}</span>
-                <button type="button" onClick={() => setMeasurements((current) => current.filter((item) => item.id !== measurement.id))} className="text-red-500 text-xs" aria-label={`Remove ${measurement.text}`}>✕</button>
+            {measurements.map((m) => (
+              <div key={m.id} className="flex justify-between items-center border-b py-1">
+                <span>{m.text}</span>
+                <button 
+                  onClick={() => setMeasurements(measurements.filter((item) => item.id !== m.id))}
+                  className="text-red-500 text-xs"
+                >
+                  ✕
+                </button>
               </div>
             ))}
           </div>
         )}
+
+        {/* Actions */}
         <div className="grid grid-cols-2 gap-2 mt-4">
-          <button type="button" onClick={downloadSketch} className="bg-blue-600 text-white py-2 rounded-lg text-sm font-semibold">💾 Download PNG</button>
-          <button type="button" onClick={() => router.push('/pricing')} className="bg-green-600 text-white py-2 rounded-lg text-sm font-semibold">📄 Open Estimate</button>
+          <button className="bg-blue-600 text-white py-2 rounded-lg text-sm font-semibold">
+            💾 Save Sketch
+          </button>
+          <button className="bg-green-600 text-white py-2 rounded-lg text-sm font-semibold">
+            📄 Generate from Sketch
+          </button>
         </div>
-        <div className="mt-4 bg-yellow-50 border border-yellow-200 rounded-lg p-3"><p className="text-xs text-yellow-800">💡 Draw roof layout and record field measurements. This sketch is a visual aid; measurements remain field-verified.</p></div>
+
+        <div className="mt-4 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+          <p className="text-xs text-yellow-800">
+            💡 Draw roof layout, add measurements, and generate estimate
+          </p>
+        </div>
       </main>
+
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around py-2 px-4">
+        <button onClick={() => router.push('/')} className="flex flex-col items-center text-gray-400">
+          <span className="text-xl">🏠</span>
+          <span className="text-xs">Home</span>
+        </button>
+        <button onClick={() => router.push('/sketch')} className="flex flex-col items-center text-blue-600">
+          <span className="text-xl">✏️</span>
+          <span className="text-xs">Sketch</span>
+        </button>
+        <button onClick={() => router.push('/templates')} className="flex flex-col items-center text-gray-400">
+          <span className="text-xl">📄</span>
+          <span className="text-xs">Templates</span>
+        </button>
+        <button onClick={() => router.push('/insurance')} className="flex flex-col items-center text-gray-400">
+          <span className="text-xl">📞</span>
+          <span className="text-xs">Insurance</span>
+        </button>
+        <button onClick={() => router.push('/settings')} className="flex flex-col items-center text-gray-400">
+          <span className="text-xl">⚙️</span>
+          <span className="text-xs">Settings</span>
+        </button>
+      </nav>
     </div>
   )
 }
