@@ -55,6 +55,16 @@ function MfaForm() {
         return
       }
 
+      const pending = (factors.totp as unknown as Factor[]).find((item) => item.status === 'unverified')
+      if (pending) {
+        if (!cancelled) {
+          setFactor(pending)
+          setError('An authenticator enrollment is already in progress. Use the setup QR code from that enrollment, or restart it below.')
+          setLoading(false)
+        }
+        return
+      }
+
       const { data: enrollment, error: enrollmentError } = await supabase.auth.mfa.enroll({
         factorType: 'totp',
         friendlyName: 'ROOF/OS Authenticator',
@@ -116,6 +126,21 @@ function MfaForm() {
     router.refresh()
   }
 
+  async function restartEnrollment() {
+    if (!factor || factor.status !== 'unverified') return
+    if (!window.confirm('Restart the incomplete ROOF/OS authenticator enrollment? The existing unverified factor will be removed.')) return
+
+    setWorking(true)
+    setError('')
+    const { error: unenrollError } = await supabase.auth.mfa.unenroll({ factorId: factor.id })
+    if (unenrollError) {
+      setError(`Unable to restart authenticator enrollment: ${unenrollError.message}`)
+      setWorking(false)
+      return
+    }
+    window.location.reload()
+  }
+
   if (loading) return <main className="min-h-screen flex items-center justify-center p-4"><p className="text-sm text-gray-600">Preparing secure sign-in…</p></main>
 
   return (
@@ -125,6 +150,15 @@ function MfaForm() {
         <p className="text-sm text-gray-600 mt-2">
           ROOF/OS requires an authenticator factor for workspace owners and administrators.
         </p>
+
+        {factor?.status === 'unverified' && !qrCode && (
+          <div className="mt-5 rounded-lg bg-amber-50 p-3 text-sm text-amber-900">
+            <p>This is an authenticator-app code, not an email code. The existing enrollment did not finish, so no code can be verified here.</p>
+            <button type="button" onClick={() => void restartEnrollment()} disabled={working} className="mt-3 rounded bg-amber-700 px-3 py-2 font-semibold text-white disabled:opacity-60">
+              {working ? 'Restarting enrollment…' : 'Restart enrollment'}
+            </button>
+          </div>
+        )}
 
         {qrCode && (
           <div className="mt-5">
