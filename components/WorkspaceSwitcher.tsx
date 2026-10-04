@@ -20,26 +20,36 @@ export default function WorkspaceSwitcher() {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([])
   const [activeWorkspaceId, setActiveWorkspaceId] = useState('')
   const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
 
   useEffect(() => {
     let cancelled = false
 
     async function load() {
       const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user || cancelled) return
+      const { data: { user }, error: userError } = await supabase.auth.getUser()
+      if (cancelled) return
+      if (userError) {
+        setError('Could not load the signed-in user.')
+        return
+      }
+      if (!user) return
 
-      const [{ data: memberships }, { data: active }] = await Promise.all([
+      const [{ data: memberships, error: membershipError }, { data: active, error: activeError }] = await Promise.all([
         supabase.from('workspace_members').select('workspace_id, workspaces(id, name)').eq('user_id', user.id).order('created_at'),
         supabase.from('user_active_workspaces').select('workspace_id').eq('user_id', user.id).maybeSingle(),
       ])
       if (cancelled) return
+      if (membershipError || activeError) {
+        setError(membershipError?.message ?? activeError?.message ?? 'Could not load workspaces.')
+        return
+      }
 
       const available = ((memberships ?? []) as MembershipRow[])
         .map(workspaceFromMembership)
         .filter((workspace): workspace is Workspace => Boolean(workspace))
       setWorkspaces(available)
-      setActiveWorkspaceId(active?.workspace_id ?? available[0]?.id ?? '')
+      setActiveWorkspaceId(active?.workspace_id && available.some((workspace) => workspace.id === active.workspace_id) ? active.workspace_id : (available[0]?.id ?? ''))
     }
 
     void load()
@@ -50,10 +60,16 @@ export default function WorkspaceSwitcher() {
 
   async function chooseWorkspace(workspaceId: string) {
     if (!workspaceId || workspaceId === activeWorkspaceId) return
+    if (!workspaces.some((workspace) => workspace.id === workspaceId)) {
+      setError('That workspace is not available to your account.')
+      return
+    }
+    setError('')
     setSaving(true)
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
+      setError('You must be signed in to switch workspaces.')
       setSaving(false)
       return
     }
@@ -62,7 +78,9 @@ export default function WorkspaceSwitcher() {
       .from('user_active_workspaces')
       .upsert({ user_id: user.id, workspace_id: workspaceId, updated_at: new Date().toISOString() }, { onConflict: 'user_id' })
 
-    if (!error) {
+    if (error) {
+      setError(error.message)
+    } else {
       setActiveWorkspaceId(workspaceId)
       router.refresh()
     }
@@ -70,7 +88,8 @@ export default function WorkspaceSwitcher() {
   }
 
   return (
-    <div className="mx-auto flex max-w-6xl items-center justify-end px-4 pt-3">
+    <div className="mx-auto flex max-w-6xl flex-col items-end px-4 pt-3">
+      {error && <p className="mb-2 text-xs text-red-600" role="alert">{error}</p>}
       <label className="text-xs text-gray-500" htmlFor="active-workspace">
         Workspace
         <select
