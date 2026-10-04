@@ -1,7 +1,7 @@
 name: ROOF OS CI
 
 permissions:
-  contents: write
+  contents: read
 
 on:
   push:
@@ -91,6 +91,8 @@ jobs:
       - run: npx tsc --noEmit
 
   refresh-field-lock:
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
