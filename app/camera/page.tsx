@@ -17,13 +17,8 @@ function CameraInner() {
   const [inspectionId, setInspectionId] = useState(search.get('inspection') || '')
   const leadId = search.get('lead') || ''
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const photosRef = useRef<PendingPhoto[]>([])
 
-  useEffect(() => {
-    photosRef.current = photos
-  }, [photos])
-
-  useEffect(() => () => photosRef.current.forEach((photo) => URL.revokeObjectURL(photo.preview)), [])
+  useEffect(() => () => photos.forEach((photo) => URL.revokeObjectURL(photo.preview)), [photos])
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files ?? []).filter((file) => file.type.startsWith('image/'))
@@ -56,7 +51,7 @@ function CameraInner() {
         const { error: metaError } = await supabase.from('inspection_photos').insert({ inspection_id: sessionId, workspace_id: workspaceId, uploaded_by: user.id, object_path: path, mime_type: photo.file.type || 'image/jpeg', file_size_bytes: photo.file.size, album: 'damage', upload_status: 'uploaded' })
         if (metaError) throw new Error(metaError.message)
       }
-      if (leadId) await supabase.from('leads').update({ status: 'inspected', updated_at: new Date().toISOString() }).eq('id', leadId).eq('workspace_id', workspaceId)
+      if (leadId) await supabase.from('leads').update({ status: 'inspected', updated_at: new Date().toISOString() }).eq('id', leadId)
       setMessage(`${photos.length} photo${photos.length === 1 ? '' : 's'} saved to inspection ${sessionId.slice(0, 8)}.`)
       photos.forEach((photo) => URL.revokeObjectURL(photo.preview))
       setPhotos([])
