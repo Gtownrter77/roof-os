@@ -9,7 +9,6 @@ type Passport = { id: string; property_address: string; homeowner_name: string |
 export default function PassportPage() {
   const params = useParams<{ id: string }>()
   const router = useRouter()
-  const supabase = createClient()
   const leadId = params.id
   const [lead, setLead] = useState<{ id: string; name: string; address: string } | null>(null)
   const [passport, setPassport] = useState<Passport | null>(null)
@@ -20,26 +19,32 @@ export default function PassportPage() {
   const [form, setForm] = useState({ manufacturer: 'GAF', material_system: 'Timberline HDZ', color: '', install_date: '' })
 
   useEffect(() => {
+    let cancelled = false
+
     async function load() {
+      const supabase = createClient()
       const [{ data: leadRow }, passRes, sessionRes] = await Promise.all([
         supabase.from('leads').select('id,name,address').eq('id', leadId).maybeSingle(),
         supabase.from('roof_passports').select('id,property_address,homeowner_name,material_system,manufacturer,color,install_date,status').eq('lead_id', leadId).order('created_at', { ascending: false }).limit(1).maybeSingle(),
         supabase.from('inspection_sessions').select('id').eq('lead_id', leadId),
       ])
+      if (cancelled) return
       setLead(leadRow)
       setPassport(passRes.data)
       const sessionIds = (sessionRes.data ?? []).map((row: { id: string }) => row.id)
       setInspections(sessionIds.length)
       if (sessionIds.length) {
         const photoRes = await supabase.from('inspection_photos').select('id', { count: 'exact', head: true }).in('inspection_id', sessionIds)
-        setPhotos(photoRes.count ?? 0)
+        if (!cancelled) setPhotos(photoRes.count ?? 0)
       }
     }
     void load()
-  }, [leadId, supabase])
+    return () => { cancelled = true }
+  }, [leadId])
 
   async function createPassport() {
     if (!lead) return
+    const supabase = createClient()
     setSaving(true); setError('')
     const { data: { user } } = await supabase.auth.getUser()
     const { data: workspaceId } = await supabase.rpc('current_workspace_id')
