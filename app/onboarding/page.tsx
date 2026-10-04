@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { createClient } from '../../lib/supabase/client'
 
 export default function OnboardingPage() {
   const router = useRouter()
@@ -14,6 +15,7 @@ export default function OnboardingPage() {
     role: 'owner'
   })
   const [error, setError] = useState('')
+  const [saving, setSaving] = useState(false)
 
   const steps = [
     { 
@@ -38,7 +40,7 @@ export default function OnboardingPage() {
     }
   ]
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (step === 2 && !form.companyName.trim()) {
       setError('Enter your company name to continue.')
       return
@@ -46,9 +48,29 @@ export default function OnboardingPage() {
     setError('')
     if (step < 4) {
       setStep(step + 1)
-    } else {
-      router.push('/')
+      return
     }
+
+    setSaving(true)
+    const supabase = createClient()
+    const { error: updateError } = await supabase.auth.updateUser({
+      data: {
+        company_name: form.companyName.trim(),
+        onboarding_contact_email: form.email.trim(),
+        onboarding_phone: form.phone.trim(),
+        onboarding_state: form.state,
+        onboarding_role_preference: form.role,
+        onboarding_completed_at: new Date().toISOString(),
+      },
+    })
+    if (updateError) {
+      setError('Could not save your onboarding details. Nothing was marked complete.')
+      setSaving(false)
+      return
+    }
+
+    setSaving(false)
+    router.push('/')
   }
 
   const handleBack = () => {
@@ -110,7 +132,7 @@ export default function OnboardingPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Contact Email</label>
               <input 
                 type="email"
                 value={form.email}
@@ -168,8 +190,8 @@ export default function OnboardingPage() {
             <p className="text-gray-500">Your ROOF/OS account is ready to go.</p>
             <div className="mt-6 bg-green-50 border border-green-200 rounded-lg p-4">
               <p className="text-sm text-green-800">
-                ✅ Company profile created<br />
-                ✅ Account configured<br />
+                ✅ Onboarding preferences saved<br />
+                ✅ Account configuration saved<br />
                 ✅ Ready to start
               </p>
             </div>
@@ -205,10 +227,11 @@ export default function OnboardingPage() {
             Back
           </button>
           <button 
-            onClick={handleNext}
-            className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold"
+            onClick={() => void handleNext()}
+            disabled={saving}
+            className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold disabled:opacity-60"
           >
-            {step === 4 ? '🚀 Get Started' : 'Next →'}
+            {saving ? 'Saving…' : step === 4 ? '🚀 Get Started' : 'Next →'}
           </button>
         </div>
       </div>
