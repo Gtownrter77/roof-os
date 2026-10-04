@@ -165,25 +165,21 @@ export default function CodesPage() {
   }
 
   const searchCodes = async () => {
-    setLoading(true)
     if (!zipCode.trim()) {
       setResults({ error: 'Enter a ZIP code to perform a current locality lookup. Embedded snapshots are reference data only and are not used for production guidance.' })
+      return
+    }
+
+    setLoading(true)
+    try {
+      const response = await fetch(`/api/building-codes?zip=${encodeURIComponent(zipCode)}&category=${encodeURIComponent(selectedCategory)}`)
+      const result = await response.json()
+      setResults(response.ok ? result : { error: result.error ?? 'ZIP lookup failed.' })
+    } catch {
+      setResults({ error: 'ZIP lookup failed. Check the network and try again.' })
+    } finally {
       setLoading(false)
-      return
     }
-    if (zipCode.trim()) {
-      try {
-        const response = await fetch(`/api/building-codes?zip=${encodeURIComponent(zipCode)}&category=${encodeURIComponent(selectedCategory)}`)
-        const result = await response.json()
-        setResults(response.ok ? result : { error: result.error ?? 'ZIP lookup failed.' })
-      } catch {
-        setResults({ error: 'ZIP lookup failed. Check the network and try again.' })
-      } finally {
-        setLoading(false)
-      }
-      return
-    }
-    setLoading(false)
   }
 
   const searchByQuery = () => {
@@ -193,27 +189,6 @@ export default function CodesPage() {
       return
     }
     setResults({ error: 'Use the ZIP lookup above to retrieve the current locality-specific code family. The embedded snapshots are not used for production guidance.' })
-    return
-    setLoading(true)
-    setTimeout(() => {
-      // Search all states and categories
-      const found: any[] = []
-      Object.entries(codeDatabase).forEach(([state, categories]) => {
-        Object.entries(categories).forEach(([category, data]) => {
-          const query = searchQuery.toLowerCase()
-          const match = 
-            category.toLowerCase().includes(query) ||
-            data.code?.toLowerCase().includes(query) ||
-            data.requirements?.some((r: string) => r.toLowerCase().includes(query)) ||
-            data.materials?.some((m: string) => m.toLowerCase().includes(query))
-          if (match) {
-            found.push({ state, category, data })
-          }
-        })
-      })
-      setResults({ searchResults: found })
-      setLoading(false)
-    }, 1000)
   }
 
   return (
