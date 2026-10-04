@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { getAlerts, getForecast, getSeverityColor, getUrgencyLabel } from '../../lib/services/weather'
+import { getAlerts, getForecast, getSeverityColor, getUrgencyLabel, type Forecast } from '../../lib/services/weather'
 
 interface WeatherAlert {
   id: string
@@ -18,35 +18,75 @@ interface WeatherAlert {
 export default function WeatherPage() {
   const router = useRouter()
   const [alerts, setAlerts] = useState<WeatherAlert[]>([])
-  const [forecast, setForecast] = useState<any>(null)
+  const [forecast, setForecast] = useState<Forecast | null>(null)
+  const [selectedState, setSelectedState] = useState('GA')
   const [loading, setLoading] = useState(true)
+  const [locating, setLocating] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    fetchWeather()
-  }, [])
-
-  async function fetchWeather() {
+    let cancelled = false
     setLoading(true)
     setError(null)
-    
-    try {
-      const lat = 33.7490
-      const lon = -84.3880
-      
-      const [alertsData, forecastData] = await Promise.all([
-        getAlerts('GA'),
-        getForecast(lat, lon)
-      ])
-      
-      setAlerts(alertsData)
-      setForecast(forecastData)
-    } catch (err) {
-      setError('Failed to fetch weather data')
-      console.error(err)
+    void getAlerts(selectedState).then((data) => {
+      if (cancelled) return
+      setAlerts(data)
+      setLoading(false)
+    }).catch(() => {
+      if (cancelled) return
+      setError('Failed to fetch weather alerts.')
+      setLoading(false)
+    })
+    return () => { cancelled = true }
+  }, [selectedState])
+
+  function useDeviceLocation() {
+    if (!navigator.geolocation) {
+      setError('This browser does not provide device location.')
+      return
     }
-    
-    setLoading(false)
+
+    setLocating(true)
+    setError(null)
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        void getForecast(position.coords.latitude, position.coords.longitude)
+          .then((data) => {
+            setForecast(data)
+            if (!data) setError('The weather service could not resolve the device location.')
+          })
+          .catch(() => setError('Failed to fetch the local forecast.'))
+          .finally(() => setLocating(false))
+      },
+      () => {
+        setLocating(false)
+        setError('Location permission was not granted. Alerts can still be viewed by state.')
+      },
+      { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
+    )
+  }
+
+  async function refreshWeather() {
+    setLoading(true)
+    setError(null)
+    try {
+      setAlerts(await getAlerts(selectedState))
+      if (forecast && navigator.geolocation) {
+        await new Promise<void>((resolve) => {
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              void getForecast(position.coords.latitude, position.coords.longitude).then(setForecast).finally(resolve)
+            },
+            () => resolve(),
+            { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
+          )
+        })
+      }
+    } catch {
+      setError('Failed to refresh weather data.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   if (loading) {
@@ -70,6 +110,16 @@ export default function WeatherPage() {
       </header>
 
       <main className="p-4">
+        <div className="bg-white rounded-lg shadow p-4 mb-4">
+          <label className="text-xs text-gray-500">Alert state</label>
+          <select value={selectedState} onChange={(e) => setSelectedState(e.target.value)} className="w-full mt-1 p-2 border rounded-lg text-sm">
+            {['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY'].map((state) => <option key={state} value={state}>{state}</option>)}
+          </select>
+          <button type="button" onClick={useDeviceLocation} disabled={locating} className="w-full mt-2 bg-green-600 text-white py-2 rounded-lg font-semibold disabled:opacity-60">
+            {locating ? 'Locating…' : 'Use my location for forecast'}
+          </button>
+        </div>
+
         <div className="bg-white rounded-lg shadow p-4 mb-4">
           <h2 className="font-semibold text-sm text-gray-500">Current Conditions</h2>
           {forecast ? (
@@ -112,7 +162,7 @@ export default function WeatherPage() {
         </div>
 
         <button 
-          onClick={fetchWeather}
+          onClick={() => void refreshWeather()}
           className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold"
         >
           🔄 Refresh Weather
