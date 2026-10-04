@@ -6,19 +6,29 @@ import { createClient } from '../../lib/supabase/client'
 
 export default function ActivityPage() {
   const router = useRouter()
-  const supabase = createClient()
-  const [activities, setActivities] = useState<any[]>([])
+  const [activities, setActivities] = useState<Array<{ id: string; lead_id: string | null; kind: string; body: string | null; created_at: string }>>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
   useEffect(() => {
+    let cancelled = false
+
     const load = async () => {
-      const { data, error: queryError } = await supabase.from('lead_activity').select('id,lead_id,kind,body,created_at').order('created_at', { ascending: false }).limit(50)
+      const supabase = createClient()
+      const { data, error: queryError } = await supabase
+        .from('lead_activity')
+        .select('id,lead_id,kind,body,created_at')
+        .order('created_at', { ascending: false })
+        .limit(50)
+
+      if (cancelled) return
       if (queryError) setError(queryError.message)
       else setActivities(data ?? [])
       setLoading(false)
     }
+
     void load()
+    return () => { cancelled = true }
   }, [])
 
   return (
@@ -45,7 +55,7 @@ export default function ActivityPage() {
               <p className="text-sm font-medium">{activity.kind.replaceAll('_', ' ')}</p>
               <p className="text-sm text-gray-700 mt-1">{activity.body || 'Activity recorded.'}</p>
               <p className="text-xs text-gray-400 mt-1">{new Date(activity.created_at).toLocaleString()}</p>
-              <button onClick={() => router.push('/leads/' + activity.lead_id)} className="text-xs text-blue-600 mt-2">Open lead</button>
+              {activity.lead_id && <button onClick={() => router.push('/leads/' + activity.lead_id)} className="text-xs text-blue-600 mt-2">Open lead</button>}
             </div>
           ))}
         </div>     </main>
