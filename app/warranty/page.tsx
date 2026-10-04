@@ -9,7 +9,6 @@ type LeadOption = { id: string; name: string }
 
 export default function WarrantyPage() {
   const router = useRouter()
-  const supabase = createClient()
   const [rows, setRows] = useState<Warranty[]>([])
   const [leads, setLeads] = useState<LeadOption[]>([])
   const [form, setForm] = useState({ leadId: '', manufacturer: 'GAF', product_line: 'Timberline HDZ', expires_at: '', missing_items: '' })
@@ -17,20 +16,39 @@ export default function WarrantyPage() {
   const [saving, setSaving] = useState(false)
 
   const load = async () => {
+    const supabase = createClient()
     const [w, l] = await Promise.all([
       supabase.from('warranties').select('id,manufacturer,product_line,registration_status,expires_at,missing_items,lead_id').order('created_at', { ascending: false }),
       supabase.from('leads').select('id,name').order('created_at', { ascending: false }).limit(100),
     ])
     if (w.error) setError(w.error.message)
     else setRows(w.data ?? [])
-    setLeads(l.data ?? [])
+    if (l.error) setError(l.error.message)
+    else setLeads(l.data ?? [])
   }
 
-  useEffect(() => { void load() }, [])
+  useEffect(() => {
+    let cancelled = false
+    async function initialLoad() {
+      const supabase = createClient()
+      const [w, l] = await Promise.all([
+        supabase.from('warranties').select('id,manufacturer,product_line,registration_status,expires_at,missing_items,lead_id').order('created_at', { ascending: false }),
+        supabase.from('leads').select('id,name').order('created_at', { ascending: false }).limit(100),
+      ])
+      if (cancelled) return
+      if (w.error) setError(w.error.message)
+      else setRows(w.data ?? [])
+      if (l.error) setError(l.error.message)
+      else setLeads(l.data ?? [])
+    }
+    void initialLoad()
+    return () => { cancelled = true }
+  }, [])
 
   const add = async (event: React.FormEvent) => {
     event.preventDefault()
     setSaving(true); setError('')
+    const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     const { data: workspaceId } = await supabase.rpc('current_workspace_id')
     if (!user || !workspaceId) { setError('No workspace.'); setSaving(false); return }
