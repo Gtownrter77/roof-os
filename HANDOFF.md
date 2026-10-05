@@ -413,3 +413,13 @@ Local validation passed: measurement-authority tests (including stale/mismatched
 ## User-directed checkpoint law — mandatory for future work
 
 **Checkpoint after every 3 completed, verified work batches; do not let a 4th accumulate.** Commit and push the accumulated work, verify local and remote SHAs match, and update this handoff. Checkpoint sooner before a handoff, long pause, task/device switch, major milestone, merge, or risky/destructive action. Never merge while required CI checks are pending or failing. The full rule is `UPDATE-CHECKPOINT-LAW.md`, linked from the top of `README.md`.
+
+
+## 2026-10-05 free NOAA source groundwork checkpoint
+- Committed NOAA groundwork on `feat/photo-full-report-20261001`: `79aa2416303c6ec074674720c0a82daff1a39066` (`feat: add free browser NOAA storm reader`).
+- Uses the official public [NOAA/NCEI Storm Events CSV directory](https://www.ncei.noaa.gov/pub/data/swdi/stormevents/csvfiles/) and [Storm Events Database](https://www.ncei.noaa.gov/access/storm-events-database/). The reader processes only the current and previous event year, exact normalized county/state county-level (`CZ_TYPE=C`) records, and links each row to its official annual source file. It uses standard browser gzip/stream APIs and does not send a property address to NOAA; no paid API or runtime dependency was added.
+- Added shared RFC-4180-style CSV parsing, bounded browser gzip parsing with progress callbacks, official-source URL/provenance validation, and deterministic fixtures including forged-source rejection.
+- Verified after the parser extraction: `npm run test:noaa-storm-events`, `npm run typecheck`, and `git diff --check` passed. This is a focused checkpoint, not a full release/build/CI run.
+- **Not finished or customer-visible yet:** the NOAA reader is not connected to the photo workflow or report endpoint; no NOAA history is persisted or rendered in the Golden Report; the new regression is not yet wired into CI. No production database or deployment was changed.
+- PR #43 checks were 10/10 green at prior SHA `668263ca465fda5e1b9ab27aca4ff69743594bf6`; those checks do not cover this new commit and must be rerun after push. Do not merge while checks are pending.
+- New UI task clarification: the earlier severe-weather/pipeline reference is the desired signed-in dashboard; the later live-radar newsroom image is the login-screen reference. Audit current routes and product-backed features before adapting either screen. Do not copy the reference images' illustrative numbers or assert live severe weather unless backed by verified data.
