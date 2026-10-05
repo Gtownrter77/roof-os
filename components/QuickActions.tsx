@@ -1,11 +1,20 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
 export default function QuickActions() {
   const router = useRouter()
   const [isOpen, setIsOpen] = useState(false)
+
+  useEffect(() => {
+    if (!isOpen) return
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsOpen(false)
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isOpen])
 
   const actions = [
     { icon: '📖', label: 'Manual', path: '/manual', color: 'bg-blue-600' },
@@ -22,13 +31,16 @@ export default function QuickActions() {
     <div>
       <button 
         onClick={() => setIsOpen(!isOpen)}
+        aria-label={isOpen ? 'Close quick actions' : 'Open quick actions'}
+        aria-expanded={isOpen}
+        aria-controls="quick-actions-menu"
         className="fixed bottom-24 right-4 w-14 h-14 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-full shadow-lg flex items-center justify-center text-2xl z-50 hover:scale-110 transition"
       >
         {isOpen ? '✕' : '📖'}
       </button>
 
       {isOpen && (
-        <div className="fixed bottom-40 right-4 space-y-2 z-50">
+        <div id="quick-actions-menu" role="menu" aria-label="Quick actions" className="fixed bottom-40 right-4 space-y-2 z-50">
           {actions.map((action, i) => (
             <button
               key={i}
@@ -37,6 +49,8 @@ export default function QuickActions() {
                 setIsOpen(false)
               }}
               className={`${action.color} text-white w-12 h-12 rounded-full shadow-lg flex items-center justify-center text-xl hover:scale-110 transition-transform`}
+              role="menuitem"
+              aria-label={action.label}
               title={action.label}
             >
               {action.icon}
@@ -49,6 +63,7 @@ export default function QuickActions() {
         <div 
           className="fixed inset-0 bg-black/20 z-40"
           onClick={() => setIsOpen(false)}
+          aria-label="Close quick actions"
         />
       )}
     </div>
