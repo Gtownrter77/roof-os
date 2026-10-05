@@ -655,3 +655,44 @@ The workflow requires a repository Actions secret named `EXPO_TOKEN`. No APK art
 ## 2026-10-04 clean-install bundle fix
 
 The first EAS APK attempt authenticated successfully but failed during Bundle JavaScript. The failure was reproduced with clean `npm ci`: the field override linked `braces` to the wrong relative location, and `fill-range` was not installed where the vendored package could resolve it. The focused fix moves the vendored mitigation package under `apps/field/vendor/braces`, updates the override, and declares `fill-range` explicitly. Fresh `npm ci` plus `npx expo export:embed --eager --platform android --dev false` now passes locally. A new EAS run is still required for the APK artifact.
+
+## 2026-10-04 Mobile field batch 2 — exactly three hardening fixes
+
+**Scope:** `apps/field` plus the required mobile verification migration and regression contract.
+**Branch:** `mobile/field-hardening-batch-2-20261004`
+**Commit:** `36555cd`
+
+### Three weaknesses fixed
+
+1. **Single-draft data loss risk:** the app now loads and displays all local drafts for the signed-in user, allows switching between jobs, and provides an explicit new-inspection action. Draft selection remains owner-scoped.
+2. **Retry blind spot:** the app now listens for network transitions with NetInfo, retries immediately when connectivity returns, and refuses to claim sync while offline. Existing queue idempotency and retry timestamps remain in force.
+3. **Non-persisted technician verification:** the former in-memory checklist gap is closed with persisted technician name, optional license, verification time, notes, local draft state, and an RLS-protected `inspection_verifications` table synced by inspection. This remains separate from the required signature and manager-approval gates; it does not make a report customer-ready.
+
+### Validation evidence
+
+- Root `npm run typecheck`: **PASS**
+- Root `npm run build`: **PASS**
+- `npm run release-check`: **PASS**
+- `npm run verify:security`: **PASS**
+- Mobile release and offline-sync contracts: **PASS**
+- Field `npx tsc --noEmit`: **PASS**
+- Expo config validation: **PASS**
+- Android `expo export:embed --eager --platform android --dev false`: **PASS**
+- Field `npm audit --audit-level=moderate`: **PASS**, 0 vulnerabilities
+
+### Remaining APK gate
+
+A signed APK has not yet been produced in this batch. The GitHub Actions workflow `.github/workflows/mobile-apk.yml` still requires the repository `EXPO_TOKEN` secret. Do not call the APK shippable until the workflow completes and the APK artifact is downloaded and inspected.
+
+### Authority boundary
+
+The mobile verification record is evidence of a technician review event only. A captured signature, report photo review, and owner/manager approval remain mandatory under `GOLDEN-REPORT.md` before any customer packet is approved or sent.
+
+## 2026-10-04 APK verification completion
+
+- APK workflow run `37257872937` completed successfully for commit `bd922eefed812471b026e243c0939c04e25b4557`.
+- The workflow produced artifact `roof-os-field-preview-apk`, 35,718,093 bytes on GitHub Actions; downloaded APK size is 77,605,807 bytes.
+- Downloaded APK SHA-256: `453dcf1c51b59d415fcd28cf174fc7ccaf2afe1bcd7caac425fa9a95003597d5`.
+- ZIP integrity test passed. The APK workflow’s two obsolete-download-path issues were corrected without changing the three mobile feature fixes.
+- PR #171 has 12 successful checks, including web, mobile, preview-build, migration-safety, refresh-field-lock, Vercel, and Vercel Preview Comments.
+- The first three mobile weaknesses are complete and verified. Do not begin a fourth weakness batch until the merged APK/branch state is reviewed under the next authorized work batch.
