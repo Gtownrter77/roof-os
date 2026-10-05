@@ -1,0 +1,24 @@
+# Repository metadata and local tooling
+.git
+.github
+.vercel
+node_modules
+.next
+coverage
+
+# Secrets and local environment files
+.env
+.env.*
+**/.env
+**/.env.*
+!.env.example
+!**/.env.example
+
+# Local caches, logs, and build artifacts
+*.log
+*.tar.gz
+*.demo-backup
+*.apk
+apps/field/.expo
+apps/field/dist
+apps/field/node_modules
