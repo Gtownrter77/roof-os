@@ -39,7 +39,11 @@ export default function WorkspaceSwitcher() {
         .map(workspaceFromMembership)
         .filter((workspace): workspace is Workspace => Boolean(workspace))
       setWorkspaces(available)
-      setActiveWorkspaceId(active?.workspace_id ?? available[0]?.id ?? '')
+      const activeId = active?.workspace_id
+      const selectedId = activeId && available.some((workspace) => workspace.id === activeId)
+        ? activeId
+        : available[0]?.id ?? ''
+      setActiveWorkspaceId(selectedId)
     }
 
     void load()
