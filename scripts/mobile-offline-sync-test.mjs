@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs'
 
 const app = readFileSync('apps/field/App.tsx', 'utf8')
 const migration = readFileSync('supabase/migrations/034_mobile_offline_idempotency.sql', 'utf8')
+const verificationMigration = readFileSync('supabase/migrations/050_mobile_technician_verification.sql', 'utf8')
 
 for (const marker of [
   'WHERE owner_user_id = ?',
@@ -16,12 +17,18 @@ for (const marker of [
   'client_id: measurement.client_id',
   'client_id: photo.client_id',
   'UPGRADES ONLY · NO REGRESSIONS',
+  'NetInfo.addEventListener',
+  'setDrafts(rows)',
+  'inspection_verifications',
+  'saveTechnicianVerification',
+  'Automatic retry scheduled.',
 ]) assert.ok(app.includes(marker), `app contract missing: ${marker}`)
 for (const marker of [
   'inspection_sessions_workspace_client_uidx',
   'inspection_measurements_workspace_client_uidx',
   'inspection_photos_workspace_client_uidx',
 ]) assert.ok(migration.includes(marker), `migration contract missing: ${marker}`)
+for (const marker of ['inspection_verifications', 'enable row level security', 'public.is_workspace_member(workspace_id)', 'technician_name']) assert.ok(verificationMigration.includes(marker), `verification migration missing: ${marker}`)
 
 const sessions = new Map()
 const measurements = new Map()
