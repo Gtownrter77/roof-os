@@ -9,7 +9,7 @@ const idempotencyMigration = readFileSync('supabase/migrations/034_mobile_offlin
 const verificationMigration = readFileSync('supabase/migrations/050_mobile_technician_verification.sql', 'utf8')
 const fieldMeasurementMigration = readFileSync('supabase/migrations/051_mobile_field_measurement_inputs.sql', 'utf8')
 assert.equal(pkg.name, 'field')
-for (const marker of ['SecureStore', 'signInWithPassword', 'inspection_photo_queue', 'inspection_sessions', 'inspection_measurements', 'inspection_photos', 'current_workspace_id', 'inspection-photos', 'accessibilityRole="checkbox"', 'eave_lf', 'rafter_lf', 'soffit_lf', 'fascia_lf', 'roof_type', 'caption: photo.caption', 'mime_type: photo.mime_type', 'width: photo.width', 'height: photo.height', 'retryDelayMs', 'syncLock.current']) assert.ok(app.includes(marker), marker)
+for (const marker of ['SecureStore', 'signInWithPassword', 'inspection_photo_queue', 'inspection_sessions', 'inspection_measurements', 'inspection_photos', 'current_workspace_id', 'inspection-photos', 'accessibilityRole="checkbox"', 'eave_lf', 'rafter_lf', 'soffit_lf', 'fascia_lf', 'roof_type', 'caption: photo.caption', 'mime_type: photo.mime_type', 'width: photo.width', 'height: photo.height', 'retryDelayMs', 'syncLock.current', 'syncQueuedDrafts', "client_version: 'field-0.4.0'"]) assert.ok(app.includes(marker), marker)
 assert.ok(nativeDb.includes('openDatabaseSync'), 'native SQLite adapter')
 assert.ok(webDb.includes('draft.ownerUserId === ownerUserId'), 'web draft ownership filter')
 assert.ok(webDb.includes('SELECT id, client_id, roof_squares'), 'web measurement queue read')

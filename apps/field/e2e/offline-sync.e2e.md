@@ -25,7 +25,7 @@ Build with the `development` profile and configure `EXPO_PUBLIC_SUPABASE_URL`, `
 
 ## Current hardening coverage
 
-The 0.4 field contract also requires roof squares, gutter LF, eave LF, rafter LF, pitch, soffit LF, fascia LF, and roof type inputs. Photo records must retain caption, MIME type, file size, width, and height. Retry is capped exponential backoff and sync execution is single-flight.
+The 0.4 field contract also requires roof squares, gutter LF, eave LF, rafter LF, pitch, soffit LF, fascia LF, and roof type inputs. Photo records must retain caption, MIME type, file size, width, and height. Retry is capped exponential backoff, sync execution is single-flight, and connectivity/app activation drains all owner-scoped local drafts rather than only the selected draft.
 
 ## Evidence to capture
 
