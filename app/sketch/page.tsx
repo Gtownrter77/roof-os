@@ -126,11 +126,10 @@ export default function SketchPage() {
 
   const undo = () => {
     if (historyRef.current.length <= 1) return
-    historyRef.current.pop()
-    const previous = historyRef.current[historyRef.current.length - 1]
+    const previous = historyRef.current.pop()
     const canvas = canvasRef.current
     const ctx = canvas?.getContext('2d')
-    if (canvas && ctx) ctx.putImageData(previous, 0, 0)
+    if (previous && canvas && ctx) ctx.putImageData(previous, 0, 0)
   }
 
   const clearCanvas = () => {
