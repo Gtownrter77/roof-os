@@ -28,6 +28,7 @@ export function scoreProperty(input: {
     if (!input.albums.includes(album)) gaps.push({ code: `album_${album}`, label: `Missing ${album} photo album`, severity: 'warn' })
   })
   if (!input.hasPassport) gaps.push({ code: 'passport', label: 'Roof Passport not created', severity: 'warn' })
+  if (input.openTaskCount > 0) gaps.push({ code: 'open_tasks', label: String(input.openTaskCount) + ' open task' + (input.openTaskCount === 1 ? '' : 's') + ' remain', severity: 'warn' })
   if (input.warrantyOpenCount > 0) gaps.push({ code: 'warranty', label: 'Warranty packet incomplete', severity: 'warn' })
   if (['new', 'assigned'].includes(input.status)) gaps.push({ code: 'status', label: 'Lead has not been inspected', severity: 'warn' })
 
