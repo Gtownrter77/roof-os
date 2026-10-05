@@ -50,7 +50,12 @@ jobs:
       - name: Download the completed APK
         run: |
           mkdir -p ../../artifacts
-          npx eas-cli@latest build:download --latest --platform android --path ../../artifacts/roof-os-field-preview.apk --non-interactive
+          BUILD_ID="$(npx eas-cli@latest build:list --platform android --status finished --build-profile preview --git-commit-hash "${GITHUB_SHA}" --limit 1 --json --non-interactive | node -e "let s=''; process.stdin.on('data', d => s += d).on('end', () => { const rows = JSON.parse(s); if (!rows[0]?.id) process.exit(1); process.stdout.write(rows[0].id) })")"
+          test -n "$BUILD_ID"
+          npx eas-cli@latest build:download --build-id "$BUILD_ID" --non-interactive
+          APK="$(find . -maxdepth 1 -type f -name '*.apk' -print -quit)"
+          test -n "$APK"
+          mv "$APK" ../../artifacts/roof-os-field-preview.apk
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
 
