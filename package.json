@@ -15,6 +15,7 @@
     "test:mobile-offline-sync": "node scripts/mobile-offline-sync-test.mjs",
     "test:photo-estimate-flow": "node scripts/photo-estimate-flow-test.mjs",
     "test:photo-full-report-flow": "node scripts/photo-full-report-flow-test.mjs",
+    "test:noaa-storm-events": "node scripts/noaa-storm-events-test.mjs",
     "test:measurement-estimate-authority": "node scripts/measurement-estimate-authority-test.mjs",
     "test:ai-vision-contract": "node scripts/ai-vision-contract-test.mjs",
     "test:ai-vision-endpoint": "node scripts/ai-vision-endpoint-test.mjs",
