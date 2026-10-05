@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { createClient } from '../../lib/supabase/client'
 import { getAlerts, getForecast, getSeverityColor, getUrgencyLabel } from '../../lib/services/weather'
 
 interface WeatherAlert {
@@ -15,39 +16,112 @@ interface WeatherAlert {
   zones: string[]
 }
 
+interface WeatherLocation {
+  latitude: number
+  longitude: number
+  label: string
+  isFallback: boolean
+}
+
+interface NwsCandidate {
+  eventType?: string
+  eventDate?: string | null
+  expires?: string | null
+  severity?: string | null
+  headline?: string | null
+  sourceUrl?: string | null
+}
+
+const DEFAULT_LOCATION: WeatherLocation = {
+  latitude: 33.7490,
+  longitude: -84.3880,
+  label: 'Atlanta, GA (default)',
+  isFallback: true,
+}
+
+function getDeviceLocation(): Promise<WeatherLocation> {
+  if (!navigator.geolocation) return Promise.resolve(DEFAULT_LOCATION)
+
+  return new Promise((resolve) => {
+    navigator.geolocation.getCurrentPosition(
+      (position) => resolve({
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+        label: 'Current device location',
+        isFallback: false,
+      }),
+      () => resolve(DEFAULT_LOCATION),
+      { enableHighAccuracy: false, maximumAge: 5 * 60 * 1000, timeout: 7_000 },
+    )
+  })
+}
+
+async function getPointAlerts(supabase: ReturnType<typeof createClient>, location: WeatherLocation): Promise<WeatherAlert[]> {
+  if (location.isFallback) return getAlerts('GA')
+
+  const { data: workspaceId } = await supabase.rpc('current_workspace_id')
+  if (!workspaceId) return []
+
+  const params = new URLSearchParams({
+    workspaceId,
+    latitude: String(location.latitude),
+    longitude: String(location.longitude),
+  })
+  const response = await fetch(`/api/storms/nws?${params.toString()}`, { cache: 'no-store' })
+  const payload = await response.json() as { candidates?: NwsCandidate[]; error?: string }
+  if (!response.ok) throw new Error(payload.error ?? 'Weather alert lookup failed.')
+
+  return (Array.isArray(payload.candidates) ? payload.candidates : []).map((candidate, index) => ({
+    id: candidate.sourceUrl ?? `nws-${index}-${candidate.eventDate ?? 'unknown'}`,
+    headline: candidate.headline ?? candidate.eventType ?? 'Severe weather alert',
+    description: 'NWS alert relevant to the selected location. Verify the official alert details before acting.',
+    severity: candidate.severity ?? 'Unknown',
+    urgency: 'Unknown',
+    certainty: 'Candidate',
+    expiresAt: candidate.expires ?? '',
+    zones: [],
+  }))
+}
+
 export default function WeatherPage() {
   const router = useRouter()
   const [alerts, setAlerts] = useState<WeatherAlert[]>([])
-  const [forecast, setForecast] = useState<any>(null)
+  const [forecast, setForecast] = useState<{ temperature: number; conditions: string; icon: string } | null>(null)
+  const [locationLabel, setLocationLabel] = useState(DEFAULT_LOCATION.label)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    fetchWeather()
-  }, [])
 
   async function fetchWeather() {
     setLoading(true)
     setError(null)
-    
+
     try {
-      const lat = 33.7490
-      const lon = -84.3880
-      
+      const location = await getDeviceLocation()
+      const supabase = createClient()
       const [alertsData, forecastData] = await Promise.all([
-        getAlerts('GA'),
-        getForecast(lat, lon)
+        getPointAlerts(supabase, location),
+        getForecast(location.latitude, location.longitude),
       ])
-      
+
+      setLocationLabel(location.label)
       setAlerts(alertsData)
       setForecast(forecastData)
+
+      if (location.isFallback) {
+        setError('Device location was unavailable. Showing Atlanta, GA as the fallback location.')
+      }
     } catch (err) {
-      setError('Failed to fetch weather data')
-      console.error(err)
+      setError(err instanceof Error ? err.message : 'Failed to fetch weather data')
+      setAlerts([])
+      setForecast(null)
+    } finally {
+      setLoading(false)
     }
-    
-    setLoading(false)
   }
+
+  useEffect(() => {
+    void fetchWeather()
+  }, [])
 
   if (loading) {
     return (
@@ -64,7 +138,7 @@ export default function WeatherPage() {
     <div className="min-h-screen bg-gray-50 pb-20">
       <header className="bg-blue-600 text-white shadow-lg sticky top-0 z-10">
         <div className="px-4 py-3 flex items-center">
-          <button onClick={() => router.back()} className="text-white mr-3 text-xl">←</button>
+          <button onClick={() => router.back()} className="text-white mr-3 text-xl" aria-label="Go back">←</button>
           <h1 className="text-xl font-bold">🌤️ Weather</h1>
         </div>
       </header>
@@ -72,13 +146,14 @@ export default function WeatherPage() {
       <main className="p-4">
         <div className="bg-white rounded-lg shadow p-4 mb-4">
           <h2 className="font-semibold text-sm text-gray-500">Current Conditions</h2>
+          <p className="text-xs text-gray-400 mt-1">{locationLabel}</p>
           {forecast ? (
             <div className="mt-2">
               <p className="text-3xl font-bold">{forecast.temperature}°F</p>
               <p className="text-gray-600">{forecast.conditions}</p>
             </div>
           ) : (
-            <p className="text-gray-400">No forecast available</p>
+            <p className="text-gray-400 mt-2">No forecast available</p>
           )}
         </div>
 
@@ -101,7 +176,7 @@ export default function WeatherPage() {
                     <div className="flex justify-between items-center mt-2">
                       <span className="text-xs text-gray-400">{getUrgencyLabel(alert.urgency)}</span>
                       <span className="text-xs text-gray-400">
-                        Expires: {new Date(alert.expiresAt).toLocaleString()}
+                        {alert.expiresAt ? `Expires: ${new Date(alert.expiresAt).toLocaleString()}` : 'Expiration unavailable'}
                       </span>
                     </div>
                   </div>
@@ -111,10 +186,7 @@ export default function WeatherPage() {
           )}
         </div>
 
-        <button 
-          onClick={fetchWeather}
-          className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold"
-        >
+        <button onClick={() => void fetchWeather()} className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold">
           🔄 Refresh Weather
         </button>
 
