@@ -84,6 +84,10 @@ export const db = {
     const secondStatus = String(args[2] ?? '')
     const now = String(args[3] ?? '')
 
+    if (sql.startsWith('SELECT roof_squares, gutter_lf, eave_lf')) {
+      return measurements.filter((row) => row.draftId === draftId).sort((a, b) => b.capturedAt.localeCompare(a.capturedAt)).slice(0, 1).map((row) => ({ roof_squares: row.roofSquares, gutter_lf: row.gutterLf, eave_lf: row.eaveLf, rafter_lf: row.rafterLf, pitch: row.pitch, soffit_lf: row.soffitLf, fascia_lf: row.fasciaLf, roof_type: row.roofType }) as T)
+    }
+
     if (sql.startsWith('SELECT retry_count FROM inspection_measurements_local')) {
       return measurements.filter((row) => row.draftId === draftId && (row.syncStatus === firstStatus || row.syncStatus === secondStatus)).map((row) => ({ retry_count: row.retryCount }) as T)
     }

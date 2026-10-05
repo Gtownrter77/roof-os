@@ -96,10 +96,11 @@ export default function App() {
     return db.getAllSync<Draft>('SELECT id, remote_id as remoteId, owner_user_id as ownerUserId, workspace_id as workspaceId, client_id as clientId, lead_id as leadId, address, photo_count as photoCount, status, updated_at as updatedAt, latitude, longitude, technician_name as technicianName, technician_license as technicianLicense, verified_at as verifiedAt, verification_notes as verificationNotes FROM inspection_drafts WHERE owner_user_id = ? ORDER BY updated_at DESC', userId)
   }
 
-  function loadDrafts(preferredId?: number) {
+  function loadDrafts(preferredId?: number, preserveSelection = false) {
     const rows = readLocalDrafts()
     setDrafts(rows)
-    const row = rows.find((item) => item.id === preferredId) ?? rows[0]
+    const activeId = draftRef.current?.id ?? (preserveSelection ? undefined : preferredId)
+    const row = rows.find((item) => item.id === activeId) ?? rows[0]
     if (row) selectDraft(row)
   }
 
@@ -112,6 +113,10 @@ export default function App() {
 
   function selectDraft(row: Draft) {
     draftRef.current = row; setDraft(row); setSelectedLeadId(row.leadId); setAddress(row.address); setPhotos(row.photoCount); setTechnicianName(row.technicianName ?? ''); setTechnicianLicense(row.technicianLicense ?? ''); setVerificationNotes(row.verificationNotes ?? ''); if (row.latitude !== null && row.longitude !== null) setPoint({ latitude: row.latitude, longitude: row.longitude }); else setPoint(null)
+    const measurements = db.getAllSync<{ roof_squares: number; gutter_lf: number; eave_lf: number; rafter_lf: number; pitch: number; soffit_lf: number; fascia_lf: number; roof_type: string }>('SELECT roof_squares, gutter_lf, eave_lf, rafter_lf, pitch, soffit_lf, fascia_lf, roof_type FROM inspection_measurements_local WHERE draft_id = ? ORDER BY captured_at DESC LIMIT 1', row.id)
+    const latest = measurements[0]
+    if (latest) { setSquares(String(latest.roof_squares)); setGutters(String(latest.gutter_lf)); setEave(String(latest.eave_lf)); setRafter(String(latest.rafter_lf)); setPitch(String(latest.pitch)); setSoffit(String(latest.soffit_lf)); setFascia(String(latest.fascia_lf)); setRoofType(latest.roof_type) }
+    else { setSquares(''); setGutters(''); setEave(''); setRafter(''); setPitch(''); setSoffit(''); setFascia(''); setRoofType('') }
   }
 
   function startNewInspection() {
@@ -168,7 +173,7 @@ export default function App() {
     if (!draftId) return
     const capturedAt = timestamp()
     result.assets.forEach((asset) => db.runSync('INSERT INTO inspection_photo_queue (draft_id, client_id, local_uri, album, caption, mime_type, file_size_bytes, width, height, captured_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', draftId, clientId('photo'), asset.uri, photoAlbum, photoCaption.trim() || null, asset.mimeType ?? 'image/jpeg', asset.fileSize ?? null, asset.width ?? null, asset.height ?? null, capturedAt))
-    setPhotos(count); setNotice(`${result.assets.length} photo${result.assets.length === 1 ? '' : 's'} saved to the offline upload queue.`)
+    setPhotos(count); setPhotoCaption(''); setNotice(`${result.assets.length} photo${result.assets.length === 1 ? '' : 's'} saved to the offline upload queue.`)
     if (session) void syncNow()
   }
 
@@ -201,6 +206,7 @@ export default function App() {
 
   async function syncNow(draftToSync = draftRef.current ?? draft) {
     if (!supabase || !session || !draftToSync || syncLock.current || !online) { if (!online) setNotice('Offline. Local work is saved and will retry when connectivity returns.'); return }
+    const activeDraftId = draftRef.current?.id
     syncLock.current = true; setSyncing(true); setError('')
     try {
       const { data: workspaceId, error: workspaceError } = await supabase.rpc('current_workspace_id')
@@ -211,7 +217,7 @@ export default function App() {
       if (!remoteId) {
         const { data, error: insertError } = await supabase.from('inspection_sessions').upsert({ workspace_id: workspaceId, lead_id: draftToSync.leadId, client_id: draftToSync.clientId, created_by: session.user.id, status: 'draft', client_version: 'field-0.4.0' }, { onConflict: 'workspace_id,client_id' }).select('id').single()
         if (insertError) throw insertError
-        remoteId = data.id; db.runSync('UPDATE inspection_drafts SET remote_id = ?, workspace_id = ? WHERE id = ?', remoteId, workspaceId, draftToSync.id); const syncedDraft = { ...draftToSync, remoteId, workspaceId }; draftRef.current = syncedDraft; setDraft(syncedDraft)
+        remoteId = data.id; db.runSync('UPDATE inspection_drafts SET remote_id = ?, workspace_id = ? WHERE id = ?', remoteId, workspaceId, draftToSync.id); const syncedDraft = { ...draftToSync, remoteId, workspaceId }; if (activeDraftId === draftToSync.id) { draftRef.current = syncedDraft; setDraft(syncedDraft) }
       }
       if (draftToSync.verifiedAt && draftToSync.technicianName) {
         const { error: verificationError } = await supabase.from('inspection_verifications').upsert({ workspace_id: workspaceId, inspection_id: remoteId, technician_name: draftToSync.technicianName, technician_license: draftToSync.technicianLicense, verified_at: draftToSync.verifiedAt, notes: draftToSync.verificationNotes?.trim() || null, created_by: session.user.id }, { onConflict: 'workspace_id,inspection_id' })
@@ -245,7 +251,7 @@ export default function App() {
       db.runSync('UPDATE inspection_photo_queue SET sync_status = ?, retry_count = retry_count + 1, next_retry_at = ?, last_error = ?, error = ? WHERE draft_id = ? AND sync_status IN (?, ?)', 'retrying', retryAt, message, message, draftToSync.id, 'queued', 'retrying')
       setError(`Sync paused: ${message}. Automatic retry scheduled.`)
     }
-    finally { syncLock.current = false; setSyncing(false); loadDrafts(draftToSync.id) }
+    finally { syncLock.current = false; setSyncing(false); loadDrafts(undefined, true) }
   }
 
   if (booting) return <SafeAreaView style={styles.center}><ActivityIndicator color={colors.blue}/><Text style={styles.helper}>Loading secure field session…</Text></SafeAreaView>
