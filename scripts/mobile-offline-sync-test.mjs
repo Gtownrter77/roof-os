@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs'
 const app = readFileSync('apps/field/App.tsx', 'utf8')
 const migration = readFileSync('supabase/migrations/034_mobile_offline_idempotency.sql', 'utf8')
 const verificationMigration = readFileSync('supabase/migrations/050_mobile_technician_verification.sql', 'utf8')
+const fieldMeasurementMigration = readFileSync('supabase/migrations/051_mobile_field_measurement_inputs.sql', 'utf8')
 
 for (const marker of [
   'WHERE owner_user_id = ?',
@@ -13,6 +14,18 @@ for (const marker of [
   'UPDATE inspection_measurements_local SET sync_status = ?, last_error = NULL, next_retry_at = NULL WHERE id = ?',
   "sync_status IN (?, ?) AND (next_retry_at IS NULL OR next_retry_at <= ?)",
   'Automatic retry scheduled.',
+  'syncLock.current',
+  'retryDelayMs',
+  'loadDrafts(draftToSync.id)',
+  'eave_lf',
+  'rafter_lf',
+  'soffit_lf',
+  'fascia_lf',
+  'roof_type',
+  'caption: photo.caption',
+  'file_size_bytes: photo.file_size_bytes',
+  'width: photo.width',
+  'height: photo.height',
   'already exists|duplicate',
   'client_id: measurement.client_id',
   'client_id: photo.client_id',
@@ -29,6 +42,7 @@ for (const marker of [
   'inspection_photos_workspace_client_uidx',
 ]) assert.ok(migration.includes(marker), `migration contract missing: ${marker}`)
 for (const marker of ['inspection_verifications', 'enable row level security', 'public.is_workspace_member(workspace_id)', 'technician_name']) assert.ok(verificationMigration.includes(marker), `verification migration missing: ${marker}`)
+for (const marker of ['rafter_lf', 'soffit_lf', 'fascia_lf', 'roof_type']) assert.ok(fieldMeasurementMigration.includes(marker), `field measurement migration missing: ${marker}`)
 
 const sessions = new Map()
 const measurements = new Map()

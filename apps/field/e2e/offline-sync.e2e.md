@@ -4,7 +4,7 @@ This suite is intended for an Expo/EAS development build on a real Android or iO
 
 ## Preconditions
 
-Build with the `development` profile and configure `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY`, and `EXPO_PUBLIC_WEB_APP_URL` in the EAS environment. Apply migrations through `034_mobile_offline_idempotency.sql`. Use two test users with access to different workspaces and a private `inspection-photos` bucket. Enable device network controls or use airplane mode plus Wi-Fi toggling.
+Build with the `development` profile and configure `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY`, and `EXPO_PUBLIC_WEB_APP_URL` in the EAS environment. Apply migrations through `051_mobile_field_measurement_inputs.sql`. Use two test users with access to different workspaces and a private `inspection-photos` bucket. Enable device network controls or use airplane mode plus Wi-Fi toggling.
 
 ## Test matrix
 
@@ -22,6 +22,10 @@ Build with the `development` profile and configure `EXPO_PUBLIC_SUPABASE_URL`, `
 | OFF-10 | Duplicate tap protection | Press “Sync queued work now” repeatedly while a sync is active. | Only one sync execution runs at a time; no duplicate remote rows are created. |
 | OFF-11 | Cross-account key collision | Have User A and User B use the same synthetic client key in separate workspaces. | Rows remain isolated by workspace and RLS; neither user can read the other’s records. |
 | OFF-12 | App upgrade migration | Install the previous pilot build with local data, upgrade to the hardened development build, and reopen. | SQLite initialization succeeds; new columns are available; old drafts without ownership are not exposed to another account. |
+
+## Current hardening coverage
+
+The 0.4 field contract also requires roof squares, gutter LF, eave LF, rafter LF, pitch, soffit LF, fascia LF, and roof type inputs. Photo records must retain caption, MIME type, file size, width, and height. Retry is capped exponential backoff and sync execution is single-flight.
 
 ## Evidence to capture
 
