@@ -687,3 +687,12 @@ A signed APK has not yet been produced in this batch. The GitHub Actions workflo
 ### Authority boundary
 
 The mobile verification record is evidence of a technician review event only. A captured signature, report photo review, and owner/manager approval remain mandatory under `GOLDEN-REPORT.md` before any customer packet is approved or sent.
+
+## 2026-10-04 APK verification completion
+
+- APK workflow run `37257872937` completed successfully for commit `bd922eefed812471b026e243c0939c04e25b4557`.
+- The workflow produced artifact `roof-os-field-preview-apk`, 35,718,093 bytes on GitHub Actions; downloaded APK size is 77,605,807 bytes.
+- Downloaded APK SHA-256: `453dcf1c51b59d415fcd28cf174fc7ccaf2afe1bcd7caac425fa9a95003597d5`.
+- ZIP integrity test passed. The APK workflow’s two obsolete-download-path issues were corrected without changing the three mobile feature fixes.
+- PR #171 has 12 successful checks, including web, mobile, preview-build, migration-safety, refresh-field-lock, Vercel, and Vercel Preview Comments.
+- The first three mobile weaknesses are complete and verified. Do not begin a fourth weakness batch until the merged APK/branch state is reviewed under the next authorized work batch.

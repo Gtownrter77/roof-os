@@ -49,3 +49,14 @@ Exactly three mobile weaknesses were addressed:
 3. Technician name, optional license, verification time, and notes persist locally and sync to the RLS-protected `inspection_verifications` table. This is not a signature or manager approval and cannot approve a customer report.
 
 Static, runtime bundle, and repository security checks passed. A signed EAS APK artifact remains the final delivery gate.
+
+## APK artifact verification — 2026-10-04
+
+The manual EAS workflow completed successfully on commit `bd922eefed812471b026e243c0939c04e25b4557`.
+
+- GitHub Actions run: `37257872937`
+- Artifact: `roof-os-field-preview-apk`
+- Downloaded APK SHA-256: `453dcf1c51b59d415fcd28cf174fc7ccaf2afe1bcd7caac425fa9a95003597d5`
+- APK archive integrity: PASS
+
+This proves the signed/internal APK artifact was produced. It does not replace a real-device authenticated smoke test or the production Supabase two-workspace RLS test.
