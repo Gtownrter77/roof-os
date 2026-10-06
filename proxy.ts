@@ -30,6 +30,7 @@ function applySecurityPolicy(response: NextResponse, nonce: string) {
     `script-src 'self' 'nonce-${nonce}'`,
   ].join('; ')
   response.headers.set('Content-Security-Policy', csp)
+  response.headers.set('Cache-Control', 'no-store, max-age=0')
   return response
 }
 
