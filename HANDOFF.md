@@ -711,3 +711,9 @@ The mobile verification record is evidence of a technician review event only. A 
 - Fixed the script declaration and added the targeted `shell-quote` `^1.11.0` override in `apps/field/package.json`; regenerated `apps/field/package-lock.json`.
 - Local evidence after the correction: `npm run typecheck` passed, `npm run build` passed, `node scripts/audit-field-deps.mjs` passed, and `npm audit --prefix apps/field --audit-level=moderate` reported **0 vulnerabilities**.
 - The corrected commit is being pushed to PR #223; wait for the complete replacement CI run before merging.
+
+## 2026-10-06 batch 1 web-CI correction — print contract preserved
+- PR #223 replacement web CI exposed a stylesheet contract failure in `test:photo-full-report-flow`: the dashboard rewrite had minified the existing print CSS so the contract's required `visibility: visible !important` and `position: fixed` declarations were no longer matched.
+- Restored the explicit Golden Report print block without changing the dashboard theme behavior.
+- Local evidence: `node scripts/photo-full-report-flow-test.mjs` passed; the earlier `npm run typecheck`, `npm run build`, field audit script, and field `npm audit` also remain passing.
+- Push this correction and wait for a new complete PR check set; no merge is authorized until all checks are green.

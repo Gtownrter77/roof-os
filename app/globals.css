@@ -23,7 +23,23 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 @media (max-width: 850px) { .roof-sidebar { position:fixed; inset:0 auto 0 0; width:250px; transform:translateX(-100%); transition:.2s; box-shadow:10px 0 35px #000; }.roof-sidebar.is-open { transform:translateX(0); }.mobile-close,.mobile-menu { display:grid; place-items:center; background:none; border:0; color:white; }.mobile-close { position:absolute; right:10px; top:17px; }.mobile-menu { flex:0 0 25px; }.command-header { gap:9px; }.header-stats { display:none; }.location { display:none; }.current-weather { margin-left:auto; }.hero-grid { grid-template-columns:1fr; }.radar-card { min-height:260px; }.dashboard-grid { grid-template-columns:1fr 1fr; }.mission-bar { padding:0 10px; gap:8px; }.mission-bar > span,.mission-bar > i { display:none; }.mission-controls span { display:none; } }
 @media (max-width: 560px) { .command-header { margin:0 8px; }.alert-chip { padding:8px; }.alert-chip span { display:none; }.profile { display:none; }.hero-grid,.pipeline-panel,.dashboard-grid { margin-left:8px; margin-right:8px; }.hero-copy { padding:23px 20px; }.hero-copy h1 { font-size:31px; }.dashboard-grid { grid-template-columns:1fr; }.flow-meta { display:none; }.pipeline-title { min-height:54px; }.pipeline-track { padding-top:12px; }.pipeline-step { min-width:86px; }.pipeline-node { width:45px; height:45px; }.pipeline-node svg { width:20px; }.pipeline-step strong { font-size:10px; }.pipeline-step b { font-size:19px; }.radar-live { display:none; }.mission-bar { height:38px; }.roof-main { padding-bottom:38px; } }
 
-@media print { @page { margin: 18mm 14mm 24mm; } body { background:#fff !important; } body * { visibility:hidden !important; } .photo-estimate-report,.photo-estimate-report * { visibility:visible !important; } .photo-estimate-report { position:absolute !important; inset:0 auto auto 0 !important; width:100% !important; margin:0 !important; box-shadow:none !important; } .photo-estimate-report button { display:none !important; } .photo-estimate-report img { break-inside:avoid; } .golden-report-footer { position:fixed; bottom:0; left:0; right:0; background:#fff; } }
+@media print {
+  @page { margin: 18mm 14mm 24mm; }
+  body { background: #fff !important; }
+  body * { visibility: hidden !important; }
+  .photo-estimate-report,
+  .photo-estimate-report * { visibility: visible !important; }
+  .photo-estimate-report {
+    position: absolute !important;
+    inset: 0 auto auto 0 !important;
+    width: 100% !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+  }
+  .photo-estimate-report button { display: none !important; }
+  .photo-estimate-report img { break-inside: avoid; }
+  .golden-report-footer { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; }
+}
 
 /* The Storm Theme toggle keeps the dashboard structure intact while removing the weather-showcase treatment. */
 .theme-setting { border: 1px solid rgba(105, 134, 178, .32); color: #cbd6e9; background: rgba(11, 23, 43, .72); display: flex; align-items: center; gap: 10px; border-radius: 5px; padding: 8px 10px; font-size: 11px; text-align: left; }
