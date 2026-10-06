@@ -122,18 +122,18 @@ export default function PricingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
-      <header className="bg-blue-600 text-white shadow-lg sticky top-0 z-10">
-        <div className="px-4 py-3 flex items-center">
-          <button onClick={() => router.back()} className="text-white mr-3 text-xl">←</button>
-          <h1 className="text-xl font-bold">💰 Live Retailer Pricing</h1>
-          <span className="ml-2 bg-green-500 text-white text-xs px-2 py-1 rounded">LIVE REFERENCE</span>
+    <div className="ops-bg min-h-screen lg:pl-[232px] pb-16">
+      <header className="glass sticky top-0 z-10 border-x-0 border-t-0">
+        <div className="mx-auto flex max-w-[1240px] items-center px-4 py-3">
+          <button onClick={() => router.back()} className="mr-3 text-xl text-cyan-300">←</button>
+          <h1 className="text-xl font-black">💰 Live Retailer Pricing</h1>
+          <span className="ml-2 rounded bg-emerald-500 px-2 py-1 text-xs font-bold text-black">LIVE REFERENCE</span>
         </div>
       </header>
 
-      <main className="p-4">
+      <main className="mx-auto max-w-[1240px] p-4">
         {/* Quick Input */}
-        <div className="bg-white rounded-lg shadow p-4 mb-4">
+        <div className="glass mb-4 rounded-xl p-4">
           <h3 className="font-semibold text-sm mb-3">📐 Quick Estimate</h3>
           <div className="flex gap-2">
             <input
@@ -142,17 +142,17 @@ export default function PricingPage() {
               className="flex-1 p-2 border rounded-lg"
               onChange={(e) => updateQuantities(Number(e.target.value))}
             />
-            <button className="bg-blue-600 text-white px-4 py-2 rounded-lg">
+            <button className="rounded-lg bg-gradient-to-r from-blue-600 to-cyan-500 px-4 py-2 text-white">
               Calculate
             </button>
           </div>
         </div>
 
         {/* Materials */}
-        <div className="bg-white rounded-lg shadow p-4 mb-4">
+        <div className="glass mb-4 rounded-xl p-4">
           <h3 className="font-semibold text-sm mb-3 flex justify-between">
             <span>🧱 Materials</span>
-            <span className="text-green-600">${totals.materials.toFixed(2)}</span>
+            <span className="text-emerald-300">${totals.materials.toFixed(2)}</span>
           </h3>
           <div className="space-y-2">
             {Object.entries(pricing.materials).map(([key, item]) => (
@@ -162,13 +162,13 @@ export default function PricingPage() {
                   type="number"
                   value={item.price}
                   onChange={(e) => updateRate('materials', key, Number(e.target.value))}
-                  className="p-1 border rounded text-xs w-full"
+                  className="w-full rounded border border-white/15 bg-black/25 p-1 text-xs text-white"
                 />
                 <input
                   type="number"
                   value={item.quantity}
                   onChange={(e) => updateQuantity('materials', key, Number(e.target.value))}
-                  className="p-1 border rounded text-xs w-full"
+                  className="w-full rounded border border-white/15 bg-black/25 p-1 text-xs text-white"
                 />
                 <span className="text-xs font-medium text-right">
                   ${(item.price * item.quantity).toFixed(2)}
@@ -179,10 +179,10 @@ export default function PricingPage() {
         </div>
 
         {/* Labor */}
-        <div className="bg-white rounded-lg shadow p-4 mb-4">
+        <div className="glass mb-4 rounded-xl p-4">
           <h3 className="font-semibold text-sm mb-3 flex justify-between">
             <span>👷 Labor</span>
-            <span className="text-green-600">${totals.labor.toFixed(2)}</span>
+            <span className="text-emerald-300">${totals.labor.toFixed(2)}</span>
           </h3>
           <div className="space-y-2">
             {Object.entries(pricing.labor).map(([key, item]) => (
@@ -192,13 +192,13 @@ export default function PricingPage() {
                   type="number"
                   value={item.rate}
                   onChange={(e) => updateRate('labor', key, Number(e.target.value))}
-                  className="p-1 border rounded text-xs w-full"
+                  className="w-full rounded border border-white/15 bg-black/25 p-1 text-xs text-white"
                 />
                 <input
                   type="number"
                   value={item.quantity}
                   onChange={(e) => updateQuantity('labor', key, Number(e.target.value))}
-                  className="p-1 border rounded text-xs w-full"
+                  className="w-full rounded border border-white/15 bg-black/25 p-1 text-xs text-white"
                 />
                 <span className="text-xs font-medium text-right">
                   ${(item.rate * item.quantity).toFixed(2)}
@@ -209,34 +209,34 @@ export default function PricingPage() {
         </div>
 
         {/* Overhead & Profit */}
-        <div className="bg-white rounded-lg shadow p-4 mb-4">
+        <div className="glass mb-4 rounded-xl p-4">
           <h3 className="font-semibold text-sm mb-3">📊 Overhead & Profit</h3>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-gray-500">Overhead %</label>
+              <label className="text-xs text-slate-400">Overhead %</label>
               <input
                 type="number"
                 value={Math.round(pricing.overhead * 100)}
                 onChange={(e) => setPricing({...pricing, overhead: Number(e.target.value) / 100})}
-                className="w-full p-2 border rounded text-sm"
+                className="w-full rounded border border-white/15 bg-black/25 p-2 text-sm text-white"
               />
-              <span className="text-xs text-green-600">${totals.overhead.toFixed(2)}</span>
+              <span className="text-xs text-emerald-300">${totals.overhead.toFixed(2)}</span>
             </div>
             <div>
-              <label className="text-xs text-gray-500">Profit %</label>
+              <label className="text-xs text-slate-400">Profit %</label>
               <input
                 type="number"
                 value={Math.round(pricing.profit * 100)}
                 onChange={(e) => setPricing({...pricing, profit: Number(e.target.value) / 100})}
-                className="w-full p-2 border rounded text-sm"
+                className="w-full rounded border border-white/15 bg-black/25 p-2 text-sm text-white"
               />
-              <span className="text-xs text-green-600">${totals.profit.toFixed(2)}</span>
+              <span className="text-xs text-emerald-300">${totals.profit.toFixed(2)}</span>
             </div>
           </div>
         </div>
 
         {/* Total */}
-        <div className="bg-blue-50 border-2 border-blue-500 rounded-lg p-4 mb-4">
+        <div className="rounded-xl border-2 border-cyan-400/50 bg-cyan-400/10 p-4 mb-4">
           <div className="space-y-2">
             <div className="flex justify-between">
               <span className="text-sm">Materials</span>
@@ -261,7 +261,7 @@ export default function PricingPage() {
             <div className="border-t pt-2 border-blue-300">
               <div className="flex justify-between text-lg font-bold">
                 <span>Total Estimate</span>
-                <span className="text-blue-600">${totals.total.toFixed(2)}</span>
+                <span className="text-cyan-300">${totals.total.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-sm text-gray-500">
                 <span>Per Square</span>
@@ -271,16 +271,16 @@ export default function PricingPage() {
           </div>
 
           <div className="grid grid-cols-2 gap-2 mt-4">
-            <button className="bg-blue-600 text-white py-2 rounded-lg text-sm">
+            <button className="rounded-lg bg-gradient-to-r from-blue-600 to-cyan-500 py-2 text-sm text-white">
               📄 Generate Report
             </button>
-            <button className="bg-green-600 text-white py-2 rounded-lg text-sm">
+            <button className="rounded-lg bg-emerald-600 py-2 text-sm text-white">
               📧 Send Quote
             </button>
           </div>
         </div>
 
-        <div className="bg-gray-100 rounded-lg p-3 text-center">
+        <div className="glass rounded-xl p-3 text-center">
           <p className="text-xs text-gray-600">
             Live Home Depot and Lowe&apos;s retailer reference pricing • Updated weekly by default • Refresh on demand • Xactimate-friendly workflow formatting
           </p>
@@ -290,7 +290,7 @@ export default function PricingPage() {
         </div>
       </main>
 
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around py-2 px-4">
+      <nav className="fixed inset-x-0 bottom-0 z-30 hidden border-t border-white/15 bg-[#050914]/95 py-3 px-4 backdrop-blur-xl lg:pl-[252px]">
         <button onClick={() => router.push('/')} className="flex flex-col items-center text-gray-400">
           <span className="text-xl">🏠</span>
           <span className="text-xs">Home</span>
