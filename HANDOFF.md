@@ -717,3 +717,9 @@ The mobile verification record is evidence of a technician review event only. A 
 - Restored the explicit Golden Report print block without changing the dashboard theme behavior.
 - Local evidence: `node scripts/photo-full-report-flow-test.mjs` passed; the earlier `npm run typecheck`, `npm run build`, field audit script, and field `npm audit` also remain passing.
 - Push this correction and wait for a new complete PR check set; no merge is authorized until all checks are green.
+
+## 2026-10-06 batch 1 web-audit correction — root production dependencies
+- The third PR #223 web failure was the root `npm run audit` step: transitive `sharp <0.35.5` and `source-map-js <1.2.2` advisories were present in the lockfile.
+- Added targeted root `overrides` for `sharp ^0.35.5` and `source-map-js ^1.2.2`, then regenerated `package-lock.json`.
+- Local evidence: `npm audit --omit=dev --audit-level=high` now passes with **0 production vulnerabilities**; field audit remains at **0 vulnerabilities**; typecheck, production build, photo-report contract, and `git diff --check` are also passing.
+- Push this correction and require one more complete green PR check set before merge.
