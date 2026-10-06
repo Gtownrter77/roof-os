@@ -772,3 +772,27 @@ The mobile verification record is evidence of a technician review event only. A 
   - `npm run test:ai-vision-contract`: ALL 17 TESTS PASSED
   - `npm run test:ai-vision-endpoint`: PASS
   - Root & Field `npx tsc --noEmit`: 0 errors
+
+## 2026-10-06 inspection camera audio recording and speech-to-text checkpoint
+- Addressed user request: "Add an audio recording feature to the InspectionCamera module, allowing contractors to record site notes directly during an inspection and automatically transcribe them using speech-to-text." and "Push main".
+- Implemented:
+  1. `components/InspectionCamera.tsx`: Full inspection camera module equipped with digital inclinometer slope visualizer, microphone recording (`MediaRecorder`), real-time speech-to-text dictation (`SpeechRecognition`), audio playback controls, and evidence gallery voice note player.
+  2. `app/camera/page.tsx`: Integrated site audio recording and automated speech-to-text dictation into the camera session capture flow, linking transcribed site notes to the inspection session.
+  3. Automated tests: Added `scripts/inspection-camera-audio-test.mjs` (`npm run test:camera-audio`).
+- Verified:
+  - `npm run test:camera-audio`: PASS
+  - `npm run test:ai-chat-bar`: PASS
+  - `npm run test:mobile-auth`: PASS
+  - `node scripts/mobile-release-check.mjs`: PASS
+  - `npm run test:mobile-offline-sync`: PASS
+  - `npm run release-check`: PASS
+  - `npm run verify:security`: PASS
+  - `npm run test:auth-flow`: PASS
+  - `npm run test:api-security`: PASS
+  - `npm run test:photo-full-report-flow`: PASS
+  - `npm run test:receptionist`: PASS
+  - `npm run test:aerial`: PASS
+  - `npm run test:measurement-estimate-authority`: PASS
+  - `npm run test:ai-vision-contract`: ALL 17 TESTS PASSED
+  - `npm run test:ai-vision-endpoint`: PASS
+  - Root & Field `npx tsc --noEmit`: 0 errors
