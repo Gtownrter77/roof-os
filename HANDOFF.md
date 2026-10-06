@@ -728,3 +728,8 @@ The mobile verification record is evidence of a technician review event only. A 
 The temporary sandbox-only fixture at `app/auth/dashboard-preview/page.tsx` was removed before staging, and its local preview servers were stopped. No synthetic route or Denver forecast fixture is in the intended source change. At the time of the initial stop record, README/State documentation and the feature-branch checkpoint were pending; a dated checkpoint receipt should follow below after push. Do not claim production verification or a signed-in workspace test; no deployment, migration, database write, login, or device-location authorization was performed. Do not merge without a separate owner instruction and green required checks.
 
 `DASHBOARD-AUDIT.md` records the cited free/open sources and design decisions. The dashboard screenshot validation remains **PARTIAL**; production behavior remains **UNVERIFIED**.
+
+
+## 2026-10-05 dashboard checkpoint — pushed
+
+The handoff-first dashboard/login batch and README/State updates were committed on `feat/location-aware-dashboard-20261005` as `a0d9bade4b96678e34d1c3fa5b09f64e952d3b4f` (`feat: add location-aware roofing dashboard`). The branch was pushed to GitHub, and `git ls-remote` returned the same SHA. The temporary QA route was not committed. No PR was opened, no merge was performed, and CI was not monitored after the user's stop instruction. The preview/runtime visual boundary and production/authenticated checks above remain open; next work should start with owner review of the handoff and current PR/CI state.
