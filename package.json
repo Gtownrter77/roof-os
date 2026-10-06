@@ -35,7 +35,8 @@
     "test:ai-report-authority": "node scripts/ai-report-authority-test.mjs",
     "test:invoices-live-data": "node scripts/invoices-live-data-test.mjs",
     "test:mobile-auth": "node scripts/mobile-auth-test.mjs",
-    "test:ai-chat-bar": "node scripts/ai-chat-bar-test.mjs"
+    "test:ai-chat-bar": "node scripts/ai-chat-bar-test.mjs",
+    "test:camera-audio": "node scripts/inspection-camera-audio-test.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.2",
