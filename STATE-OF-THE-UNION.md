@@ -1,3 +1,13 @@
+## 2026-10-05 synchronized repository checkpoint
+
+**Current main at checkpoint:** `48a7247175713e5d1542a8936d842b937ad9f657`
+
+This checkpoint supersedes older documentation snapshots. Since the prior documented baseline, the merged integrity cleanup includes: Home Depot/logistics reference-only treatment until live provider evidence exists; removal of fabricated drone telemetry/photogrammetry and invalid capture URLs; removal of unverified integration connection states; removal of fictional support channels; manual capability-boundary synchronization; CSP nonce hardening; field-environment ignore hardening; Docker build-context secret exclusion; Activity Feed stabilization; and the source-map-js security patch.
+
+**Authority boundary:** AI observations remain non-authoritative. Technician verification, source attribution, required signatures, and manager approval remain mandatory before a Golden Report is customer-ready.
+
+**Production boundary:** GitHub merge/CI evidence is not proof of a successful Vercel production deployment or live provider execution. Those remain separately evidence-gated.
+
 # ROOF/OS State of the Union — 2026-10-02
 
 **Repository:** `Gtownrter77/roof-os`  
