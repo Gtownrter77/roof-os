@@ -696,3 +696,11 @@ The mobile verification record is evidence of a technician review event only. A 
 - ZIP integrity test passed. The APK workflow’s two obsolete-download-path issues were corrected without changing the three mobile feature fixes.
 - PR #171 has 12 successful checks, including web, mobile, preview-build, migration-safety, refresh-field-lock, Vercel, and Vercel Preview Comments.
 - The first three mobile weaknesses are complete and verified. Do not begin a fourth weakness batch until the merged APK/branch state is reviewed under the next authorized work batch.
+
+## 2026-10-06 batch 1 audit checkpoint — dashboard and open PR review
+- **Scope audited:** local storm-command-center dashboard changes (`app/page.tsx`, `app/globals.css`, `components/Navigation.tsx`, and `public/manus-routes.json`), current `main`, and the only open pull request, PR #219 (`docs/final-checkpoint-wording-20261005`).
+- **Current GitHub main at audit start:** `7d442df5b8455149c9b281299336c5811a9e174f`; local `main` matched `origin/main` before this batch.
+- **Dashboard evidence:** `npm run typecheck`, `npm run build`, route-manifest JSON validation, and `git diff --check` passed. The local dashboard remains unauthenticated in this environment because middleware correctly redirects `/` to `/auth/login`; no authenticated production workflow was claimed.
+- **PR #219 evidence:** docs-only change to `CURRENT-STATE.md`, `HANDOFF.md`, `README.md`, and `STATE-OF-THE-UNION.md`. ROOF OS CI web, mobile, preview-build, migration-safety, and refresh-field-lock checks passed. Vercel reported a deployment-rate-limit failure at `https://vercel.com/ryan-long-s-projects?upgradeToPro=build-rate-limit`; this is not a source/build failure and must be resolved or explicitly treated as an external deployment limitation before declaring the PR fully green.
+- **Merge decision:** PR #219 was not merged in batch 1 because it was behind `main` and had a failing Vercel status. No production deployment, database migration, or customer data operation was performed.
+- **Next step:** push this batch branch, open a dashboard PR, wait for its required checks to finish green, then rebase/recheck PR #219 and merge only when the complete required status set is green. Update this handoff again after the next three-level batch.
