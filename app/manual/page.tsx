@@ -98,21 +98,21 @@ export default function ManualPage() {
         { 
           step: 1, 
           title: 'Photo AI Estimation', 
-          description: 'Take a photo and let AI generate a complete estimate.',
+          description: 'Upload evidence and review AI-assisted observations; the workflow still requires human review before estimating.',
           action: 'Go to Photo AI',
           tip: 'Take clear photos from multiple angles'
         },
         { 
           step: 2, 
           title: 'Xactimate-Style Pricing', 
-          description: 'Use professional pricing with materials, labor, overhead, and profit.',
+          description: 'Prepare owner-managed draft pricing; claims pricing still requires an approved source and review.',
           action: 'Go to Pricing',
           tip: 'Adjust rates based on your market'
         },
         { 
           step: 3, 
           title: 'Supplement Engine', 
-          description: 'Automatically detect additional work needed.',
+          description: 'Review supplement findings and document additional work before approval.',
           action: 'Go to Supplement',
           tip: 'Review all supplements before approving'
         },
@@ -134,21 +134,21 @@ export default function ManualPage() {
         { 
           step: 1, 
           title: 'AI Photo Verification', 
-          description: 'Ensure all required photos are captured with AI checking.',
+          description: 'Review AI-assisted photo coverage suggestions; they are not measurement or approval authority.',
           action: 'Go to Photo Verify',
           tip: 'Cover all elevations and slopes'
         },
         { 
           step: 2, 
           title: 'AI Construction Wizard', 
-          description: 'Ask any construction question and get instant answers.',
+          description: 'Ask construction questions and receive AI suggestions that must be verified against local requirements.',
           action: 'Go to AI Wizard',
           tip: 'Ask about codes, materials, or best practices'
         },
         { 
           step: 3, 
           title: 'AI Upsell Engine', 
-          description: 'Discover opportunities to increase project value.',
+          description: 'Review suggested upsell opportunities; no customer-facing recommendation is automatic.',
           action: 'Go to Upsell',
           tip: 'Focus on high-priority upgrades first'
         },
@@ -170,7 +170,7 @@ export default function ManualPage() {
         { 
           step: 1, 
           title: 'AR Pitch Gauge', 
-          description: 'Measure roof pitch using your phone camera.',
+          description: 'Pilot only: pitch-gauge behavior is not treated as authoritative measurement.',
           action: 'Go to Pitch Gauge',
           tip: 'Point camera at roof edge for accuracy'
         },
@@ -184,14 +184,14 @@ export default function ManualPage() {
         { 
           step: 3, 
           title: 'Drone Integration', 
-          description: 'Connect and control drones for aerial inspections.',
+          description: 'Pilot only: connect a real drone source before using telemetry or aerial measurements.',
           action: 'Go to Drone',
           tip: 'Scan the entire roof from above'
         },
         { 
           step: 4, 
           title: 'Home Depot Direct', 
-          description: 'Search and order materials instantly.',
+          description: 'Search Home Depot provider reference data; ordering is not performed by this screen.',
           action: 'Go to Home Depot',
           tip: 'Add items to cart for quick checkout'
         }
@@ -206,28 +206,28 @@ export default function ManualPage() {
         { 
           step: 1, 
           title: 'Building Codes', 
-          description: 'Access building codes for all 50 states.',
+          description: 'Use the available code reference snapshot and verify the current local requirement before relying on it.',
           action: 'Go to Codes',
           tip: 'Check local codes before estimating'
         },
         { 
           step: 2, 
           title: 'Insurance Intelligence', 
-          description: 'Check state appraisal laws, matching laws, and permit requirements.',
+          description: 'Review available insurance-intelligence references; verify the current rule, carrier requirement, or permit authority before relying on it.',
           action: 'Go to Insurance Intel',
           tip: 'Enter address to check permit requirements'
         },
         { 
           step: 3, 
           title: 'Insurance Claims Directory', 
-          description: 'Quick dial insurance claims departments.',
+          description: 'Use the claims directory as a contact reference and verify the current carrier contact before use.',
           action: 'Go to Insurance',
           tip: 'Save time with one-tap calling'
         },
         { 
           step: 4, 
           title: 'Permit Flagging', 
-          description: 'Auto-flag properties that need roof permits.',
+          description: 'Use address-based information as a lead for permit review; the local authority remains the source of truth.',
           action: 'Enter address in Insurance Intel',
           tip: 'Always verify permit requirements'
         }
@@ -242,21 +242,21 @@ export default function ManualPage() {
         { 
           step: 1, 
           title: 'Dumpster Rentals', 
-          description: 'Find and order dumpsters near your job site.',
+          description: 'Use logistics planning ranges and provider links; live availability and ordering are not performed here.',
           action: 'Go to Logistics',
           tip: 'Rubber wheel trailers are preferred'
         },
         { 
           step: 2, 
           title: 'Porta John Rentals', 
-          description: 'Order portable restrooms for your job site.',
+          description: 'Use provider links and planning guidance; live availability and ordering are not performed here.',
           action: 'Go to Logistics',
           tip: 'Order deluxe units with hand washing stations'
         },
         { 
           step: 3, 
           title: 'Material Ordering', 
-          description: 'Order materials directly from Home Depot.',
+          description: 'Use the Home Depot provider reference workflow; ordering is not performed in ROOF/OS.',
           action: 'Go to Home Depot',
           tip: 'Check daily prices for best deals'
         }
@@ -278,9 +278,9 @@ export default function ManualPage() {
         { 
           step: 2, 
           title: 'Multi-Language Support', 
-          description: 'Translate estimates and communications into 12 languages.',
+          description: 'Translate supported construction phrases with the built-in English-to-Spanish, French, and German phrasebook.',
           action: 'Go to Translate',
-          tip: 'Useful for non-English speaking clients'
+          tip: 'Useful for the currently supported phrasebook languages; verify the translation before customer use.'
         },
         { 
           step: 3, 
@@ -316,7 +316,7 @@ export default function ManualPage() {
           title: 'Dark Mode', 
           description: 'Toggle between light and dark mode.',
           action: 'Click 🌙 or ☀️ in header',
-          tip: 'Dark mode saves battery on Android'
+          tip: 'Dark-mode behavior and battery impact depend on the device and display.'
         }
       ]
     }
@@ -362,7 +362,7 @@ export default function ManualPage() {
         <div className="px-4 py-3 flex items-center">
           <button onClick={() => router.back()} className="text-white mr-3 text-xl">←</button>
           <h1 className="text-xl font-bold">📖 Interactive Manual</h1>
-          <span className="ml-2 bg-green-500 text-white text-xs px-2 py-0.5 rounded-full animate-pulse">LIVE</span>
+          <span className="ml-2 bg-amber-500 text-white text-xs px-2 py-0.5 rounded-full">LOCAL GUIDE</span>
         </div>
       </header>
 
