@@ -1,32 +1,6 @@
 'use client'
-
-import { usePathname, useRouter } from 'next/navigation'
-
-const NAV_ITEMS = [
-  { icon: 'Home', path: '/' },
-  { icon: 'Leads', path: '/leads' },
-  { icon: 'Brief', path: '/brief' },
-  { icon: 'Passport', path: '/warranty' },
-  { icon: 'Camera', path: '/camera' },
-  { icon: 'Measure', path: '/measure' },
-]
-
-const HIDDEN_ON = ['/auth/login', '/auth/signup', '/onboarding']
-
-export default function Navigation() {
-  const pathname = usePathname()
-  const router = useRouter()
-  if (HIDDEN_ON.some((p) => pathname?.startsWith(p))) return null
-  return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around py-2 px-1 z-40">
-      {NAV_ITEMS.map((item) => {
-        const active = pathname === item.path || (item.path !== '/' && pathname?.startsWith(item.path))
-        return (
-          <button key={item.path} onClick={() => router.push(item.path)} className={`text-xs px-2 ${active ? 'text-blue-600 font-semibold' : 'text-gray-500'}`}>
-            {item.icon}
-          </button>
-        )
-      })}
-    </nav>
-  )
-}
+import {usePathname,useRouter} from 'next/navigation'
+import {BarChart3,Bot,ClipboardList,CloudLightning,DollarSign,FileText,Gauge,HelpCircle,Home,Ruler,Settings,ShieldCheck,Users,WalletCards,Wrench} from 'lucide-react'
+const items=[['Dashboard','/',Home,''],['Storms & Weather','/weather',CloudLightning,'3'],['Opportunities','/leads',Gauge,'47'],['Leads','/leads',Users,'18'],['Inspections','/inspections',ClipboardList,'27'],['Measurements','/measure',Ruler,'34'],['Estimates','/pricing',FileText,'29'],['Customers','/leads',Users,'22'],['Production','/tasks',Wrench,'16'],['Payments','/payment',WalletCards,'11'],['Reports','/reports',BarChart3,''],['AI Assistant','/ai',Bot,'ON']] as const
+const hidden=['/auth/login','/auth/signup','/auth/reset','/auth/mfa','/onboarding']
+export default function Navigation(){const path=usePathname(),router=useRouter();if(hidden.some(p=>path?.startsWith(p)))return null;return <aside className="fixed inset-y-0 left-0 z-40 hidden w-[232px] flex-col border-r border-white/10 bg-[#050914]/95 px-3 py-4 shadow-2xl backdrop-blur-xl lg:flex"><button type="button" onClick={()=>router.push('/')} className="mb-4 flex items-center gap-2 rounded-xl px-2 py-2 text-left"><ShieldCheck className="h-10 w-10 text-red-500"/><span><strong className="block text-[27px] font-black tracking-[-.08em]">ROOF<span className="text-red-500">/OS</span></strong><small className="text-[9px] tracking-[.18em] text-slate-300">THE ROOFING OPERATING SYSTEM</small></span></button><nav className="ops-scrollbar flex-1 space-y-1 overflow-y-auto pr-1" aria-label="Operations navigation">{items.map(([label,href,Icon,badge])=>{const active=path===href||(href!=='/'&&path?.startsWith(href));return <button key={label} type="button" onClick={()=>router.push(href)} className={`flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm ${active?'border border-cyan-400/60 bg-blue-600/45 text-white':'text-slate-300 hover:bg-white/10 hover:text-white'}`}><Icon className="h-[18px] w-[18px]"/><span className="flex-1">{label}</span>{badge&&<span className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${badge==='ON'?'bg-emerald-500 text-black':'bg-red-600 text-white'}`}>{badge}</span>}</button>})}</nav><div className="my-3 border-t border-white/10"/><div className="space-y-1"><button type="button" onClick={()=>router.push('/settings')} className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm text-slate-300 hover:bg-white/10"><Settings className="h-[18px] w-[18px]"/>Settings</button><button type="button" onClick={()=>router.push('/help')} className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm text-slate-300 hover:bg-white/10"><HelpCircle className="h-[18px] w-[18px]"/>Help / Support</button></div><div className="mt-4 rounded-xl border border-cyan-400/30 bg-black/30 p-3 text-xs"><p className="font-semibold text-emerald-400">● System Online</p><p className="mt-2 text-slate-400">v2.4.7</p><p className="text-slate-300">ROOF/OS</p></div></aside>}
