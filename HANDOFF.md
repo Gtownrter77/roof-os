@@ -796,3 +796,8 @@ The mobile verification record is evidence of a technician review event only. A 
   - `npm run test:ai-vision-contract`: ALL 17 TESTS PASSED
   - `npm run test:ai-vision-endpoint`: PASS
   - Root & Field `npx tsc --noEmit`: 0 errors
+
+## 2026-10-06 dashboard batch merge resolution
+- Rebased the requested Storm Command Center dashboard onto current `main` after newer AI, mobile-auth, and inspection-audio work advanced the base branch.
+- Preserved current `main` for all unrelated newer features and retained the requested detailed dashboard, persistent Storm Theme setting, print contract, and root/field dependency audit remediations.
+- PR #223 checks were fully green before this merge-resolution commit; rerun the complete PR gate after pushing the conflict resolution.
