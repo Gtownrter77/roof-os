@@ -1,3 +1,5 @@
+> **2026-10-05 authority checkpoint:** AI observations are non-authoritative. Every report claim remains sourced or `Unknown`; technician verification is required; required signatures and manager approval remain mandatory before customer delivery. This is the governing Golden Report rule and is unchanged by the repository integrity cleanup.
+
 # THE GOLDEN REPORT
 
 ## ROOF/OS Report Template — v1.0
