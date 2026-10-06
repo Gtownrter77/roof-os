@@ -165,33 +165,21 @@ export default function CodesPage() {
   }
 
   const searchCodes = async () => {
-    setLoading(true)
-    if (zipCode.trim()) {
-      try {
-        const response = await fetch(`/api/building-codes?zip=${encodeURIComponent(zipCode)}&category=${encodeURIComponent(selectedCategory)}`)
-        const result = await response.json()
-        setResults(response.ok ? result : { error: result.error ?? 'ZIP lookup failed.' })
-      } catch {
-        setResults({ error: 'ZIP lookup failed. Check the network and try again.' })
-      } finally {
-        setLoading(false)
-      }
+    if (!zipCode.trim()) {
+      setResults({ error: 'Enter a ZIP code to perform a current locality lookup. Embedded snapshots are reference data only and are not used for production guidance.' })
       return
     }
-    setTimeout(() => {
-      const stateData = codeDatabase[selectedState as keyof typeof codeDatabase]
-      if (stateData) {
-        const categoryData = stateData[selectedCategory as keyof typeof stateData]
-        if (categoryData) {
-          setResults(categoryData)
-        } else {
-          setResults({ error: 'Category not found for this state' })
-        }
-      } else {
-        setResults({ error: 'State not found in database' })
-      }
+
+    setLoading(true)
+    try {
+      const response = await fetch(`/api/building-codes?zip=${encodeURIComponent(zipCode)}&category=${encodeURIComponent(selectedCategory)}`)
+      const result = await response.json()
+      setResults(response.ok ? result : { error: result.error ?? 'ZIP lookup failed.' })
+    } catch {
+      setResults({ error: 'ZIP lookup failed. Check the network and try again.' })
+    } finally {
       setLoading(false)
-    }, 800)
+    }
   }
 
   const exportCodeReport = () => {
@@ -216,26 +204,11 @@ export default function CodesPage() {
 
   const searchByQuery = () => {
     if (!searchQuery.trim()) return
-    setLoading(true)
-    setTimeout(() => {
-      // Search all states and categories
-      const found: any[] = []
-      Object.entries(codeDatabase).forEach(([state, categories]) => {
-        Object.entries(categories).forEach(([category, data]) => {
-          const query = searchQuery.toLowerCase()
-          const match = 
-            category.toLowerCase().includes(query) ||
-            data.code?.toLowerCase().includes(query) ||
-            data.requirements?.some((r: string) => r.toLowerCase().includes(query)) ||
-            data.materials?.some((m: string) => m.toLowerCase().includes(query))
-          if (match) {
-            found.push({ state, category, data })
-          }
-        })
-      })
-      setResults({ searchResults: found })
-      setLoading(false)
-    }, 1000)
+    if (!zipCode.trim()) {
+      setResults({ error: 'Enter a ZIP code before searching building-code references. Production code guidance must be resolved to a locality.' })
+      return
+    }
+    setResults({ error: 'Use the ZIP lookup above to retrieve the current locality-specific code family. The embedded snapshots are not used for production guidance.' })
   }
 
   return (
@@ -279,7 +252,7 @@ export default function CodesPage() {
             <div>
               <label className="text-xs text-gray-500">ZIP code lookup</label>
               <input value={zipCode} onChange={(e) => setZipCode(e.target.value)} placeholder="Enter ZIP to resolve locality" className="w-full p-2 border rounded-lg text-sm" />
-              <p className="text-xs text-gray-400 mt-1">ZIP lookup identifies the locality and state code family; verify local amendments before use.</p>
+              <p className="text-xs text-gray-400 mt-1">ZIP lookup resolves the locality. Verify local amendments before use. Embedded snapshots are not used for production guidance.</p>
             </div>
             <div className="grid grid-cols-2 gap-3">
             <div>
