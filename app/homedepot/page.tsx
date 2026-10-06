@@ -100,6 +100,7 @@ export default function HomeDepotPage() {
   const searchControllerRef = useRef<AbortController | null>(null)
   const [search, setSearch] = useState('')
   const [zipcode, setZipcode] = useState('')
+  const [category, setCategory] = useState('')
   const [results, setResults] = useState<ReferenceProduct[]>([])
   const [rawResponse, setRawResponse] = useState<unknown>(null)
   const [loading, setLoading] = useState(false)
