@@ -1,3 +1,13 @@
+## 2026-10-05 synchronized repository checkpoint
+
+**Current main:** `d72f734f616352e1ba38691bafcd1e82b07ae428`
+
+This checkpoint supersedes older documentation snapshots. The current main now includes the latest integrity cleanup plus three additional verified loose-end fixes: building-code guidance requires a locality lookup before production guidance, workspace switching surfaces authentication/membership/request failures instead of silently failing, and lead CSV export neutralizes spreadsheet formula injection.
+
+**Authority boundary:** AI observations remain non-authoritative. Technician verification, source attribution, required signatures, and manager approval remain mandatory before a Golden Report is customer-ready.
+
+**Production boundary:** GitHub merge and CI evidence are not proof of a successful Vercel production deployment or live provider execution. Those remain separately evidence-gated.
+
 # ROOF/OS State of the Union — 2026-10-02
 
 **Repository:** `Gtownrter77/roof-os`  
