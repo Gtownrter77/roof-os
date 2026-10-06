@@ -745,3 +745,30 @@ The mobile verification record is evidence of a technician review event only. A 
   - `npm run test:ai-vision-endpoint`: PASS
   - Root `npx tsc --noEmit`: 0 errors
   - Field `npx tsc --noEmit`: 0 errors
+
+## 2026-10-05 global ai chat bar checkpoint
+- Addressed user request: "Add a ai chat bar on every page asking what would you like to do now?".
+- Implemented:
+  1. `components/AiChatBar.tsx`: Global interactive AI Copilot bar displayed on every page asking "What would you like to do now?".
+  2. Mounted in root layout `app/layout.tsx` to provide universal availability across all desktop and mobile views.
+  3. Features quick action chips: Track Storms (`/weather`), Review Leads (`/leads`), Aerial Measure (`/measure`), Create Estimate (`/pricing`), and Golden Report (`/reports`).
+  4. Supports `Cmd+K` / `Ctrl+K` global keyboard shortcut to toggle and focus the command input.
+  5. Backed by `app/api/ai/chat/route.ts` with session authentication (`getUser()`) and bounded body reading (`readJson`).
+  6. Powered by `lib/ai/chat-copilot.ts` with contextual roofing operations intelligence and direct navigation actions.
+  7. Automated tests added: `scripts/ai-chat-bar-test.mjs` (`npm run test:ai-chat-bar`).
+- Verified:
+  - `npm run test:ai-chat-bar`: PASS
+  - `npm run test:mobile-auth`: PASS
+  - `node scripts/mobile-release-check.mjs`: PASS
+  - `npm run test:mobile-offline-sync`: PASS
+  - `npm run release-check`: PASS
+  - `npm run verify:security`: PASS
+  - `npm run test:auth-flow`: PASS
+  - `npm run test:api-security`: PASS
+  - `npm run test:photo-full-report-flow`: PASS
+  - `npm run test:receptionist`: PASS
+  - `npm run test:aerial`: PASS
+  - `npm run test:measurement-estimate-authority`: PASS
+  - `npm run test:ai-vision-contract`: ALL 17 TESTS PASSED
+  - `npm run test:ai-vision-endpoint`: PASS
+  - Root & Field `npx tsc --noEmit`: 0 errors
