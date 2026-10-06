@@ -1,3 +1,25 @@
+## 2026-10-05 final synchronized checkpoint
+
+**Current main:** `5144836fbc0a949d94cce5e444cd8432dc7c990f`
+
+The current main includes the verified integrity cleanup, the three UI loose-end fixes, and the AI-report authority hardening. The AI screen no longer fabricates a report from browser-entered text; it routes to the persisted photo-estimate workflow and is covered by a regression contract. The CI suite also now registers the existing invoice live-data regression command, which had been present as a test file but missing from package scripts.
+
+**Three-level repository evidence:** the latest merged AI-authority change passed web, mobile, preview-build, migration-safety, build, typecheck, release, security, and the full regression suite, including the AI-report and invoice-live-data checks.
+
+**Vercel boundary:** the current main commit has a Vercel status of **failure due to the account build-rate limit**. This is a platform deployment constraint, not a code-test pass. Production deployment is therefore not marked verified.
+
+**Authority boundary:** AI observations remain non-authoritative. Technician verification, source attribution, required signatures, and manager approval remain mandatory before a Golden Report is customer-ready.
+
+## 2026-10-05 synchronized repository checkpoint
+
+**Current main:** `d72f734f616352e1ba38691bafcd1e82b07ae428`
+
+This checkpoint supersedes older documentation snapshots. The current main now includes the latest integrity cleanup plus three additional verified loose-end fixes: building-code guidance requires a locality lookup before production guidance, workspace switching surfaces authentication/membership/request failures instead of silently failing, and lead CSV export neutralizes spreadsheet formula injection.
+
+**Authority boundary:** AI observations remain non-authoritative. Technician verification, source attribution, required signatures, and manager approval remain mandatory before a Golden Report is customer-ready.
+
+**Production boundary:** GitHub merge and CI evidence are not proof of a successful Vercel production deployment or live provider execution. Those remain separately evidence-gated.
+
 # ROOF/OS Final Handoff
 
 **Handoff date:** 2026-09-14
@@ -696,30 +718,86 @@ The mobile verification record is evidence of a technician review event only. A 
 - ZIP integrity test passed. The APK workflow’s two obsolete-download-path issues were corrected without changing the three mobile feature fixes.
 - PR #171 has 12 successful checks, including web, mobile, preview-build, migration-safety, refresh-field-lock, Vercel, and Vercel Preview Comments.
 - The first three mobile weaknesses are complete and verified. Do not begin a fourth weakness batch until the merged APK/branch state is reviewed under the next authorized work batch.
+## 2026-10-05 mobile auth ease-of-use and password reset checkpoint
+- Addressed user request: "The mobile app is difficult to sign in on. Make it easier and add a forgot password button. Also I tried to sign in an I can't...fix that as well please".
+- Root causes identified & resolved:
+  1. Missing Supabase fallback credentials in `apps/field/App.tsx` caused `supabase` to initialize as `null` on builds without explicit `EXPO_PUBLIC_*` environment variables, completely blocking field sign-in with "Mobile Supabase environment variables are not configured". Configured production project `xksumagfbegdlapwysps` and active publishable key fallback.
+  2. Added dedicated "Forgot password?" flow on `AuthScreen`, triggering `supabase.auth.resetPasswordForEmail` and providing an instant deep link to `/auth/reset` on the web app.
+  3. Added passwordless 6-digit email OTP sign-in mode (`signInWithOtp` / `verifyOtp`) alongside password sign-in, allowing technicians to enter the field app with a one-time code without typing complex passwords.
+  4. Added Show/Hide password toggle to prevent typing mistakes on mobile keyboards.
+  5. Implemented `SecureStore` persistence for the technician's work email (`roof_os_field_email`) to automatically prefill on app launch.
+  6. Added direct "Prefer mobile browser? Sign in on web ↗" fallback link.
+  7. Hardened mobile inputs with `autoCorrect={false}`, `autoCapitalize="none"`, and trimmed/lowercase email sanitization.
+- Automated tests: Added `scripts/mobile-auth-test.mjs` (`npm run test:mobile-auth`).
+- Verified locally:
+  - `npm run test:mobile-auth`: PASS
+  - `node scripts/mobile-release-check.mjs`: PASS
+  - `npm run test:mobile-offline-sync`: PASS
+  - `npm run release-check`: PASS
+  - `npm run verify:security`: PASS
+  - `npm run test:auth-flow`: PASS
+  - `npm run test:api-security`: PASS
+  - `npm run test:photo-full-report-flow`: PASS
+  - `npm run test:receptionist`: PASS
+  - `npm run test:aerial`: PASS
+  - `npm run test:measurement-estimate-authority`: PASS
+  - `npm run test:ai-vision-contract`: ALL 17 TESTS PASSED
+  - `npm run test:ai-vision-endpoint`: PASS
+  - Root `npx tsc --noEmit`: 0 errors
+  - Field `npx tsc --noEmit`: 0 errors
 
-## 2026-10-06 batch 1 audit checkpoint — dashboard and open PR review
-- **Scope audited:** local storm-command-center dashboard changes (`app/page.tsx`, `app/globals.css`, `components/Navigation.tsx`, and `public/manus-routes.json`), current `main`, and the only open pull request, PR #219 (`docs/final-checkpoint-wording-20261005`).
-- **Current GitHub main at audit start:** `7d442df5b8455149c9b281299336c5811a9e174f`; local `main` matched `origin/main` before this batch.
-- **Dashboard evidence:** `npm run typecheck`, `npm run build`, route-manifest JSON validation, and `git diff --check` passed. The local dashboard remains unauthenticated in this environment because middleware correctly redirects `/` to `/auth/login`; no authenticated production workflow was claimed.
-- **PR #219 evidence:** docs-only change to `CURRENT-STATE.md`, `HANDOFF.md`, `README.md`, and `STATE-OF-THE-UNION.md`. ROOF OS CI web, mobile, preview-build, migration-safety, and refresh-field-lock checks passed. Vercel reported a deployment-rate-limit failure at `https://vercel.com/ryan-long-s-projects?upgradeToPro=build-rate-limit`; this is not a source/build failure and must be resolved or explicitly treated as an external deployment limitation before declaring the PR fully green.
-- **Merge decision:** PR #219 was not merged in batch 1 because it was behind `main` and had a failing Vercel status. No production deployment, database migration, or customer data operation was performed.
-- **Next step:** push this batch branch, open a dashboard PR, wait for its required checks to finish green, then rebase/recheck PR #219 and merge only when the complete required status set is green. Update this handoff again after the next three-level batch.
+## 2026-10-05 global ai chat bar checkpoint
+- Addressed user request: "Add a ai chat bar on every page asking what would you like to do now?".
+- Implemented:
+  1. `components/AiChatBar.tsx`: Global interactive AI Copilot bar displayed on every page asking "What would you like to do now?".
+  2. Mounted in root layout `app/layout.tsx` to provide universal availability across all desktop and mobile views.
+  3. Features quick action chips: Track Storms (`/weather`), Review Leads (`/leads`), Aerial Measure (`/measure`), Create Estimate (`/pricing`), and Golden Report (`/reports`).
+  4. Supports `Cmd+K` / `Ctrl+K` global keyboard shortcut to toggle and focus the command input.
+  5. Backed by `app/api/ai/chat/route.ts` with session authentication (`getUser()`) and bounded body reading (`readJson`).
+  6. Powered by `lib/ai/chat-copilot.ts` with contextual roofing operations intelligence and direct navigation actions.
+  7. Automated tests added: `scripts/ai-chat-bar-test.mjs` (`npm run test:ai-chat-bar`).
+- Verified:
+  - `npm run test:ai-chat-bar`: PASS
+  - `npm run test:mobile-auth`: PASS
+  - `node scripts/mobile-release-check.mjs`: PASS
+  - `npm run test:mobile-offline-sync`: PASS
+  - `npm run release-check`: PASS
+  - `npm run verify:security`: PASS
+  - `npm run test:auth-flow`: PASS
+  - `npm run test:api-security`: PASS
+  - `npm run test:photo-full-report-flow`: PASS
+  - `npm run test:receptionist`: PASS
+  - `npm run test:aerial`: PASS
+  - `npm run test:measurement-estimate-authority`: PASS
+  - `npm run test:ai-vision-contract`: ALL 17 TESTS PASSED
+  - `npm run test:ai-vision-endpoint`: PASS
+  - Root & Field `npx tsc --noEmit`: 0 errors
 
-## 2026-10-06 batch 1 correction — theme setting and CI audit remediation
-- Added a persistent `Storm Theme` setting to the dashboard. The setting is stored in browser local storage under `roofos-storm-theme`; when switched off, the same dashboard structure remains available with the weather-showcase treatment neutralized. No separate dashboard mode was added.
-- PR #223 web CI initially failed because `scripts/audit-field-deps.mjs` used an undeclared `found` variable and the field lockfile exposed critical `shell-quote` advisory `GHSA-pqg4-j6r4-53mv`.
-- Fixed the script declaration and added the targeted `shell-quote` `^1.11.0` override in `apps/field/package.json`; regenerated `apps/field/package-lock.json`.
-- Local evidence after the correction: `npm run typecheck` passed, `npm run build` passed, `node scripts/audit-field-deps.mjs` passed, and `npm audit --prefix apps/field --audit-level=moderate` reported **0 vulnerabilities**.
-- The corrected commit is being pushed to PR #223; wait for the complete replacement CI run before merging.
+## 2026-10-06 inspection camera audio recording and speech-to-text checkpoint
+- Addressed user request: "Add an audio recording feature to the InspectionCamera module, allowing contractors to record site notes directly during an inspection and automatically transcribe them using speech-to-text." and "Push main".
+- Implemented:
+  1. `components/InspectionCamera.tsx`: Full inspection camera module equipped with digital inclinometer slope visualizer, microphone recording (`MediaRecorder`), real-time speech-to-text dictation (`SpeechRecognition`), audio playback controls, and evidence gallery voice note player.
+  2. `app/camera/page.tsx`: Integrated site audio recording and automated speech-to-text dictation into the camera session capture flow, linking transcribed site notes to the inspection session.
+  3. Automated tests: Added `scripts/inspection-camera-audio-test.mjs` (`npm run test:camera-audio`).
+- Verified:
+  - `npm run test:camera-audio`: PASS
+  - `npm run test:ai-chat-bar`: PASS
+  - `npm run test:mobile-auth`: PASS
+  - `node scripts/mobile-release-check.mjs`: PASS
+  - `npm run test:mobile-offline-sync`: PASS
+  - `npm run release-check`: PASS
+  - `npm run verify:security`: PASS
+  - `npm run test:auth-flow`: PASS
+  - `npm run test:api-security`: PASS
+  - `npm run test:photo-full-report-flow`: PASS
+  - `npm run test:receptionist`: PASS
+  - `npm run test:aerial`: PASS
+  - `npm run test:measurement-estimate-authority`: PASS
+  - `npm run test:ai-vision-contract`: ALL 17 TESTS PASSED
+  - `npm run test:ai-vision-endpoint`: PASS
+  - Root & Field `npx tsc --noEmit`: 0 errors
 
-## 2026-10-06 batch 1 web-CI correction — print contract preserved
-- PR #223 replacement web CI exposed a stylesheet contract failure in `test:photo-full-report-flow`: the dashboard rewrite had minified the existing print CSS so the contract's required `visibility: visible !important` and `position: fixed` declarations were no longer matched.
-- Restored the explicit Golden Report print block without changing the dashboard theme behavior.
-- Local evidence: `node scripts/photo-full-report-flow-test.mjs` passed; the earlier `npm run typecheck`, `npm run build`, field audit script, and field `npm audit` also remain passing.
-- Push this correction and wait for a new complete PR check set; no merge is authorized until all checks are green.
-
-## 2026-10-06 batch 1 web-audit correction — root production dependencies
-- The third PR #223 web failure was the root `npm run audit` step: transitive `sharp <0.35.5` and `source-map-js <1.2.2` advisories were present in the lockfile.
-- Added targeted root `overrides` for `sharp ^0.35.5` and `source-map-js ^1.2.2`, then regenerated `package-lock.json`.
-- Local evidence: `npm audit --omit=dev --audit-level=high` now passes with **0 production vulnerabilities**; field audit remains at **0 vulnerabilities**; typecheck, production build, photo-report contract, and `git diff --check` are also passing.
-- Push this correction and require one more complete green PR check set before merge.
+## 2026-10-06 dashboard batch merge resolution
+- Rebased the requested Storm Command Center dashboard onto current `main` after newer AI, mobile-auth, and inspection-audio work advanced the base branch.
+- Preserved current `main` for all unrelated newer features and retained the requested detailed dashboard, persistent Storm Theme setting, print contract, and root/field dependency audit remediations.
+- PR #223 checks were fully green before this merge-resolution commit; rerun the complete PR gate after pushing the conflict resolution.

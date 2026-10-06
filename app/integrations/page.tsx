@@ -6,14 +6,14 @@ export default function IntegrationsPage() {
   const router = useRouter()
 
   const integrations = [
-    { name: 'Google Calendar', icon: '📅', status: 'Connected', color: 'bg-blue-100 text-blue-800' },
-    { name: 'Slack', icon: '💬', status: 'Connected', color: 'bg-purple-100 text-purple-800' },
-    { name: 'QuickBooks', icon: '📊', status: 'Disconnected', color: 'bg-gray-100 text-gray-800' },
-    { name: 'Stripe', icon: '💳', status: 'Connected', color: 'bg-green-100 text-green-800' },
-    { name: 'Gmail', icon: '📧', status: 'Connected', color: 'bg-red-100 text-red-800' },
-    { name: 'HubSpot', icon: '📈', status: 'Disconnected', color: 'bg-gray-100 text-gray-800' },
-    { name: 'Dropbox', icon: '📁', status: 'Connected', color: 'bg-blue-100 text-blue-800' },
-    { name: 'Zapier', icon: '⚡', status: 'Disconnected', color: 'bg-gray-100 text-gray-800' },
+    { name: 'Google Calendar', icon: '📅' },
+    { name: 'Slack', icon: '💬' },
+    { name: 'QuickBooks', icon: '📊' },
+    { name: 'Stripe', icon: '💳' },
+    { name: 'Gmail', icon: '📧' },
+    { name: 'HubSpot', icon: '📈' },
+    { name: 'Dropbox', icon: '📁' },
+    { name: 'Zapier', icon: '⚡' },
   ]
 
   return (
@@ -25,7 +25,7 @@ export default function IntegrationsPage() {
         </div>
       </header>
 
-      <main className="p-4"><p className="text-sm bg-white rounded-lg shadow p-4 mb-4">Connection status is Unknown until a live check runs.</p>
+      <main className="p-4"><div className="text-sm bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4 text-amber-900">Connection status is Unknown until a real provider check or OAuth connection has completed. No integration is assumed connected.</div>
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
           <p className="text-sm text-blue-800">🔗 Connect your favorite tools</p>
         </div>
@@ -35,8 +35,8 @@ export default function IntegrationsPage() {
             <div key={i} className="bg-white rounded-lg shadow p-4 text-center hover:shadow-lg transition">
               <span className="text-3xl block mb-2">{integration.icon}</span>
               <p className="font-semibold text-sm">{integration.name}</p>
-              <span className={`text-xs px-2 py-0.5 rounded ${integration.color}`}>
-                {integration.status}
+              <span className="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-700">
+                Unknown — not checked
               </span>
             </div>
           ))}

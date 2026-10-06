@@ -1,31 +1,55 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '../../lib/supabase/client'
 
+type Activity = {
+  id: string
+  lead_id: string | null
+  kind: string
+  body: string
+  created_at: string
+}
+
 export default function ActivityPage() {
   const router = useRouter()
-  const supabase = createClient()
-  const [activities, setActivities] = useState<any[]>([])
+  const [activities, setActivities] = useState<Activity[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
   useEffect(() => {
+    let cancelled = false
+
     const load = async () => {
-      const { data, error: queryError } = await supabase.from('lead_activity').select('id,lead_id,kind,body,created_at').order('created_at', { ascending: false }).limit(50)
-      if (queryError) setError(queryError.message)
-      else setActivities(data ?? [])
+      const supabase = createClient()
+      const { data, error: queryError } = await supabase
+        .from('lead_activity')
+        .select('id,lead_id,kind,body,created_at')
+        .order('created_at', { ascending: false })
+        .limit(50)
+
+      if (cancelled) return
+      if (queryError) {
+        setError(queryError.message)
+      } else {
+        setActivities((data ?? []) as Activity[])
+      }
       setLoading(false)
     }
+
     void load()
+
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       <header className="bg-blue-600 text-white shadow-lg sticky top-0 z-10">
         <div className="px-4 py-3 flex items-center">
-          <button onClick={() => router.back()} className="text-white mr-3 text-xl">←</button>
+          <button type="button" onClick={() => router.back()} className="text-white mr-3 text-xl" aria-label="Go back">←</button>
           <h1 className="text-xl font-bold">📊 Activity Feed</h1>
         </div>
       </header>
@@ -45,29 +69,34 @@ export default function ActivityPage() {
               <p className="text-sm font-medium">{activity.kind.replaceAll('_', ' ')}</p>
               <p className="text-sm text-gray-700 mt-1">{activity.body || 'Activity recorded.'}</p>
               <p className="text-xs text-gray-400 mt-1">{new Date(activity.created_at).toLocaleString()}</p>
-              <button onClick={() => router.push('/leads/' + activity.lead_id)} className="text-xs text-blue-600 mt-2">Open lead</button>
+              {activity.lead_id && (
+                <button type="button" onClick={() => router.push('/leads/' + activity.lead_id)} className="text-xs text-blue-600 mt-2">
+                  Open lead
+                </button>
+              )}
             </div>
           ))}
-        </div>     </main>
+        </div>
+      </main>
 
       <nav className="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around py-2 px-4">
-        <button onClick={() => router.push('/')} className="flex flex-col items-center text-gray-400">
+        <button type="button" onClick={() => router.push('/')} className="flex flex-col items-center text-gray-400">
           <span className="text-xl">🏠</span>
           <span className="text-xs">Home</span>
         </button>
-        <button onClick={() => router.push('/activity')} className="flex flex-col items-center text-blue-600">
+        <button type="button" onClick={() => router.push('/activity')} className="flex flex-col items-center text-blue-600">
           <span className="text-xl">📊</span>
           <span className="text-xs">Activity</span>
         </button>
-        <button onClick={() => router.push('/ai')} className="flex flex-col items-center text-gray-400">
+        <button type="button" onClick={() => router.push('/ai')} className="flex flex-col items-center text-gray-400">
           <span className="text-xl">🤖</span>
           <span className="text-xs">AI</span>
         </button>
-        <button onClick={() => router.push('/notifications')} className="flex flex-col items-center text-gray-400">
+        <button type="button" onClick={() => router.push('/notifications')} className="flex flex-col items-center text-gray-400">
           <span className="text-xl">🔔</span>
           <span className="text-xs">Alerts</span>
         </button>
-        <button onClick={() => router.push('/settings')} className="flex flex-col items-center text-gray-400">
+        <button type="button" onClick={() => router.push('/settings')} className="flex flex-col items-center text-gray-400">
           <span className="text-xl">⚙️</span>
           <span className="text-xs">Settings</span>
         </button>

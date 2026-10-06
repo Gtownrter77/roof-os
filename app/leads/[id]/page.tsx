@@ -180,63 +180,63 @@ export default function LeadDetailPage() {
     return 'Cold'
   }, [lead])
 
-  if (!lead && !error) return <p className="p-4 text-sm text-gray-500">Loading lead…</p>
+  if (!lead && !error) return <p className="ops-shell min-h-screen p-6 text-sm text-slate-400">Loading lead…</p>
   return (
-    <div className="min-h-screen bg-gray-50 p-4 pb-24">
-      <button onClick={() => router.push('/leads')} className="text-blue-600 text-sm mb-3">← All leads</button>
-      {error && <p className="text-sm text-red-600 mb-3">{error}</p>}
+    <div className="ops-bg min-h-screen lg:pl-[232px] p-4 pb-16">
+      <button onClick={() => router.push('/leads')} className="mb-3 text-xs text-cyan-300">← All leads</button>
+      {error && <p className="mb-3 rounded-lg border border-red-400/30 bg-red-400/10 p-3 text-sm text-red-300">{error}</p>}
       {lead && (
         <>
-          <div className="bg-white rounded-lg shadow p-4 mb-4">
+          <div className="glass mb-4 rounded-xl p-4">
             <div className="flex justify-between gap-3">
-              <div><h1 className="text-2xl font-bold">{lead.name}</h1><p className="text-sm text-gray-600">{lead.address}</p></div>
-              <div className="text-right"><div className="text-lg font-bold">{lead.lead_score}/100</div><div className="text-xs text-gray-500">{scoreLabel}</div></div>
+              <div><h1 className="text-2xl font-black">{lead.name}</h1><p className="text-sm text-slate-400">{lead.address}</p></div>
+              <div className="text-right"><div className="text-lg font-black">{lead.lead_score}/100</div><div className="text-xs text-slate-500">{scoreLabel}</div></div>
             </div>
-            <p className="text-sm text-gray-500 mt-1">{lead.phone || 'No phone'} · {lead.email || 'No email'}</p>
-            <select aria-label="Lead status" value={lead.status} disabled={saving} onChange={(e) => void updateStatus(e.target.value)} className="mt-3 border rounded px-2 py-1 text-sm">
+            <p className="mt-1 text-sm text-slate-400">{lead.phone || 'No phone'} · {lead.email || 'No email'}</p>
+            <select aria-label="Lead status" value={lead.status} disabled={saving} onChange={(e) => void updateStatus(e.target.value)} className="mt-3 rounded-lg border border-white/15 bg-[#0a1427] px-3 py-2 text-sm text-white">
               {STATUSES.map((status) => <option key={status} value={status}>{status.replaceAll('_', ' ')}</option>)}
             </select>
             <p className="text-xs text-gray-500 mt-2">Score is deterministic and explainable: {lead.lead_score_reasons?.join(' · ') || 'No score factors yet.'}</p>
             <div className="flex gap-2 mt-3 flex-wrap">
-              <a className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded" href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(lead.address)}`} target="_blank" rel="noreferrer">Navigate</a>
-              {lead.phone && <a className="text-xs bg-green-50 text-green-700 px-2 py-1 rounded" href={`tel:${lead.phone}`}>Call</a>}
-              <button onClick={() => router.push(`/ready/${lead.id}`)} className="text-xs bg-gray-900 text-white px-2 py-1 rounded">Job ready?</button>
-              <button onClick={() => router.push(`/passport/${lead.id}`)} className="text-xs bg-indigo-50 text-indigo-700 px-2 py-1 rounded">Roof Passport</button>
+              <a className="rounded bg-cyan-400/15 px-2 py-1 text-xs text-cyan-300" href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(lead.address)}`} target="_blank" rel="noreferrer">Navigate</a>
+              {lead.phone && <a className="rounded bg-emerald-400/15 px-2 py-1 text-xs text-emerald-300" href={`tel:${lead.phone}`}>Call</a>}
+              <button onClick={() => router.push(`/ready/${lead.id}`)} className="rounded bg-slate-700 px-2 py-1 text-xs text-white">Job ready?</button>
+              <button onClick={() => router.push(`/passport/${lead.id}`)} className="rounded bg-violet-400/15 px-2 py-1 text-xs text-violet-300">Roof Passport</button>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow p-4 mb-4">
+          <div className="glass mb-4 rounded-xl p-4">
             <h2 className="font-semibold mb-2">Next action</h2>
-            <input value={nextAction} onChange={(e) => setNextAction(e.target.value)} placeholder="What must happen next?" className="w-full border rounded p-2 text-sm" />
-            <input type="datetime-local" value={nextActionDue} onChange={(e) => setNextActionDue(e.target.value)} className="w-full border rounded p-2 text-sm mt-2" />
+            <input value={nextAction} onChange={(e) => setNextAction(e.target.value)} placeholder="What must happen next?" className="w-full rounded-lg border border-white/15 bg-black/25 p-3 text-sm text-white placeholder:text-slate-500" />
+            <input type="datetime-local" value={nextActionDue} onChange={(e) => setNextActionDue(e.target.value)} className="mt-2 w-full rounded-lg border border-white/15 bg-black/25 p-3 text-sm text-white placeholder:text-slate-500" />
             <button disabled={saving} onClick={() => void saveNextAction()} className="w-full bg-gray-900 text-white py-2 rounded font-semibold mt-2 disabled:opacity-60">Save next action</button>
           </div>
 
           {lead.status === 'lost' && (
-            <div className="bg-white rounded-lg shadow p-4 mb-4">
+            <div className="glass mb-4 rounded-xl p-4">
               <h2 className="font-semibold mb-2">Lost reason</h2>
-              <select value={lostReason} onChange={(e) => setLostReason(e.target.value)} className="w-full border rounded p-2 text-sm">
+              <select value={lostReason} onChange={(e) => setLostReason(e.target.value)} className="w-full rounded-lg border border-white/15 bg-black/25 p-3 text-sm text-white placeholder:text-slate-500">
                 <option value="">Select reason</option>
                 {LOST_REASONS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
               </select>
-              <textarea value={lostDetail} onChange={(e) => setLostDetail(e.target.value)} placeholder="Optional detail" rows={3} className="w-full border rounded p-2 text-sm mt-2" />
+              <textarea value={lostDetail} onChange={(e) => setLostDetail(e.target.value)} placeholder="Optional detail" rows={3} className="mt-2 w-full rounded-lg border border-white/15 bg-black/25 p-3 text-sm text-white placeholder:text-slate-500" />
               <button disabled={saving || !lostReason} onClick={() => void saveLostReason()} className="w-full bg-red-700 text-white py-2 rounded font-semibold mt-2 disabled:opacity-60">Save lost reason</button>
             </div>
           )}
 
-          <div className="bg-white rounded-lg shadow p-4 mb-4 space-y-2">
+          <div className="glass mb-4 space-y-2 rounded-xl p-4">
             <h2 className="font-semibold">Schedule inspection</h2>
-            <input type="datetime-local" value={apptAt} onChange={(e) => setApptAt(e.target.value)} className="w-full border rounded p-2 text-sm" />
+            <input type="datetime-local" value={apptAt} onChange={(e) => setApptAt(e.target.value)} className="w-full rounded-lg border border-white/15 bg-black/25 p-3 text-sm text-white placeholder:text-slate-500" />
             <button disabled={saving || !apptAt} onClick={() => void scheduleInspection()} className="w-full bg-blue-600 text-white py-2 rounded font-semibold disabled:opacity-60">Save on calendar</button>
             <button disabled={saving} onClick={() => void startInspection()} className="w-full bg-gray-900 text-white py-2 rounded font-semibold disabled:opacity-60">Start inspection now</button>
           </div>
-          <div className="bg-white rounded-lg shadow p-4">
+          <div className="glass rounded-xl p-4">
             <h2 className="font-semibold mb-2">Activity</h2>
             <div className="flex gap-2 mb-3">
               <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Add a note" className="flex-1 border rounded p-2 text-sm" />
-              <button disabled={saving || !note.trim()} onClick={() => void addNote()} className="bg-gray-800 text-white px-3 rounded text-sm">Add</button>
+              <button disabled={saving || !note.trim()} onClick={() => void addNote()} className="rounded-lg bg-slate-700 px-3 text-sm text-white">Add</button>
             </div>
-            {activity.map((item) => <div key={item.id} className="text-xs bg-gray-50 rounded p-2 mb-2"><span className="font-semibold">{item.kind.replace('_', ' ')}</span> · {item.body}</div>)}
+            {activity.map((item) => <div key={item.id} className="mb-2 rounded-lg border border-white/10 bg-black/20 p-2 text-xs"><span className="font-semibold">{item.kind.replace('_', ' ')}</span> · {item.body}</div>)}
           </div>
         </>
       )}
