@@ -1,6 +1,6 @@
 ## 2026-10-05 final synchronized checkpoint
 
-**Current main:** `5144836fbc0a949d94cce5e444cd8432dc7c990f`
+**Runtime source baseline:** `5144836fbc0a949d94cce5e444cd8432dc7c990f`
 
 The current main includes the verified integrity cleanup, the three UI loose-end fixes, and the AI-report authority hardening. The AI screen no longer fabricates a report from browser-entered text; it routes to the persisted photo-estimate workflow and is covered by a regression contract. The CI suite also now registers the existing invoice live-data regression command, which had been present as a test file but missing from package scripts.
 
