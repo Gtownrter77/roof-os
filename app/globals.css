@@ -1,28 +1,17 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-@layer base {
-  * { box-sizing: border-box; }
-  body { margin: 0; color: #111827; background: #f9fafb; }
-  button, input, select { font: inherit; }
-  button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid #93c5fd; outline-offset: 2px; }
-}
-
+:root{--canvas:#050914;--panel:rgba(7,14,29,.8);--line:rgba(132,175,219,.28);--text:#f5f8ff;--muted:#91a1b9;--cyan:#16c9ff;--green:#14ef74;--red:#ff2d42;--amber:#ffbd2e;--pink:#ff2aa8}
+@layer base{*{box-sizing:border-box}html{background:var(--canvas)}body{margin:0;color:var(--text);background:var(--canvas)}button,input,select{font:inherit}button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}}
+@layer components{.ops-shell{min-height:100vh;background:#050914;color:var(--text)}.ops-bg{position:relative;isolation:isolate;background:linear-gradient(90deg,rgba(3,7,17,.96),rgba(3,8,18,.64)),url('/storm-dashboard-bg.png') center/cover fixed}.ops-bg:before{content:'';position:absolute;inset:0;z-index:-1;background:radial-gradient(circle at 62% 23%,rgba(0,174,255,.22),transparent 32%),linear-gradient(180deg,rgba(2,6,18,.2),rgba(2,5,13,.83));pointer-events:none}.glass{background:var(--panel);border:1px solid var(--line);box-shadow:0 14px 40px rgba(0,0,0,.32),inset 0 1px rgba(255,255,255,.05);backdrop-filter:blur(14px)}.ops-label{color:var(--muted);font-size:.68rem;letter-spacing:.11em;text-transform:uppercase}.neon-blue{color:var(--cyan);text-shadow:0 0 16px rgba(22,201,255,.65)}.neon-green{color:var(--green);text-shadow:0 0 16px rgba(20,239,116,.55)}.neon-red{color:var(--red);text-shadow:0 0 16px rgba(255,45,66,.55)}.neon-amber{color:var(--amber);text-shadow:0 0 16px rgba(255,189,46,.5)}.ops-scrollbar::-webkit-scrollbar{width:7px;height:7px}.ops-scrollbar::-webkit-scrollbar-thumb{background:rgba(119,161,205,.35);border-radius:20px}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.001ms!important;transition-duration:.001ms!important}}
 @media print {
   @page { margin: 18mm 14mm 24mm; }
-  body { background: #fff !important; }
+  body { background: #fff !important; color: #111827 !important; }
   body * { visibility: hidden !important; }
   .photo-estimate-report,
   .photo-estimate-report * { visibility: visible !important; }
-  .photo-estimate-report {
-    position: absolute !important;
-    inset: 0 auto auto 0 !important;
-    width: 100% !important;
-    margin: 0 !important;
-    box-shadow: none !important;
-  }
+  .photo-estimate-report { position: absolute !important; inset: 0 auto auto 0 !important; width: 100% !important; box-shadow: none !important; }
   .photo-estimate-report button { display: none !important; }
-  .photo-estimate-report img { break-inside: avoid; }
   .golden-report-footer { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; }
 }

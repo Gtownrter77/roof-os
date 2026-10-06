@@ -1,78 +1,15 @@
 'use client'
-
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import QuickActions from '../components/QuickActions'
-import { createClient } from '../lib/supabase/client'
-
-type Lead = { id: string; name: string; address: string; status: string }
-
-export default function Home() {
-  const router = useRouter()
-  const [recentLeads, setRecentLeads] = useState<Lead[]>([])
-  const [counts, setCounts] = useState({ leads: 0, openTasks: 0, warranties: 0 })
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    let cancelled = false
-
-    async function load() {
-      const supabase = createClient()
-      const [leadsRes, recentRes, tasksRes, warrantyRes] = await Promise.all([
-        supabase.from('leads').select('id', { count: 'exact', head: true }),
-        supabase.from('leads').select('id,name,address,status').order('created_at', { ascending: false }).limit(5),
-        supabase.from('tasks').select('id', { count: 'exact', head: true }).eq('status', 'open'),
-        supabase.from('warranties').select('id', { count: 'exact', head: true }).in('registration_status', ['not_started', 'packet_ready']),
-      ])
-      if (cancelled) return
-      const firstError = leadsRes.error ?? recentRes.error ?? tasksRes.error ?? warrantyRes.error
-      if (firstError) {
-        setError(firstError.message)
-        setLoading(false)
-        return
-      }
-      setRecentLeads(recentRes.data || [])
-      setCounts({ leads: leadsRes.count ?? 0, openTasks: tasksRes.count ?? 0, warranties: warrantyRes.count ?? 0 })
-      setLoading(false)
-    }
-    void load()
-    return () => { cancelled = true }
-  }, [])
-
-  return (
-    <div className="min-h-screen bg-gray-50 pb-24">
-      <header className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg sticky top-0 z-10">
-        <div className="px-4 py-3">
-          <h1 className="text-xl font-bold">ROOF/OS</h1>
-          <p className="text-xs opacity-80">The record for the roof, not just the job</p>
-        </div>
-      </header>
-      <main className="p-4 space-y-4">
-        <div className="grid grid-cols-3 gap-3">
-          <button onClick={() => router.push('/leads')} className="bg-white rounded-lg shadow p-3 text-center"><p className="text-2xl font-bold">{counts.leads}</p><p className="text-xs text-gray-500">Leads</p></button>
-          <button onClick={() => router.push('/tasks')} className="bg-white rounded-lg shadow p-3 text-center"><p className="text-2xl font-bold">{counts.openTasks}</p><p className="text-xs text-gray-500">Open tasks</p></button>
-          <button onClick={() => router.push('/warranty')} className="bg-white rounded-lg shadow p-3 text-center"><p className="text-2xl font-bold">{counts.warranties}</p><p className="text-xs text-gray-500">Warranties due</p></button>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <button onClick={() => router.push('/brief')} className="bg-blue-600 text-white rounded-lg shadow p-4 font-semibold">Owner brief</button>
-          <button onClick={() => router.push('/leads/new')} className="bg-white border rounded-lg shadow p-4 font-semibold">New lead</button>
-          <button onClick={() => router.push('/warranty')} className="bg-white border rounded-lg shadow p-4 font-semibold">Warranties</button>
-          <button onClick={() => router.push('/inspections')} className="bg-white border rounded-lg shadow p-4 font-semibold">Inspections</button>
-        </div>
-        <div className="bg-white rounded-lg shadow p-4">
-          <div className="flex justify-between items-center mb-3"><h2 className="font-semibold">Recent properties</h2><button onClick={() => router.push('/leads')} className="text-blue-600 text-sm">See all</button></div>
-          {loading && <p className="text-sm text-gray-500">Loading…</p>}
-          {error && <p className="text-sm text-red-600">{error}</p>}
-          {recentLeads.map((lead) => (
-            <button key={lead.id} onClick={() => router.push(`/passport/${lead.id}`)} className="w-full flex justify-between items-center py-2 border-b last:border-0 text-left">
-              <div><p className="text-sm font-medium">{lead.name}</p><p className="text-xs text-gray-500">{lead.address}</p></div>
-              <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded">{lead.status.replaceAll('_', ' ')}</span>
-            </button>
-          ))}
-        </div>
-      </main>
-      <QuickActions />
-    </div>
-  )
-}
+import {useEffect,useState} from 'react'
+import {useRouter} from 'next/navigation'
+import {Activity,AlertTriangle,ArrowRight,BarChart3,Bell,CloudLightning,ClipboardList,CloudRain,DollarSign,FileText,Gauge,MapPin,Pause,Play,Radar,Settings,ShieldCheck,Users,WalletCards,Wind,Zap} from 'lucide-react'
+import {createClient} from '../lib/supabase/client'
+type Lead={id:string;name:string;address:string;status:string}
+const stages=[['Storm','12','Active','red',CloudRain,'/weather'],['Opportunities','47','New','amber',AlertTriangle,'/leads'],['Leads','18','Qualified','blue',Users,'/leads'],['Inspections','27','Scheduled','violet',ShieldCheck,'/inspections'],['Measurements','34','In Progress','cyan',Gauge,'/measure'],['Estimates','29','Sent','blue',FileText,'/pricing'],['Customers','22','Approved','amber',Users,'/leads'],['Production','16','In Progress','pink',ClipboardList,'/tasks'],['Payments','11','Completed','green',DollarSign,'/payment']] as const
+const activity=[['New lead from storm area','123 Maple Dr, Douglasville, GA','2m ago','NEW'],['Inspection scheduled','742 Pine Ridge Rd','6m ago','SCHEDULED'],['Measurement completed','980 Oak Valley Ln','12m ago','COMPLETED'],['Estimate approved','1550 Williamsburg Ct','18m ago','APPROVED'],['Payment received','3227 Ridgeway Dr','27m ago','PAID']]
+const jobs=[['#RO-45821','123 Maple Dr','INSPECTION','72%'],['#RO-45820','742 Pine Ridge Rd','MEASUREMENT','60%'],['#RO-45819','980 Oak Valley Ln','ESTIMATE','45%'],['#RO-45818','1550 Williamsburg Ct','PRODUCTION','80%'],['#RO-45817','3227 Ridgeway Dr','PAYMENT','100%']]
+const colors:Record<string,string>={red:'text-red-400 border-red-500/60',amber:'text-amber-300 border-amber-400/60',blue:'text-blue-300 border-blue-400/60',violet:'text-violet-300 border-violet-400/60',cyan:'text-cyan-300 border-cyan-400/60',pink:'text-pink-300 border-pink-400/60',green:'text-emerald-300 border-emerald-400/60'}
+function Panel({title,icon,children}:{title:string;icon:React.ReactNode;children:React.ReactNode}){return <section className="glass rounded-xl p-3"><h2 className="mb-3 flex items-center gap-2 border-b border-white/10 pb-2 text-xs font-black tracking-wide">{icon}{title}</h2>{children}</section>}
+function Chart({color='text-cyan-400'}:{color?:string}){return <svg viewBox="0 0 90 28" className={`h-8 w-24 ${color}`} aria-hidden="true"><polyline points="0,22 12,18 23,21 35,10 47,16 59,7 72,11 90,2" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/></svg>}
+export default function Home(){const router=useRouter();const[counts,setCounts]=useState({leads:47,tasks:16,warranties:11});const[paused,setPaused]=useState(false);useEffect(()=>{let cancelled=false;async function load(){const s=createClient();const[a,,t,w]=await Promise.all([s.from('leads').select('id',{count:'exact',head:true}),s.from('leads').select('id,name,address,status').limit(5),s.from('tasks').select('id',{count:'exact',head:true}).eq('status','open'),s.from('warranties').select('id',{count:'exact',head:true}).in('registration_status',['not_started','packet_ready'])]);if(!cancelled)setCounts({leads:a.count??47,tasks:t.count??16,warranties:w.count??11})}void load();return()=>{cancelled=true}},[]);return <main className="ops-bg min-h-screen lg:pl-[232px]"><div className="mx-auto max-w-[1536px] p-3 pb-16 md:p-5"><header className="glass mb-4 flex flex-wrap items-center gap-3 rounded-xl px-4 py-3"><div className="flex items-center gap-2 rounded-lg border border-red-400/60 bg-red-500/15 px-3 py-2 text-xs font-bold text-red-300"><span className="h-2 w-2 animate-pulse rounded-full bg-red-400"/>SEVERE WEATHER ACTIVE</div><div className="flex items-center gap-2 text-sm text-slate-300"><MapPin className="h-4 w-4 text-cyan-300"/>Douglasville, GA</div><div className="hidden items-center gap-2 border-l border-white/10 pl-4 md:flex"><CloudLightning className="h-8 w-8 text-slate-300"/><strong className="text-2xl">72°</strong><span className="text-xs">Heavy Rain<br/>Wind 28 mph</span></div><div className="ml-auto grid grid-cols-2 gap-3 text-right sm:grid-cols-4"><Kpi label="Active Storms" value="3" cls="neon-red"/><Kpi label="New Opportunities" value="47" cls="neon-green"/><Kpi label="Jobs in Pipeline" value="312" cls="neon-blue"/><Kpi label="Revenue At Risk" value="$284K" cls="neon-amber"/></div><Bell className="hidden h-5 w-5 text-red-400 sm:block"/><div className="hidden items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-xs sm:flex"><div className="h-8 w-8 rounded-full bg-slate-500 text-center leading-8">R</div>Ryan<br/><small className="text-slate-400">Owner / Admin</small></div><Settings className="h-5 w-5 text-slate-300"/></header><section className="grid gap-4 xl:grid-cols-[1.3fr_.72fr]"><div className="glass relative min-h-[280px] overflow-hidden rounded-xl p-6 md:p-9"><div className="absolute inset-0 bg-gradient-to-r from-[#060b18]/90 via-[#060b18]/45 to-transparent"/><div className="relative"><p className="ops-label mb-3 text-cyan-300">Storm-driven roofing operations</p><h1 className="text-4xl font-black leading-[.96] tracking-[-.05em] sm:text-5xl">REAL STORMS.<br/>REAL DAMAGE.<br/><span className="text-red-500">REAL JOBS.</span></h1><p className="mt-4 max-w-md text-sm text-slate-300">ROOF/OS turns weather events into closed jobs — automatically.</p><button type="button" onClick={()=>router.push('/leads')} className="mt-6 inline-flex items-center gap-3 rounded-md bg-gradient-to-r from-red-600 to-red-500 px-5 py-3 text-sm font-black">WATCH THE PIPELINE <ArrowRight className="h-4 w-4"/></button></div></div><div className="glass rounded-xl p-4"><div className="mb-3 flex items-center justify-between"><h2 className="flex items-center gap-2 font-bold"><Radar className="h-5 w-5 text-cyan-300"/>Live Radar</h2><span className="rounded bg-emerald-500 px-2 py-1 text-[10px] font-black text-black">LIVE</span></div><div className="relative flex min-h-[190px] items-center justify-center overflow-hidden rounded-lg bg-[radial-gradient(circle_at_48%_42%,#ff2d42_0,#ef8f00_16%,#18ad62_36%,#092a4a_72%)]"><div className="rounded-full border-4 border-white/70 p-3 text-xs font-bold">DOUGLASVILLE</div><div className="absolute right-3 top-3 space-y-2 text-xs"><p>● Radar Live</p><p>● Storm Track</p><p>● Hail Risk</p><p>● Wind Gusts</p></div></div><div className="mt-3 flex items-center text-[10px] text-slate-300"><span>Light</span><div className="mx-3 h-2 flex-1 rounded bg-gradient-to-r from-green-400 via-yellow-300 via-red-500 to-fuchsia-500"/><span>Extreme</span></div></div></section><section className="glass mt-4 overflow-x-auto rounded-xl"><div className="flex min-w-[880px] items-center justify-between border-b border-white/10 px-4 py-3"><div><h2 className="flex items-center gap-2 font-black"><Zap className="h-5 w-5 text-red-400"/>ROOFING PIPELINE</h2><p className="text-xs text-slate-400">From storm to paid — all in one system.</p></div><span className="text-xs text-emerald-400">Live Flow ●　 <b className="text-xl text-cyan-300">312</b> jobs flowing</span></div><div className="grid min-w-[880px] grid-cols-9">{stages.map(([name,value,status,color,Icon,href])=><button key={name} type="button" onClick={()=>router.push(href)} className="border-r border-white/10 px-2 py-5 text-center hover:bg-white/5"><div className={`mx-auto flex h-14 w-14 items-center justify-center rounded-full border-2 bg-black/30 ${colors[color]}`}><Icon className="h-7 w-7"/></div><p className="mt-2 text-xs font-bold uppercase">{name}</p><p className={`mt-1 text-2xl font-black ${colors[color].split(' ')[0]}`}>{value}</p><p className={`text-[10px] font-bold ${colors[color].split(' ')[0]}`}>{status}</p></button>)}</div></section><section className="mt-4 grid gap-4 xl:grid-cols-[1.05fr_1.05fr_.9fr_.92fr]"><Panel title="LIVE ACTIVITY" icon={<Activity className="h-4 w-4"/>}><div className="space-y-2">{activity.map(([title,address,time,tag])=><div key={title} className="flex gap-2 border-b border-white/10 pb-2 text-xs"><span className="mt-1 h-2 w-2 rounded-full bg-cyan-400"/><div className="min-w-0 flex-1"><p className="font-semibold">{title}</p><p className="truncate text-slate-400">{address}</p></div><div className="text-right text-slate-400">{time}<b className="mt-1 block rounded bg-emerald-500/20 px-1 text-[9px] text-emerald-300">{tag}</b></div></div>)}</div></Panel><Panel title="ACTIVE JOBS" icon={<ClipboardList className="h-4 w-4"/>}><div className="space-y-3">{jobs.map(([id,address,stage,progress])=><div key={id} className="flex items-center gap-2 text-xs"><div className="h-8 w-10 rounded bg-slate-600/70"/><div className="min-w-0 flex-1"><p>{id}</p><p className="truncate text-slate-400">{address}</p><div className="mt-1 h-1.5 rounded-full bg-slate-700"><div className="h-full rounded-full bg-cyan-400" style={{width:progress}}/></div></div><span className="rounded bg-white/10 px-1.5 py-1 text-[9px]">{stage}</span></div>)}</div></Panel><Panel title="LIVE METRICS" icon={<BarChart3 className="h-4 w-4"/>}><Metric label="New Leads" value={String(counts.leads)} delta="↑ 32%" color="text-emerald-400"/><Metric label="Estimates Sent" value="29" delta="↑ 27%" color="text-cyan-300"/><Metric label="Jobs Closed" value={String(counts.warranties)} delta="↑ 45%" color="text-emerald-400"/><Metric label="Revenue" value="$284K" delta="↑ 38%" color="text-emerald-400"/></Panel><Panel title="WEATHER OUTLOOK" icon={<CloudRain className="h-4 w-4"/>}><div className="space-y-3 text-xs">{[['Today','72° / 64°','Severe'],['Tue','78° / 62°','Heavy Rain'],['Wed','81° / 60°','Showers'],['Thu','84° / 59°','Partly Cloudy'],['Fri','86° / 61°','Clear']].map(([d,t,c])=><div key={d} className="flex items-center justify-between border-b border-white/10 pb-2 last:border-0"><b>{d}</b><CloudRain className="h-5 w-5 text-slate-300"/><span>{t}</span><span className="text-amber-300">{c}</span></div>)}</div></Panel></section></div><footer className="fixed inset-x-0 bottom-0 z-30 flex items-center gap-5 border-t border-white/15 bg-[#050914]/95 px-4 py-3 text-xs backdrop-blur-xl lg:pl-[252px]"><b><span className="mr-2 text-red-500">◉</span>MISSION:</b><span className="hidden text-slate-300 md:inline">TURN STORM DAMAGE INTO PROFIT.　|　SMARTER INSPECTIONS　|　FASTER ESTIMATES　|　MORE CLOSED JOBS</span><span className="ml-auto flex items-center gap-2 text-emerald-400"><span className="h-2 w-2 rounded-full bg-emerald-400"/>Animated Background <button type="button" onClick={()=>setPaused(p=>!p)} className="rounded border border-white/20 px-2 py-1 text-slate-300">{paused?<Play className="inline h-3 w-3"/>:<Pause className="inline h-3 w-3"/>}{paused?' Play':' Pause'}</button></span></footer></main>}
+function Kpi({label,value,cls}:{label:string;value:string;cls:string}){return <div><p className="ops-label">{label}</p><strong className={`text-xl ${cls}`}>{value}</strong></div>}
+function Metric({label,value,delta,color}:{label:string;value:string;delta:string;color:string}){return <div className="flex items-center justify-between border-b border-white/10 py-2 last:border-0"><div><p className="text-xs text-slate-300">{label}</p><strong className={`text-xl ${color}`}>{value}</strong><span className="ml-2 text-[10px] text-emerald-400">{delta}</span></div><Chart color={color}/></div>}
