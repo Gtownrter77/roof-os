@@ -34,7 +34,8 @@
     "test:status-health": "node scripts/status-health-check-test.mjs",
     "test:ai-report-authority": "node scripts/ai-report-authority-test.mjs",
     "test:invoices-live-data": "node scripts/invoices-live-data-test.mjs",
-    "test:mobile-auth": "node scripts/mobile-auth-test.mjs"
+    "test:mobile-auth": "node scripts/mobile-auth-test.mjs",
+    "test:ai-chat-bar": "node scripts/ai-chat-bar-test.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.2",
