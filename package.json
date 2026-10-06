@@ -33,7 +33,8 @@
     "test:payment-checkout": "node scripts/payment-checkout-test.mjs",
     "test:status-health": "node scripts/status-health-check-test.mjs",
     "test:ai-report-authority": "node scripts/ai-report-authority-test.mjs",
-    "test:invoices-live-data": "node scripts/invoices-live-data-test.mjs"
+    "test:invoices-live-data": "node scripts/invoices-live-data-test.mjs",
+    "test:mobile-auth": "node scripts/mobile-auth-test.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.2",

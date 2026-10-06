@@ -718,3 +718,30 @@ The mobile verification record is evidence of a technician review event only. A 
 - ZIP integrity test passed. The APK workflow’s two obsolete-download-path issues were corrected without changing the three mobile feature fixes.
 - PR #171 has 12 successful checks, including web, mobile, preview-build, migration-safety, refresh-field-lock, Vercel, and Vercel Preview Comments.
 - The first three mobile weaknesses are complete and verified. Do not begin a fourth weakness batch until the merged APK/branch state is reviewed under the next authorized work batch.
+## 2026-10-05 mobile auth ease-of-use and password reset checkpoint
+- Addressed user request: "The mobile app is difficult to sign in on. Make it easier and add a forgot password button. Also I tried to sign in an I can't...fix that as well please".
+- Root causes identified & resolved:
+  1. Missing Supabase fallback credentials in `apps/field/App.tsx` caused `supabase` to initialize as `null` on builds without explicit `EXPO_PUBLIC_*` environment variables, completely blocking field sign-in with "Mobile Supabase environment variables are not configured". Configured production project `xksumagfbegdlapwysps` and active publishable key fallback.
+  2. Added dedicated "Forgot password?" flow on `AuthScreen`, triggering `supabase.auth.resetPasswordForEmail` and providing an instant deep link to `/auth/reset` on the web app.
+  3. Added passwordless 6-digit email OTP sign-in mode (`signInWithOtp` / `verifyOtp`) alongside password sign-in, allowing technicians to enter the field app with a one-time code without typing complex passwords.
+  4. Added Show/Hide password toggle to prevent typing mistakes on mobile keyboards.
+  5. Implemented `SecureStore` persistence for the technician's work email (`roof_os_field_email`) to automatically prefill on app launch.
+  6. Added direct "Prefer mobile browser? Sign in on web ↗" fallback link.
+  7. Hardened mobile inputs with `autoCorrect={false}`, `autoCapitalize="none"`, and trimmed/lowercase email sanitization.
+- Automated tests: Added `scripts/mobile-auth-test.mjs` (`npm run test:mobile-auth`).
+- Verified locally:
+  - `npm run test:mobile-auth`: PASS
+  - `node scripts/mobile-release-check.mjs`: PASS
+  - `npm run test:mobile-offline-sync`: PASS
+  - `npm run release-check`: PASS
+  - `npm run verify:security`: PASS
+  - `npm run test:auth-flow`: PASS
+  - `npm run test:api-security`: PASS
+  - `npm run test:photo-full-report-flow`: PASS
+  - `npm run test:receptionist`: PASS
+  - `npm run test:aerial`: PASS
+  - `npm run test:measurement-estimate-authority`: PASS
+  - `npm run test:ai-vision-contract`: ALL 17 TESTS PASSED
+  - `npm run test:ai-vision-endpoint`: PASS
+  - Root `npx tsc --noEmit`: 0 errors
+  - Field `npx tsc --noEmit`: 0 errors
