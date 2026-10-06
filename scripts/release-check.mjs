@@ -3,10 +3,18 @@ import { join } from 'node:path'
 
 const root = new URL('..', import.meta.url).pathname
 const config = readFileSync(join(root, 'next.config.ts'), 'utf8')
-if (!config.includes('Content-Security-Policy') || !config.includes('X-Content-Type-Options')) {
+const proxySource = readFileSync(join(root, 'proxy.ts'), 'utf8')
+if (!config.includes('X-Content-Type-Options')) {
   throw new Error('Required security headers are missing from next.config.ts')
 }
-if (config.includes("'unsafe-eval'")) throw new Error('Production Content Security Policy must not permit unsafe-eval')
+const hasStaticCsp = config.includes('Content-Security-Policy')
+const hasNonceCsp = proxySource.includes('Content-Security-Policy') && proxySource.includes("script-src 'self';") === false && proxySource.includes("script-src 'self' 'nonce-")
+if (!hasStaticCsp && !hasNonceCsp) {
+  throw new Error('A Content-Security-Policy must be present in next.config.ts or proxy.ts')
+}
+if (config.includes("'unsafe-eval'") || proxySource.includes("'unsafe-eval'")) {
+  throw new Error('Production Content Security Policy must not permit unsafe-eval')
+}
 
 const definerHardening = readFileSync(join(root, 'supabase', 'migrations', '031_security_definer_least_privilege.sql'), 'utf8')
 for (const functionName of [
