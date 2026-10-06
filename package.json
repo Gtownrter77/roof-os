@@ -32,12 +32,15 @@
     "test:siding-ai-authority": "node scripts/siding-ai-authority-test.mjs",
     "test:payment-checkout": "node scripts/payment-checkout-test.mjs",
     "test:status-health": "node scripts/status-health-check-test.mjs",
-    "test:invoices-live-data": "node scripts/invoices-live-data-test.mjs"
+    "test:invoices-live-data": "node scripts/invoices-live-data-test.mjs",
+    "test:radar-source": "node scripts/radar-source-test.mjs",
+    "test:dashboard-weather": "node scripts/dashboard-weather-test.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.45.4",
     "lucide-react": "^0.454.0",
+    "maplibre-gl": "^6.12.0",
     "next": "16.3.8",
     "openai": "^7.25.0",
     "react": "^19.0.0",

@@ -208,3 +208,23 @@ This path requires the repository Actions secret `EXPO_TOKEN`. The workflow has 
 ## 2026-10-04 clean-install bundle fix
 
 The EAS JavaScript bundle failure was reproduced locally and fixed. The cause was a broken clean-install link to the vendored `braces` mitigation plus an undeclared top-level `fill-range` dependency. The field app now uses a field-local vendored package path and explicitly installs `fill-range`. Fresh `npm ci`, `braces` loading, Android Expo embedding, TypeScript, mobile release, offline-sync, and security checks pass locally. APK artifact verification remains pending on the next EAS run.
+
+
+## 2026-10-05 location-aware dashboard and login — stop-state
+
+**Branch:** `feat/location-aware-dashboard-20261005`
+**Base:** local `origin/main` at `7d442df5b8455149c9b281299336c5811a9e174f`
+**Production/main:** unchanged; this feature was not deployed or tested against a signed-in production workspace.
+
+| Area | Status at stop | Evidence / boundary |
+|---|---|---|
+| Dashboard feature map and counts | Implemented locally | Uses actual workspace lead, inspection, open-task, and warranty counts; removes the sample storm/revenue/pipeline values. |
+| Workspace weather | Implemented locally | Authenticated, read-only service-ZIP flow; Nominatim geocoding; point-based NWS forecast and alert responses; unavailable data remains unknown. |
+| Radar map | Implemented locally | MapLibre GL JS, OpenFreeMap basemap, and NOAA/NWS MRMS WMS source selector, with attribution and targeted CSP allowances. |
+| Live ticker | Implemented locally | NWS/workspace-derived text; ten-minute refresh; pause control and reduced-motion support. |
+| Login weather | Implemented locally | Browser location is requested only after an explicit click and is not saved; existing password, email-link, OTP, cooldown, callback, and safe-next behavior retained. |
+| Local static/build/security checks | **PASS** | Production build, TypeScript, release/security checks, full listed web regression suite, root production audit (0 vulnerabilities), and mobile install/type/Expo checks passed. |
+| Authenticated runtime / production | **UNVERIFIED** | No account login, workspace data access, migration, deployment, or production write occurred. An unauthenticated route smoke returned the expected login redirect. |
+| Full dashboard visual smoke | **PARTIAL** | The login rendered before geolocation opt-in. The synthetic dashboard fixture was removed at the user's stop request before its optimized browser screenshot and MapLibre console checks. |
+
+The source/citation and design notes are in `DASHBOARD-AUDIT.md`; the first stop checkpoint and cleanup are in `HANDOFF.md`. Do not describe this branch as production-ready or merge it until the owner reviews the remaining visual/runtime boundary and required GitHub checks are green.

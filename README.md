@@ -33,6 +33,12 @@ It is built for a small roofing company first. Not a call center. Not a fake Xac
 - Save labor rates and local tax in your price book
 - Live Home Depot and Lowe's retailer reference pricing, refreshed weekly by default or on demand; you approve before anything hits an estimate
 
+## Dashboard and weather — feature branch, not production
+
+Branch `feat/location-aware-dashboard-20261005` replaces sample storm, revenue, and pipeline figures with workspace record counts and a service-ZIP-centered weather panel. It uses the saved workspace ZIP, OpenStreetMap Nominatim geocoding, point-based NWS forecasts/alerts, NOAA/NWS MRMS radar, MapLibre GL JS, and OpenFreeMap. Weather and workspace-count ticker data refresh every ten minutes; the ticker can be paused and honors reduced-motion preferences.
+
+Login's device-location preview is opt-in only: no location is requested until the user clicks the button, and coordinates are not saved. Missing ZIPs and unavailable sources remain unknown; no city, storm, or revenue is guessed. The branch passes local build and CI-equivalent web/mobile checks, but it has not been verified with an authenticated workspace session or production deployment. See [`DASHBOARD-AUDIT.md`](DASHBOARD-AUDIT.md) and the stop-state record in [`HANDOFF.md`](HANDOFF.md).
+
 ## What is not ready
 
 - Insurance prices pulled from a photo
@@ -80,6 +86,7 @@ npx eas build --platform android --profile preview
 - Report standard: `GOLDEN-REPORT.md`
 - How to operate it: `OWNER-MANUAL.md`
 - What is real vs leftover: `STATE-OF-THE-UNION.md`
+- Dashboard/weather sources and verification: `DASHBOARD-AUDIT.md`
 
 
 ## 2026-10-02 current verified checkpoint

@@ -26,3 +26,15 @@
   .photo-estimate-report img { break-inside: avoid; }
   .golden-report-footer { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; }
 }
+
+
+@keyframes roofos-ticker-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.roofos-live-ticker { animation: roofos-ticker-scroll 38s linear infinite; }
+.roofos-live-ticker-paused { animation-play-state: paused; }
+.roofos-live-ticker:hover { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) {
+  .roofos-live-ticker { animation: none !important; transform: none !important; }
+}

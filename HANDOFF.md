@@ -696,3 +696,35 @@ The mobile verification record is evidence of a technician review event only. A 
 - ZIP integrity test passed. The APK workflow’s two obsolete-download-path issues were corrected without changing the three mobile feature fixes.
 - PR #171 has 12 successful checks, including web, mobile, preview-build, migration-safety, refresh-field-lock, Vercel, and Vercel Preview Comments.
 - The first three mobile weaknesses are complete and verified. Do not begin a fourth weakness batch until the merged APK/branch state is reviewed under the next authorized work batch.
+
+
+## 2026-10-05 stop checkpoint — location-aware dashboard and login
+
+**User direction:** Stop further feature/visual work, update the handoff first, and preserve the current state. This section is the first repository update for this checkpoint.
+
+**Local branch:** `feat/location-aware-dashboard-20261005`
+**Local base/HEAD before these uncommitted changes:** `7d442df5b8455149c9b281299336c5811a9e174f`
+**Remote feature ref at initial stop:** absent; product changes were local/uncommitted and the branch tracked `origin/main`.
+
+### Work implemented on the local branch
+
+- Replaced the Home page's prototype storm/revenue/pipeline presentation with the workspace's actual lead, inspection, open-task, and warranty counts, feature navigation, and workspace weather hero.
+- Added an authenticated read-only weather summary that reads the saved workspace service ZIP, geocodes it through free OpenStreetMap Nominatim with a short cache and serialized request spacing, and uses location-point NWS forecast/alert responses. Missing ZIP or failed sources remain explicitly unknown; no default Atlanta or sample alert/count is substituted.
+- Added the open-source MapLibre map, OpenFreeMap dark basemap, official NOAA/NWS MRMS WMS radar coverage selector, source attribution, and exact CSP host/worker allowances. Weather and workspace ticker refresh every ten minutes; the ticker can be paused and honors reduced-motion preference.
+- Replaced hardcoded weather/storm pages with the shared workspace weather view. The login page retains password, email-link, six-digit-code, cooldown, callback, and safe-redirect behavior. It requests device location only after a user click, does not persist coordinates, and shows no local weather before opt-in.
+- Added `DASHBOARD-AUDIT.md`, `scripts/radar-source-test.mjs`, `scripts/dashboard-weather-test.mjs`, package scripts, and CI steps for both source/contract tests.
+
+### Verified checks
+
+- Root `npm ci --no-audit --no-fund`: **PASS**.
+- Root typecheck, release check, security check, all listed web regression suites, `npm run audit`, and `git diff --check`: **PASS**; dependency audit reported 0 production vulnerabilities.
+- Production build of the intended code before adding the temporary visual fixture: **PASS**, including `/api/weather/summary` and the redesigned routes.
+- A second production build including the temporary visual fixture also passed. The field clean install, vendored-`braces` mitigation, field dependency audit (0 vulnerabilities), TypeScript, and Expo config checks: **PASS**.
+- Login route returned HTTP 200 locally and through the sandbox URL. Unauthenticated Home and weather API correctly redirected to login (HTTP 307); no authenticated workspace or production database was used.
+- Login screenshot rendered before location opt-in. The temporary development dashboard preview did not hydrate because external Next.js dev HMR is blocked by the sandbox origin policy. The optimized synthetic preview was built but, on the user's stop instruction, its final visual screenshot/MapLibre browser-console checks were not completed.
+
+### Stop-state cleanup and remaining gates
+
+The temporary sandbox-only fixture at `app/auth/dashboard-preview/page.tsx` was removed before staging, and its local preview servers were stopped. No synthetic route or Denver forecast fixture is in the intended source change. At the time of the initial stop record, README/State documentation and the feature-branch checkpoint were pending; a dated checkpoint receipt should follow below after push. Do not claim production verification or a signed-in workspace test; no deployment, migration, database write, login, or device-location authorization was performed. Do not merge without a separate owner instruction and green required checks.
+
+`DASHBOARD-AUDIT.md` records the cited free/open sources and design decisions. The dashboard screenshot validation remains **PARTIAL**; production behavior remains **UNVERIFIED**.
