@@ -70,8 +70,14 @@ function Stat({ label, value, tone }: { label: string; value: string; tone: stri
 export default function Home() {
   const router = useRouter()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [stormTheme, setStormTheme] = useState(true)
   const [counts, setCounts] = useState<Counts>({ leads: 18, openTasks: 16, warranties: 11 })
   const [recentLeads, setRecentLeads] = useState<Lead[]>([])
+
+  useEffect(() => {
+    const savedTheme = window.localStorage.getItem('roofos-storm-theme')
+    if (savedTheme === 'off') setStormTheme(false)
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -94,7 +100,7 @@ export default function Home() {
   const opportunityCount = useMemo(() => recentLeads.length ? Math.max(47, recentLeads.length) : 47, [recentLeads])
 
   return (
-    <div className="roof-shell">
+    <div className={`roof-shell ${stormTheme ? '' : 'standard-theme'}`}>
       <aside className={`roof-sidebar ${mobileOpen ? 'is-open' : ''}`}>
         <div className="brand-lockup"><div className="brand-mark"><span /><span /><span /></div><div><b>ROOF<span>/</span>OS</b><small>THE ROOFING OPERATING SYSTEM</small></div></div>
         <button className="mobile-close" onClick={() => setMobileOpen(false)} aria-label="Close menu"><X size={20} /></button>
@@ -107,6 +113,7 @@ export default function Home() {
           <button className="sidebar-item" onClick={() => router.push('/ai')}><Sparkles size={19} /><span>AI Assistant</span><i className="online-pill">ON</i></button>
           <button className="sidebar-item" onClick={() => router.push('/settings')}><Settings size={19} /><span>Settings</span></button>
           <button className="sidebar-item" onClick={() => router.push('/help')}><CircleHelp size={19} /><span>Help / Support</span></button>
+          <button className="theme-setting" onClick={() => { const next = !stormTheme; setStormTheme(next); window.localStorage.setItem('roofos-storm-theme', next ? 'on' : 'off') }} aria-pressed={stormTheme}><Sun size={17} /><span>Storm Theme</span><i className={stormTheme ? 'on' : ''}><b /></i></button>
         </nav>
         <div className="system-card"><div><span className="live-dot" />System Online</div><small>v2.4.7<br />ROOF/OS</small></div>
       </aside>

@@ -704,3 +704,10 @@ The mobile verification record is evidence of a technician review event only. A 
 - **PR #219 evidence:** docs-only change to `CURRENT-STATE.md`, `HANDOFF.md`, `README.md`, and `STATE-OF-THE-UNION.md`. ROOF OS CI web, mobile, preview-build, migration-safety, and refresh-field-lock checks passed. Vercel reported a deployment-rate-limit failure at `https://vercel.com/ryan-long-s-projects?upgradeToPro=build-rate-limit`; this is not a source/build failure and must be resolved or explicitly treated as an external deployment limitation before declaring the PR fully green.
 - **Merge decision:** PR #219 was not merged in batch 1 because it was behind `main` and had a failing Vercel status. No production deployment, database migration, or customer data operation was performed.
 - **Next step:** push this batch branch, open a dashboard PR, wait for its required checks to finish green, then rebase/recheck PR #219 and merge only when the complete required status set is green. Update this handoff again after the next three-level batch.
+
+## 2026-10-06 batch 1 correction — theme setting and CI audit remediation
+- Added a persistent `Storm Theme` setting to the dashboard. The setting is stored in browser local storage under `roofos-storm-theme`; when switched off, the same dashboard structure remains available with the weather-showcase treatment neutralized. No separate dashboard mode was added.
+- PR #223 web CI initially failed because `scripts/audit-field-deps.mjs` used an undeclared `found` variable and the field lockfile exposed critical `shell-quote` advisory `GHSA-pqg4-j6r4-53mv`.
+- Fixed the script declaration and added the targeted `shell-quote` `^1.11.0` override in `apps/field/package.json`; regenerated `apps/field/package-lock.json`.
+- Local evidence after the correction: `npm run typecheck` passed, `npm run build` passed, `node scripts/audit-field-deps.mjs` passed, and `npm audit --prefix apps/field --audit-level=moderate` reported **0 vulnerabilities**.
+- The corrected commit is being pushed to PR #223; wait for the complete replacement CI run before merging.
