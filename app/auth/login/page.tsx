@@ -9,6 +9,29 @@ import { safeNextPath } from '../../../lib/safe-next'
 
 type Mode = 'password' | 'link' | 'code'
 const COOLDOWN = 60
+const RESET_COOLDOWN_KEY = 'roof-os-password-reset-cooldown:'
+
+function resetCooldownKey(email: string) {
+  return `${RESET_COOLDOWN_KEY}${email.trim().toLowerCase()}`
+}
+
+function storedResetCooldown(email: string) {
+  if (typeof window === 'undefined' || !email.trim()) return 0
+  try {
+    const expiresAt = Number(window.localStorage.getItem(resetCooldownKey(email)))
+    return Math.max(0, Math.ceil((expiresAt - Date.now()) / 1000))
+  } catch {
+    return 0
+  }
+}
+
+function rememberResetCooldown(email: string, seconds: number) {
+  try {
+    window.localStorage.setItem(resetCooldownKey(email), String(Date.now() + seconds * 1000))
+  } catch {
+    // Some privacy modes disable localStorage; the in-memory timer still protects this page.
+  }
+}
 
 function LoginForm() {
   const router = useRouter()
@@ -25,6 +48,7 @@ function LoginForm() {
   const [loading, setLoading] = useState(false)
   const [sendCooldown, setSendCooldown] = useState(0)
   const [verifyCooldown, setVerifyCooldown] = useState(0)
+  const [resetCooldown, setResetCooldown] = useState(0)
 
   useEffect(() => {
     if (search.get('error') === 'auth_callback_failed') {
@@ -36,13 +60,14 @@ function LoginForm() {
   }, [search])
 
   useEffect(() => {
-    if (!sendCooldown && !verifyCooldown) return
+    if (!sendCooldown && !verifyCooldown && !resetCooldown) return
     const timer = window.setInterval(() => {
       setSendCooldown((seconds) => Math.max(0, seconds - 1))
       setVerifyCooldown((seconds) => Math.max(0, seconds - 1))
+      setResetCooldown((seconds) => Math.max(0, seconds - 1))
     }, 1000)
     return () => window.clearInterval(timer)
-  }, [sendCooldown, verifyCooldown])
+  }, [sendCooldown, verifyCooldown, resetCooldown])
 
   function changeMode(nextMode: Mode) {
     setMode(nextMode)
@@ -75,22 +100,35 @@ function LoginForm() {
   }
 
   async function sendPasswordReset() {
-    if (!email.trim()) {
+    const normalizedEmail = email.trim().toLowerCase()
+    if (!normalizedEmail) {
       setError('Enter your email address first, then choose Forgot password?.')
+      return
+    }
+    const rememberedSeconds = storedResetCooldown(normalizedEmail)
+    if (rememberedSeconds) {
+      setResetCooldown(rememberedSeconds)
+      setError(`A reset email may already be on its way. Please wait ${rememberedSeconds} seconds before requesting another.`)
       return
     }
     setLoading(true)
     setError('')
     try {
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
         redirectTo: `${window.location.origin}/auth/reset`,
       })
       if (resetError) {
         const seconds = authCooldownSeconds(resetError)
-        if (seconds) setError(`Too many reset requests. Please wait ${seconds} seconds.`)
+        if (seconds) {
+          setResetCooldown(seconds)
+          rememberResetCooldown(normalizedEmail, seconds)
+          setError(`A reset email may already be on its way. Please wait ${seconds} seconds before requesting another.`)
+        }
         else setError('A password reset email could not be sent.')
         return
       }
+      setResetCooldown(COOLDOWN)
+      rememberResetCooldown(normalizedEmail, COOLDOWN)
       setMessage('Check your email for a password reset link. Open it on this device, then choose a new password.')
     } catch {
       setError('A password reset email could not be sent right now.')
@@ -176,8 +214,8 @@ function LoginForm() {
         <div className="mb-6 flex items-center gap-3"><div className="rounded-xl border border-red-400/40 bg-red-500/10 p-3 text-red-400"><Zap className="h-6 w-6" /></div><div><p className="ops-label">Operator access</p><h1 className="text-2xl font-black">Welcome to ROOF/OS</h1><p className="mt-1 text-sm text-slate-400">Use your password, or get a secure email link.</p></div></div>
         <div className="mb-5 grid grid-cols-3 gap-2">{([['password', 'Password'], ['link', 'Email link'], ['code', '6-digit code']] as const).map(([value, label]) => <button key={value} type="button" onClick={() => changeMode(value)} aria-pressed={mode === value} className={`rounded-lg border py-2 text-xs ${mode === value ? 'border-cyan-400 bg-cyan-400/15 text-cyan-300' : 'border-white/15 text-slate-400'}`}>{label}</button>)}</div>
         <label className="mb-1 block text-sm text-slate-200" htmlFor="email">Work email</label>
-        <input id="email" type="email" required autoComplete="email" value={email} onChange={(event) => { setEmail(event.target.value); setCode(''); setCodeSent(false) }} className="mb-4 w-full rounded-lg border border-white/15 bg-black/30 p-3 text-white placeholder:text-slate-500" placeholder="you@company.com" />
-        {mode === 'password' && <><label className="mb-1 block text-sm text-slate-200" htmlFor="password">Password</label><input id="password" type="password" required autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} className="w-full rounded-lg border border-white/15 bg-black/30 p-3 text-white placeholder:text-slate-500" placeholder="Enter your password" /><button type="button" onClick={() => void sendPasswordReset()} disabled={loading} className="mt-2 text-left text-sm text-cyan-300 hover:text-cyan-200 disabled:opacity-60">Forgot password?</button></>}
+        <input id="email" type="email" required autoComplete="email" value={email} onChange={(event) => { setEmail(event.target.value); setCode(''); setCodeSent(false); setResetCooldown(0) }} className="mb-4 w-full rounded-lg border border-white/15 bg-black/30 p-3 text-white placeholder:text-slate-500" placeholder="you@company.com" />
+        {mode === 'password' && <><label className="mb-1 block text-sm text-slate-200" htmlFor="password">Password</label><input id="password" type="password" required autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} className="w-full rounded-lg border border-white/15 bg-black/30 p-3 text-white placeholder:text-slate-500" placeholder="Enter your password" /><button type="button" onClick={() => void sendPasswordReset()} disabled={loading || resetCooldown > 0} className="mt-2 text-left text-sm text-cyan-300 hover:text-cyan-200 disabled:opacity-60">{resetCooldown ? `Try again in ${resetCooldown}s` : 'Forgot password?'}</button></>}
         {mode === 'code' && codeSent && <><label className="mb-1 mt-4 block text-sm text-slate-200" htmlFor="code">6-digit email code</label><input id="code" type="text" inputMode="numeric" maxLength={6} pattern="\d{6}" autoComplete="one-time-code" value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, '').slice(0, 6))} className="w-full rounded-lg border border-white/15 bg-black/30 p-3 text-center tracking-[.4em] text-white" placeholder="000000" /> </>}
         {message && <p className="mb-3 mt-4 rounded-lg border border-emerald-400/30 bg-emerald-400/10 p-3 text-sm text-emerald-300" role="status">{message}</p>}
         {error && <p className="mb-3 mt-4 rounded-lg border border-red-400/30 bg-red-400/10 p-3 text-sm text-red-300" role="alert">{error}</p>}
