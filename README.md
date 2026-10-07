@@ -48,12 +48,21 @@ It is built for a small roofing company first. Not a call center. Not a fake Xac
 
 ## What works today
 
-- Sign in with a magic link
+- Sign in with a password, email link, or 6-digit email code
+- Recover a forgotten password directly from the login screen with **Forgot password?**
 - Add a lead, open the record, schedule an inspection
 - Take photos that attach to that inspection
 - Draft an inspection report that still needs your review
 - Save labor rates and local tax in your price book
 - Live Home Depot and Lowe's retailer reference pricing, refreshed weekly by default or on demand; you approve before anything hits an estimate
+
+### Sign-in and password recovery
+
+1. Open the production URL and enter your email address.
+2. Use **Enter command center** if you know your password.
+3. If you do not remember it, select **Forgot password?**, check your email, and open the reset link on the same device.
+4. Choose a password with at least 8 characters, then return to sign in.
+5. If email delivery is slow, use **Email link** or **6-digit code** instead.
 
 ## What is not ready
 
