@@ -1,26 +1,8 @@
-## 2026-10-05 final synchronized checkpoint
-
-**Current main:** `5144836fbc0a949d94cce5e444cd8432dc7c990f`
-
-The current main includes the verified integrity cleanup, the three UI loose-end fixes, and the AI-report authority hardening. The AI screen no longer fabricates a report from browser-entered text; it routes to the persisted photo-estimate workflow and is covered by a regression contract. The CI suite also now registers the existing invoice live-data regression command, which had been present as a test file but missing from package scripts.
-
-**Three-level repository evidence:** the latest merged AI-authority change passed web, mobile, preview-build, migration-safety, build, typecheck, release, security, and the full regression suite, including the AI-report and invoice-live-data checks.
-
-**Vercel boundary:** the current main commit has a Vercel status of **failure due to the account build-rate limit**. This is a platform deployment constraint, not a code-test pass. Production deployment is therefore not marked verified.
-
-**Authority boundary:** AI observations remain non-authoritative. Technician verification, source attribution, required signatures, and manager approval remain mandatory before a Golden Report is customer-ready.
-
-## 2026-10-05 synchronized repository checkpoint
-
-**Current main:** `d72f734f616352e1ba38691bafcd1e82b07ae428`
-
-This checkpoint supersedes older documentation snapshots. The current main now includes the latest integrity cleanup plus three additional verified loose-end fixes: building-code guidance requires a locality lookup before production guidance, workspace switching surfaces authentication/membership/request failures instead of silently failing, and lead CSV export neutralizes spreadsheet formula injection.
-
-**Authority boundary:** AI observations remain non-authoritative. Technician verification, source attribution, required signatures, and manager approval remain mandatory before a Golden Report is customer-ready.
-
-**Production boundary:** GitHub merge and CI evidence are not proof of a successful Vercel production deployment or live provider execution. Those remain separately evidence-gated.
-
 # ROOF/OS
+
+> **Authoritative status:** see [`CURRENT-TRUTH.md`](CURRENT-TRUTH.md)  
+> **Current main:** `af48bf9d36e2521f73702f560e44c3589d8d3ca7` (2026-10-06)  
+> Older checkpoint headers in other docs are historical and do not override that file.
 
 ## **MANDATORY CHECKPOINT LAW — EVERY 3 VERIFIED WORK BATCHES**
 
@@ -98,91 +80,8 @@ npx eas build --platform android --profile preview
 
 ## Where to read more
 
+- **Current status (authoritative):** `CURRENT-TRUTH.md`
 - Product direction: `PRODUCT-VISION.md`
 - Report standard: `GOLDEN-REPORT.md`
 - How to operate it: `OWNER-MANUAL.md`
-- What is real vs leftover: `STATE-OF-THE-UNION.md`
-
-
-## 2026-10-02 current verified checkpoint
-
-**Repository:** `Gtownrter77/roof-os`  
-**Production URL:** https://roof-os-lemon.vercel.app  
-**Current `main`:** `f29981076c23b7a289b579c2852c916be368325e`  
-**Hardening branch:** `backend/production-hardening-20261002`  
-**Hardening scope:** receptionist workspace authorization, tenant isolation, payment boundary, outbound provider authorization, and booking RPC integrity.
-
-### Verified in this checkpoint
-
-- The hardening branch was reconciled with the latest `main`, including the 2026-10-02 prototype-disclosure QA commit.
-- The hardening branch contains exactly the seven intended receptionist-hardening files on top of the current `main` tree.
-- Supabase migration `receptionist_workspace_integrity` (repository migration file `043_receptionist_workspace_integrity.sql`) is applied to production project `xksumagfbegdlapwysps`.
-- Production `leads.workspace_id` is non-null with **0 missing values across 2 live leads**.
-- The receptionist booking RPC is SECURITY DEFINER with an empty search path and execution restricted to `service_role`; anonymous and authenticated execution are denied.
-- Live two-workspace simulations verified workspace-local visibility and admin boundaries: the second workspace sees 0 leads and 0 receptionist sessions; cross-workspace admin checks fail closed.
-- Negative RPC tests rejected cross-workspace creator/lead combinations and left no test rows behind.
-- The final production integrity audit reported zero mismatches for leads, appointments, receptionist events, invoices, payment links, and payment/lead relationships.
-- Latest hardening CI run #567 completed successfully across web, mobile, preview-build, and migration-safety. A fresh CI run will validate the post-2026-10-02 `main` sync as this branch advances.
-
-### What this means
-
-The **receptionist hardening scope is verified complete**. This does not mean every ROOF/OS feature is commercially verified.
-
-### Still outside this scope
-
-Pre-existing Supabase advisor findings remain: six authenticated SECURITY DEFINER warnings and disabled leaked-password protection. They are not treated as receptionist tenant-bypass evidence and were not changed in this hardening pass.
-
-The open PR is #72. **Do not merge it automatically.**
-
-
-## 2026-10-02 receptionist hardening — final handoff checkpoint
-
-**Current main:** `f29981076c23b7a289b579c2852c916be368325e`  
-**Current hardening branch:** `f81278881cf6e28809b6317811a7614e0293338f`  
-**PR:** #72 — open; merge only on explicit owner direction.
-
-The hardening branch is now synchronized with current `main` and is **0 commits behind**. The current `main...backend/production-hardening-20261002` comparison shows the intended seven receptionist-hardening files as the application/code delta: Stripe payment-link authorization, Twilio voice/SMS authorization and lead scoping, Twilio session workspace scoping, receptionist lead tenancy, regression contracts, and migration 043.
-
-Production migration `receptionist_workspace_integrity` is applied and verified in Supabase project `xksumagfbegdlapwysps`. Production checks showed 0 missing lead workspace IDs, cross-workspace negative booking tests rejected, worker-only booking RPC execution enforced, and 0 relationship mismatches across the audited receptionist/payment records.
-
-CI run **#567** passed web, mobile, preview-build, and migration-safety for the synchronized application tree. This documentation checkpoint changes documentation only; the next branch CI run is the final post-handoff verification gate.
-
-The broader ROOF/OS product remains a separate status question. Existing Supabase advisor findings and other incomplete end-to-end/commercial verification items are documented rather than silently treated as resolved.
-
-## Admin page upgrade, 2026-10-02
-
-`app/admin/page.tsx` on branch `upgrade/admin-page-20261002` no longer shows hardcoded users, leads, revenue, or storage. Signed-in counts come from the current workspace. Revenue and storage stay Unknown. This change is not on `main` and is not the live site at https://roof-os-lemon.vercel.app.
-
-Checks on that branch: `npx tsc --noEmit` passed, and `npm run build` passed with `/admin` in the route list. No signed-in browser session was opened. Live counts were not queried.
-
-## Files 2-7, 2026-10-02
-
-On branch `upgrade/admin-page-20261002`:
-
-- `app/ai-train/page.tsx` is labeled a local checklist. Steps were kept.
-- `app/ai/page.tsx` no longer starts with a fake address or inspector. The draft stays in the browser.
-- `app/analytics/page.tsx` no longer shows hardcoded leads, rates, or revenue. Workspace counts load when signed in. Rates and revenue stay Unknown.
-- `app/chat/page.tsx` no longer shows fake people. Messages stay in this browser.
-- `app/deck/page.tsx` and `app/doors-windows/page.tsx` keep their calculators and now say the result is a local example, not a saved bid.
-
-`npx tsc --noEmit` passed. `npm run build` passed and listed `/ai`, `/ai-train`, `/analytics`, `/chat`, `/deck`, and `/doors-windows`. No signed-in browser session was opened. Not on `main`.
-
-## Rule fix, 2026-10-02
-
-- Backup branch: `backup/pre-money-rule-fix-20261002`
-- Backup SHA: `6df7c849150423ccdfead732a5b2868c57974533`
-- Remote backup verified with `git ls-remote`.
-- This branch: `fix/no-unapproved-money-20261002`
-- Deck and door screens no longer display dollar figures. Price stays Unknown until a human approves it.
-- `npx tsc --noEmit` passed on this branch.
-- Signed-in production check is still open. This branch is not merged. Local build is not production verification.
-
-## Files 7-15, 2026-10-02
-
-- Backup: `backup/pre-files-7-15-20261002` at `dd4c568ba7b6570e7bb030622c31bb7b4b9c6742`.
-- Branch: `upgrade/files-7-15-20261002`.
-- Export no longer downloads fake people. Missing fields stay Unknown.
-- Help claims that were not checked now say Unknown.
-- Home Depot list no longer shows prices. Price stays Unknown.
-- Integrations, manual, notifications, plans, and predict are labeled local. They are not a live record.
-- `npx tsc --noEmit` passed. Not merged. Signed-in check is still open.
+- What is real vs leftover (historical detail): `STATE-OF-THE-UNION.md`
