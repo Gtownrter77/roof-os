@@ -40,7 +40,7 @@ Open the production URL in a desktop browser. The expected public route is the l
 
 Create an account using the Supabase email flow. If the confirmation email does not arrive, check the spam folder and verify that the Supabase Site URL and redirect allowlist contain the production Vercel URL.
 
-For an existing account, use the password sign-in form. If the password is forgotten, enter the account email, select **Forgot password?**, and open the reset email on the same device. The reset page accepts passwords of at least 8 characters. If a reset link is expired or opened without a valid recovery session, return to `/auth/login` and request a fresh one.
+For an existing account, use the password sign-in form. If the password is forgotten, enter the account email, select **Forgot password?**, and open the reset email on the same device. The reset page accepts passwords of at least 8 characters. Reset email requests are rate-limited; after one request, the button shows **Try again in Ns** and prevents duplicate requests until the timer ends. If a reset link is expired or opened without a valid recovery session, return to `/auth/login` and request a fresh one.
 
 ### 3.2 Configure Supabase
 

@@ -54,6 +54,8 @@ assert.ok(login.includes('if (mode === \'password\') void signInWithPassword()')
 assert.ok(login.includes('Forgot password?'), 'password mode has a visible recovery action')
 assert.ok(login.includes('supabase.auth.resetPasswordForEmail'), 'recovery sends a Supabase password reset email')
 assert.ok(login.includes("redirectTo: `${window.location.origin}/auth/reset`"), 'recovery returns to the password reset route')
+assert.ok(login.includes('storedResetCooldown') && login.includes('rememberResetCooldown'), 'reset requests use a persistent per-email cooldown')
+assert.ok(login.includes('Try again in ${resetCooldown}s'), 'reset button explains when another request is allowed')
 assert.ok(login.includes('router.replace(next)') && login.includes('router.refresh()'), 'password login follows the safe redirect and refreshes server auth state')
 
 const reset = readFileSync(new URL('../app/auth/reset/page.tsx', import.meta.url), 'utf8')

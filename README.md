@@ -64,6 +64,8 @@ It is built for a small roofing company first. Not a call center. Not a fake Xac
 4. Choose a password with at least 8 characters, then return to sign in.
 5. If email delivery is slow, use **Email link** or **6-digit code** instead.
 
+Password-reset email requests are rate-limited. After a request, the login button displays a countdown and blocks duplicate requests until it reaches zero.
+
 ## What is not ready
 
 - Insurance prices pulled from a photo
