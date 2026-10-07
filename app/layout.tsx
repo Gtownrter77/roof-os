@@ -3,7 +3,7 @@ import type { Metadata } from 'next'
 import Navigation from '../components/Navigation'
 import WorkspaceSwitcher from '../components/WorkspaceSwitcher'
 import PrototypeNotice from '../components/PrototypeNotice'
-import AiChatBar from '../components/AiChatBar'
+import ConditionalAiChatBar from '../components/ConditionalAiChatBar'
 
 export const metadata: Metadata = {
   title: 'ROOF/OS — Storm Command Center',
@@ -18,7 +18,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <WorkspaceSwitcher />
         <Navigation />
         {children}
-        <AiChatBar />
+        <ConditionalAiChatBar />
       </body>
     </html>
   )
