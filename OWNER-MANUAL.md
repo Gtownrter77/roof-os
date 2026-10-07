@@ -40,6 +40,8 @@ Open the production URL in a desktop browser. The expected public route is the l
 
 Create an account using the Supabase email flow. If the confirmation email does not arrive, check the spam folder and verify that the Supabase Site URL and redirect allowlist contain the production Vercel URL.
 
+For an existing account, use the password sign-in form. If the password is forgotten, enter the account email, select **Forgot password?**, and open the reset email on the same device. The reset page accepts passwords of at least 8 characters. If a reset link is expired or opened without a valid recovery session, return to `/auth/login` and request a fresh one.
+
 ### 3.2 Configure Supabase
 
 The current project uses Supabase project reference `xksumagfbegdlapwysps`. The browser application uses the publishable key. Never place a database password or service-role key in the browser, GitHub, `.env.local`, or an APK configuration that is visible to users.
@@ -229,6 +231,7 @@ After a recovery, apply migrations in order, restore environment variables, veri
 
 | Symptom | Likely cause | Corrective action |
 | --- | --- | --- |
+| Forgot password link is needed | Password is unknown or reset link expired | On `/auth/login`, enter the account email, select **Forgot password?**, and open the newest reset email on the same device; request a fresh link if the reset page says it is missing or expired |
 | Login loops back to sign-in | Supabase URL or redirect allowlist is incorrect | Confirm the Vercel URL and `/auth/callback` are allowed |
 | Leads do not load | Migration not applied, expired session, or RLS mismatch | Check browser console, session, migration status, and workspace membership |
 | Appointment page shows a table error | Migration 004 has not been applied | Run `004_appointments_tasks.sql` after migrations 001–003 |
