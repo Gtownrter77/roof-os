@@ -41,8 +41,10 @@ export async function POST(request: NextRequest) {
   if (invoiceError || !invoice) return NextResponse.json({ error: 'Only an issued invoice in the active workspace can receive a payment link.' }, { status: 409 })
 
   const stripe = new Stripe(stripeKey)
+  const expiresAtSeconds = Math.floor(Date.now() / 1000) + 24 * 60 * 60 // 24-hour expiration time window
   const session = await stripe.checkout.sessions.create({
     mode: 'payment',
+    expires_at: expiresAtSeconds,
     line_items: [{ price_data: { currency: invoice.currency, product_data: { name: `ROOF/OS invoice ${invoice.invoice_number}` }, unit_amount: invoice.amount_cents }, quantity: 1 }],
     success_url: `${appUrl}/payment?status=success&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${appUrl}/payment?status=cancelled`,

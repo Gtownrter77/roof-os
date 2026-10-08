@@ -11,10 +11,26 @@ export async function POST(request: NextRequest) {
     const supabase = createAdminClient()
     const callSid = params.CallSid
     const callStatus = params.CallStatus || 'unknown'
+    const callDuration = params.CallDuration ? parseInt(params.CallDuration, 10) : null
+    const recordingUrl = params.RecordingUrl || null
+
     if (!callSid) return new Response('Missing CallSid', { status: 400 })
     const status = callStatus === 'completed' ? 'completed' : callStatus === 'busy' || callStatus === 'no-answer' ? 'failed' : 'active'
-    await supabase.from('receptionist_sessions').update({ status, outcome: `twilio_${callStatus}`, ended_at: status === 'completed' || status === 'failed' ? new Date().toISOString() : null }).eq('workspace_id', workspaceId).eq('provider', 'twilio').eq('provider_session_id', callSid)
-    await supabase.from('receptionist_events').upsert({ workspace_id: workspaceId, event_key: `twilio:${callSid}:${callStatus}`, event_type: 'call.status', provider: 'twilio', payload: params }, { onConflict: 'workspace_id,event_key' })
+
+    await supabase.from('receptionist_sessions').update({
+      status,
+      outcome: `twilio_${callStatus}`,
+      ended_at: status === 'completed' || status === 'failed' ? new Date().toISOString() : null
+    }).eq('workspace_id', workspaceId).eq('provider', 'twilio').eq('provider_session_id', callSid)
+
+    await supabase.from('receptionist_events').upsert({
+      workspace_id: workspaceId,
+      event_key: `twilio:${callSid}:${callStatus}`,
+      event_type: 'call.status',
+      provider: 'twilio',
+      payload: { ...params, callDurationSeconds: callDuration, recordingUrl }
+    }, { onConflict: 'workspace_id,event_key' })
+
     return new Response('ok')
   } catch (error) {
     return new Response(error instanceof Error ? error.message : 'Invalid Twilio request', { status: 403 })
