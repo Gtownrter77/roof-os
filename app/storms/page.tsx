@@ -1,22 +1,18 @@
- 'use client'
-
-import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { ArrowLeft, ShieldAlert } from 'lucide-react'
+import WorkspaceWeather from '../../components/WorkspaceWeather'
 
 export default function StormsPage() {
-  const router = useRouter()
   return (
-    <div className="min-h-screen bg-gray-50 p-4 pb-20">
-      <button onClick={() => router.push('/')} className="text-blue-600 text-sm mb-2">← Dashboard</button>
-      <h1 className="text-2xl font-bold mb-4">🌩️ Storms</h1>
-      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
-        <p className="font-semibold">⚠️ Severe Thunderstorm Warning</p>
-        <p className="text-sm text-yellow-700">Active until 8:00 PM EST</p>
+    <main className="min-h-screen bg-[#070b14] px-3 pb-24 pt-5 text-slate-100 md:px-6 md:pt-8">
+      <div className="mx-auto max-w-7xl space-y-5">
+        <Link href="/" className="inline-flex items-center gap-2 text-sm text-cyan-300 hover:underline"><ArrowLeft className="h-4 w-4" /> Dashboard</Link>
+        <header className="rounded-2xl border border-red-300/15 bg-gradient-to-r from-[#24111a] via-slate-950 to-slate-950 p-5 md:p-7">
+          <div className="flex items-center gap-3"><ShieldAlert className="h-7 w-7 text-red-300" /><div><p className="text-xs font-bold uppercase tracking-[0.2em] text-red-200">Location-specific · source-linked</p><h1 className="text-2xl font-black text-white md:text-3xl">Storms & alerts</h1></div></div>
+          <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-300">Shows only active NWS alerts returned for the workspace service ZIP, with a link to the official alert. A weather alert is not proof of roof damage, a loss date, or an insurance outcome.</p>
+        </header>
+        <WorkspaceWeather variant="full" />
       </div>
-      <div className="bg-white rounded-lg shadow p-4">
-        <p className="font-semibold">Storm Score: 78</p>
-        <p className="text-sm text-gray-500">Weather Relevance: 85</p>
-      </div>
-
-    </div>
+    </main>
   )
 }

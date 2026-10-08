@@ -1,150 +1,173 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import {
-  AlertTriangle, BarChart3, Bell, BriefcaseBusiness, CalendarDays, Camera,
-  CheckCircle2, ChevronRight, CircleHelp, ClipboardList, CloudLightning, CloudRain,
-  DollarSign, FileText, Gauge, Home as House, Layers3, MapPin, Menu, MessageCircle, PackageCheck,
-  Radar, Ruler, Settings, Sparkles, Sun, Users, WalletCards,
-  X, Zap,
-} from 'lucide-react'
+import { useEffect, useState } from 'react'
+import Link from 'next/link'
+import QuickActions from '../components/QuickActions'
+import WorkspaceWeather from '../components/WorkspaceWeather'
 import { createClient } from '../lib/supabase/client'
+import {
+  Activity, CalendarDays, Camera, ClipboardList, CloudLightning, FileText,
+  Gauge, Home as HomeIcon, ListChecks, Settings, ShieldCheck, Sparkles, Users, Wallet,
+} from 'lucide-react'
 
-type Lead = { id: string; name: string; address: string; status: string }
-type Counts = { leads: number; openTasks: number; warranties: number }
+type Lead = { id: string; name: string | null; address: string | null; status: string | null }
+type Counts = { leads: number | null; inspections: number | null; openTasks: number | null; warrantiesDue: number | null }
+type MetricProps = { label: string; value: number | null; detail: string; href: string; icon: React.ComponentType<{ className?: string }> }
 
-const navItems = [
-  { label: 'Dashboard', icon: House, path: '/' },
-  { label: 'Storms & Weather', icon: CloudLightning, path: '/storms', badge: 3 },
-  { label: 'Opportunities', icon: Radar, path: '/leads', badge: 47 },
-  { label: 'Leads', icon: Users, path: '/leads', badge: 18 },
-  { label: 'Inspections', icon: Camera, path: '/inspections', badge: 27 },
-  { label: 'Measurements', icon: Ruler, path: '/measure', badge: 34 },
-  { label: 'Estimates', icon: FileText, path: '/pricing', badge: 29 },
-  { label: 'Customers', icon: BriefcaseBusiness, path: '/leads', badge: 22 },
-  { label: 'Production', icon: PackageCheck, path: '/tasks', badge: 16 },
-  { label: 'Payments', icon: WalletCards, path: '/payment', badge: 11 },
+const NAV_ITEMS = [
+  { href: '/', label: 'Dashboard', icon: HomeIcon },
+  { href: '/weather', label: 'Weather & radar', icon: CloudLightning },
+  { href: '/storms', label: 'Storm alerts', icon: Activity },
+  { href: '/leads', label: 'Leads & CRM', icon: Users },
+  { href: '/inspections', label: 'Inspections', icon: ClipboardList },
+  { href: '/measure', label: 'Measurements', icon: Gauge },
+  { href: '/photo-estimate', label: 'Photo reports', icon: Camera },
+  { href: '/reports', label: 'Reports', icon: FileText },
+  { href: '/pricing-config', label: 'Price book', icon: Wallet },
+  { href: '/tasks', label: 'Tasks', icon: ListChecks },
+  { href: '/calendar', label: 'Calendar', icon: CalendarDays },
+  { href: '/warranty', label: 'Warranties', icon: ShieldCheck },
+  { href: '/ai', label: 'AI tools · pilot', icon: Sparkles, pilot: true },
+  { href: '/settings', label: 'Settings', icon: Settings },
 ]
 
-const pipeline = [
-  { label: 'Storm', value: 12, status: 'Active', color: 'red', icon: CloudLightning },
-  { label: 'Opportunities', value: 47, status: 'New', color: 'amber', icon: AlertTriangle },
-  { label: 'Leads', value: 18, status: 'Qualified', color: 'blue', icon: Users },
-  { label: 'Inspections', value: 27, status: 'Scheduled', color: 'purple', icon: Camera },
-  { label: 'Measurements', value: 34, status: 'In Progress', color: 'cyan', icon: Ruler },
-  { label: 'Estimates', value: 29, status: 'Sent', color: 'sky', icon: FileText },
-  { label: 'Customers', value: 22, status: 'Approved', color: 'orange', icon: Users },
-  { label: 'Production', value: 16, status: 'In Progress', color: 'pink', icon: PackageCheck },
-  { label: 'Payments', value: 11, status: 'Completed', color: 'green', icon: DollarSign },
+const FEATURES = [
+  { href: '/leads', label: 'Leads & CRM', detail: 'Manage lead records, status, assignment, and follow-up.', icon: Users },
+  { href: '/inspections', label: 'Inspections', detail: 'Open saved field inspections and photo evidence.', icon: ClipboardList },
+  { href: '/photo-estimate', label: 'Photo-to-report', detail: 'Build a sourced report draft; technician verification is still required.', icon: Camera },
+  { href: '/measure', label: 'Measurements', detail: 'Review proposed quantities; AI and aerial suggestions are not authoritative.', icon: Gauge },
+  { href: '/pricing-config', label: 'Owner price book', detail: 'Configure workspace pricing; draft values are not a final estimate.', icon: Wallet },
+  { href: '/tasks', label: 'Tasks & follow-up', detail: 'Track open work recorded in this workspace.', icon: ListChecks },
+  { href: '/calendar', label: 'Calendar', detail: 'Open the workspace calendar and scheduled work.', icon: CalendarDays },
+  { href: '/warranty', label: 'Warranty records', detail: 'Review records that still need registration steps.', icon: ShieldCheck },
 ]
 
-const activities = [
-  { icon: CloudLightning, label: 'New lead from storm area', address: '123 Maple Dr, Douglasville, GA', time: '2m ago', tag: 'NEW', tone: 'green' },
-  { icon: CalendarDays, label: 'Inspection scheduled', address: '742 Pine Ridge Rd', time: '6m ago', tag: 'SCHEDULED', tone: 'blue' },
-  { icon: Ruler, label: 'Measurement completed', address: '980 Oak Valley Ln', time: '12m ago', tag: 'COMPLETED', tone: 'green' },
-  { icon: FileText, label: 'Estimate approved', address: '1550 Williamsburg Ct', time: '18m ago', tag: 'APPROVED', tone: 'amber' },
-  { icon: DollarSign, label: 'Payment received', address: '3227 Ridgway Dr', time: '27m ago', tag: 'PAID', tone: 'green' },
-]
-
-const jobs = [
-  { id: '#RO-45821', address: '123 Maple Dr', stage: 'INSPECTION', progress: 72, color: 'purple' },
-  { id: '#RO-45820', address: '742 Pine Ridge Rd', stage: 'MEASUREMENT', progress: 60, color: 'teal' },
-  { id: '#RO-45819', address: '980 Oak Valley Ln', stage: 'ESTIMATE', progress: 45, color: 'blue' },
-  { id: '#RO-45818', address: '1550 Williamsburg Ct', stage: 'PRODUCTION', progress: 80, color: 'pink' },
-  { id: '#RO-45817', address: '3227 Ridgway Dr', stage: 'PAYMENT', progress: 100, color: 'green' },
-]
-
-const weather = [
-  { day: 'Today', icon: CloudLightning, temp: '72° / 64°', note: 'Severe', color: 'red' },
-  { day: 'Tue', icon: CloudRain, temp: '78° / 62°', note: 'Heavy Rain', color: 'amber' },
-  { day: 'Wed', icon: CloudRain, temp: '81° / 60°', note: 'Showers', color: 'blue' },
-  { day: 'Thu', icon: CloudRain, temp: '84° / 59°', note: 'Partly Cloudy', color: 'sky' },
-  { day: 'Fri', icon: Sun, temp: '86° / 61°', note: 'Clear', color: 'amber' },
-]
-
-function Stat({ label, value, tone }: { label: string; value: string; tone: string }) {
-  return <div className="top-stat"><span>{label}</span><strong className={`text-${tone}`}>{value}</strong></div>
+function Metric({ label, value, detail, href, icon: Icon }: MetricProps) {
+  return (
+    <Link href={href} className="group rounded-xl border border-white/10 bg-slate-900/80 p-4 transition hover:border-cyan-300/50 hover:bg-slate-900">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">{label}</p>
+        <Icon className="h-4 w-4 text-cyan-300" aria-hidden="true" />
+      </div>
+      <p className="mt-3 text-3xl font-black tabular-nums text-white">{value === null ? '—' : value}</p>
+      <p className="mt-1 text-xs text-slate-400">{detail}</p>
+    </Link>
+  )
 }
 
 export default function Home() {
-  const router = useRouter()
-  const [mobileOpen, setMobileOpen] = useState(false)
-  const [stormTheme, setStormTheme] = useState(true)
-  const [counts, setCounts] = useState<Counts>({ leads: 18, openTasks: 16, warranties: 11 })
   const [recentLeads, setRecentLeads] = useState<Lead[]>([])
-
-  useEffect(() => {
-    const savedTheme = window.localStorage.getItem('roofos-storm-theme')
-    if (savedTheme === 'off') setStormTheme(false)
-  }, [])
+  const [recentError, setRecentError] = useState(false)
+  const [counts, setCounts] = useState<Counts>({ leads: null, inspections: null, openTasks: null, warrantiesDue: null })
+  const [loading, setLoading] = useState(true)
+  const [ownerLabel, setOwnerLabel] = useState('Workspace member')
 
   useEffect(() => {
     let cancelled = false
     async function load() {
-      const supabase = createClient()
-      const [leadsRes, recentRes, tasksRes, warrantyRes] = await Promise.all([
-        supabase.from('leads').select('id', { count: 'exact', head: true }),
-        supabase.from('leads').select('id,name,address,status').order('created_at', { ascending: false }).limit(5),
-        supabase.from('tasks').select('id', { count: 'exact', head: true }).eq('status', 'open'),
-        supabase.from('warranties').select('id', { count: 'exact', head: true }).in('registration_status', ['not_started', 'packet_ready']),
-      ])
-      if (cancelled) return
-      if (!leadsRes.error && leadsRes.count !== null) setCounts({ leads: leadsRes.count ?? 18, openTasks: tasksRes.count ?? 16, warranties: warrantyRes.count ?? 11 })
-      if (!recentRes.error) setRecentLeads((recentRes.data ?? []) as Lead[])
+      try {
+        const supabase = createClient()
+        const [leads, recent, inspections, tasks, warranties, user] = await Promise.all([
+          supabase.from('leads').select('id', { count: 'exact', head: true }),
+          supabase.from('leads').select('id,name,address,status').order('created_at', { ascending: false }).limit(5),
+          supabase.from('inspection_sessions').select('id', { count: 'exact', head: true }),
+          supabase.from('tasks').select('id', { count: 'exact', head: true }).eq('status', 'open'),
+          supabase.from('warranties').select('id', { count: 'exact', head: true }).in('registration_status', ['not_started', 'packet_ready']),
+          supabase.auth.getUser(),
+        ])
+        if (cancelled) return
+        setCounts({
+          leads: leads.error ? null : (leads.count ?? 0),
+          inspections: inspections.error ? null : (inspections.count ?? 0),
+          openTasks: tasks.error ? null : (tasks.count ?? 0),
+          warrantiesDue: warranties.error ? null : (warranties.count ?? 0),
+        })
+        setRecentError(Boolean(recent.error))
+        setRecentLeads(recent.error ? [] : (recent.data ?? []))
+        if (user.data.user?.email) setOwnerLabel(user.data.user.email)
+      } catch {
+        if (!cancelled) setRecentError(true)
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
     }
     void load()
-    return () => { cancelled = true }
+    const timer = window.setInterval(() => { void load() }, 10 * 60 * 1000)
+    return () => { cancelled = true; window.clearInterval(timer) }
   }, [])
 
-  const opportunityCount = useMemo(() => recentLeads.length ? Math.max(47, recentLeads.length) : 47, [recentLeads])
-
   return (
-    <div className={`roof-shell ${stormTheme ? '' : 'standard-theme'}`}>
-      <aside className={`roof-sidebar ${mobileOpen ? 'is-open' : ''}`}>
-        <div className="brand-lockup"><div className="brand-mark"><span /><span /><span /></div><div><b>ROOF<span>/</span>OS</b><small>THE ROOFING OPERATING SYSTEM</small></div></div>
-        <button className="mobile-close" onClick={() => setMobileOpen(false)} aria-label="Close menu"><X size={20} /></button>
-        <nav className="sidebar-nav">
-          {navItems.map(({ label, icon: Icon, path, badge }) => <button key={label} className={`sidebar-item ${label === 'Dashboard' ? 'active' : ''}`} onClick={() => router.push(path)}><Icon size={19} /><span>{label}</span>{badge && <em>{label === 'Opportunities' ? opportunityCount : badge}</em>}</button>)}
-        </nav>
-        <div className="sidebar-divider" />
-        <nav className="sidebar-nav secondary-nav">
-          <button className="sidebar-item" onClick={() => router.push('/reports')}><BarChart3 size={19} /><span>Reports</span></button>
-          <button className="sidebar-item" onClick={() => router.push('/ai')}><Sparkles size={19} /><span>AI Assistant</span><i className="online-pill">ON</i></button>
-          <button className="sidebar-item" onClick={() => router.push('/settings')}><Settings size={19} /><span>Settings</span></button>
-          <button className="sidebar-item" onClick={() => router.push('/help')}><CircleHelp size={19} /><span>Help / Support</span></button>
-          <button className="theme-setting" onClick={() => { const next = !stormTheme; setStormTheme(next); window.localStorage.setItem('roofos-storm-theme', next ? 'on' : 'off') }} aria-pressed={stormTheme}><Sun size={17} /><span>Storm Theme</span><i className={stormTheme ? 'on' : ''}><b /></i></button>
-        </nav>
-        <div className="system-card"><div><span className="live-dot" />System Online</div><small>v2.4.7<br />ROOF/OS</small></div>
-      </aside>
+    <div className="min-h-screen bg-[#070b14] pb-24 text-slate-100 lg:pb-8">
+      <header className="sticky top-0 z-20 border-b border-white/10 bg-[#070b14]/95 backdrop-blur">
+        <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-4 px-4 py-3 md:px-6">
+          <Link href="/" className="text-xl font-black tracking-tight text-white">ROOF<span className="text-red-500">/</span>OS<span className="ml-2 hidden text-xs font-medium tracking-[0.18em] text-slate-400 sm:inline">ROOFING OPERATIONS</span></Link>
+          <div className="flex items-center gap-3">
+            <span className="hidden max-w-56 truncate text-xs text-slate-300 md:inline">{ownerLabel}</span>
+            <Link href="/settings" aria-label="Workspace settings" className="rounded-lg border border-white/10 p-2 text-slate-300 hover:bg-white/10"><Settings className="h-4 w-4" /></Link>
+          </div>
+        </div>
+      </header>
 
-      <main className="roof-main">
-        <header className="command-header">
-          <button className="mobile-menu" onClick={() => setMobileOpen(true)} aria-label="Open menu"><Menu size={22} /></button>
-          <div className="alert-chip"><AlertTriangle size={17} fill="currentColor" /> <span>SEVERE WEATHER ACTIVE</span></div>
-          <div className="location"><MapPin size={14} /> Douglasville, GA</div>
-          <div className="current-weather"><Radar size={20} /><strong>72°</strong><span>Heavy Rain<br />Wind 28 mph<br /><b>Hail Possible</b></span></div>
-          <div className="header-stats"><Stat label="Active Storms" value="3" tone="red" /><Stat label="New Opportunities" value={String(opportunityCount)} tone="green" /><Stat label="Jobs in Pipeline" value="312" tone="blue" /><Stat label="Revenue At Risk" value="$284K" tone="amber" /></div>
-          <div className="header-actions"><button aria-label="Notifications"><Bell size={20} /><b>12</b></button><div className="profile"><div className="avatar">R</div><span>Ryan<small>Owner / Admin</small></span></div><button aria-label="Settings" onClick={() => router.push('/settings')}><Settings size={21} /></button></div>
-        </header>
+      <div className="mx-auto grid max-w-[1600px] gap-5 px-3 py-4 md:px-6 lg:grid-cols-[220px_minmax(0,1fr)] lg:py-6">
+        <aside className="hidden lg:block">
+          <nav aria-label="ROOF/OS features" className="sticky top-20 space-y-1 rounded-2xl border border-white/10 bg-slate-950/70 p-3">
+            {NAV_ITEMS.map(({ href, label, icon: Icon, pilot }) => (
+              <Link key={href} href={href} aria-current={href === '/' ? 'page' : undefined} className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition ${href === '/' ? 'bg-blue-600 font-bold text-white' : 'text-slate-300 hover:bg-white/10 hover:text-white'}`}>
+                <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+                <span className="min-w-0 flex-1 truncate">{label}</span>
+                {pilot && <span className="rounded bg-amber-400/15 px-1.5 py-0.5 text-[9px] font-bold uppercase text-amber-200">Pilot</span>}
+              </Link>
+            ))}
+          </nav>
+        </aside>
 
-        <section className="hero-grid">
-          <div className="hero-copy"><div className="eyebrow"><Zap size={13} fill="currentColor" /> WEATHER INTELLIGENCE COMMAND CENTER</div><h1>REAL STORMS.<br />REAL DAMAGE.<br /><span>REAL JOBS.</span></h1><p>ROOF/OS turns weather events<br />into closed jobs — automatically.</p><button className="primary-cta" onClick={() => router.push('/leads')}><span>WATCH THE PIPELINE</span><ChevronRight size={18} /></button></div>
-          <div className="radar-card"><div className="panel-heading"><span><Radar size={17} /> Live Radar <i>Live</i></span><span className="radar-live"><span className="live-dot" /> Radar Live</span></div><div className="radar-map"><div className="storm-glow glow-one" /><div className="storm-glow glow-two" /><div className="map-road road-one" /><div className="map-road road-two" /><span className="city atlanta">Atlanta</span><span className="city carrollton">Carrollton</span><span className="city douglasville">Douglasville</span><span className="city newnan">Newnan</span><span className="city peachtree">Peachtree City</span><span className="highway h20">20</span><span className="highway h85">85</span><div className="storm-pin"><span /></div></div><div className="risk-list"><span><CheckCircle2 /> Radar Live</span><span><CheckCircle2 /> Storm Track</span><span><CheckCircle2 /> Hail Risk</span><span><CheckCircle2 /> Wind Gusts</span><span><CheckCircle2 /> Risk Zones</span></div><div className="radar-scale"><small>Light</small><div /><small>Extreme</small></div></div>
-        </section>
+        <main className="min-w-0 space-y-5">
+          <WorkspaceWeather variant="hero" tickerMetrics={[
+            { label: 'Leads', value: counts.leads },
+            { label: 'Inspections', value: counts.inspections },
+            { label: 'Open tasks', value: counts.openTasks },
+            { label: 'Warranties to register', value: counts.warrantiesDue },
+          ]} />
 
-        <section className="pipeline-panel panel-glass"><div className="pipeline-title"><div><h2><Layers3 size={18} /> ROOFING PIPELINE</h2><p>From storm to paid — all in one system.</p></div><div className="flow-meta"><span>Live Flow <i className="live-dot" /></span><Stat label="Jobs flowing" value="312" tone="blue" /><Stat label="Avg. Cycle Time" value="4.8 days" tone="blue" /><Stat label="Conversion Rate" value="68%" tone="green" /></div></div><div className="pipeline-track">{pipeline.map(({ label, value, status, color, icon: Icon }, index) => <div className={`pipeline-step ${color}`} key={label}><div className="pipeline-node"><Icon size={25} /></div>{index < pipeline.length - 1 && <div className="pipeline-arrow"><ChevronRight /></div>}<strong>{label}</strong><b>{value}</b><small>{status}</small></div>)}</div></section>
+          <section aria-label="Live workspace counts" className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+            <Metric label="Leads" value={counts.leads} detail="Workspace records" href="/leads" icon={Users} />
+            <Metric label="Inspections" value={counts.inspections} detail="Saved inspection sessions" href="/inspections" icon={ClipboardList} />
+            <Metric label="Open tasks" value={counts.openTasks} detail="Recorded follow-ups" href="/tasks" icon={ListChecks} />
+            <Metric label="Warranties to register" value={counts.warrantiesDue} detail="Not started or packet ready" href="/warranty" icon={ShieldCheck} />
+          </section>
 
-        <section className="dashboard-grid">
-          <div className="panel-glass activity-panel"><div className="panel-heading"><h2><ActivityIcon /> LIVE ACTIVITY</h2><button>View All <ChevronRight size={14} /></button></div><div className="activity-list">{activities.map(({ icon: Icon, label, address, time, tag, tone }) => <div className="activity-row" key={label}><div className={`activity-icon ${tone}`}><Icon size={15} /></div><div className="activity-copy"><strong>{label}</strong><span>{address}</span></div><div className="activity-meta"><small>{time}</small><em className={tone}>{tag}</em></div></div>)}</div></div>
-          <div className="panel-glass jobs-panel"><div className="panel-heading"><h2><ClipboardList size={17} /> ACTIVE JOBS</h2><button>View All <ChevronRight size={14} /></button></div><div className="jobs-list">{jobs.map((job) => <div className="job-row" key={job.id}><div className="house-thumb"><House size={19} /></div><div className="job-copy"><strong>{job.id}</strong><span>{job.address}</span></div><div className="job-progress"><em className={job.color}>{job.stage}</em><div><span style={{ width: `${job.progress}%` }} className={job.color} /></div><b>{job.progress}%</b></div></div>)}</div></div>
-          <div className="panel-glass metrics-panel"><div className="panel-heading"><h2><Gauge size={17} /> LIVE METRICS</h2></div>{[['New Leads', '47', '↑ 32%', 'green'], ['Estimates Sent', '29', '↑ 27%', 'blue'], ['Jobs Closed', '11', '↑ 45%', 'green'], ['Revenue', '$284K', '↑ 38%', 'green']].map(([label, value, delta, tone]) => <div className="metric-row" key={label}><div><span>{label}</span><strong className={`text-${tone}`}>{value}</strong><em className={tone}>{delta}</em></div><div className={`sparkline ${tone}`}><span /><span /><span /><span /><span /><span /></div></div>)}</div>
-          <div className="panel-glass outlook-panel"><div className="panel-heading"><h2><CloudRain size={17} /> WEATHER OUTLOOK</h2><button>7-Day Forecast</button></div>{weather.map(({ day, icon: Icon, temp, note, color }) => <div className="forecast-row" key={day}><Icon size={21} className={`text-${color}`} /><strong>{day}</strong><span>{temp}</span><em className={color}>{note}</em></div>)}</div>
-        </section>
-      </main>
-      <footer className="mission-bar"><strong><Zap size={15} /> MISSION:</strong><span>TURN STORM DAMAGE INTO PROFIT.</span><i /> <span>SMARTER INSPECTIONS</span><i /> <span>FASTER ESTIMATES</span><i /> <span>MORE CLOSED JOBS</span><div className="mission-controls"><span>Animated Background</span><b /><button>Ⅱ Pause</button><button><Sun size={14} /> Off</button></div></footer>
+          <section aria-labelledby="workflow-title" className="rounded-2xl border border-white/10 bg-slate-950/65 p-4 md:p-5">
+            <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+              <div><p className="text-xs font-bold uppercase tracking-[0.2em] text-cyan-300">Available in this workspace</p><h2 id="workflow-title" className="mt-1 text-xl font-bold text-white">ROOF/OS workflows</h2></div>
+              <p className="max-w-xl text-xs leading-5 text-slate-400">Counts above come from workspace records. No sample storms, pipeline totals, or revenue figures are substituted.</p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              {FEATURES.map(({ href, label, detail, icon: Icon }) => (
+                <Link key={href} href={href} className="group rounded-xl border border-white/10 bg-white/[0.035] p-4 transition hover:border-cyan-300/40 hover:bg-white/[0.07]">
+                  <Icon className="h-5 w-5 text-cyan-300" aria-hidden="true" />
+                  <h3 className="mt-3 font-bold text-white">{label}</h3>
+                  <p className="mt-1 text-xs leading-5 text-slate-400">{detail}</p>
+                </Link>
+              ))}
+            </div>
+          </section>
+
+          <section aria-labelledby="recent-title" className="rounded-2xl border border-white/10 bg-slate-950/65 p-4 md:p-5">
+            <div className="mb-2 flex items-center justify-between gap-3"><h2 id="recent-title" className="font-bold text-white">Recent properties</h2><Link href="/leads" className="text-sm text-cyan-300 hover:underline">All leads</Link></div>
+            {loading && <p className="py-4 text-sm text-slate-400" role="status">Loading workspace records…</p>}
+            {!loading && recentError && <p className="py-4 text-sm text-amber-200">Recent leads could not be verified. Open Leads to retry.</p>}
+            {!loading && !recentError && recentLeads.length === 0 && <p className="py-4 text-sm text-slate-400">No lead records were returned for this workspace.</p>}
+            {recentLeads.map((lead) => (
+              <Link key={lead.id} href={`/passport/${lead.id}`} className="flex flex-wrap items-center justify-between gap-2 border-t border-white/10 py-3 first:border-0 hover:bg-white/[0.03]">
+                <span className="min-w-0"><span className="block truncate text-sm font-semibold text-white">{lead.name || 'Unknown lead name'}</span><span className="block truncate text-xs text-slate-400">{lead.address || 'Address not recorded'}</span></span>
+                <span className="rounded-full bg-cyan-300/10 px-2.5 py-1 text-xs text-cyan-200">{lead.status?.replaceAll('_', ' ') || 'Status unknown'}</span>
+              </Link>
+            ))}
+          </section>
+          <p className="pb-2 text-center text-[11px] text-slate-500">AI observes. ROOF/OS validates. Technicians verify. Estimators price.</p>
+        </main>
+      </div>
+      <QuickActions />
     </div>
   )
 }
-
-function ActivityIcon() { return <MessageCircle size={17} /> }

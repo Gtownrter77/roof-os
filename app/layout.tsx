@@ -1,4 +1,5 @@
 import './globals.css'
+import 'maplibre-gl/dist/maplibre-gl.css'
 import type { Metadata } from 'next'
 import Navigation from '../components/Navigation'
 import WorkspaceSwitcher from '../components/WorkspaceSwitcher'

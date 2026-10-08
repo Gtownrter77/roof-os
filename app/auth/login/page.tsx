@@ -6,6 +6,8 @@ import { ShieldCheck, Zap } from 'lucide-react'
 import { authCooldownSeconds } from '../../../lib/auth/cooldown'
 import { createClient } from '../../../lib/supabase/client'
 import { safeNextPath } from '../../../lib/safe-next'
+import LoginWeatherPreview, { type LoginPreviewData } from '../../../components/LoginWeatherPreview'
+import WeatherRadarMap from '../../../components/WeatherRadarMap'
 
 type Mode = 'password' | 'link' | 'code'
 const COOLDOWN = 60
@@ -49,6 +51,7 @@ function LoginForm() {
   const [sendCooldown, setSendCooldown] = useState(0)
   const [verifyCooldown, setVerifyCooldown] = useState(0)
   const [resetCooldown, setResetCooldown] = useState(0)
+  const [loginWeather, setLoginWeather] = useState<LoginPreviewData | null>(null)
 
   useEffect(() => {
     if (search.get('error') === 'auth_callback_failed') {
@@ -205,7 +208,7 @@ function LoginForm() {
   }
 
   return (
-    <main className="ops-bg flex min-h-screen items-center justify-center px-4 py-10">
+    <main className="ops-bg flex min-h-screen flex-col items-center justify-center gap-6 px-4 py-10">
       <div className="absolute left-6 top-6 flex items-center gap-3">
         <ShieldCheck className="h-10 w-10 text-red-500" />
         <span><strong className="block text-3xl font-black tracking-[-.08em]">ROOF<span className="text-red-500">/OS</span></strong><small className="text-[10px] tracking-[.2em] text-slate-300">STORM COMMAND CENTER</small></span>
@@ -223,6 +226,10 @@ function LoginForm() {
         <button type="button" onClick={() => router.push('/auth/signup')} className="mt-5 w-full text-sm text-slate-400">Create a new workspace</button>
         <p className="mt-6 text-center text-[10px] uppercase tracking-[.16em] text-slate-500">Protected workspace access · Secure session required</p>
       </form>
+      <div className="w-full max-w-2xl space-y-3">
+        <LoginWeatherPreview onLocationChange={setLoginWeather} />
+        {loginWeather && <WeatherRadarMap latitude={loginWeather.latitude} longitude={loginWeather.longitude} locationLabel={loginWeather.label} interactive={false} className="h-56" />}
+      </div>
     </main>
   )
 }

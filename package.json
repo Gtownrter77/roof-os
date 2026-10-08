@@ -36,7 +36,9 @@
     "test:invoices-live-data": "node scripts/invoices-live-data-test.mjs",
     "test:mobile-auth": "node scripts/mobile-auth-test.mjs",
     "test:ai-chat-bar": "node scripts/ai-chat-bar-test.mjs",
-    "test:camera-audio": "node scripts/inspection-camera-audio-test.mjs"
+    "test:camera-audio": "node scripts/inspection-camera-audio-test.mjs",
+    "test:radar-source": "node scripts/radar-source-test.mjs",
+    "test:dashboard-weather": "node scripts/dashboard-weather-test.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.2",
@@ -48,7 +50,8 @@
     "react-dom": "^19.0.0",
     "stripe": "^22.6.2",
     "tesseract.js": "^6.0.1",
-    "twilio": "^6.1.2"
+    "twilio": "^6.1.2",
+    "maplibre-gl": "^6.12.0"
   },
   "devDependencies": {
     "@types/node": "^20.14.10",

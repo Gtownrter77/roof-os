@@ -24,10 +24,11 @@ function applySecurityPolicy(response: NextResponse, nonce: string) {
     "base-uri 'self'",
     "frame-ancestors 'none'",
     "form-action 'self'",
-    "img-src 'self' data: blob: https://*.supabase.co",
-    "connect-src 'self' https://*.supabase.co https://api.weather.gov https://api.capout.ai https://*.rapidapi.com",
+    "img-src 'self' data: blob: https://*.supabase.co https://tiles.openfreemap.org https://opengeo.ncep.noaa.gov",
+    "connect-src 'self' https://*.supabase.co https://api.weather.gov https://api.capout.ai https://*.rapidapi.com https://tiles.openfreemap.org https://opengeo.ncep.noaa.gov",
     "style-src 'self' 'unsafe-inline'",
     `script-src 'self' 'nonce-${nonce}'`,
+    "worker-src 'self' blob:",
   ].join('; ')
   response.headers.set('Content-Security-Policy', csp)
   response.headers.set('Cache-Control', 'no-store, max-age=0')
