@@ -1,12 +1,12 @@
-## 2026-10-05 final synchronized checkpoint
+## 2026-10-08 production release checkpoint
 
-**Runtime source baseline:** `5144836fbc0a949d94cce5e444cd8432dc7c990f`
+**Runtime source baseline:** `ccfbf8d03309376691d7e10e2f4251ff05ecedc0`
 
 The current main includes the verified integrity cleanup, the three UI loose-end fixes, and the AI-report authority hardening. The AI screen no longer fabricates a report from browser-entered text; it routes to the persisted photo-estimate workflow and is covered by a regression contract. The CI suite also now registers the existing invoice live-data regression command, which had been present as a test file but missing from package scripts.
 
 **Three-level repository evidence:** the latest merged AI-authority change passed web, mobile, preview-build, migration-safety, build, typecheck, release, security, and the full regression suite, including the AI-report and invoice-live-data checks.
 
-**Vercel boundary:** the current main commit has a Vercel status of **failure due to the account build-rate limit**. This is a platform deployment constraint, not a code-test pass. Production deployment is therefore not marked verified.
+**Vercel production evidence:** the current main commit is deployed and **READY** on Vercel production as deployment `dpl_913FrwhxJokQbdV9URWJz9FHDT1a`. The live URL returns the expected authentication redirect and security headers.
 
 **Authority boundary:** AI observations remain non-authoritative. Technician verification, source attribution, required signatures, and manager approval remain mandatory before a Golden Report is customer-ready.
 
@@ -18,7 +18,7 @@ This checkpoint supersedes older documentation snapshots. The current main now i
 
 **Authority boundary:** AI observations remain non-authoritative. Technician verification, source attribution, required signatures, and manager approval remain mandatory before a Golden Report is customer-ready.
 
-**Production boundary:** GitHub merge and CI evidence are not proof of a successful Vercel production deployment or live provider execution. Those remain separately evidence-gated.
+**Production boundary:** this checkpoint includes a direct live URL check and Vercel deployment-state verification. Live provider execution remains separately dependent on configured production credentials and external provider availability.
 
 # ROOF/OS
 

@@ -14,14 +14,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "17"
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: "22"
 
@@ -35,7 +35,7 @@ jobs:
         working-directory: apps/field/android
         run: ./gradlew assembleDebug -PreactNativeArchitectures=arm64-v8a --no-daemon --max-workers=2
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: roof-os-field-pixel8-arm64
           path: apps/field/android/app/build/outputs/apk/debug/*.apk
