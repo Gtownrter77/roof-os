@@ -1,7 +1,7 @@
 {
-  "evidence_date": "2026-10-08T15:30:00Z",
+  "evidence_date": "2026-10-08T16:00:00Z",
   "repository": "Gtownrter77/roof-os",
-  "baseline_commit": "fb4b1c1608c65c4dad7cb560c3ddb7495123be8b",
+  "baseline_commit": "65d2ff8",
   "production_status": "OPEN_SOURCE_AI_RECEPTIONIST_REMEDIATED_AND_VERIFIED",
   "three_level_check": {
     "level_1_security_and_code": {

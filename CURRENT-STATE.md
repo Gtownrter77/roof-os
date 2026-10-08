@@ -1,6 +1,6 @@
 ## 2026-10-08 Open-Source AI Receptionist Remediations Checkpoint
 
-**Current main commit:** `fb4b1c1608c65c4dad7cb560c3ddb7495123be8b` (plus open-source AI receptionist upgrades)
+**Current main commit:** `65d2ff8`
 
 ### Remediated Receptionist Weak Links
 1. **OpenWhisper Voice STT (`app/voice-ai/page.tsx` & `lib/ai/chat-copilot.ts`):** Speech-to-text processing for voice commands routed to open-source server intent router.
