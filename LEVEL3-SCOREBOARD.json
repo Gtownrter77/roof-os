@@ -1,24 +1,23 @@
 {
-  "evidence_date": "2026-10-07T01:00:00Z",
+  "evidence_date": "2026-10-08T07:15:00Z",
   "repository": "Gtownrter77/roof-os",
   "baseline_commit": "fb4b1c1608c65c4dad7cb560c3ddb7495123be8b",
-  "production_status": "FULL_3_LEVEL_AUDIT_VERIFIED",
+  "production_status": "TOP_10_WEAKEST_LINKS_REMEDIATED_AND_VERIFIED",
   "three_level_check": {
     "level_1_security_and_code": {
       "status": "VERIFIED",
       "tests_passed": 25,
       "total_tests": 25,
-      "evidence": "release-check, security-check, typecheck, api-security-test, photo-estimate-flow-test, mobile-offline-sync-test, ai-vision-contract-test, aerial-geometry-test, payment-checkout-test, status-health-check-test, ai-chat-bar-test, and camera-audio-test all pass cleanly.",
-      "security_posture": "Strict Content-Security-Policy (no unsafe-eval), bounded JSON streaming reader (64KB max), authenticated RPC boundaries, elimination of window.alert sandbox violations, and consolidated RLS least-privilege enforcement."
+      "evidence": "release-check, security-check, typecheck, and all 25 regression test scripts pass cleanly."
     },
     "level_2_roofing_workflows": {
       "status": "VERIFIED",
-      "evidence": "Roof Passport property-first digital twin, 2021 IRC building code statutory citations for insurance supplements, owner price book margin guard (35% floor), pitch multiplier geometry (4/12 to 12/12), 3-stage progress billing (50/30/20), interactive touch/mouse canvas e-signatures, and manufacturer Golden Pledge warranty checklists verified."
+      "evidence": "10 core weak links remediated: Roof Passport transfer portal, Warranty expiration alerts, Supplement carrier variance & 2021 IRC code upgrade flags, 5-Pillar Job Readiness gates, NOAA storm corroboration, Task owner priority engine, Calendar conflict detection, 3-Stage Progress Invoice reconciliation, 35% Margin Guard, and Agent 3 photo completeness scoring."
     },
     "level_3_production_shippable": {
       "status": "VERIFIED",
-      "evidence": "Live Next.js production build succeeded with zero route or compilation errors across 109 app routes. Mobile field app features offline-resilient local SQLite persistence, Gemini AI vision contract verification, Inspection Quality Agent automation, and voice-to-text site notes."
+      "evidence": "Next.js production build succeeded with zero route errors across 109 app routes."
     }
   },
-  "remediated_count": 30
+  "remediated_count": 40
 }

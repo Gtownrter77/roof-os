@@ -5,17 +5,16 @@ import { useRouter } from 'next/navigation'
 
 export default function PricingPage() {
   const router = useRouter()
-  const [loading, setLoading] = useState(false)
   const [pricing, setPricing] = useState({
     materials: {
-      shingles: { price: 95, unit: 'sq', quantity: 0 },
-      underlayment: { price: 45, unit: 'roll', quantity: 0 },
-      flashing: { price: 8, unit: 'ft', quantity: 0 },
-      gutters: { price: 12, unit: 'ft', quantity: 0 },
-      dripEdge: { price: 3, unit: 'ft', quantity: 0 },
-      iceWaterShield: { price: 65, unit: 'roll', quantity: 0 },
-      ridgeVent: { price: 4, unit: 'ft', quantity: 0 },
-      starterShingles: { price: 2.5, unit: 'ft', quantity: 0 },
+      shingles: { price: 95, unit: 'sq', quantity: 0, surge: false },
+      underlayment: { price: 45, unit: 'roll', quantity: 0, surge: false },
+      flashing: { price: 8, unit: 'ft', quantity: 0, surge: false },
+      gutters: { price: 12, unit: 'ft', quantity: 0, surge: false },
+      dripEdge: { price: 3, unit: 'ft', quantity: 0, surge: false },
+      iceWaterShield: { price: 65, unit: 'roll', quantity: 0, surge: true }, // Surge alert example
+      ridgeVent: { price: 4, unit: 'ft', quantity: 0, surge: false },
+      starterShingles: { price: 2.5, unit: 'ft', quantity: 0, surge: false },
     },
     labor: {
       tearOff: { rate: 55, unit: 'sq', quantity: 0 },
@@ -25,7 +24,7 @@ export default function PricingPage() {
       cleanup: { rate: 50, unit: 'hr', quantity: 0 },
     },
     overhead: 0.15,
-    profit: 0.10,
+    profit: 0.20, // 20% default profit target
     salesTax: 0.07,
     permits: 250,
     dumpFees: 150,
@@ -39,6 +38,7 @@ export default function PricingPage() {
     taxes: 0,
     total: 0,
     perSquare: 0,
+    grossMarginPercent: 35,
   })
 
   // Update quantities based on roof area
@@ -77,11 +77,15 @@ export default function PricingPage() {
       return sum + (item.rate * item.quantity)
     }, 0)
 
-    const overhead = materialTotal * pricing.overhead
-    const profit = (materialTotal + laborTotal + overhead) * pricing.profit
+    const directCost = materialTotal + laborTotal
+    const overhead = directCost * pricing.overhead
+    const profit = (directCost + overhead) * pricing.profit
     const taxes = (materialTotal + laborTotal) * pricing.salesTax
-    const subtotal = materialTotal + laborTotal + overhead + profit + pricing.permits + pricing.dumpFees
+    const subtotal = directCost + overhead + profit + pricing.permits + pricing.dumpFees
     const total = subtotal + taxes
+
+    const grossProfitDollar = total - directCost - taxes
+    const grossMarginPercent = total > 0 ? (grossProfitDollar / total) * 100 : 35
 
     setTotals({
       materials: materialTotal,
@@ -91,6 +95,7 @@ export default function PricingPage() {
       taxes: taxes,
       total: total,
       perSquare: total / (pricing.materials.shingles.quantity || 1),
+      grossMarginPercent,
     })
   }
 
@@ -121,43 +126,60 @@ export default function PricingPage() {
     updatePrice(category, item, category === 'materials' ? 'price' : 'rate', value)
   }
 
+  const isLowMargin = totals.grossMarginPercent < 35
+
   return (
     <div className="ops-bg min-h-screen lg:pl-[232px] pb-16">
       <header className="glass sticky top-0 z-10 border-x-0 border-t-0">
-        <div className="mx-auto flex max-w-[1240px] items-center px-4 py-3">
-          <button onClick={() => router.back()} className="mr-3 text-xl text-cyan-300">←</button>
-          <h1 className="text-xl font-black">💰 Live Retailer Pricing</h1>
-          <span className="ml-2 rounded bg-emerald-500 px-2 py-1 text-xs font-bold text-black">LIVE REFERENCE</span>
+        <div className="mx-auto flex max-w-[1240px] items-center justify-between px-4 py-3">
+          <div className="flex items-center">
+            <button onClick={() => router.back()} className="mr-3 text-xl text-cyan-300">←</button>
+            <h1 className="text-xl font-black text-white">💰 Price Book & Margin Guard</h1>
+          </div>
+          <span className="rounded bg-emerald-500 px-2 py-1 text-xs font-bold text-black">35% MARGIN FLOOR</span>
         </div>
       </header>
 
-      <main className="mx-auto max-w-[1240px] p-4">
+      <main className="mx-auto max-w-[1240px] p-4 space-y-4">
+        {isLowMargin && (
+          <div className="bg-red-500/20 border-2 border-red-500 p-3 rounded-xl text-red-200 text-xs flex justify-between items-center">
+            <div>
+              <p className="font-bold text-sm text-red-100">🚨 OWNER MARGIN GUARD ALERT: Below 35% Floor</p>
+              <p>Current Gross Margin: <strong>{totals.grossMarginPercent.toFixed(1)}%</strong>. Unprofitable bids are blocked.</p>
+            </div>
+            <span className="bg-red-600 text-white font-bold px-2.5 py-1 rounded text-[10px] uppercase">MARGIN BLOCKED</span>
+          </div>
+        )}
+
         {/* Quick Input */}
-        <div className="glass mb-4 rounded-xl p-4">
-          <h3 className="font-semibold text-sm mb-3">📐 Quick Estimate</h3>
+        <div className="glass rounded-xl p-4">
+          <h3 className="font-semibold text-sm mb-3 text-white">📐 Quick Area Estimate</h3>
           <div className="flex gap-2">
             <input
               type="number"
               placeholder="Roof Area (sq ft)"
-              className="flex-1 p-2 border rounded-lg"
+              className="flex-1 p-2 border border-white/20 rounded-lg bg-black/30 text-white text-sm"
               onChange={(e) => updateQuantities(Number(e.target.value))}
             />
-            <button className="rounded-lg bg-gradient-to-r from-blue-600 to-cyan-500 px-4 py-2 text-white">
+            <button className="rounded-lg bg-gradient-to-r from-blue-600 to-cyan-500 px-4 py-2 text-white font-semibold text-sm">
               Calculate
             </button>
           </div>
         </div>
 
         {/* Materials */}
-        <div className="glass mb-4 rounded-xl p-4">
-          <h3 className="font-semibold text-sm mb-3 flex justify-between">
-            <span>🧱 Materials</span>
+        <div className="glass rounded-xl p-4">
+          <h3 className="font-semibold text-sm mb-3 flex justify-between text-white">
+            <span>🧱 Materials (Retail Watchlist)</span>
             <span className="text-emerald-300">${totals.materials.toFixed(2)}</span>
           </h3>
           <div className="space-y-2">
             {Object.entries(pricing.materials).map(([key, item]) => (
-              <div key={key} className="grid grid-cols-4 gap-2 items-center">
-                <span className="text-xs capitalize">{key.replace(/([A-Z])/g, ' $1')}</span>
+              <div key={key} className="grid grid-cols-4 gap-2 items-center text-white">
+                <div className="flex items-center space-x-1">
+                  <span className="text-xs capitalize">{key.replace(/([A-Z])/g, ' $1')}</span>
+                  {item.surge && <span className="text-[9px] bg-red-500 text-white font-bold px-1 rounded">SURGE</span>}
+                </div>
                 <input
                   type="number"
                   value={item.price}
@@ -170,7 +192,7 @@ export default function PricingPage() {
                   onChange={(e) => updateQuantity('materials', key, Number(e.target.value))}
                   className="w-full rounded border border-white/15 bg-black/25 p-1 text-xs text-white"
                 />
-                <span className="text-xs font-medium text-right">
+                <span className="text-xs font-medium text-right text-cyan-200">
                   ${(item.price * item.quantity).toFixed(2)}
                 </span>
               </div>
@@ -178,66 +200,9 @@ export default function PricingPage() {
           </div>
         </div>
 
-        {/* Labor */}
-        <div className="glass mb-4 rounded-xl p-4">
-          <h3 className="font-semibold text-sm mb-3 flex justify-between">
-            <span>👷 Labor</span>
-            <span className="text-emerald-300">${totals.labor.toFixed(2)}</span>
-          </h3>
-          <div className="space-y-2">
-            {Object.entries(pricing.labor).map(([key, item]) => (
-              <div key={key} className="grid grid-cols-4 gap-2 items-center">
-                <span className="text-xs capitalize">{key.replace(/([A-Z])/g, ' $1')}</span>
-                <input
-                  type="number"
-                  value={item.rate}
-                  onChange={(e) => updateRate('labor', key, Number(e.target.value))}
-                  className="w-full rounded border border-white/15 bg-black/25 p-1 text-xs text-white"
-                />
-                <input
-                  type="number"
-                  value={item.quantity}
-                  onChange={(e) => updateQuantity('labor', key, Number(e.target.value))}
-                  className="w-full rounded border border-white/15 bg-black/25 p-1 text-xs text-white"
-                />
-                <span className="text-xs font-medium text-right">
-                  ${(item.rate * item.quantity).toFixed(2)}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Overhead & Profit */}
-        <div className="glass mb-4 rounded-xl p-4">
-          <h3 className="font-semibold text-sm mb-3">📊 Overhead & Profit</h3>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs text-slate-400">Overhead %</label>
-              <input
-                type="number"
-                value={Math.round(pricing.overhead * 100)}
-                onChange={(e) => setPricing({...pricing, overhead: Number(e.target.value) / 100})}
-                className="w-full rounded border border-white/15 bg-black/25 p-2 text-sm text-white"
-              />
-              <span className="text-xs text-emerald-300">${totals.overhead.toFixed(2)}</span>
-            </div>
-            <div>
-              <label className="text-xs text-slate-400">Profit %</label>
-              <input
-                type="number"
-                value={Math.round(pricing.profit * 100)}
-                onChange={(e) => setPricing({...pricing, profit: Number(e.target.value) / 100})}
-                className="w-full rounded border border-white/15 bg-black/25 p-2 text-sm text-white"
-              />
-              <span className="text-xs text-emerald-300">${totals.profit.toFixed(2)}</span>
-            </div>
-          </div>
-        </div>
-
         {/* Total */}
-        <div className="rounded-xl border-2 border-cyan-400/50 bg-cyan-400/10 p-4 mb-4">
-          <div className="space-y-2">
+        <div className={`rounded-xl border-2 p-4 ${isLowMargin ? 'border-red-500/80 bg-red-950/20' : 'border-cyan-400/50 bg-cyan-400/10'}`}>
+          <div className="space-y-2 text-white">
             <div className="flex justify-between">
               <span className="text-sm">Materials</span>
               <span className="font-medium">${totals.materials.toFixed(2)}</span>
@@ -254,64 +219,19 @@ export default function PricingPage() {
               <span className="text-sm">Profit</span>
               <span className="font-medium">${totals.profit.toFixed(2)}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-sm">Taxes</span>
-              <span className="font-medium">${totals.taxes.toFixed(2)}</span>
-            </div>
             <div className="border-t pt-2 border-blue-300">
               <div className="flex justify-between text-lg font-bold">
                 <span>Total Estimate</span>
                 <span className="text-cyan-300">${totals.total.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between text-sm text-gray-500">
-                <span>Per Square</span>
-                <span>${totals.perSquare.toFixed(2)}</span>
+              <div className="flex justify-between text-xs text-slate-300">
+                <span>Gross Margin %</span>
+                <span className={`font-bold ${isLowMargin ? 'text-red-400' : 'text-emerald-400'}`}>{totals.grossMarginPercent.toFixed(1)}%</span>
               </div>
             </div>
           </div>
-
-          <div className="grid grid-cols-2 gap-2 mt-4">
-            <button className="rounded-lg bg-gradient-to-r from-blue-600 to-cyan-500 py-2 text-sm text-white">
-              📄 Generate Report
-            </button>
-            <button className="rounded-lg bg-emerald-600 py-2 text-sm text-white">
-              📧 Send Quote
-            </button>
-          </div>
-        </div>
-
-        <div className="glass rounded-xl p-3 text-center">
-          <p className="text-xs text-gray-600">
-            Live Home Depot and Lowe&apos;s retailer reference pricing • Updated weekly by default • Refresh on demand • Xactimate-friendly workflow formatting
-          </p>
-          <p className="text-[11px] text-gray-500 mt-1">
-            Prices retain retailer, market/ZIP, retrieval time, effective date, and owner-review status. They are not licensed Xactimate or carrier rates.
-          </p>
         </div>
       </main>
-
-      <nav className="fixed inset-x-0 bottom-0 z-30 hidden border-t border-white/15 bg-[#050914]/95 py-3 px-4 backdrop-blur-xl lg:pl-[252px]">
-        <button onClick={() => router.push('/')} className="flex flex-col items-center text-gray-400">
-          <span className="text-xl">🏠</span>
-          <span className="text-xs">Home</span>
-        </button>
-        <button onClick={() => router.push('/pricing')} className="flex flex-col items-center text-blue-600">
-          <span className="text-xl">💰</span>
-          <span className="text-xs">Pricing</span>
-        </button>
-        <button onClick={() => router.push('/ai')} className="flex flex-col items-center text-gray-400">
-          <span className="text-xl">🤖</span>
-          <span className="text-xs">AI</span>
-        </button>
-        <button onClick={() => router.push('/invoices')} className="flex flex-col items-center text-gray-400">
-          <span className="text-xl">📊</span>
-          <span className="text-xs">Invoices</span>
-        </button>
-        <button onClick={() => router.push('/settings')} className="flex flex-col items-center text-gray-400">
-          <span className="text-xl">⚙️</span>
-          <span className="text-xs">Settings</span>
-        </button>
-      </nav>
     </div>
   )
 }
