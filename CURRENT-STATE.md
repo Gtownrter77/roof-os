@@ -1,3 +1,29 @@
+## 2026-10-07 final 3-level audit & mobile field AI checkpoint
+
+**Current main commit:** `fb4b1c1608c65c4dad7cb560c3ddb7495123be8b`
+
+### 3-Level Audit Results
+1. **Level 1 — Security & Code Integrity (VERIFIED):**
+   - Clean `tsc --noEmit` typecheck.
+   - `release-check` passed (11 protected routes, security headers, secret scan).
+   - `verify:security` passed.
+   - All 25 test suite scripts passed cleanly (including `test:api-security`, `test:auth-flow`, `test:ai-vision-contract`, `test:ai-vision-endpoint`, `test:aerial`, `test:mobile-auth`, `test:mobile-offline-sync`, `test:ai-chat-bar`, `test:camera-audio`).
+2. **Level 2 — Roofing Workflows & Business Logic (VERIFIED):**
+   - Roof Passport digital twin, 2021 IRC code upgrades, NOAA storm corroboration, interactive HTML5 signature pad, 3-stage progress invoicing, and owner price book margin floor (35%).
+   - Strict measurement & siding estimate authority gates prevent client-side quantity manipulation or unapproved pricing.
+3. **Level 3 — Production Build & Mobile Field App Shippability (VERIFIED):**
+   - Next.js production build (`npm run build`) compiled successfully with zero route errors across all static and dynamic paths.
+   - Clean git working tree and verified commit baseline.
+
+### Top-Level AI Automated Features in Mobile Field App
+- **AI-Vision Contract Enforcement:** Standardized vision schema contract validating photo observations, facet detection, and damage tagging while strictly enforcing non-authoritative rules (no raw pitch text, no unverified insurance claims).
+- **Offline AI Sync & Resilient Gateway:** Field app captures photos and metadata in local SQLite/SecureStore; queues uploads and dispatches Gemini AI vision contracts automatically upon network reconnection.
+- **Inspection Quality Agent (Agent 3):** Automated real-time analysis of field photo coverage, missing required pitch/damage categories, and uncaptioned captures, automatically enqueuing review tasks for field technicians.
+- **AI Copilot & Chat Bar Integration:** In-app assistant and voice-to-text site notes processing (via Web Speech API / MediaRecorder) attached directly to inspection evidence.
+- **Receptionist AI Follow-up Link:** Inbound voice/SMS AI leads convert directly into mobile field inspection tasks with full workspace tenant isolation.
+
+**Authority boundary:** AI observations remain strictly non-authoritative recommendations. Technician verification, source attribution, required signatures, and manager approval remain mandatory before a Golden Report or estimate is customer-ready.
+
 ## 2026-10-05 final synchronized checkpoint
 
 **Current main:** `5144836fbc0a949d94cce5e444cd8432dc7c990f`
