@@ -11,9 +11,17 @@ export function receptionistConfig() {
   return { workspaceId, ownerId, publicUrl }
 }
 
+export function normalizeE164(phone: string): string {
+  const cleaned = phone.replace(/[^0-9+]/g, '')
+  if (cleaned.startsWith('+')) return cleaned
+  if (cleaned.length === 10) return `+1${cleaned}`
+  if (cleaned.length === 11 && cleaned.startsWith('1')) return `+${cleaned}`
+  return cleaned.startsWith('+') ? cleaned : `+${cleaned}`
+}
+
 export async function resolveLead(input: { workspaceId: string; ownerId: string; phone: string; name?: string; address?: string }) {
   const supabase = createAdminClient()
-  const normalized = input.phone.replace(/[^0-9+]/g, '')
+  const normalized = normalizeE164(input.phone)
 
   const { data: ownerMembership, error: membershipError } = await supabase
     .from('workspace_members')
@@ -51,7 +59,7 @@ export async function resolveLead(input: { workspaceId: string; ownerId: string;
   return data
 }
 
-export async function bookAppointment(input: { workspaceId: string; leadId: string; startsAt: string; title: string; address?: string; idempotencyKey: string }) {
+export async function bookAppointment(input: { workspaceId: string; leadId: string; startsAt: string; title: string; address?: string; durationMinutes?: number; idempotencyKey: string }) {
   const supabase = createAdminClient()
   const start = new Date(input.startsAt)
   if (Number.isNaN(start.getTime())) throw new Error('A valid appointment start time is required')
@@ -70,6 +78,7 @@ export async function bookAppointment(input: { workspaceId: string; leadId: stri
 
 export async function recordConsent(input: { workspaceId: string; leadId?: string; phone: string; channel: 'voice' | 'sms' | 'email'; state: 'granted' | 'revoked' | 'unknown'; source: string }) {
   const supabase = createAdminClient()
-  const { error } = await supabase.from('receptionist_consents').insert(input)
+  const normalizedPhone = normalizeE164(input.phone)
+  const { error } = await supabase.from('receptionist_consents').insert({ ...input, phone: normalizedPhone })
   if (error) throw error
 }

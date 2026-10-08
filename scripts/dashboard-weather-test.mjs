@@ -12,7 +12,7 @@ const login = read('app/auth/login/page.tsx')
 const loginPreview = read('components/LoginWeatherPreview.tsx')
 const weatherPage = read('app/weather/page.tsx')
 const stormsPage = read('app/storms/page.tsx')
-const csp = read('next.config.ts')
+const csp = read('proxy.ts')
 
 assert.match(weatherApi, /supabase\.auth\.getUser\(\)/)
 assert.match(weatherApi, /requireWorkspaceMember/)

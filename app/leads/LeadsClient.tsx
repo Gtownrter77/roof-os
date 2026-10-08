@@ -1,102 +1,14 @@
 'use client'
-
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '../../lib/supabase/client'
-
 const statuses = ['all', 'new', 'assigned', 'qualified', 'inspection_scheduled', 'inspected', 'report_pending', 'report_approved', 'won', 'lost']
 const priorityFilters = ['all', 'hot', 'warm', 'cold', 'needs_action', 'overdue']
-type Lead = {
-  id: string
-  name: string
-  address: string
-  status: string
-  phone?: string | null
-  email?: string | null
-  next_action?: string | null
-  next_action_due?: string | null
-  lead_score?: number
-}
-
+type Lead = { id: string; name: string; address: string; status: string; phone?: string | null; email?: string | null; next_action?: string | null; next_action_due?: string | null; lead_score?: number }
 export default function LeadsClient() {
-  const router = useRouter()
-  const supabase = useMemo(() => createClient(), [])
-  const [leads, setLeads] = useState<Lead[]>([])
-  const [query, setQuery] = useState('')
-  const [status, setStatus] = useState('all')
-  const [priority, setPriority] = useState('all')
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-
-  useEffect(() => {
-    let active = true
-    async function loadLeads() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { router.replace('/auth/login'); return }
-      const { data, error: queryError } = await supabase.from('leads').select('id,name,address,status,phone,email,next_action,next_action_due,lead_score').order('lead_score', { ascending: false }).order('created_at', { ascending: false })
-      if (!active) return
-      if (queryError) setError(queryError.message)
-      else setLeads(data ?? [])
-      setLoading(false)
-    }
-    void loadLeads()
-    return () => { active = false }
-  }, [router, supabase])
-
-  const visible = useMemo(() => {
-    const needle = query.trim().toLowerCase()
-    const now = Date.now()
-    return leads.filter((lead) => {
-      const score = lead.lead_score ?? 0
-      const due = lead.next_action_due ? new Date(lead.next_action_due).getTime() : null
-      const hasNextAction = Boolean(lead.next_action?.trim())
-      const overdue = due !== null && due < now
-      const needsAction = !hasNextAction && !['won', 'lost'].includes(lead.status)
-      const priorityMatch =
-        priority === 'all' ||
-        (priority === 'hot' && score >= 70) ||
-        (priority === 'warm' && score >= 40 && score < 70) ||
-        (priority === 'cold' && score < 40) ||
-        (priority === 'needs_action' && needsAction) ||
-        (priority === 'overdue' && overdue)
-      return (status === 'all' || lead.status === status) &&
-        priorityMatch &&
-        (!needle || [lead.name, lead.address, lead.phone, lead.email, lead.next_action].some((value) => (value || '').toLowerCase().includes(needle)))
-    })
-  }, [leads, query, status, priority])
-
-  return (
-    <div className="min-h-screen bg-gray-50 p-4 pb-24">
-      <div className="flex items-center justify-between mb-4">
-        <div><button onClick={() => router.push('/')} className="text-blue-600 text-sm mb-2">← Dashboard</button><h1 className="text-2xl font-bold">Leads</h1></div>
-        <button onClick={() => router.push('/leads/new')} className="bg-blue-600 text-white px-3 py-2 rounded-lg text-sm font-semibold">+ New lead</button>
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-4">
-        <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search name, address, phone" className="p-2 border rounded text-sm" />
-        <select value={status} onChange={(e) => setStatus(e.target.value)} className="border rounded px-2 text-sm">{statuses.map((item) => <option key={item} value={item}>{item.replaceAll('_', ' ')}</option>)}</select>
-        <select value={priority} onChange={(e) => setPriority(e.target.value)} className="border rounded px-2 text-sm">{priorityFilters.map((item) => <option key={item} value={item}>{item.replaceAll('_', ' ')}</option>)}</select>
-      </div>
-      {loading && <p className="text-sm text-gray-500">Loading leads…</p>}
-      {error && <p className="text-sm text-red-600 mb-3">{error}</p>}
-      {!loading && visible.length === 0 && <p className="text-sm text-gray-500">No leads match these filters.</p>}
-      {visible.map((lead) => {
-        const score = lead.lead_score ?? 0
-        const overdue = Boolean(lead.next_action_due && new Date(lead.next_action_due).getTime() < Date.now())
-        const needsAction = !lead.next_action?.trim() && !['won', 'lost'].includes(lead.status)
-        return (
-          <button key={lead.id} onClick={() => router.push(`/leads/${lead.id}`)} className="w-full text-left bg-white rounded-lg shadow p-4 mb-3">
-            <div className="flex justify-between gap-3">
-              <div><p className="font-semibold">{lead.name}</p><p className="text-sm text-gray-500">{lead.address}</p></div>
-              <div className="text-right"><span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded">{lead.status.replaceAll('_', ' ')}</span><p className="text-xs font-semibold mt-1">{score}/100</p></div>
-            </div>
-            <div className="mt-2 text-xs">
-              {needsAction && <span className="text-red-700 mr-3">Needs next action</span>}
-              {overdue && <span className="text-orange-700 mr-3">Follow-up overdue</span>}
-              {!needsAction && !overdue && lead.next_action && <span className="text-gray-600">Next: {lead.next_action}</span>}
-            </div>
-          </button>
-        )
-      })}
-    </div>
-  )
+  const router = useRouter(); const supabase = useMemo(() => createClient(), [])
+  const [leads, setLeads] = useState<Lead[]>([]); const [query, setQuery] = useState(''); const [status, setStatus] = useState('all'); const [priority, setPriority] = useState('all'); const [loading, setLoading] = useState(true); const [error, setError] = useState('')
+  useEffect(() => { let active = true; async function loadLeads() { const { data: { user } } = await supabase.auth.getUser(); if (!user) { router.replace('/auth/login'); return }; const { data, error: queryError } = await supabase.from('leads').select('id,name,address,status,phone,email,next_action,next_action_due,lead_score').order('lead_score', { ascending: false }).order('created_at', { ascending: false }); if (!active) return; if (queryError) setError(queryError.message); else setLeads(data ?? []); setLoading(false) }; void loadLeads(); return () => { active = false } }, [router, supabase])
+  const visible = useMemo(() => { const needle = query.trim().toLowerCase(); const now = Date.now(); return leads.filter((lead) => { const score = lead.lead_score ?? 0; const due = lead.next_action_due ? new Date(lead.next_action_due).getTime() : null; const hasNextAction = Boolean(lead.next_action?.trim()); const overdue = due !== null && due < now; const needsAction = !hasNextAction && !['won', 'lost'].includes(lead.status); const priorityMatch = priority === 'all' || (priority === 'hot' && score >= 70) || (priority === 'warm' && score >= 40 && score < 70) || (priority === 'cold' && score < 40) || (priority === 'needs_action' && needsAction) || (priority === 'overdue' && overdue); return (status === 'all' || lead.status === status) && priorityMatch && (!needle || [lead.name, lead.address, lead.phone, lead.email, lead.next_action].some((value) => (value || '').toLowerCase().includes(needle))) }) }, [leads, query, status, priority])
+  return <main className="ops-bg min-h-screen lg:pl-[232px]"><div className="mx-auto max-w-[1180px] p-4 pb-16 md:p-6"><header className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><button onClick={() => router.push('/')} className="mb-2 text-xs text-cyan-300">← Command center</button><p className="ops-label">Opportunity control</p><h1 className="text-3xl font-black tracking-tight">Leads</h1><p className="mt-1 text-sm text-slate-400">Prioritize storm-driven opportunities and keep every next action visible.</p></div><button onClick={() => router.push('/leads/new')} className="rounded-lg bg-gradient-to-r from-red-600 to-rose-500 px-4 py-2 text-sm font-bold text-white">+ New lead</button></header><section className="glass mb-4 rounded-xl p-4"><div className="mb-3 flex items-center justify-between"><h2 className="font-bold">Pipeline filters</h2><span className="text-xs text-slate-400">{loading ? 'Syncing…' : `${visible.length} of ${leads.length} visible`}</span></div><div className="grid grid-cols-1 gap-2 md:grid-cols-3"><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search name, address, phone" className="rounded-lg border border-white/15 bg-black/25 p-3 text-sm text-white placeholder:text-slate-500"/><select value={status} onChange={(e) => setStatus(e.target.value)} className="rounded-lg border border-white/15 bg-[#0a1427] px-3 text-sm text-white">{statuses.map((item) => <option key={item} value={item}>{item.replaceAll('_', ' ')}</option>)}</select><select value={priority} onChange={(e) => setPriority(e.target.value)} className="rounded-lg border border-white/15 bg-[#0a1427] px-3 text-sm text-white">{priorityFilters.map((item) => <option key={item} value={item}>{item.replaceAll('_', ' ')}</option>)}</select></div></section>{loading && <div className="glass rounded-xl p-5 text-sm text-slate-400">Loading lead intelligence…</div>}{error && <p className="mb-3 rounded-lg border border-red-400/30 bg-red-400/10 p-3 text-sm text-red-300" role="alert">{error}</p>}{!loading && visible.length === 0 && <div className="glass rounded-xl p-8 text-center text-sm text-slate-400">No leads match these filters.</div>}<div className="space-y-3">{visible.map((lead) => { const score = lead.lead_score ?? 0; const overdue = Boolean(lead.next_action_due && new Date(lead.next_action_due).getTime() < Date.now()); const needsAction = !lead.next_action?.trim() && !['won', 'lost'].includes(lead.status); return <button key={lead.id} onClick={() => router.push(`/leads/${lead.id}`)} className="glass w-full rounded-xl p-4 text-left transition hover:border-cyan-400/60 hover:bg-white/10"><div className="flex justify-between gap-3"><div><p className="font-semibold text-white">{lead.name}</p><p className="text-sm text-slate-400">{lead.address}</p><p className="mt-1 text-xs text-slate-500">{lead.phone || 'No phone'} · {lead.email || 'No email'}</p></div><div className="text-right"><span className="rounded bg-cyan-400/15 px-2 py-1 text-xs font-semibold text-cyan-300">{lead.status.replaceAll('_', ' ')}</span><p className="mt-2 text-xl font-black text-white">{score}<span className="text-xs font-normal text-slate-500">/100</span></p></div></div><div className="mt-3 flex flex-wrap gap-3 border-t border-white/10 pt-3 text-xs">{needsAction && <span className="text-red-400">Needs next action</span>}{overdue && <span className="text-amber-300">Follow-up overdue</span>}{!needsAction && !overdue && lead.next_action && <span className="text-slate-300">Next: {lead.next_action}</span>}</div></button> })}</div></div></main>
 }

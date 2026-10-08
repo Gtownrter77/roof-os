@@ -1,3 +1,25 @@
+## 2026-10-05 final synchronized checkpoint
+
+**Current main:** `5144836fbc0a949d94cce5e444cd8432dc7c990f`
+
+The current main includes the verified integrity cleanup, the three UI loose-end fixes, and the AI-report authority hardening. The AI screen no longer fabricates a report from browser-entered text; it routes to the persisted photo-estimate workflow and is covered by a regression contract. The CI suite also now registers the existing invoice live-data regression command, which had been present as a test file but missing from package scripts.
+
+**Three-level repository evidence:** the latest merged AI-authority change passed web, mobile, preview-build, migration-safety, build, typecheck, release, security, and the full regression suite, including the AI-report and invoice-live-data checks.
+
+**Vercel boundary:** the current main commit has a Vercel status of **failure due to the account build-rate limit**. This is a platform deployment constraint, not a code-test pass. Production deployment is therefore not marked verified.
+
+**Authority boundary:** AI observations remain non-authoritative. Technician verification, source attribution, required signatures, and manager approval remain mandatory before a Golden Report is customer-ready.
+
+## 2026-10-05 synchronized repository checkpoint
+
+**Current main:** `d72f734f616352e1ba38691bafcd1e82b07ae428`
+
+This checkpoint supersedes older documentation snapshots. The current main now includes the latest integrity cleanup plus three additional verified loose-end fixes: building-code guidance requires a locality lookup before production guidance, workspace switching surfaces authentication/membership/request failures instead of silently failing, and lead CSV export neutralizes spreadsheet formula injection.
+
+**Authority boundary:** AI observations remain non-authoritative. Technician verification, source attribution, required signatures, and manager approval remain mandatory before a Golden Report is customer-ready.
+
+**Production boundary:** GitHub merge and CI evidence are not proof of a successful Vercel production deployment or live provider execution. Those remain separately evidence-gated.
+
 # ROOF/OS Final Handoff
 
 **Handoff date:** 2026-09-14
@@ -696,40 +718,86 @@ The mobile verification record is evidence of a technician review event only. A 
 - ZIP integrity test passed. The APK workflow’s two obsolete-download-path issues were corrected without changing the three mobile feature fixes.
 - PR #171 has 12 successful checks, including web, mobile, preview-build, migration-safety, refresh-field-lock, Vercel, and Vercel Preview Comments.
 - The first three mobile weaknesses are complete and verified. Do not begin a fourth weakness batch until the merged APK/branch state is reviewed under the next authorized work batch.
+## 2026-10-05 mobile auth ease-of-use and password reset checkpoint
+- Addressed user request: "The mobile app is difficult to sign in on. Make it easier and add a forgot password button. Also I tried to sign in an I can't...fix that as well please".
+- Root causes identified & resolved:
+  1. Missing Supabase fallback credentials in `apps/field/App.tsx` caused `supabase` to initialize as `null` on builds without explicit `EXPO_PUBLIC_*` environment variables, completely blocking field sign-in with "Mobile Supabase environment variables are not configured". Configured production project `xksumagfbegdlapwysps` and active publishable key fallback.
+  2. Added dedicated "Forgot password?" flow on `AuthScreen`, triggering `supabase.auth.resetPasswordForEmail` and providing an instant deep link to `/auth/reset` on the web app.
+  3. Added passwordless 6-digit email OTP sign-in mode (`signInWithOtp` / `verifyOtp`) alongside password sign-in, allowing technicians to enter the field app with a one-time code without typing complex passwords.
+  4. Added Show/Hide password toggle to prevent typing mistakes on mobile keyboards.
+  5. Implemented `SecureStore` persistence for the technician's work email (`roof_os_field_email`) to automatically prefill on app launch.
+  6. Added direct "Prefer mobile browser? Sign in on web ↗" fallback link.
+  7. Hardened mobile inputs with `autoCorrect={false}`, `autoCapitalize="none"`, and trimmed/lowercase email sanitization.
+- Automated tests: Added `scripts/mobile-auth-test.mjs` (`npm run test:mobile-auth`).
+- Verified locally:
+  - `npm run test:mobile-auth`: PASS
+  - `node scripts/mobile-release-check.mjs`: PASS
+  - `npm run test:mobile-offline-sync`: PASS
+  - `npm run release-check`: PASS
+  - `npm run verify:security`: PASS
+  - `npm run test:auth-flow`: PASS
+  - `npm run test:api-security`: PASS
+  - `npm run test:photo-full-report-flow`: PASS
+  - `npm run test:receptionist`: PASS
+  - `npm run test:aerial`: PASS
+  - `npm run test:measurement-estimate-authority`: PASS
+  - `npm run test:ai-vision-contract`: ALL 17 TESTS PASSED
+  - `npm run test:ai-vision-endpoint`: PASS
+  - Root `npx tsc --noEmit`: 0 errors
+  - Field `npx tsc --noEmit`: 0 errors
 
+## 2026-10-05 global ai chat bar checkpoint
+- Addressed user request: "Add a ai chat bar on every page asking what would you like to do now?".
+- Implemented:
+  1. `components/AiChatBar.tsx`: Global interactive AI Copilot bar displayed on every page asking "What would you like to do now?".
+  2. Mounted in root layout `app/layout.tsx` to provide universal availability across all desktop and mobile views.
+  3. Features quick action chips: Track Storms (`/weather`), Review Leads (`/leads`), Aerial Measure (`/measure`), Create Estimate (`/pricing`), and Golden Report (`/reports`).
+  4. Supports `Cmd+K` / `Ctrl+K` global keyboard shortcut to toggle and focus the command input.
+  5. Backed by `app/api/ai/chat/route.ts` with session authentication (`getUser()`) and bounded body reading (`readJson`).
+  6. Powered by `lib/ai/chat-copilot.ts` with contextual roofing operations intelligence and direct navigation actions.
+  7. Automated tests added: `scripts/ai-chat-bar-test.mjs` (`npm run test:ai-chat-bar`).
+- Verified:
+  - `npm run test:ai-chat-bar`: PASS
+  - `npm run test:mobile-auth`: PASS
+  - `node scripts/mobile-release-check.mjs`: PASS
+  - `npm run test:mobile-offline-sync`: PASS
+  - `npm run release-check`: PASS
+  - `npm run verify:security`: PASS
+  - `npm run test:auth-flow`: PASS
+  - `npm run test:api-security`: PASS
+  - `npm run test:photo-full-report-flow`: PASS
+  - `npm run test:receptionist`: PASS
+  - `npm run test:aerial`: PASS
+  - `npm run test:measurement-estimate-authority`: PASS
+  - `npm run test:ai-vision-contract`: ALL 17 TESTS PASSED
+  - `npm run test:ai-vision-endpoint`: PASS
+  - Root & Field `npx tsc --noEmit`: 0 errors
 
-## 2026-10-05 stop checkpoint — location-aware dashboard and login
+## 2026-10-06 inspection camera audio recording and speech-to-text checkpoint
+- Addressed user request: "Add an audio recording feature to the InspectionCamera module, allowing contractors to record site notes directly during an inspection and automatically transcribe them using speech-to-text." and "Push main".
+- Implemented:
+  1. `components/InspectionCamera.tsx`: Full inspection camera module equipped with digital inclinometer slope visualizer, microphone recording (`MediaRecorder`), real-time speech-to-text dictation (`SpeechRecognition`), audio playback controls, and evidence gallery voice note player.
+  2. `app/camera/page.tsx`: Integrated site audio recording and automated speech-to-text dictation into the camera session capture flow, linking transcribed site notes to the inspection session.
+  3. Automated tests: Added `scripts/inspection-camera-audio-test.mjs` (`npm run test:camera-audio`).
+- Verified:
+  - `npm run test:camera-audio`: PASS
+  - `npm run test:ai-chat-bar`: PASS
+  - `npm run test:mobile-auth`: PASS
+  - `node scripts/mobile-release-check.mjs`: PASS
+  - `npm run test:mobile-offline-sync`: PASS
+  - `npm run release-check`: PASS
+  - `npm run verify:security`: PASS
+  - `npm run test:auth-flow`: PASS
+  - `npm run test:api-security`: PASS
+  - `npm run test:photo-full-report-flow`: PASS
+  - `npm run test:receptionist`: PASS
+  - `npm run test:aerial`: PASS
+  - `npm run test:measurement-estimate-authority`: PASS
+  - `npm run test:ai-vision-contract`: ALL 17 TESTS PASSED
+  - `npm run test:ai-vision-endpoint`: PASS
+  - Root & Field `npx tsc --noEmit`: 0 errors
 
-**User direction:** Stop further feature/visual work, update the handoff first, and preserve the current state. This section is the first repository update for this checkpoint.
-
-**Local branch:** `feat/location-aware-dashboard-20261005`
-**Local base/HEAD before these uncommitted changes:** `7d442df5b8455149c9b281299336c5811a9e174f`
-**Remote feature ref at initial stop:** absent; product changes were local/uncommitted and the branch tracked `origin/main`.
-
-### Work implemented on the local branch
-
-- Replaced the Home page's prototype storm/revenue/pipeline presentation with the workspace's actual lead, inspection, open-task, and warranty counts, feature navigation, and workspace weather hero.
-- Added an authenticated read-only weather summary that reads the saved workspace service ZIP, geocodes it through free OpenStreetMap Nominatim with a short cache and serialized request spacing, and uses location-point NWS forecast/alert responses. Missing ZIP or failed sources remain explicitly unknown; no default Atlanta or sample alert/count is substituted.
-- Added the open-source MapLibre map, OpenFreeMap dark basemap, official NOAA/NWS MRMS WMS radar coverage selector, source attribution, and exact CSP host/worker allowances. Weather and workspace ticker refresh every ten minutes; the ticker can be paused and honors reduced-motion preference.
-- Replaced hardcoded weather/storm pages with the shared workspace weather view. The login page retains password, email-link, six-digit-code, cooldown, callback, and safe-redirect behavior. It requests device location only after a user click, does not persist coordinates, and shows no local weather before opt-in.
-- Added `DASHBOARD-AUDIT.md`, `scripts/radar-source-test.mjs`, `scripts/dashboard-weather-test.mjs`, package scripts, and CI steps for both source/contract tests.
-
-### Verified checks
-
-- Root `npm ci --no-audit --no-fund`: **PASS**.
-- Root typecheck, release check, security check, all listed web regression suites, `npm run audit`, and `git diff --check`: **PASS**; dependency audit reported 0 production vulnerabilities.
-- Production build of the intended code before adding the temporary visual fixture: **PASS**, including `/api/weather/summary` and the redesigned routes.
-- A second production build including the temporary visual fixture also passed. The field clean install, vendored-`braces` mitigation, field dependency audit (0 vulnerabilities), TypeScript, and Expo config checks: **PASS**.
-- Login route returned HTTP 200 locally and through the sandbox URL. Unauthenticated Home and weather API correctly redirected to login (HTTP 307); no authenticated workspace or production database was used.
-- Login screenshot rendered before location opt-in. The temporary development dashboard preview did not hydrate because external Next.js dev HMR is blocked by the sandbox origin policy. The optimized synthetic preview was built but, on the user's stop instruction, its final visual screenshot/MapLibre browser-console checks were not completed.
-
-### Stop-state cleanup and remaining gates
-
-The temporary sandbox-only fixture at `app/auth/dashboard-preview/page.tsx` was removed before staging, and its local preview servers were stopped. No synthetic route or Denver forecast fixture is in the intended source change. At the time of the initial stop record, README/State documentation and the feature-branch checkpoint were pending; a dated checkpoint receipt should follow below after push. Do not claim production verification or a signed-in workspace test; no deployment, migration, database write, login, or device-location authorization was performed. Do not merge without a separate owner instruction and green required checks.
-
-`DASHBOARD-AUDIT.md` records the cited free/open sources and design decisions. The dashboard screenshot validation remains **PARTIAL**; production behavior remains **UNVERIFIED**.
-
-
-## 2026-10-05 dashboard checkpoint — pushed
-
-The handoff-first dashboard/login batch and README/State updates were committed on `feat/location-aware-dashboard-20261005` as `a0d9bade4b96678e34d1c3fa5b09f64e952d3b4f` (`feat: add location-aware roofing dashboard`). The branch was pushed to GitHub, and `git ls-remote` returned the same SHA. The temporary QA route was not committed. No PR was opened, no merge was performed, and CI was not monitored after the user's stop instruction. The preview/runtime visual boundary and production/authenticated checks above remain open; next work should start with owner review of the handoff and current PR/CI state.
+## 2026-10-06 dashboard batch merge resolution
+- Rebased the requested Storm Command Center dashboard onto current `main` after newer AI, mobile-auth, and inspection-audio work advanced the base branch.
+- Preserved current `main` for all unrelated newer features and retained the requested detailed dashboard, persistent Storm Theme setting, print contract, and root/field dependency audit remediations.
+- PR #223 checks were fully green before this merge-resolution commit; rerun the complete PR gate after pushing the conflict resolution.

@@ -1,312 +1,302 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { createClient } from '../../lib/supabase/client'
+
+type ReferenceProduct = {
+  id: string
+  name: string
+  brand: string
+  sku: string
+  unit: string
+  price: number | null
+  inStock: boolean | null
+  availability: string
+  imageUrl: string | null
+  url: string | null
+}
+
+const categories = [
+  'Roofing',
+  'Siding',
+  'Windows',
+  'Doors',
+  'Gutters',
+  'Decking',
+  'Insulation',
+  'Fasteners',
+  'Tools',
+  'Paint',
+  'Lumber',
+]
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+}
+
+function firstString(record: Record<string, unknown>, keys: string[]) {
+  for (const key of keys) {
+    const value = record[key]
+    if (typeof value === 'string' && value.trim()) return value.trim()
+    if (typeof value === 'number') return String(value)
+  }
+  return ''
+}
+
+function firstNumber(record: Record<string, unknown>, keys: string[]) {
+  for (const key of keys) {
+    const value = record[key]
+    const number = typeof value === 'number' ? value : typeof value === 'string' ? Number(value.replace(/[$,]/g, '')) : NaN
+    if (Number.isFinite(number)) return number
+  }
+  return null
+}
+
+function firstBoolean(record: Record<string, unknown>, keys: string[]) {
+  for (const key of keys) {
+    const value = record[key]
+    if (typeof value === 'boolean') return value
+    if (typeof value === 'string') {
+      if (/^(in stock|available|yes|true)$/i.test(value.trim())) return true
+      if (/^(out of stock|unavailable|no|false)$/i.test(value.trim())) return false
+    }
+  }
+  return null
+}
+
+function collectArrays(payload: unknown): Record<string, unknown>[] {
+  if (Array.isArray(payload)) return payload.filter(isRecord)
+  if (!isRecord(payload)) return []
+
+  for (const key of ['products', 'items', 'results']) {
+    if (Array.isArray(payload[key])) return payload[key].filter(isRecord)
+  }
+
+  const nestedData = payload.data
+  if (Array.isArray(nestedData)) return nestedData.filter(isRecord)
+  if (isRecord(nestedData)) return collectArrays(nestedData)
+
+  return []
+}
+
+function normalizeProducts(payload: unknown): ReferenceProduct[] {
+  return collectArrays(payload).slice(0, 24).map((item, index) => ({
+    id: firstString(item, ['id', 'product_id', 'sku']) || `provider-${index}`,
+    name: firstString(item, ['name', 'title', 'product_name', 'description']) || 'Unnamed Home Depot product',
+    brand: firstString(item, ['brand', 'manufacturer']) || 'Unknown',
+    sku: firstString(item, ['sku', 'product_number', 'model']) || 'Unknown',
+    unit: firstString(item, ['unit', 'selling_unit', 'unit_of_measure']) || 'each',
+    price: firstNumber(item, ['price', 'current_price', 'regular_price', 'retail_price']),
+    inStock: firstBoolean(item, ['in_stock', 'inStock', 'available']),
+    availability: firstString(item, ['availability', 'stock_status', 'inventory_status']) || 'Unknown',
+    imageUrl: firstString(item, ['image', 'image_url', 'thumbnail']) || null,
+    url: firstString(item, ['url', 'product_url', 'link']) || null,
+  }))
+}
 
 export default function HomeDepotPage() {
   const router = useRouter()
+  const searchControllerRef = useRef<AbortController | null>(null)
   const [search, setSearch] = useState('')
-  const [category, setCategory] = useState('All')
+  const [zipcode, setZipcode] = useState('')
+  const [category, setCategory] = useState('')
+  const [results, setResults] = useState<ReferenceProduct[]>([])
+  const [rawResponse, setRawResponse] = useState<unknown>(null)
   const [loading, setLoading] = useState(false)
-  const [cart, setCart] = useState<any[]>([])
-  const [results, setResults] = useState<any[]>([])
-  const [selectedItems, setSelectedItems] = useState<any[]>([])
-  const [orderTotal, setOrderTotal] = useState(0)
+  const [status, setStatus] = useState('')
+  const [error, setError] = useState('')
 
-  const categories = [
-    'All', 'Roofing', 'Siding', 'Windows', 'Doors', 'Gutters', 
-    'Decking', 'Insulation', 'Fasteners', 'Tools', 'Paint', 'Lumber'
-  ]
-
-  // Simulated Home Depot product database
-  const productDatabase = {
-    'Roofing': [
-      { id: 1, name: 'GAF Timberline HDZ Shingles', brand: 'GAF', price: null, unit: 'bundle', sku: '1003-636-340', inStock: true, image: '🏠' },
-      { id: 2, name: 'Owens Corning Oakridge Shingles', brand: 'Owens Corning', price: null, unit: 'bundle', sku: '1003-636-341', inStock: true, image: '🏠' },
-      { id: 3, name: 'CertainTeed Landmark Shingles', brand: 'CertainTeed', price: null, unit: 'bundle', sku: '1003-636-342', inStock: true, image: '🏠' },
-      { id: 4, name: 'GAF StormGuard Underlayment', brand: 'GAF', price: null, unit: 'roll', sku: '1003-636-343', inStock: true, image: '📋' },
-      { id: 5, name: 'Roofing Nails 1-1/4"', brand: 'Grip-Rite', price: null, unit: 'lb', sku: '1003-636-344', inStock: true, image: '🔨' },
-      { id: 6, name: 'Ice & Water Shield', brand: 'GAF', price: null, unit: 'roll', sku: '1003-636-345', inStock: true, image: '🧊' },
-    ],
-    'Siding': [
-      { id: 7, name: 'HardiePlank Lap Siding', brand: 'James Hardie', price: null, unit: 'sq ft', sku: '1003-636-350', inStock: true, image: '🏠' },
-      { id: 8, name: 'Vinyl Siding - White', brand: 'CertainTeed', price: null, unit: 'sq ft', sku: '1003-636-351', inStock: true, image: '🏠' },
-      { id: 9, name: 'Vinyl Siding - Gray', brand: 'CertainTeed', price: null, unit: 'sq ft', sku: '1003-636-352', inStock: true, image: '🏠' },
-      { id: 10, name: 'Siding J-Channel', brand: 'Fypon', price: null, unit: 'each', sku: '1003-636-353', inStock: true, image: '🔧' },
-      { id: 11, name: 'Corner Posts for Siding', brand: 'Fypon', price: null, unit: 'each', sku: '1003-636-354', inStock: true, image: '🔧' },
-      { id: 12, name: 'House Wrap', brand: 'Tyvek', price: null, unit: 'roll', sku: '1003-636-355', inStock: true, image: '📋' },
-    ],
-    'Windows': [
-      { id: 13, name: 'Double Hung Window - 36x54', brand: 'JELD-WEN', price: null, unit: 'each', sku: '1003-636-360', inStock: true, image: '🪟' },
-      { id: 14, name: 'Casement Window - 30x48', brand: 'Andersen', price: null, unit: 'each', sku: '1003-636-361', inStock: true, image: '🪟' },
-      { id: 15, name: 'Sliding Window - 48x48', brand: 'Pella', price: null, unit: 'each', sku: '1003-636-362', inStock: true, image: '🪟' },
-      { id: 16, name: 'Window Installation Kit', brand: 'DAP', price: null, unit: 'kit', sku: '1003-636-363', inStock: true, image: '🔧' },
-    ],
-    'Doors': [
-      { id: 17, name: 'Steel Entry Door - 36x80', brand: 'Masonite', price: null, unit: 'each', sku: '1003-636-370', inStock: true, image: '🚪' },
-      { id: 18, name: 'French Door - 36x80', brand: 'JELD-WEN', price: null, unit: 'each', sku: '1003-636-371', inStock: true, image: '🚪' },
-      { id: 19, name: 'Sliding Patio Door - 72x80', brand: 'Andersen', price: null, unit: 'each', sku: '1003-636-372', inStock: true, image: '🚪' },
-    ],
-    'Gutters': [
-      { id: 20, name: '5" Seamless Gutters - White', brand: 'Amerimax', price: null, unit: 'ft', sku: '1003-636-380', inStock: true, image: '🌧️' },
-      { id: 21, name: '6" Seamless Gutters - Brown', brand: 'Amerimax', price: null, unit: 'ft', sku: '1003-636-381', inStock: true, image: '🌧️' },
-      { id: 22, name: 'Gutter Guards', brand: 'Amerimax', price: null, unit: 'ft', sku: '1003-636-382', inStock: true, image: '🛡️' },
-      { id: 23, name: 'Downspout - 4"', brand: 'Amerimax', price: null, unit: 'each', sku: '1003-636-383', inStock: true, image: '📐' },
-    ],
-    'Decking': [
-      { id: 24, name: 'Composite Decking - Gray', brand: 'Trex', price: null, unit: 'sq ft', sku: '1003-636-390', inStock: true, image: '🪵' },
-      { id: 25, name: 'Composite Decking - Brown', brand: 'TimberTech', price: null, unit: 'sq ft', sku: '1003-636-391', inStock: true, image: '🪵' },
-      { id: 26, name: 'Deck Screws', brand: 'Grip-Rite', price: null, unit: 'box', sku: '1003-636-392', inStock: true, image: '🔨' },
-    ],
-    'Insulation': [
-      { id: 27, name: 'R-38 Attic Insulation', brand: 'Owens Corning', price: null, unit: 'roll', sku: '1003-636-400', inStock: true, image: '🧊' },
-      { id: 28, name: 'R-13 Wall Insulation', brand: 'Johns Manville', price: null, unit: 'roll', sku: '1003-636-401', inStock: true, image: '🧊' },
-    ],
-    'Fasteners': [
-      { id: 29, name: 'Roofing Nails 1-1/4"', brand: 'Grip-Rite', price: null, unit: 'lb', sku: '1003-636-410', inStock: true, image: '🔨' },
-      { id: 30, name: 'Siding Nails 2"', brand: 'Grip-Rite', price: null, unit: 'lb', sku: '1003-636-411', inStock: true, image: '🔨' },
-      { id: 31, name: 'Deck Screws 3"', brand: 'Grip-Rite', price: null, unit: 'box', sku: '1003-636-412', inStock: true, image: '🔨' },
-    ],
-    'Tools': [
-      { id: 32, name: 'Roofing Shovel', brand: 'Bully Tools', price: null, unit: 'each', sku: '1003-636-420', inStock: true, image: '🔧' },
-      { id: 33, name: 'Nail Gun - Roofing', brand: 'DEWALT', price: null, unit: 'each', sku: '1003-636-421', inStock: true, image: '🔧' },
-      { id: 34, name: 'Ladder 32ft', brand: 'Werner', price: null, unit: 'each', sku: '1003-636-422', inStock: true, image: '🏗️' },
-    ],
-    'Paint': [
-      { id: 35, name: 'Exterior Paint - White', brand: 'BEHR', price: null, unit: 'gallon', sku: '1003-636-430', inStock: true, image: '🎨' },
-      { id: 36, name: 'Exterior Paint - Gray', brand: 'BEHR', price: null, unit: 'gallon', sku: '1003-636-431', inStock: true, image: '🎨' },
-    ],
-    'Lumber': [
-      { id: 37, name: '2x4 Pressure Treated - 8ft', brand: 'GP', price: null, unit: 'each', sku: '1003-636-440', inStock: true, image: '🪵' },
-      { id: 38, name: '4x8 Plywood 1/2"', brand: 'GP', price: null, unit: 'sheet', sku: '1003-636-441', inStock: true, image: '🪵' },
-      { id: 39, name: '4x8 OSB 7/16"', brand: 'GP', price: null, unit: 'sheet', sku: '1003-636-442', inStock: true, image: '🪵' },
-    ],
-  }
-
-  const searchProducts = () => {
-    setLoading(true)
-    setTimeout(() => {
-      let products: any[] = []
-      
-      if (search.trim()) {
-        // Search all categories
-        Object.values(productDatabase).forEach((items: any) => {
-          items.forEach((item: any) => {
-            if (item.name.toLowerCase().includes(search.toLowerCase()) ||
-                item.brand.toLowerCase().includes(search.toLowerCase())) {
-              products.push(item)
-            }
-          })
-        })
-      } else if (category !== 'All') {
-        products = productDatabase[category as keyof typeof productDatabase] || []
-      } else {
-        // Show all products
-        Object.values(productDatabase).forEach((items: any) => {
-          products = [...products, ...items]
-        })
-      }
-      
-      setResults(products.slice(0, 20))
-      setLoading(false)
-    }, 800)
-  }
-
-  const addToCart = (product: any) => {
-    const existing = cart.find(item => item.id === product.id)
-    if (existing) {
-      setCart(cart.map(item => 
-        item.id === product.id ? {...item, quantity: (item.quantity || 1) + 1} : item
-      ))
-    } else {
-      setCart([...cart, {...product, quantity: 1}])
-    }
-    
-    const total = cart.reduce((sum, item) => sum + (item.price * (item.quantity || 1)), 0)
-    setOrderTotal(total)
-  }
-
-  const removeFromCart = (id: number) => {
-    setCart(cart.filter(item => item.id !== id))
-    const total = cart.reduce((sum, item) => sum + (item.price * (item.quantity || 1)), 0)
-    setOrderTotal(total)
-  }
-
-  const getTotal = () => {
-    return cart.reduce((sum, item) => sum + (item.price * (item.quantity || 1)), 0)
-  }
-
-  const checkout = () => {
-    if (cart.length === 0) {
-      alert('Your cart is empty!')
+  const searchProducts = async (queryOverride = search.trim()) => {
+    const query = queryOverride.trim()
+    if (!query) {
+      setError('Enter a product or select a category.')
       return
     }
-    alert(`✅ Order placed successfully!\n\nTotal: $${getTotal().toFixed(2)}\nItems: ${cart.length}\n\nYour order will be ready for pickup at your local Home Depot.`)
-    setCart([])
+
+    searchControllerRef.current?.abort()
+    const controller = new AbortController()
+    searchControllerRef.current = controller
+    setLoading(true)
+    setError('')
+    setStatus('Looking up current Home Depot reference data…')
+    setResults([])
+    setRawResponse(null)
+
+    try {
+      const supabase = createClient()
+      const { data: workspaceId, error: workspaceError } = await supabase.rpc('current_workspace_id')
+      if (workspaceError || typeof workspaceId !== 'string') throw new Error('Active workspace is required for retailer reference pricing.')
+
+      const params = new URLSearchParams({
+        workspaceId,
+        query,
+      })
+      if (zipcode.trim()) params.set('zipcode', zipcode.trim())
+
+      const response = await fetch(`/api/pricing/home-depot?${params.toString()}`, {
+        signal: controller.signal,
+        cache: 'no-store',
+      })
+      const payload = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(payload.error ?? 'Home Depot reference lookup failed.')
+
+      const normalized = normalizeProducts(payload.response)
+      setResults(normalized)
+      setRawResponse(payload.response)
+      setStatus(
+        normalized.length
+          ? `${normalized.length} reference result(s) returned. Pricing and availability remain provider data, not an estimate or order.`
+          : 'The provider returned data, but no standard product records could be safely normalized. Review the raw response below.'
+      )
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') return
+      setError(err instanceof Error ? err.message : 'Home Depot reference lookup failed.')
+      setStatus('')
+    } finally {
+      if (searchControllerRef.current === controller) {
+        searchControllerRef.current = null
+        setLoading(false)
+      }
+    }
   }
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       <header className="bg-gradient-to-r from-orange-600 to-orange-500 text-white shadow-lg sticky top-0 z-10">
         <div className="px-4 py-3 flex items-center">
-          <button onClick={() => router.back()} className="text-white mr-3 text-xl">←</button>
-          <h1 className="text-xl font-bold">🏪 Home Depot Direct</h1>
-          <span className="ml-2 bg-yellow-400 text-black text-xs px-2 py-0.5 rounded-full animate-pulse">LIVE</span>
+          <button type="button" onClick={() => router.back()} className="text-white mr-3 text-xl" aria-label="Go back">←</button>
+          <h1 className="text-xl font-bold">🏪 Home Depot Reference</h1>
+          <span className="ml-2 bg-white/20 text-white text-xs px-2 py-0.5 rounded-full">SOURCE DATA</span>
         </div>
       </header>
 
-      <main className="p-4"><p className="text-sm bg-white rounded-lg shadow p-4 mb-4">Price is Unknown. This list is not a Home Depot bid.</p>
-        {/* Search */}
+      <main className="p-4">
+        <div className="bg-white rounded-lg shadow p-4 mb-4">
+          <p className="text-sm font-semibold">Retailer reference only</p>
+          <p className="text-xs text-gray-600 mt-1">
+            Results come from the configured Home Depot provider and workspace cache. ROOF/OS does not fabricate prices, stock, orders, or retailer quotes.
+          </p>
+        </div>
+
         <div className="bg-white rounded-lg shadow-lg p-4 mb-4 border border-orange-200">
-          <div className="flex gap-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search products..."
-              className="flex-1 p-2 border rounded-lg text-sm"
-              onKeyDown={(e) => e.key === 'Enter' && searchProducts()}
+              placeholder="Search products…"
+              aria-label="Search Home Depot products"
+              className="p-2 border rounded-lg text-sm"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') void searchProducts()
+              }}
             />
-            <button
-              onClick={searchProducts}
-              className="bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-semibold"
-            >
-              🔍 Search
-            </button>
+            <input
+              type="text"
+              value={zipcode}
+              onChange={(e) => setZipcode(e.target.value.replace(/\D/g, '').slice(0, 5))}
+              inputMode="numeric"
+              maxLength={5}
+              placeholder="ZIP code (optional)"
+              aria-label="Home Depot ZIP code"
+              className="p-2 border rounded-lg text-sm"
+            />
           </div>
-          <div className="mt-2 flex flex-wrap gap-1">
-            {categories.map((cat) => (
+          <button
+            type="button"
+            onClick={() => void searchProducts()}
+            disabled={loading}
+            className="w-full mt-2 bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-semibold disabled:opacity-60"
+          >
+            {loading ? 'Searching…' : '🔍 Search Home Depot'}
+          </button>
+
+          <div className="mt-3 flex flex-wrap gap-1">
+            {categories.map((category) => (
               <button
-                key={cat}
-                onClick={() => { setCategory(cat); setSearch(''); setTimeout(searchProducts, 100) }}
+                type="button"
+                key={category}
+                onClick={() => {
+                  setCategory(category)
+                  setSearch(category)
+                  void searchProducts(category)
+                }}
                 className={`text-xs px-3 py-1 rounded-full ${
-                  category === cat ? 'bg-orange-600 text-white' : 'bg-gray-200 text-gray-700'
+                  search === category ? 'bg-orange-600 text-white' : 'bg-gray-200 text-gray-700'
                 }`}
               >
-                {cat}
+                {category}
               </button>
             ))}
           </div>
         </div>
 
-        {/* Cart Summary */}
-        {cart.length > 0 && (
-          <div className="bg-orange-50 border-2 border-orange-500 rounded-lg p-4 mb-4">
-            <div className="flex justify-between items-center">
-              <div>
-                <p className="text-sm font-bold">{cart.length} items in cart</p>
-                <p className="text-2xl font-bold text-orange-600">${getTotal().toFixed(2)}</p>
-              </div>
-              <button
-                onClick={checkout}
-                className="bg-orange-600 text-white px-6 py-2 rounded-lg font-semibold"
-              >
-                🛒 Checkout
-              </button>
-            </div>
-          </div>
-        )}
+        {status && <p className="bg-blue-50 text-blue-900 rounded-lg p-3 text-sm mb-4" role="status">{status}</p>}
+        {error && <p className="bg-red-50 text-red-800 rounded-lg p-3 text-sm mb-4" role="alert">{error}</p>}
 
-        {/* Results */}
-        {loading ? (
-          <div className="text-center py-8">
-            <span className="text-4xl block mb-2">⏳</span>
-            <p className="text-gray-500">Loading products...</p>
-          </div>
-        ) : results.length > 0 ? (
+        {results.length > 0 && (
           <div className="space-y-3">
-            <p className="text-sm text-gray-500">{results.length} products found</p>
             {results.map((product) => (
-              <div key={product.id} className="bg-white rounded-lg shadow-lg p-4 border border-gray-200">
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-2xl">{product.image}</span>
-                      <div>
-                        <p className="font-semibold text-sm">{product.name}</p>
-                        <p className="text-xs text-gray-500">{product.brand}</p>
-                      </div>
-                    </div>
-                    <div className="flex gap-2 mt-1 text-xs">
-                      <span className="bg-gray-100 px-2 py-0.5 rounded">SKU: {product.sku}</span>
-                      <span className="bg-green-100 text-green-800 px-2 py-0.5 rounded">✓ In Stock</span>
-                    </div>
+              <div key={product.id} className="bg-white rounded-lg shadow p-4 border border-gray-200">
+                <div className="flex gap-3">
+                  {product.imageUrl ? (
+                    <img src={product.imageUrl} alt="" className="w-16 h-16 object-contain rounded border" />
+                  ) : (
+                    <div className="w-16 h-16 rounded border flex items-center justify-center text-2xl" aria-hidden="true">🏪</div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold text-sm">{product.name}</p>
+                    <p className="text-xs text-gray-500">{product.brand}</p>
+                    <p className="text-xs text-gray-400">SKU: {product.sku} · Unit: {product.unit}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-lg font-bold text-orange-600">Unknown</p>
-                    <p className="text-xs text-gray-400">/ {product.unit}</p>
-                    <button
-                      onClick={() => addToCart(product)}
-                      className="mt-1 bg-orange-600 text-white text-xs px-3 py-1 rounded"
-                    >
-                      + Add
-                    </button>
+                    <p className="text-lg font-bold text-orange-600">{product.price === null ? 'Unknown' : `$${product.price.toFixed(2)}`}</p>
+                    <p className="text-xs text-gray-400">provider reference</p>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="bg-white rounded-lg shadow-lg p-8 text-center">
-            <span className="text-4xl block mb-2">🏪</span>
-            <p className="text-gray-500">Search for products or select a category</p>
-            <p className="text-xs text-gray-400 mt-1">Direct pricing from Home Depot</p>
-          </div>
-        )}
-
-        {/* Cart Items */}
-        {cart.length > 0 && (
-          <div className="mt-4 bg-white rounded-lg shadow-lg p-4 border border-orange-200">
-            <h3 className="font-semibold text-sm mb-3">🛒 Cart</h3>
-            {cart.map((item) => (
-              <div key={item.id} className="flex justify-between items-center border-b py-2">
-                <div>
-                  <p className="text-sm font-medium">{item.name}</p>
-                  <p className="text-xs text-gray-400">{item.quantity} × ${item.price}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="font-bold">${(item.price * item.quantity).toFixed(2)}</span>
-                  <button
-                    onClick={() => removeFromCart(item.id)}
-                    className="text-red-500 text-sm"
-                  >
-                    ✕
-                  </button>
+                <div className="mt-2 flex gap-2 text-xs">
+                  <span className={`px-2 py-1 rounded ${product.inStock === true ? 'bg-green-100 text-green-800' : product.inStock === false ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-700'}`}>
+                    {product.inStock === true ? 'In stock' : product.inStock === false ? 'Out of stock' : product.availability}
+                  </span>
+                  {product.url && (
+                    <a href={product.url} target="_blank" rel="noreferrer" className="text-blue-600 underline">
+                      Provider product
+                    </a>
+                  )}
                 </div>
               </div>
             ))}
-            <div className="mt-3 pt-2 border-t flex justify-between font-bold">
-              <span>Total</span>
-              <span className="text-orange-600">${getTotal().toFixed(2)}</span>
-            </div>
           </div>
         )}
 
-        {/* Quick Add from Estimate */}
-        <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-3">
-          <p className="text-xs text-blue-800">💡 Quick tip: Use the Estimate Templates to create a material list, then add all items to cart!</p>
-        </div>
+        {rawResponse && (
+          <details className="mt-4 bg-white rounded-lg shadow p-4">
+            <summary className="cursor-pointer text-sm font-semibold">Raw provider response</summary>
+            <pre className="mt-3 max-h-96 overflow-auto text-xs whitespace-pre-wrap break-words">{JSON.stringify(rawResponse, null, 2)}</pre>
+          </details>
+        )}
       </main>
 
       <nav className="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around py-2 px-4">
-        <button onClick={() => router.push('/')} className="flex flex-col items-center text-gray-400">
+        <button type="button" onClick={() => router.push('/')} className="flex flex-col items-center text-gray-400">
           <span className="text-xl">🏠</span>
           <span className="text-xs">Home</span>
         </button>
-        <button onClick={() => router.push('/homedepot')} className="flex flex-col items-center text-orange-600">
+        <button type="button" onClick={() => router.push('/homedepot')} className="flex flex-col items-center text-orange-600">
           <span className="text-xl">🏪</span>
           <span className="text-xs">HD</span>
         </button>
-        <button onClick={() => router.push('/templates')} className="flex flex-col items-center text-gray-400">
+        <button type="button" onClick={() => router.push('/templates')} className="flex flex-col items-center text-gray-400">
           <span className="text-xl">📄</span>
           <span className="text-xs">Templates</span>
         </button>
-        <button onClick={() => router.push('/upsell')} className="flex flex-col items-center text-gray-400">
+        <button type="button" onClick={() => router.push('/upsell')} className="flex flex-col items-center text-gray-400">
           <span className="text-xl">💰</span>
           <span className="text-xs">Upsell</span>
         </button>
-        <button onClick={() => router.push('/settings')} className="flex flex-col items-center text-gray-400">
-          <span className="text-xl">⚙️</span>
+        <button type="button" onClick={() => router.push('/settings')} className="flex flex-col items-center text-gray-400">
+          <span className="text-gray-400 text-xl">⚙️</span>
           <span className="text-xs">Settings</span>
         </button>
       </nav>

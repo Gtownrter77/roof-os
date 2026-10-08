@@ -1,3 +1,25 @@
+## 2026-10-05 final synchronized checkpoint
+
+**Current main:** `5144836fbc0a949d94cce5e444cd8432dc7c990f`
+
+The current main includes the verified integrity cleanup, the three UI loose-end fixes, and the AI-report authority hardening. The AI screen no longer fabricates a report from browser-entered text; it routes to the persisted photo-estimate workflow and is covered by a regression contract. The CI suite also now registers the existing invoice live-data regression command, which had been present as a test file but missing from package scripts.
+
+**Three-level repository evidence:** the latest merged AI-authority change passed web, mobile, preview-build, migration-safety, build, typecheck, release, security, and the full regression suite, including the AI-report and invoice-live-data checks.
+
+**Vercel boundary:** the current main commit has a Vercel status of **failure due to the account build-rate limit**. This is a platform deployment constraint, not a code-test pass. Production deployment is therefore not marked verified.
+
+**Authority boundary:** AI observations remain non-authoritative. Technician verification, source attribution, required signatures, and manager approval remain mandatory before a Golden Report is customer-ready.
+
+## 2026-10-05 synchronized repository checkpoint
+
+**Current main:** `d72f734f616352e1ba38691bafcd1e82b07ae428`
+
+This checkpoint supersedes older documentation snapshots. The current main now includes the latest integrity cleanup plus three additional verified loose-end fixes: building-code guidance requires a locality lookup before production guidance, workspace switching surfaces authentication/membership/request failures instead of silently failing, and lead CSV export neutralizes spreadsheet formula injection.
+
+**Authority boundary:** AI observations remain non-authoritative. Technician verification, source attribution, required signatures, and manager approval remain mandatory before a Golden Report is customer-ready.
+
+**Production boundary:** GitHub merge and CI evidence are not proof of a successful Vercel production deployment or live provider execution. Those remain separately evidence-gated.
+
 # ROOF/OS
 
 ## **MANDATORY CHECKPOINT LAW — EVERY 3 VERIFIED WORK BATCHES**
@@ -26,18 +48,23 @@ It is built for a small roofing company first. Not a call center. Not a fake Xac
 
 ## What works today
 
-- Sign in with a magic link
+- Sign in with a password, email link, or 6-digit email code
+- Recover a forgotten password directly from the login screen with **Forgot password?**
 - Add a lead, open the record, schedule an inspection
 - Take photos that attach to that inspection
 - Draft an inspection report that still needs your review
 - Save labor rates and local tax in your price book
 - Live Home Depot and Lowe's retailer reference pricing, refreshed weekly by default or on demand; you approve before anything hits an estimate
 
-## Dashboard and weather — feature branch, not production
+### Sign-in and password recovery
 
-Branch `feat/location-aware-dashboard-20261005` replaces sample storm, revenue, and pipeline figures with workspace record counts and a service-ZIP-centered weather panel. It uses the saved workspace ZIP, OpenStreetMap Nominatim geocoding, point-based NWS forecasts/alerts, NOAA/NWS MRMS radar, MapLibre GL JS, and OpenFreeMap. Weather and workspace-count ticker data refresh every ten minutes; the ticker can be paused and honors reduced-motion preferences.
+1. Open the production URL and enter your email address.
+2. Use **Enter command center** if you know your password.
+3. If you do not remember it, select **Forgot password?**, check your email, and open the reset link on the same device.
+4. Choose a password with at least 8 characters, then return to sign in.
+5. If email delivery is slow, use **Email link** or **6-digit code** instead.
 
-Login's device-location preview is opt-in only: no location is requested until the user clicks the button, and coordinates are not saved. Missing ZIPs and unavailable sources remain unknown; no city, storm, or revenue is guessed. The branch passes local build and CI-equivalent web/mobile checks, but it has not been verified with an authenticated workspace session or production deployment. See [`DASHBOARD-AUDIT.md`](DASHBOARD-AUDIT.md) and the stop-state record in [`HANDOFF.md`](HANDOFF.md).
+Password-reset email requests are rate-limited. After a request, the login button displays a countdown and blocks duplicate requests until it reaches zero.
 
 ## What is not ready
 
@@ -86,15 +113,14 @@ npx eas build --platform android --profile preview
 - Report standard: `GOLDEN-REPORT.md`
 - How to operate it: `OWNER-MANUAL.md`
 - What is real vs leftover: `STATE-OF-THE-UNION.md`
-- Dashboard/weather sources and verification: `DASHBOARD-AUDIT.md`
 
 
 ## 2026-10-02 current verified checkpoint
 
-**Repository:** `Gtownrter77/roof-os`  
-**Production URL:** https://roof-os-lemon.vercel.app  
-**Current `main`:** `f29981076c23b7a289b579c2852c916be368325e`  
-**Hardening branch:** `backend/production-hardening-20261002`  
+**Repository:** `Gtownrter77/roof-os`
+**Production URL:** https://roof-os-lemon.vercel.app
+**Current `main`:** `f29981076c23b7a289b579c2852c916be368325e`
+**Hardening branch:** `backend/production-hardening-20261002`
 **Hardening scope:** receptionist workspace authorization, tenant isolation, payment boundary, outbound provider authorization, and booking RPC integrity.
 
 ### Verified in this checkpoint
@@ -122,8 +148,8 @@ The open PR is #72. **Do not merge it automatically.**
 
 ## 2026-10-02 receptionist hardening — final handoff checkpoint
 
-**Current main:** `f29981076c23b7a289b579c2852c916be368325e`  
-**Current hardening branch:** `f81278881cf6e28809b6317811a7614e0293338f`  
+**Current main:** `f29981076c23b7a289b579c2852c916be368325e`
+**Current hardening branch:** `f81278881cf6e28809b6317811a7614e0293338f`
 **PR:** #72 — open; merge only on explicit owner direction.
 
 The hardening branch is now synchronized with current `main` and is **0 commits behind**. The current `main...backend/production-hardening-20261002` comparison shows the intended seven receptionist-hardening files as the application/code delta: Stripe payment-link authorization, Twilio voice/SMS authorization and lead scoping, Twilio session workspace scoping, receptionist lead tenancy, regression contracts, and migration 043.

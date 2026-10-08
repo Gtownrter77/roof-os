@@ -1,3 +1,7 @@
+> **2026-10-05 final authority checkpoint:** AI observations are non-authoritative. Claims remain sourced or `Unknown`; technician verification, required signatures, and manager approval remain mandatory before customer delivery.
+
+> **2026-10-05 authority checkpoint:** AI observations are non-authoritative. Every report claim remains sourced or `Unknown`; technician verification is required; required signatures and manager approval remain mandatory before customer delivery.
+
 # THE GOLDEN REPORT
 
 ## ROOF/OS Report Template — v1.0

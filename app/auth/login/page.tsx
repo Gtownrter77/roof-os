@@ -1,51 +1,78 @@
 'use client'
 
-import { FormEvent, Suspense, useEffect, useMemo, useState } from 'react'
+import { FormEvent, Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import Link from 'next/link'
-import LoginWeatherPreview, { type LoginPreviewData } from '../../../components/LoginWeatherPreview'
-import WeatherRadarMap from '../../../components/WeatherRadarMap'
+import { ShieldCheck, Zap } from 'lucide-react'
 import { authCooldownSeconds } from '../../../lib/auth/cooldown'
 import { createClient } from '../../../lib/supabase/client'
 import { safeNextPath } from '../../../lib/safe-next'
+import LoginWeatherPreview, { type LoginPreviewData } from '../../../components/LoginWeatherPreview'
+import WeatherRadarMap from '../../../components/WeatherRadarMap'
 
-const SUCCESSFUL_SEND_COOLDOWN_SECONDS = 60
+type Mode = 'password' | 'link' | 'code'
+const COOLDOWN = 60
+const RESET_COOLDOWN_KEY = 'roof-os-password-reset-cooldown:'
 
-type SignInMode = 'password' | 'link' | 'code'
+function resetCooldownKey(email: string) {
+  return `${RESET_COOLDOWN_KEY}${email.trim().toLowerCase()}`
+}
+
+function storedResetCooldown(email: string) {
+  if (typeof window === 'undefined' || !email.trim()) return 0
+  try {
+    const expiresAt = Number(window.localStorage.getItem(resetCooldownKey(email)))
+    return Math.max(0, Math.ceil((expiresAt - Date.now()) / 1000))
+  } catch {
+    return 0
+  }
+}
+
+function rememberResetCooldown(email: string, seconds: number) {
+  try {
+    window.localStorage.setItem(resetCooldownKey(email), String(Date.now() + seconds * 1000))
+  } catch {
+    // Some privacy modes disable localStorage; the in-memory timer still protects this page.
+  }
+}
 
 function LoginForm() {
   const router = useRouter()
   const search = useSearchParams()
+  const supabase = createClient()
   const next = safeNextPath(search.get('next'), typeof window === 'undefined' ? 'https://invalid.local' : window.location.origin)
-  const supabase = useMemo(() => createClient(), [])
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [code, setCode] = useState('')
-  const [mode, setMode] = useState<SignInMode>('password')
+  const [mode, setMode] = useState<Mode>('password')
   const [codeSent, setCodeSent] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [sendCooldown, setSendCooldown] = useState(0)
   const [verifyCooldown, setVerifyCooldown] = useState(0)
-  const [weatherPreview, setWeatherPreview] = useState<LoginPreviewData | null>(null)
+  const [resetCooldown, setResetCooldown] = useState(0)
+  const [loginWeather, setLoginWeather] = useState<LoginPreviewData | null>(null)
 
   useEffect(() => {
     if (search.get('error') === 'auth_callback_failed') {
       setError('That sign-in link could not be verified. Request a new sign-in email and try again.')
     }
+    if (search.get('reset') === 'success') {
+      setMessage('Your password was updated. Sign in with it below.')
+    }
   }, [search])
 
   useEffect(() => {
-    if (!sendCooldown && !verifyCooldown) return
+    if (!sendCooldown && !verifyCooldown && !resetCooldown) return
     const timer = window.setInterval(() => {
       setSendCooldown((seconds) => Math.max(0, seconds - 1))
       setVerifyCooldown((seconds) => Math.max(0, seconds - 1))
+      setResetCooldown((seconds) => Math.max(0, seconds - 1))
     }, 1000)
     return () => window.clearInterval(timer)
-  }, [sendCooldown, verifyCooldown])
+  }, [sendCooldown, verifyCooldown, resetCooldown])
 
-  function changeMode(nextMode: SignInMode) {
+  function changeMode(nextMode: Mode) {
     setMode(nextMode)
     setCodeSent(false)
     setCode('')
@@ -54,186 +81,159 @@ function LoginForm() {
   }
 
   async function signInWithPassword() {
-    if (loading) return
-    const normalizedEmail = email.trim()
-    if (!normalizedEmail || !password) {
+    if (!email.trim() || !password) {
       setError('Enter your email address and password.')
       return
     }
-
     setLoading(true)
-    setMessage('')
     setError('')
     try {
-      const { error: signInError } = await supabase.auth.signInWithPassword({ email: normalizedEmail, password })
+      const { error: signInError } = await supabase.auth.signInWithPassword({ email: email.trim(), password })
       if (signInError) {
-        setError('Email or password was not accepted. Check both fields and try again.')
+        setError('Email or password was not accepted. Use Forgot password? if you need a new password.')
         return
       }
       router.replace(next)
       router.refresh()
     } catch {
-      setError('Password sign-in is temporarily unavailable. Please try again.')
+      setError('Password sign-in is temporarily unavailable.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function sendPasswordReset() {
+    const normalizedEmail = email.trim().toLowerCase()
+    if (!normalizedEmail) {
+      setError('Enter your email address first, then choose Forgot password?.')
+      return
+    }
+    const rememberedSeconds = storedResetCooldown(normalizedEmail)
+    if (rememberedSeconds) {
+      setResetCooldown(rememberedSeconds)
+      setError(`A reset email may already be on its way. Please wait ${rememberedSeconds} seconds before requesting another.`)
+      return
+    }
+    setLoading(true)
+    setError('')
+    try {
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
+        redirectTo: `${window.location.origin}/auth/reset`,
+      })
+      if (resetError) {
+        const seconds = authCooldownSeconds(resetError)
+        if (seconds) {
+          setResetCooldown(seconds)
+          rememberResetCooldown(normalizedEmail, seconds)
+          setError(`A reset email may already be on its way. Please wait ${seconds} seconds before requesting another.`)
+        }
+        else setError('A password reset email could not be sent.')
+        return
+      }
+      setResetCooldown(COOLDOWN)
+      rememberResetCooldown(normalizedEmail, COOLDOWN)
+      setMessage('Check your email for a password reset link. Open it on this device, then choose a new password.')
+    } catch {
+      setError('A password reset email could not be sent right now.')
     } finally {
       setLoading(false)
     }
   }
 
   async function sendSignInEmail() {
-    if (sendCooldown > 0 || loading) return
-    const normalizedEmail = email.trim()
-    if (!normalizedEmail) {
+    if (sendCooldown || loading) return
+    if (!email.trim()) {
       setError('Enter your email address first.')
       return
     }
-
     setLoading(true)
-    setMessage('')
     setError('')
     try {
       const { error: signInError } = await supabase.auth.signInWithOtp({
-        email: normalizedEmail,
+        email: email.trim(),
         options: { emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}` },
       })
       if (signInError) {
-        const retrySeconds = authCooldownSeconds(signInError)
-        if (retrySeconds) {
-          setSendCooldown(retrySeconds)
-          setError(`Too many sign-in requests. Please wait ${retrySeconds} seconds before requesting another email.`)
-        } else {
-          setError('A sign-in email could not be sent. Check the address and try again.')
-        }
+        const seconds = authCooldownSeconds(signInError)
+        if (seconds) {
+          setSendCooldown(seconds)
+          setError(`Too many sign-in requests. Please wait ${seconds} seconds.`)
+        } else setError('A sign-in email could not be sent.')
         return
       }
-      setSendCooldown(SUCCESSFUL_SEND_COOLDOWN_SECONDS)
+      setSendCooldown(COOLDOWN)
       if (mode === 'code') {
         setCodeSent(true)
-        setMessage('A 6-digit email code was requested. If your email also includes a secure sign-in link, you can use that instead.')
-      } else {
-        setMessage('Check your email for a secure sign-in link. You can also switch to the 6-digit code option if needed.')
-      }
+        setMessage('A 6-digit email code was requested. Check your inbox.')
+      } else setMessage('Check your email for a secure sign-in link.')
     } catch {
-      setError('A sign-in email could not be sent right now. Please try again.')
+      setError('A sign-in email could not be sent right now.')
     } finally {
       setLoading(false)
     }
   }
 
   async function verifyEmailCode() {
-    if (loading || verifyCooldown > 0) return
-    const normalizedEmail = email.trim()
-    const normalizedCode = code.trim()
-    if (!normalizedEmail) {
-      setError('Enter your email address first.')
-      return
-    }
-    if (!/^\d{6}$/.test(normalizedCode)) {
+    if (loading || verifyCooldown) return
+    if (!/^\d{6}$/.test(code)) {
       setError('Enter the 6-digit code from your email.')
       return
     }
-
     setLoading(true)
-    setMessage('')
     setError('')
     try {
-      const { error: verifyError } = await supabase.auth.verifyOtp({ email: normalizedEmail, token: normalizedCode, type: 'email' })
+      const { error: verifyError } = await supabase.auth.verifyOtp({ email: email.trim(), token: code, type: 'email' })
       if (verifyError) {
-        const retrySeconds = authCooldownSeconds(verifyError)
-        if (retrySeconds) {
-          setVerifyCooldown(retrySeconds)
-          setError(`Too many verification attempts. Please wait ${retrySeconds} seconds before trying another code.`)
-        } else {
-          setError('That code was not accepted or has expired. Check it or request a new sign-in email.')
-        }
+        const seconds = authCooldownSeconds(verifyError)
+        if (seconds) {
+          setVerifyCooldown(seconds)
+          setError(`Too many verification attempts. Please wait ${seconds} seconds.`)
+        } else setError('That code was not accepted or has expired.')
         return
       }
       router.replace(next)
       router.refresh()
     } catch {
-      setError('The sign-in code could not be verified right now. Please try again.')
+      setError('The sign-in code could not be verified right now.')
     } finally {
       setLoading(false)
     }
   }
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (mode === 'password') await signInWithPassword()
-    else if (mode === 'code' && codeSent) await verifyEmailCode()
-    else await sendSignInEmail()
+    if (mode === 'password') void signInWithPassword()
+    else if (mode === 'code' && codeSent) void verifyEmailCode()
+    else void sendSignInEmail()
   }
-  const submitCooldown = mode === 'password' ? 0 : mode === 'code' && codeSent ? verifyCooldown : sendCooldown
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#070b14] text-slate-100">
-      {weatherPreview && <div className="pointer-events-none fixed inset-0 z-0" aria-hidden="true"><WeatherRadarMap latitude={weatherPreview.latitude} longitude={weatherPreview.longitude} locationLabel={weatherPreview.label} refreshKey={weatherPreview.checkedAt} interactive={false} showBadge={false} className="h-full w-full rounded-none border-0" /></div>}
-      <div className="pointer-events-none fixed inset-0 z-[1] bg-[radial-gradient(ellipse_at_15%_8%,rgba(26,91,148,0.28),transparent_40%),linear-gradient(90deg,rgba(5,8,15,0.88),rgba(5,8,15,0.65)),radial-gradient(ellipse_at_86%_72%,rgba(146,25,48,0.2),transparent_38%)]" />
-      <header className="relative z-10 border-b border-white/10 bg-slate-950/60 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 md:px-6">
-          <Link href="/auth/login" className="text-xl font-black tracking-tight text-white">ROOF<span className="text-red-500">/</span>OS</Link>
-          <span className="hidden text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 sm:inline">The roofing operating system</span>
-          <Link href="/help" className="text-xs text-slate-300 hover:text-white">Help</Link>
-        </div>
-      </header>
-
-      <main className="relative z-10 mx-auto grid max-w-7xl items-start gap-6 px-4 py-8 md:px-6 md:py-12 lg:grid-cols-[minmax(0,1.2fr)_minmax(360px,0.8fr)] lg:items-center">
-        <section className="space-y-5">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.24em] text-cyan-300">Built for roofing work</p>
-            <h1 className="mt-3 max-w-3xl text-4xl font-black leading-tight text-white md:text-5xl">A clear record<br className="hidden md:block" /> for every roof.</h1>
-            <p className="mt-4 max-w-2xl text-base leading-7 text-slate-300">Manage lead records, field inspections, photo evidence, technician-reviewed measurements, report drafts, owner pricing, and warranty follow-up in one workspace.</p>
-          </div>
-          <div className="flex flex-wrap gap-2" aria-label="ROOF/OS workflow areas">
-            {['Leads', 'Inspections', 'Photo reports', 'Measurements', 'Price book', 'Warranties'].map((label) => <span key={label} className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-slate-300">{label}</span>)}
-          </div>
-          <LoginWeatherPreview onLocationChange={setWeatherPreview} />
-        </section>
-
-        <section className="w-full rounded-2xl border border-white/10 bg-slate-950/85 p-5 shadow-2xl backdrop-blur md:p-7" aria-labelledby="login-title">
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-red-300">Workspace access</p>
-          <h2 id="login-title" className="mt-2 text-2xl font-black text-white">Sign in to ROOF/OS</h2>
-          <p className="mb-6 mt-1 text-sm text-slate-400">Use your work email to open the records available to your workspace.</p>
-
-          <form onSubmit={handleSubmit}>
-            <div className="mb-5 grid grid-cols-3 gap-2" role="group" aria-label="Sign-in method">
-              <button type="button" onClick={() => changeMode('password')} aria-pressed={mode === 'password'} className={`rounded-lg border px-2 py-2.5 text-xs font-semibold transition ${mode === 'password' ? 'border-cyan-300 bg-cyan-300/10 text-cyan-100' : 'border-white/10 text-slate-400 hover:bg-white/5'}`}>Password</button>
-              <button type="button" onClick={() => changeMode('link')} aria-pressed={mode === 'link'} className={`rounded-lg border px-2 py-2.5 text-xs font-semibold transition ${mode === 'link' ? 'border-cyan-300 bg-cyan-300/10 text-cyan-100' : 'border-white/10 text-slate-400 hover:bg-white/5'}`}>Email link</button>
-              <button type="button" onClick={() => changeMode('code')} aria-pressed={mode === 'code'} className={`rounded-lg border px-2 py-2.5 text-xs font-semibold transition ${mode === 'code' ? 'border-cyan-300 bg-cyan-300/10 text-cyan-100' : 'border-white/10 text-slate-400 hover:bg-white/5'}`}>6-digit code</button>
-            </div>
-
-            <label className="mb-1 block text-sm font-medium text-slate-200" htmlFor="email">Work email</label>
-            <input id="email" type="email" required maxLength={254} autoComplete="email" value={email} onChange={(event) => { setEmail(event.target.value); setCode(''); setCodeSent(false) }} className="mb-4 w-full rounded-lg border border-white/15 bg-slate-900 px-3 py-3 text-white outline-none placeholder:text-slate-500 focus:border-cyan-300" placeholder="you@company.com" />
-
-            {mode === 'password' && <>
-              <label className="mb-1 block text-sm font-medium text-slate-200" htmlFor="password">Password</label>
-              <input id="password" type="password" required maxLength={128} autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} className="mb-4 w-full rounded-lg border border-white/15 bg-slate-900 px-3 py-3 text-white outline-none placeholder:text-slate-500 focus:border-cyan-300" placeholder="Enter your password" />
-            </>}
-
-            {mode === 'code' && codeSent && <>
-              <label className="mb-1 block text-sm font-medium text-slate-200" htmlFor="email-code">6-digit email code</label>
-              <input id="email-code" type="text" inputMode="numeric" pattern="\d{6}" maxLength={6} autoComplete="one-time-code" required value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, '').slice(0, 6))} className="mb-2 w-full rounded-lg border border-white/15 bg-slate-900 px-3 py-3 text-center tracking-[0.4em] text-white outline-none focus:border-cyan-300" placeholder="000000" aria-describedby="email-code-help" />
-              <p id="email-code-help" className="mb-4 text-xs text-slate-400">Enter the code sent to {email.trim()}.</p>
-            </>}
-
-            {message && <p className="mb-3 rounded-lg border border-emerald-300/20 bg-emerald-500/10 p-3 text-sm text-emerald-100" role="status">{message}</p>}
-            {error && <p className="mb-3 rounded-lg border border-red-300/20 bg-red-500/10 p-3 text-sm text-red-100" role="alert">{error}</p>}
-
-            <button type="submit" disabled={loading || submitCooldown > 0} className="w-full rounded-lg bg-red-600 py-3 font-bold text-white transition hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-60">
-              {loading ? mode === 'password' ? 'Signing in…' : mode === 'code' && codeSent ? 'Verifying code…' : 'Sending email…' : mode === 'password' ? 'Sign in with password' : mode === 'code' && codeSent ? verifyCooldown > 0 ? `Try code again in ${verifyCooldown}s` : 'Verify 6-digit code' : sendCooldown > 0 ? `Request again in ${sendCooldown}s` : mode === 'code' ? 'Send 6-digit code' : 'Send sign-in link'}
-            </button>
-
-            {mode === 'code' && codeSent && <button type="button" onClick={() => void sendSignInEmail()} disabled={loading || sendCooldown > 0} className="mt-3 w-full text-sm text-cyan-200 disabled:text-slate-500">{sendCooldown > 0 ? `Resend code in ${sendCooldown}s` : 'Resend code'}</button>}
-            <button type="button" onClick={() => router.push('/auth/signup')} className="mt-4 w-full text-sm text-slate-300 hover:text-white">Create an account</button>
-          </form>
-          <p className="mt-6 border-t border-white/10 pt-4 text-xs leading-5 text-slate-500">Workspace data and tools depend on your membership. Weather preview is optional and does not change sign-in or save your device location.</p>
-        </section>
-      </main>
-
-      <footer className="relative z-10 mx-auto max-w-7xl px-4 pb-8 text-center text-xs text-slate-500 md:px-6">We educate. You decide. · AI does not approve measurements, prices, insurance decisions, or engineering determinations.</footer>
-    </div>
+    <main className="ops-bg flex min-h-screen flex-col items-center justify-center gap-6 px-4 py-10">
+      <div className="absolute left-6 top-6 flex items-center gap-3">
+        <ShieldCheck className="h-10 w-10 text-red-500" />
+        <span><strong className="block text-3xl font-black tracking-[-.08em]">ROOF<span className="text-red-500">/OS</span></strong><small className="text-[10px] tracking-[.2em] text-slate-300">STORM COMMAND CENTER</small></span>
+      </div>
+      <form onSubmit={submit} className="glass w-full max-w-md rounded-2xl p-7">
+        <div className="mb-6 flex items-center gap-3"><div className="rounded-xl border border-red-400/40 bg-red-500/10 p-3 text-red-400"><Zap className="h-6 w-6" /></div><div><p className="ops-label">Operator access</p><h1 className="text-2xl font-black">Welcome to ROOF/OS</h1><p className="mt-1 text-sm text-slate-400">Use your password, or get a secure email link.</p></div></div>
+        <div className="mb-5 grid grid-cols-3 gap-2">{([['password', 'Password'], ['link', 'Email link'], ['code', '6-digit code']] as const).map(([value, label]) => <button key={value} type="button" onClick={() => changeMode(value)} aria-pressed={mode === value} className={`rounded-lg border py-2 text-xs ${mode === value ? 'border-cyan-400 bg-cyan-400/15 text-cyan-300' : 'border-white/15 text-slate-400'}`}>{label}</button>)}</div>
+        <label className="mb-1 block text-sm text-slate-200" htmlFor="email">Work email</label>
+        <input id="email" type="email" required autoComplete="email" value={email} onChange={(event) => { setEmail(event.target.value); setCode(''); setCodeSent(false); setResetCooldown(0) }} className="mb-4 w-full rounded-lg border border-white/15 bg-black/30 p-3 text-white placeholder:text-slate-500" placeholder="you@company.com" />
+        {mode === 'password' && <><label className="mb-1 block text-sm text-slate-200" htmlFor="password">Password</label><input id="password" type="password" required autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} className="w-full rounded-lg border border-white/15 bg-black/30 p-3 text-white placeholder:text-slate-500" placeholder="Enter your password" /><button type="button" onClick={() => void sendPasswordReset()} disabled={loading || resetCooldown > 0} className="mt-2 text-left text-sm text-cyan-300 hover:text-cyan-200 disabled:opacity-60">{resetCooldown ? `Try again in ${resetCooldown}s` : 'Forgot password?'}</button></>}
+        {mode === 'code' && codeSent && <><label className="mb-1 mt-4 block text-sm text-slate-200" htmlFor="code">6-digit email code</label><input id="code" type="text" inputMode="numeric" maxLength={6} pattern="\d{6}" autoComplete="one-time-code" value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, '').slice(0, 6))} className="w-full rounded-lg border border-white/15 bg-black/30 p-3 text-center tracking-[.4em] text-white" placeholder="000000" /> </>}
+        {message && <p className="mb-3 mt-4 rounded-lg border border-emerald-400/30 bg-emerald-400/10 p-3 text-sm text-emerald-300" role="status">{message}</p>}
+        {error && <p className="mb-3 mt-4 rounded-lg border border-red-400/30 bg-red-400/10 p-3 text-sm text-red-300" role="alert">{error}</p>}
+        <button type="submit" disabled={loading || Boolean(mode === 'code' && codeSent ? verifyCooldown : sendCooldown)} className="mt-4 w-full rounded-lg bg-gradient-to-r from-red-600 to-rose-500 py-3 font-bold text-white disabled:opacity-60">{loading ? 'Authenticating…' : mode === 'password' ? 'Enter command center' : mode === 'code' && codeSent ? 'Verify 6-digit code' : mode === 'code' ? 'Send 6-digit code' : 'Send sign-in link'}</button>
+        <button type="button" onClick={() => router.push('/auth/signup')} className="mt-5 w-full text-sm text-slate-400">Create a new workspace</button>
+        <p className="mt-6 text-center text-[10px] uppercase tracking-[.16em] text-slate-500">Protected workspace access · Secure session required</p>
+      </form>
+      <div className="w-full max-w-2xl space-y-3">
+        <LoginWeatherPreview onLocationChange={setLoginWeather} />
+        {loginWeather && <WeatherRadarMap latitude={loginWeather.latitude} longitude={loginWeather.longitude} locationLabel={loginWeather.label} interactive={false} className="h-56" />}
+      </div>
+    </main>
   )
 }
 
 export default function LoginPage() {
-  return <Suspense fallback={<div className="min-h-screen bg-[#070b14] p-8 text-sm text-slate-400">Loading secure sign-in…</div>}><LoginForm /></Suspense>
+  return <Suspense fallback={<main className="ops-shell flex min-h-screen items-center justify-center text-sm text-slate-400">Loading secure access…</main>}><LoginForm /></Suspense>
 }
