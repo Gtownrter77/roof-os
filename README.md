@@ -117,10 +117,10 @@ npx eas build --platform android --profile preview
 
 ## 2026-10-02 current verified checkpoint
 
-**Repository:** `Gtownrter77/roof-os`  
-**Production URL:** https://roof-os-lemon.vercel.app  
-**Current `main`:** `f29981076c23b7a289b579c2852c916be368325e`  
-**Hardening branch:** `backend/production-hardening-20261002`  
+**Repository:** `Gtownrter77/roof-os`
+**Production URL:** https://roof-os-lemon.vercel.app
+**Current `main`:** `f29981076c23b7a289b579c2852c916be368325e`
+**Hardening branch:** `backend/production-hardening-20261002`
 **Hardening scope:** receptionist workspace authorization, tenant isolation, payment boundary, outbound provider authorization, and booking RPC integrity.
 
 ### Verified in this checkpoint
@@ -148,8 +148,8 @@ The open PR is #72. **Do not merge it automatically.**
 
 ## 2026-10-02 receptionist hardening — final handoff checkpoint
 
-**Current main:** `f29981076c23b7a289b579c2852c916be368325e`  
-**Current hardening branch:** `f81278881cf6e28809b6317811a7614e0293338f`  
+**Current main:** `f29981076c23b7a289b579c2852c916be368325e`
+**Current hardening branch:** `f81278881cf6e28809b6317811a7614e0293338f`
 **PR:** #72 — open; merge only on explicit owner direction.
 
 The hardening branch is now synchronized with current `main` and is **0 commits behind**. The current `main...backend/production-hardening-20261002` comparison shows the intended seven receptionist-hardening files as the application/code delta: Stripe payment-link authorization, Twilio voice/SMS authorization and lead scoping, Twilio session workspace scoping, receptionist lead tenancy, regression contracts, and migration 043.

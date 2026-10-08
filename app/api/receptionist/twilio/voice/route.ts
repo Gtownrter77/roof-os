@@ -14,7 +14,9 @@ export async function POST(request: NextRequest) {
     if (!callSid || !from) return new Response('Missing call identity', { status: 400 })
     const { error } = await supabase.from('receptionist_sessions').upsert({ workspace_id: workspaceId, direction: 'inbound', channel: 'voice', provider: 'twilio', provider_session_id: callSid, caller_phone: from, status: 'active' }, { onConflict: 'provider,provider_session_id' })
     if (error) return new Response('Could not start receptionist session', { status: 502 })
-    return twiml(speechGather(`${publicUrl}/api/receptionist/twilio/turn`, 'Thanks for calling Roof OS. I am an automated assistant. I can help schedule an inspection, take a message, or connect you with a team member. How can I help?'))
+
+    const legalDisclosurePrompt = 'Thanks for calling Roof OS. Please note this call is recorded for quality assurance. I am an automated AI assistant. How can I help you today?'
+    return twiml(speechGather(`${publicUrl}/api/receptionist/twilio/turn`, legalDisclosurePrompt))
   } catch (error) {
     return new Response(error instanceof Error ? error.message : 'Invalid Twilio request', { status: 403 })
   }
