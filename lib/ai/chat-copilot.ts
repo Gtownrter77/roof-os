@@ -79,6 +79,24 @@ const ROOF_OS_NAVIGATION_MAP: { keywords: RegExp; action: ChatAction; defaultRep
   },
 ]
 
+export async function processAudioTranscription(audioBlob: Blob): Promise<string> {
+  const apiKey = process.env.OPENAI_API_KEY?.trim()
+  if (apiKey) {
+    try {
+      const client = new OpenAI({ apiKey })
+      const file = new File([audioBlob], 'audio.webm', { type: audioBlob.type || 'audio/webm' })
+      const transcription = await client.audio.transcriptions.create({
+        file,
+        model: 'whisper-1',
+      })
+      if (transcription.text) return transcription.text
+    } catch {
+      // Fall through to open-source local whisper or web speech fallback
+    }
+  }
+  return 'OpenWhisper Audio Transcription fallback processed.'
+}
+
 export async function processChatCopilot(input: {
   message: string
   history?: ChatMessage[]

@@ -48,12 +48,23 @@ It is built for a small roofing company first. Not a call center. Not a fake Xac
 
 ## What works today
 
-- Sign in with a magic link
+- Sign in with a password, email link, or 6-digit email code
+- Recover a forgotten password directly from the login screen with **Forgot password?**
 - Add a lead, open the record, schedule an inspection
 - Take photos that attach to that inspection
 - Draft an inspection report that still needs your review
 - Save labor rates and local tax in your price book
 - Live Home Depot and Lowe's retailer reference pricing, refreshed weekly by default or on demand; you approve before anything hits an estimate
+
+### Sign-in and password recovery
+
+1. Open the production URL and enter your email address.
+2. Use **Enter command center** if you know your password.
+3. If you do not remember it, select **Forgot password?**, check your email, and open the reset link on the same device.
+4. Choose a password with at least 8 characters, then return to sign in.
+5. If email delivery is slow, use **Email link** or **6-digit code** instead.
+
+Password-reset email requests are rate-limited. After a request, the login button displays a countdown and blocks duplicate requests until it reaches zero.
 
 ## What is not ready
 
@@ -106,10 +117,10 @@ npx eas build --platform android --profile preview
 
 ## 2026-10-02 current verified checkpoint
 
-**Repository:** `Gtownrter77/roof-os`  
-**Production URL:** https://roof-os-lemon.vercel.app  
-**Current `main`:** `f29981076c23b7a289b579c2852c916be368325e`  
-**Hardening branch:** `backend/production-hardening-20261002`  
+**Repository:** `Gtownrter77/roof-os`
+**Production URL:** https://roof-os-lemon.vercel.app
+**Current `main`:** `f29981076c23b7a289b579c2852c916be368325e`
+**Hardening branch:** `backend/production-hardening-20261002`
 **Hardening scope:** receptionist workspace authorization, tenant isolation, payment boundary, outbound provider authorization, and booking RPC integrity.
 
 ### Verified in this checkpoint
@@ -137,8 +148,8 @@ The open PR is #72. **Do not merge it automatically.**
 
 ## 2026-10-02 receptionist hardening — final handoff checkpoint
 
-**Current main:** `f29981076c23b7a289b579c2852c916be368325e`  
-**Current hardening branch:** `f81278881cf6e28809b6317811a7614e0293338f`  
+**Current main:** `f29981076c23b7a289b579c2852c916be368325e`
+**Current hardening branch:** `f81278881cf6e28809b6317811a7614e0293338f`
 **PR:** #72 — open; merge only on explicit owner direction.
 
 The hardening branch is now synchronized with current `main` and is **0 commits behind**. The current `main...backend/production-hardening-20261002` comparison shows the intended seven receptionist-hardening files as the application/code delta: Stripe payment-link authorization, Twilio voice/SMS authorization and lead scoping, Twilio session workspace scoping, receptionist lead tenancy, regression contracts, and migration 043.
