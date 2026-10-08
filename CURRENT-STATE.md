@@ -1,6 +1,8 @@
-## 2026-10-08 Master Settings & Feature Toggle Layer Checkpoint
+## 2026-10-08 Main Branch Three-Level Audit Checkpoint
 
-**Current main commit:** `f94d7b5` (plus Master Settings & Toggle Layer)
+**Current main baseline before this audit:** `bfdc565` (Golden Report approval migration guard)
+
+The repository has no open pull requests. Historical and backup branches remain on GitHub for traceability; their changes are represented in `main` or their pull requests are closed/merged.
 
 ### Master Settings & Toggle Layer Controls (`app/settings/page.tsx`)
 1. **AI & Automation Toggles:** AI Virtual Receptionist, Inspection Quality Agent (Agent 3), Voice Command Copilot (OpenWhisper STT), Auto Follow-up Tasks.
@@ -10,6 +12,6 @@
 5. **Golden Report & Evidence Rules:** 100% Photo Category Completeness Gate, Mandatory Technician Signature Sign-off, 2021 IRC Statutory Building Code Suggestions.
 
 ### 3-Level Audit Results
-- **Level 1 (Security & Code Integrity):** `typecheck`, `release-check`, `verify:security`, and `test:receptionist` passed with 0 errors.
-- **Level 2 (Workflows & Business Logic):** Master Settings & Toggle Layer verified.
-- **Level 3 (Production Build):** `npm run build` compiled 110 static/dynamic routes successfully with zero compilation errors.
+- **Level 1 (Security & Code Integrity):** `typecheck`, `release-check`, `verify:security`, `test:receptionist`, and production dependency audit passed.
+- **Level 2 (Workflows & Business Logic):** the repository test suite passed after fixing the Node 22 TypeScript loading command for `test:ai-chat-bar`.
+- **Level 3 (Production Build):** `npm run build` compiled 111 static/dynamic routes successfully with zero compilation errors.
