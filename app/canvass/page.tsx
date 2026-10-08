@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '../../lib/supabase/client'
+import { getCanvassAdvice, ObjectionType } from '../../lib/ai/canvass-mentor'
 
 type PinStatus = 'NOT_HOME' | 'INTERESTED' | 'INSPECTED' | 'DO_NOT_KNOCK' | 'LEAD_CONVERTED'
 
@@ -13,8 +14,6 @@ type CanvassPin = {
   homeownerName?: string
   phone?: string
   notes?: string
-  lat?: number
-  lng?: number
   updatedAt: string
 }
 
@@ -37,6 +36,23 @@ export default function CanvassPage() {
   const [saving, setSaving] = useState(false)
   const [notice, setNotice] = useState('')
   const [error, setError] = useState('')
+  const [selectedObjection, setSelectedObjection] = useState<ObjectionType>('NO_DAMAGE')
+  const [showVCard, setShowVCard] = useState(false)
+
+  const repProfile = {
+    name: 'Alex Rivera',
+    title: 'Certified Field Inspector',
+    company: 'ROOF/OS Contracting',
+    phone: '(404) 555-0199',
+    email: 'arivera@roofos.com',
+    license: 'GA-RCN-2026-88',
+  }
+
+  const advice = getCanvassAdvice({
+    address: form.address || '742 Evergreen Terrace',
+    stormDate: 'August 2026',
+    objection: selectedObjection,
+  })
 
   const statusColors: Record<PinStatus, string> = {
     INTERESTED: 'bg-emerald-100 text-emerald-800 border-emerald-300',
@@ -112,17 +128,94 @@ export default function CanvassPage() {
         <div className="px-4 py-3 flex items-center justify-between">
           <div className="flex items-center">
             <button onClick={() => router.back()} className="text-white mr-3 text-xl">←</button>
-            <h1 className="text-xl font-bold">🚶 Field Canvasser & Territory Map</h1>
+            <h1 className="text-xl font-bold">🚶 Canvasser & AI Sales Mentor</h1>
           </div>
-          <span className="bg-emerald-400 text-black text-xs font-bold px-2.5 py-0.5 rounded uppercase">
-            DOOR KNOCKING
-          </span>
+          <button
+            onClick={() => setShowVCard(!showVCard)}
+            className="bg-emerald-400 text-black text-xs font-bold px-2.5 py-1 rounded uppercase hover:bg-emerald-300"
+          >
+            🎴 Digital VCard
+          </button>
         </div>
       </header>
 
       <main className="p-4 max-w-3xl mx-auto space-y-4">
         {notice && <div className="bg-emerald-50 border border-emerald-200 text-emerald-900 p-3 rounded-lg text-xs font-bold">{notice}</div>}
         {error && <div className="bg-red-50 border border-red-200 text-red-800 p-3 rounded-lg text-xs font-bold">{error}</div>}
+
+        {/* Digital Business Card Modal */}
+        {showVCard && (
+          <div className="bg-white rounded-lg shadow-lg p-4 border-2 border-emerald-500 space-y-3 animate-fadeIn">
+            <div className="flex justify-between items-start border-b pb-2">
+              <div>
+                <p className="font-bold text-base text-gray-900">{repProfile.name}</p>
+                <p className="text-xs text-gray-600">{repProfile.title} · {repProfile.company}</p>
+              </div>
+              <span className="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-mono font-bold">
+                {repProfile.license}
+              </span>
+            </div>
+            <div className="text-xs text-gray-700 space-y-1">
+              <p>📞 Direct: <strong>{repProfile.phone}</strong></p>
+              <p>✉️ Email: <strong>{repProfile.email}</strong></p>
+            </div>
+            <div className="p-3 bg-gray-50 border rounded text-center">
+              <div className="text-4xl mb-1">📱</div>
+              <p className="text-[11px] font-bold text-gray-800">Scan or Text Digital Business Card</p>
+              <p className="text-[10px] text-gray-500">Includes state contractor license verification & company credentials.</p>
+            </div>
+          </div>
+        )}
+
+        {/* AI Sales Mentor Panel */}
+        <div className="bg-white rounded-lg shadow p-4 border-l-4 border-indigo-600 space-y-3">
+          <div className="flex justify-between items-center">
+            <h2 className="font-bold text-sm text-gray-900 flex items-center">
+              <span className="text-lg mr-1.5">🤖</span> AI Doorstep Opener & Objection Coach
+            </h2>
+            <span className="text-[10px] bg-indigo-100 text-indigo-900 font-bold px-2 py-0.5 rounded uppercase">
+              GOLDEN RULE ALIGNED
+            </span>
+          </div>
+
+          <div className="bg-indigo-50/60 p-3 rounded border border-indigo-100 space-y-1 text-xs">
+            <p className="font-bold text-indigo-950">Suggested Doorstep Opener Script:</p>
+            <p className="text-indigo-900 italic">"{advice.openerScript}"</p>
+          </div>
+
+          <div className="space-y-1 text-xs">
+            <label className="font-bold text-gray-800 block">Select Homeowner Objection:</label>
+            <select
+              value={selectedObjection}
+              onChange={(e) => setSelectedObjection(e.target.value as ObjectionType)}
+              className="w-full p-2 border rounded font-semibold text-xs"
+            >
+              <option value="NO_DAMAGE">"I don't see any damage on my roof"</option>
+              <option value="NEW_ROOF">"My roof is relatively new"</option>
+              <option value="HAVE_ADJUSTER">"I already have an insurance adjuster coming out"</option>
+              <option value="NO_TIME">"I don't have time right now"</option>
+              <option value="SEND_EMAIL">"Just send me an email or leave a flyer"</option>
+              <option value="SPOUSE">"I need to talk to my spouse first"</option>
+              <option value="RATES_GO_UP">"Won't my insurance rates go up if I file a claim?"</option>
+            </select>
+            {advice.objectionResponse && (
+              <div className="p-3 bg-amber-50 border border-amber-200 text-amber-900 rounded mt-2 font-medium">
+                <p className="font-bold text-[11px] uppercase text-amber-800 mb-0.5">Recommended Counter:</p>
+                <p>"{advice.objectionResponse}"</p>
+              </div>
+            )}
+          </div>
+
+          <div className="text-[10px] text-gray-500 border-t pt-2 space-y-1">
+            <p className="font-bold text-gray-700">Soft-Metal Inspection Evidence Checklist:</p>
+            <div className="flex flex-wrap gap-1">
+              {advice.collateralChecklist.map((item) => (
+                <span key={item} className="bg-gray-100 text-gray-800 px-2 py-0.5 rounded border">{item}</span>
+              ))}
+            </div>
+            <p className="text-blue-800 font-semibold pt-1">{advice.goldenReportRuleNote}</p>
+          </div>
+        </div>
 
         {/* Pin Entry Form */}
         <form onSubmit={addPin} className="bg-white rounded-lg shadow p-4 space-y-3 border">

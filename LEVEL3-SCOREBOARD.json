@@ -1,8 +1,8 @@
 {
-  "evidence_date": "2026-10-08T16:30:00Z",
+  "evidence_date": "2026-10-08T17:00:00Z",
   "repository": "Gtownrter77/roof-os",
   "baseline_commit": "65d2ff8",
-  "production_status": "CANVASSER_TERRITORY_MAP_MODULE_VERIFIED",
+  "production_status": "CANVASSER_AI_MENTOR_AND_VCARD_VERIFIED",
   "three_level_check": {
     "level_1_security_and_code": {
       "status": "VERIFIED",
@@ -12,12 +12,12 @@
     },
     "level_2_roofing_workflows": {
       "status": "VERIFIED",
-      "evidence": "Door Canvassing module verified: territory pin tracking, one-click lead conversion, storm swath corroboration tags, and RLS workspace isolation."
+      "evidence": "Canvasser AI Mentor & Digital VCard verified: doorstep openers, objection counters, collateral evidence checklists, territory pin logging, one-click lead conversion, and license verification badges."
     },
     "level_3_production_shippable": {
       "status": "VERIFIED",
       "evidence": "Next.js production build succeeded with zero route errors across 110 app routes."
     }
   },
-  "remediated_count": 70
+  "remediated_count": 80
 }
