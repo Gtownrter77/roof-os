@@ -17,8 +17,6 @@ export default function PassportPage() {
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({ manufacturer: 'GAF', material_system: 'Timberline HDZ', color: '', install_date: '' })
-  const [transferGenerated, setTransferGenerated] = useState(false)
-  const [newBuyer, setNewBuyer] = useState('')
 
   useEffect(() => {
     let cancelled = false
@@ -69,7 +67,6 @@ export default function PassportPage() {
   }
 
   const evidenceScore = Math.min(100, inspections * 25 + Math.min(photos, 12) * 5)
-  const serialNo = passport ? `RP-${passport.id.slice(0, 8).toUpperCase()}-2026` : ''
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 pb-24">
@@ -83,46 +80,12 @@ export default function PassportPage() {
         <p className="text-sm mt-2">Evidence completeness: <strong>{evidenceScore}%</strong> · {inspections} inspection(s) · {photos} photo(s)</p>
       </div>
       {passport ? (
-        <div className="space-y-4">
-          <div className="bg-white rounded-lg shadow p-4 space-y-2 text-sm border-l-4 border-blue-600">
-            <div className="flex justify-between items-center">
-              <span className="text-xs font-mono bg-blue-100 text-blue-800 px-2 py-0.5 rounded font-bold">{serialNo}</span>
-              <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded font-medium capitalize">{passport.status}</span>
-            </div>
-            <p><strong>System:</strong> {passport.manufacturer} {passport.material_system}</p>
-            <p><strong>Color:</strong> {passport.color || 'Not recorded'}</p>
-            <p><strong>Install Date:</strong> {passport.install_date || 'Not recorded'}</p>
-            <p><strong>Homeowner:</strong> {passport.homeowner_name || 'Original Buyer'}</p>
-            <div className="pt-2 border-t flex space-x-3">
-              <button onClick={() => router.push('/warranty')} className="text-blue-600 text-xs font-semibold hover:underline">Open Warranties →</button>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow p-4 space-y-3">
-            <h2 className="text-sm font-bold text-gray-800">Homeowner Warranty Transfer Portal</h2>
-            <p className="text-xs text-gray-600">Transfer warranty coverage to a new home buyer with a verified digital certificate packet.</p>
-            <input
-              type="text"
-              value={newBuyer}
-              onChange={(e) => setNewBuyer(e.target.value)}
-              placeholder="New Buyer Name"
-              className="w-full border rounded p-2 text-sm"
-            />
-            <button
-              onClick={() => setTransferGenerated(true)}
-              disabled={!newBuyer.trim()}
-              className="w-full bg-emerald-600 text-white py-2 rounded font-semibold text-sm disabled:opacity-50 hover:bg-emerald-700"
-            >
-              Generate Transfer Certificate
-            </button>
-            {transferGenerated && (
-              <div className="p-3 bg-emerald-50 border border-emerald-200 rounded text-xs text-emerald-900 space-y-1">
-                <p className="font-bold">✓ Warranty Transfer Certificate Issued</p>
-                <p>Transfer Target: <strong>{newBuyer}</strong></p>
-                <p>Certificate SHA: <code className="text-[10px] bg-emerald-100 px-1 font-mono">e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855</code></p>
-              </div>
-            )}
-          </div>
+        <div className="bg-white rounded-lg shadow p-4 space-y-1 text-sm">
+          <p>Status: {passport.status}</p>
+          <p>System: {passport.manufacturer} {passport.material_system}</p>
+          <p>Color: {passport.color || 'Not recorded'}</p>
+          <p>Install date: {passport.install_date || 'Not recorded'}</p>
+          <button onClick={() => router.push('/warranty')} className="mt-3 text-blue-600">Open warranties</button>
         </div>
       ) : (
         <div className="bg-white rounded-lg shadow p-4 space-y-2">

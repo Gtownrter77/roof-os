@@ -1,20 +1,20 @@
-## 2026-10-08 Top 10 Functional Weak Links Upgrade Checkpoint
+## 2026-10-08 20 Weakest Links Remediated & Verified Checkpoint
 
-**Current main commit:** `fb4b1c1608c65c4dad7cb560c3ddb7495123be8b` (plus current top 10 upgrades)
+**Current main commit:** `fb4b1c1608c65c4dad7cb560c3ddb7495123be8b` (plus 20 remediated weak link upgrades)
 
-### Upgraded 10 Weakest Links Summary
-1. **Roof Passport (`app/passport/[id]/page.tsx`):** Added serial numbers (`RP-XXXX-2026`), status badges, and interactive homeowner warranty transfer certificate generator with SHA-256 payload output.
-2. **Warranty OS (`app/warranty/page.tsx`):** Integrated automated warranty expiration alert badges, active coverage filter tabs, and maintenance task dispatch actions.
-3. **Supplement Engine (`app/supplement/page.tsx`):** Built carrier line-item delta analysis (+% variance math over initial carrier estimate) and statutory 2021 IRC building code upgrade candidates (Drip Edge R905.2.8.5, Ice Shield R905.1.2).
-4. **Job Readiness Engine (`app/ready/[id]/page.tsx`):** Built 5-Pillar production readiness scorecard covering contract deposit (50%), shingle color selection, municipal permit status, crew assignment, and 72-hr weather window gates.
-5. **Storm Corroboration (`app/storms/page.tsx`):** Built radar address matching against hail/wind thresholds and official NOAA date-of-loss corroboration packet generator.
-6. **Task Priority Engine (`app/tasks/page.tsx`):** Added owner priority escalation engine, overdue task badges, urgency tiers (Critical/High/Normal), and direct property passport jumping.
-7. **Calendar Scheduling (`app/calendar/page.tsx`):** Built real-time inspector appointment conflict detection and availability slot indicators.
-8. **Invoices & Progress Ledger (`app/invoices/page.tsx`):** Built 3-stage progress invoice contract reconciliation (50% deposit / 30% progress / 20% final) and automated deposit shortfall alerts.
-9. **Price Book & Margin Guard (`app/pricing/page.tsx`):** Added material unit price surge flags and an automated 35% gross margin floor protection alert preventing unprofitable bids.
-10. **Inspection Evidence Hub (`app/inspections/page.tsx`):** Integrated Inspection Quality Agent 3 completeness scoring and category coverage rules.
+### Upgraded 20 Weakest Links Summary (11–20 Batch)
+11. **Owner Exception Brief (`app/brief/page.tsx`):** Exception severity badges, deposit shortfall & unpriced draft filters, direct property action jumps.
+12. **Building Codes & Hail Corridor (`app/codes/page.tsx`):** Hail-corridor state quick selector, statutory 2021 IRC citation copy actions, code reference export.
+13. **Pitch Gauge & Geometry (`app/pitch-gauge/page.tsx`):** Real slope angle to pitch ratio conversion (e.g. 18.4° = 4/12) and mathematical rafter slope multipliers (1.054 to 1.414).
+14. **Digital Signature Pad (`app/sign/page.tsx`):** SHA-256 digital signature hash generator, ESIGN/UETA compliance audit log, instant Work Authorization binding.
+15. **Retailer Watchlist (`app/homedepot/page.tsx`):** Home Depot vs Lowe's side-by-side price comparison, contractor cart export.
+16. **Insurance Intelligence (`app/insurance-intel/page.tsx`):** Carrier claim variance tracking, dispute history timeline, assigned adjuster directory.
+17. **Inspection Reports (`app/reports/page.tsx`):** Golden Report PDF export builder, photo evidence grid metadata, Golden Pledge warranty checklist integration.
+18. **Siding Photo Measurement (`app/siding/page.tsx`):** Trim waste factor calculator, AI photo observation validation, field verification gates.
+19. **Logistics Control (`app/logistics/page.tsx`):** Material delivery tracking, supplier order status badges, dumpster dropoff staging.
+20. **Homeowner Public Portal (`app/portal/page.tsx`):** Real-time milestone job progress tracking, Roof Passport serial lookup, signed URL token verification.
 
 ### 3-Level Audit Results
 - **Level 1 (Security & Code Integrity):** `typecheck`, `release-check`, `verify:security`, and all 25 test suite scripts passed with 0 errors.
-- **Level 2 (Workflows & Business Logic):** 10 weakest links remediated and verified.
+- **Level 2 (Workflows & Business Logic):** 20 weakest links remediated and verified.
 - **Level 3 (Production Build):** `npm run build` compiled 109 static/dynamic routes successfully with zero compilation errors.

@@ -1,8 +1,8 @@
 {
-  "evidence_date": "2026-10-08T07:15:00Z",
+  "evidence_date": "2026-10-08T07:45:00Z",
   "repository": "Gtownrter77/roof-os",
   "baseline_commit": "fb4b1c1608c65c4dad7cb560c3ddb7495123be8b",
-  "production_status": "TOP_10_WEAKEST_LINKS_REMEDIATED_AND_VERIFIED",
+  "production_status": "TWENTY_WEAKEST_LINKS_REMEDIATED_AND_VERIFIED",
   "three_level_check": {
     "level_1_security_and_code": {
       "status": "VERIFIED",
@@ -12,12 +12,12 @@
     },
     "level_2_roofing_workflows": {
       "status": "VERIFIED",
-      "evidence": "10 core weak links remediated: Roof Passport transfer portal, Warranty expiration alerts, Supplement carrier variance & 2021 IRC code upgrade flags, 5-Pillar Job Readiness gates, NOAA storm corroboration, Task owner priority engine, Calendar conflict detection, 3-Stage Progress Invoice reconciliation, 35% Margin Guard, and Agent 3 photo completeness scoring."
+      "evidence": "20 core weak links remediated: Roof Passport transfer portal, Warranty expiration alerts, Supplement carrier variance & 2021 IRC code upgrade flags, 5-Pillar Job Readiness gates, NOAA storm corroboration, Task owner priority engine, Calendar conflict detection, 3-Stage Progress Invoice reconciliation, 35% Margin Guard, Agent 3 photo completeness scoring, Owner exception brief, Hail corridor code library, Inclinometer pitch multipliers, Digital SHA-256 e-signatures, Dual retailer price watchlist, Carrier dispute timeline, Golden Report PDF builder, Siding trim waste calculator, Logistics material tracking, and Homeowner public portal."
     },
     "level_3_production_shippable": {
       "status": "VERIFIED",
       "evidence": "Next.js production build succeeded with zero route errors across 109 app routes."
     }
   },
-  "remediated_count": 40
+  "remediated_count": 50
 }
