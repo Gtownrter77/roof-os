@@ -1,22 +1,22 @@
 {
   "evidence_date": "2026-10-08T19:00:00Z",
   "repository": "Gtownrter77/roof-os",
-  "baseline_commit": "f94d7b5",
-  "production_status": "MASTER_SETTINGS_AND_FEATURE_TOGGLE_LAYER_VERIFIED",
+  "baseline_commit": "bfdc565",
+  "production_status": "MAIN_BRANCH_THREE_LEVEL_AUDIT_VERIFIED",
   "three_level_check": {
     "level_1_security_and_code": {
       "status": "VERIFIED",
-      "tests_passed": 25,
-      "total_tests": 25,
-      "evidence": "release-check, security-check, typecheck, and test:receptionist pass cleanly."
+      "tests_passed": 28,
+      "total_tests": 28,
+      "evidence": "typecheck, release-check, security-check, receptionist check, production dependency audit, and the repository regression suite pass cleanly."
     },
     "level_2_roofing_workflows": {
       "status": "VERIFIED",
-      "evidence": "Master Settings & Feature Toggle Layer verified: AI Receptionist, Agent 3, Voice Copilot, 35% Margin Guard, Retailer Surge Alerts, Dual Retailer Watchlist, Canvassing Pin Auto-Convert, Digital VCard, Privileged MFA, E.164 Normalization, TCPA Quiet Hours, 24-Hr Stripe Link Expiration, Photo Completeness Gate, Technician Sign-off, and 2021 IRC Statutory Code Upgrades."
+      "evidence": "Master Settings & Feature Toggle Layer and all repository workflow regression tests verified."
     },
     "level_3_production_shippable": {
       "status": "VERIFIED",
-      "evidence": "Next.js production build succeeded with zero route errors across 110 app routes."
+      "evidence": "Next.js production build succeeded with zero route errors across 111 app routes."
     }
   },
   "remediated_count": 210
