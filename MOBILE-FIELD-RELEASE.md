@@ -8,28 +8,6 @@ When a workspace connection is available, the app resolves the authenticated wor
 
 The release also persists the latest draft location, provides sign-in/sign-out states, exposes queued-work sync, makes checklist rows interactive and screen-reader addressable, and adds release checks for the mobile security boundary. The app version is `0.2.0`.
 
-## Top-Level AI Automated Features Integrated in Field App
-
-1. **AI Vision Damage Contract (Gemini AI Integration):**
-   - Strictly structured schema contract for analyzing roof & siding photos.
-   - Extracts pitch estimation, shingle type/wear, facet detection, and storm damage tagging.
-   - Output rules enforce non-authoritative claims (never output raw pitch degrees or binding carrier coverage decisions directly without human approval).
-
-2. **Inspection Quality Agent (Agent 3):**
-   - Automatically evaluates photo batch completeness upon upload from the field app.
-   - Detects missing required categories (e.g. pitch gauge, drip edge, hail damage) or uncaptioned photos.
-   - Automatically generates an idempotent review task for the inspector when evidence is incomplete.
-
-3. **Offline Resilient AI Queue:**
-   - Field photos and local notes captured offline in SQLite are automatically processed upon network reconnection.
-   - AI vision processing and feature extraction run through an authenticated backend route without exposing API keys to the mobile client.
-
-4. **Speech-to-Text Voice Site Notes:**
-   - Integrated Web Speech API / MediaRecorder interface allowing field technicians to dictate site notes hands-free, auto-categorized into inspection findings.
-
-5. **AI Receptionist & Inbound Lead Bridge:**
-   - Automated Twilio voice/SMS receptionist AI captures customer reports and populates inspection leads directly into the field inspector's task queue.
-
 ## Three-level verification
 
 | Level | Result | Evidence |
