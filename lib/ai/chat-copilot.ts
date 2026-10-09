@@ -1,4 +1,27 @@
-import OpenAI from 'openai'
+async function askOllama(prompt: string): Promise<string | null> {
+  const host = process.env.OLLAMA_HOST?.trim() || 'http://127.0.0.1:11434'
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), 1500)
+  try {
+    const response = await fetch(`${host.replace(/\/$/, '')}/api/generate`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      signal: controller.signal,
+      body: JSON.stringify({
+        model: process.env.OLLAMA_MODEL || 'llama3:8b',
+        prompt,
+        stream: false,
+      }),
+    })
+    if (!response.ok) return null
+    const data = await response.json() as { response?: string }
+    return data.response?.trim() || null
+  } catch {
+    return null
+  } finally {
+    clearTimeout(timer)
+  }
+}
 
 export type ChatMessage = {
   role: 'user' | 'assistant'
@@ -79,22 +102,26 @@ const ROOF_OS_NAVIGATION_MAP: { keywords: RegExp; action: ChatAction; defaultRep
   },
 ]
 
-export async function processAudioTranscription(audioBlob: Blob): Promise<string> {
-  const apiKey = process.env.OPENAI_API_KEY?.trim()
-  if (apiKey) {
-    try {
-      const client = new OpenAI({ apiKey })
-      const file = new File([audioBlob], 'audio.webm', { type: audioBlob.type || 'audio/webm' })
-      const transcription = await client.audio.transcriptions.create({
-        file,
-        model: 'whisper-1',
-      })
-      if (transcription.text) return transcription.text
-    } catch {
-      // Fall through to open-source local whisper or web speech fallback
-    }
+const BAKED_IN_LANGUAGES = new Set(['en', 'es', 'zh', 'fr'])
+
+export async function processAudioTranscription(audioBlob: Blob, language = 'en'): Promise<string> {
+  const code = language.split('-')[0].toLowerCase()
+  if (!BAKED_IN_LANGUAGES.has(code) && code !== 'ko') {
+    throw new Error(`Language ${code} is not enabled.`)
   }
-  return 'OpenWhisper Audio Transcription fallback processed.'
+  const worker = process.env.WHISPER_URL?.trim()
+  if (!worker) {
+    throw new Error('Local Whisper worker is not configured. Set WHISPER_URL.')
+  }
+  const body = new FormData()
+  body.append('file', new File([audioBlob], 'audio.webm', { type: audioBlob.type || 'audio/webm' }))
+  body.append('language', code)
+  const response = await fetch(`${worker.replace(/\/$/, '')}/transcribe`, { method: 'POST', body })
+  if (!response.ok) {
+    throw new Error(`Local Whisper failed (${response.status}).`)
+  }
+  const payload = await response.json() as { text?: string }
+  return payload.text?.trim() || ''
 }
 
 export async function processChatCopilot(input: {
@@ -110,49 +137,21 @@ export async function processChatCopilot(input: {
     }
   }
 
-  // Check matching module navigation
   const matchedNav = ROOF_OS_NAVIGATION_MAP.find((item) => item.keywords.test(query))
+  const local = await askOllama([
+    'You are the ROOF/OS operations copilot. Answer in two sentences. Do not invent prices, coverage, or measurements.',
+    matchedNav ? `The matching screen is ${matchedNav.action.href}.` : 'No screen matched.',
+    `User: ${query}`,
+  ].join('\n'))
 
-  const apiKey = process.env.OPENAI_API_KEY?.trim()
-  if (apiKey) {
-    try {
-      const client = new OpenAI({ apiKey })
-      const completion = await client.chat.completions.create({
-        model: process.env.CHAT_AI_MODEL || 'gpt-4o-mini',
-        temperature: 0.3,
-        messages: [
-          {
-            role: 'system',
-            content: [
-              'You are the ROOF/OS AI Operations Copilot for roofing contractors and storm restoration specialists.',
-              'Be concise, clear, and action-oriented (2-3 sentences max).',
-              'Guide the user to the correct operational tool in ROOF/OS: /weather (storms), /leads (CRM), /measure (aerial roof measurement), /damage-detection (photo AI), /pricing (estimates and price book), /reports (golden reports), /payment (invoices and payments), /tasks (production).',
-              'If the user asks a calculation or roofing question (e.g. squares = sqft / 100, pitch multiplier = sqrt(1 + (pitch/12)^2)), explain clearly and concisely.',
-              'Do not invent non-existent features. Answer directly.',
-            ].join(' '),
-          },
-          ...(input.history || []).slice(-6).map((msg) => ({
-            role: msg.role === 'assistant' ? ('assistant' as const) : ('user' as const),
-            content: msg.content,
-          })),
-          { role: 'user', content: query },
-        ],
-      })
-
-      const rawReply = completion.choices[0]?.message.content?.trim()
-      if (rawReply) {
-        return {
-          reply: rawReply,
-          suggestedAction: matchedNav?.action,
-          quickReplies: getSuggestedQuickReplies(matchedNav?.action?.href),
-        }
-      }
-    } catch {
-      // Fall through to operational rule response
+  if (local) {
+    return {
+      reply: local,
+      suggestedAction: matchedNav?.action,
+      quickReplies: getSuggestedQuickReplies(matchedNav?.action.href),
     }
   }
 
-  // Smart operational rule engine fallback
   if (matchedNav) {
     return {
       reply: `${matchedNav.defaultReply} Would you like to jump right there?`,
@@ -161,9 +160,8 @@ export async function processChatCopilot(input: {
     }
   }
 
-  // Generic helpful response
   return {
-    reply: `I can help you navigate ROOF/OS, calculate roof squares, track storm damage, generate Golden Reports, or manage invoices. What would you like to do now?`,
+    reply: 'Local Ollama is not reachable. I can still open storm, leads, measure, reports, or invoices from the menu.',
     suggestedAction: { label: 'Go to Command Center', href: '/' },
     quickReplies: ['Track Active Storms', 'Aerial Measurement', 'New Estimate', 'Golden Report'],
   }
