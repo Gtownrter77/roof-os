@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '../../../../lib/supabase/server'
 import { beaconConfigured, priceBeaconItem } from '../../../../lib/beacon'
-import { isUuid, requireWorkspaceMember } from '../../../../lib/api-security'
+import { isUuid, readJson, requireWorkspaceMember } from '../../../../lib/api-security'
 
 const MONTHLY_LIMIT = 100
 
@@ -15,7 +15,9 @@ export async function POST(request: NextRequest) {
   const membership = await requireWorkspaceMember(supabase, user.id, workspaceId)
   if (membership.response) return membership.response
 
-  const body = await request.json().catch(() => null) as { sku?: string; quantity?: number; uom?: string } | null
+  const parsed = await readJson(request, 8 * 1024)
+  if ('error' in parsed) return NextResponse.json({ error: parsed.error }, { status: parsed.status })
+  const body = parsed.body as { sku?: string; quantity?: number; uom?: string }
   const sku = body?.sku?.trim()
   const quantity = body?.quantity
   if (!sku || sku.length > 40 || !Number.isInteger(quantity) || !quantity || quantity < 1 || quantity > 10000) {
