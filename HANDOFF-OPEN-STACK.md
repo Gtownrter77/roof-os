@@ -8,20 +8,22 @@ Branch: wire/local-whisper. Not on main until the pull request is merged.
 
 | Paid call | Free replacement | Where |
 | --- | --- | --- |
-| OpenAI whisper-1 | faster-whisper, MIT build of openai/whisper. No key. | workers/whisper, WHISPER_URL, lib/ai/chat-copilot.ts |
-| OpenAI gpt-4o-mini chat | Ollama llama3:8b. Keywords only if Ollama is down. | lib/ai/ollama.ts, lib/ai/chat-copilot.ts |
+| OpenAI whisper-1 | faster-whisper, MIT build of openai/whisper. No key. | workers/whisper, WHISPER_URL |
+| OpenAI gpt-4o-mini chat | Ollama llama3:8b. Keywords only if Ollama is down. | lib/ai/ollama.ts |
 | Receptionist OpenAI fallback | Same Ollama model, then the keyword rule engine. | lib/receptionist-ai.ts |
+| Gemini 2.5 Flash photo analysis | Ollama llava, local, no key. Same observation contract. | lib/ai/local-vision.mjs, photo-estimate analyze route |
 
-Voice page now records and posts to /api/ai/transcribe. Browser speech recognition was already free. That page change was extra, not a paid cut.
+Pull llava once: `ollama pull llava`. Set OLLAMA_VISION_MODEL if you use another local vision model.
+
+Siding and aerial routes still import the Gemini request helper. They are not switched until this same helper is called from those files. Do not delete GEMINI_API_KEY from a deploy until those two routes are switched.
 
 ## Left, because no free replacement was found
 
-- Stripe. Card checkout and webhooks. No free rail does the same job.
-- Twilio. Phone and SMS. No free rail does the same job.
-- Gemini. Key remains in .env.example. No free vision call was wired in its place.
-- Lowe's client id and secret. Retailer price feed. Left.
-- RapidAPI. Left.
-- Capout. Left.
-- Supabase. Database. Left.
+- Stripe. Card checkout and webhooks.
+- Twilio. Phone and SMS.
+- Lowe's client id and secret. Retailer price feed.
+- RapidAPI.
+- Capout.
+- Supabase. Database.
 
 Do not delete those keys or call sites until a free replacement is in the same slot.
