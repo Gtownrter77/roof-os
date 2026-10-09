@@ -79,22 +79,26 @@ const ROOF_OS_NAVIGATION_MAP: { keywords: RegExp; action: ChatAction; defaultRep
   },
 ]
 
-export async function processAudioTranscription(audioBlob: Blob): Promise<string> {
-  const apiKey = process.env.OPENAI_API_KEY?.trim()
-  if (apiKey) {
-    try {
-      const client = new OpenAI({ apiKey })
-      const file = new File([audioBlob], 'audio.webm', { type: audioBlob.type || 'audio/webm' })
-      const transcription = await client.audio.transcriptions.create({
-        file,
-        model: 'whisper-1',
-      })
-      if (transcription.text) return transcription.text
-    } catch {
-      // Fall through to open-source local whisper or web speech fallback
-    }
+const BAKED_IN_LANGUAGES = new Set(['en', 'es', 'zh', 'fr'])
+
+export async function processAudioTranscription(audioBlob: Blob, language = 'en'): Promise<string> {
+  const code = language.split('-')[0].toLowerCase()
+  if (!BAKED_IN_LANGUAGES.has(code) && code !== 'ko') {
+    throw new Error(`Language ${code} is not enabled.`)
   }
-  return 'OpenWhisper Audio Transcription fallback processed.'
+  const worker = process.env.WHISPER_URL?.trim()
+  if (!worker) {
+    throw new Error('Local Whisper worker is not configured. Set WHISPER_URL.')
+  }
+  const body = new FormData()
+  body.append('file', new File([audioBlob], 'audio.webm', { type: audioBlob.type || 'audio/webm' }))
+  body.append('language', code)
+  const response = await fetch(`${worker.replace(/\/$/, '')}/transcribe`, { method: 'POST', body })
+  if (!response.ok) {
+    throw new Error(`Local Whisper failed (${response.status}).`)
+  }
+  const payload = await response.json() as { text?: string }
+  return payload.text?.trim() || ''
 }
 
 export async function processChatCopilot(input: {
@@ -110,7 +114,6 @@ export async function processChatCopilot(input: {
     }
   }
 
-  // Check matching module navigation
   const matchedNav = ROOF_OS_NAVIGATION_MAP.find((item) => item.keywords.test(query))
 
   const apiKey = process.env.OPENAI_API_KEY?.trim()
@@ -152,7 +155,6 @@ export async function processChatCopilot(input: {
     }
   }
 
-  // Smart operational rule engine fallback
   if (matchedNav) {
     return {
       reply: `${matchedNav.defaultReply} Would you like to jump right there?`,
@@ -161,9 +163,8 @@ export async function processChatCopilot(input: {
     }
   }
 
-  // Generic helpful response
   return {
-    reply: `I can help you navigate ROOF/OS, calculate roof squares, track storm damage, generate Golden Reports, or manage invoices. What would you like to do now?`,
+    reply: 'I can help you navigate ROOF/OS, calculate roof squares, track storm damage, generate Golden Reports, or manage invoices. What would you like to do now?',
     suggestedAction: { label: 'Go to Command Center', href: '/' },
     quickReplies: ['Track Active Storms', 'Aerial Measurement', 'New Estimate', 'Golden Report'],
   }
