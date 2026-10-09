@@ -45,6 +45,13 @@ ROOF/OS should use four bounded automation agents. Each agent is an auditable wo
 - Enforce idempotency with a unique event key and retry status.
 - Never auto-send customer communications, sign contracts, approve estimates, or submit payments without an explicit human approval rule.
 
+## Llama integration
+
+- `lib/ai/ollama.ts` is the shared bounded adapter for the local Ollama endpoint and `OLLAMA_MODEL` (default `llama3:8b`).
+- The operations copilot and receptionist use the shared adapter with deterministic fallbacks when Ollama is unavailable.
+- The inspection-quality worker can add an advisory structured summary when `LLAMA_AGENT_ENABLED=true`; deterministic evidence checks remain authoritative.
+- Llama assistance is disabled by default in `.env.example` and never receives service-role credentials or browser data.
+
 ## Shipment readiness status
 
 The four agent keys are seeded in `automation_rules`, but they are not yet four running production workers. Agent 1 has a database-backed follow-up trigger foundation; Agent 2 shares that deterministic trigger foundation; Agent 3 has documented rules but no worker or inspection-completion event handler; Agent 4 is intentionally disabled until the inspection schema, report approval state, and a trusted worker are live. Migration 008 adds `agent_worker_heartbeats` so readiness can be proven with a recent authenticated heartbeat rather than inferred from a configuration row.

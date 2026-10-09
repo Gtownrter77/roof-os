@@ -1,5 +1,6 @@
 import { SupabaseClient } from '@supabase/supabase-js'
 import { createAgentRuntime } from './agent-runtime'
+import { runLlamaAgentJson } from './llama-agent'
 
 type InspectionQualityConfig = {
   supabaseUrl: string
@@ -32,6 +33,7 @@ export async function runInspectionQuality(
 
   await runtime.heartbeat(workspaceId, 'inspection_quality', 'healthy', {
     deterministic: true,
+    llama_advisory: process.env.LLAMA_AGENT_ENABLED?.trim().toLowerCase() === 'true',
     checks: ['photo_presence', 'upload_status', 'caption_presence', 'duplicate_object_path'],
   })
 
@@ -100,6 +102,21 @@ export async function runInspectionQuality(
         if (taskError && taskError.code !== '23505') throw taskError
       }
 
+      const llamaAdvisory = await runLlamaAgentJson<{
+        summary?: string
+        suggested_review_items?: string[]
+      }>({
+        agentKey: 'inspection_quality',
+        promptVersion: 'inspection-quality-llama-v1',
+        instruction: 'Summarize the deterministic evidence-quality findings. Suggest only review items that are already supported by the supplied metadata. Do not infer damage, coverage, measurements, or approval status.',
+        input: {
+          inspection_id: inspectionId,
+          photo_count: rows.length,
+          deterministic_issues: issues,
+          photo_results: photoResults,
+        },
+      })
+
       return {
         status: needsReview ? ('needs_review' as const) : ('succeeded' as const),
         output: {
@@ -108,6 +125,7 @@ export async function runInspectionQuality(
           issue_count: issues.length,
           issues,
           photos: photoResults,
+          model_assistance: llamaAdvisory ?? { enabled: false },
         },
         approvalState: needsReview ? ('pending' as const) : ('not_required' as const),
       }
