@@ -1,3 +1,5 @@
+import { askOllama } from './ollama'
+
 export type ChatMessage = {
   role: 'user' | 'assistant'
   content: string
@@ -113,6 +115,20 @@ export async function processChatCopilot(input: {
   }
 
   const matchedNav = ROOF_OS_NAVIGATION_MAP.find((item) => item.keywords.test(query))
+  const local = await askOllama([
+    'You are the ROOF/OS operations copilot. Answer in two sentences. Do not invent prices, coverage, or measurements.',
+    matchedNav ? `The matching screen is ${matchedNav.action.href}.` : 'No screen matched.',
+    `User: ${query}`,
+  ].join('\n'))
+
+  if (local) {
+    return {
+      reply: local,
+      suggestedAction: matchedNav?.action,
+      quickReplies: getSuggestedQuickReplies(matchedNav?.action.href),
+    }
+  }
+
   if (matchedNav) {
     return {
       reply: `${matchedNav.defaultReply} Would you like to jump right there?`,
@@ -122,7 +138,7 @@ export async function processChatCopilot(input: {
   }
 
   return {
-    reply: 'I can help you navigate ROOF/OS, calculate roof squares, track storm damage, generate Golden Reports, or manage invoices. What would you like to do now?',
+    reply: 'Local Ollama is not reachable. I can still open storm, leads, measure, reports, or invoices from the menu.',
     suggestedAction: { label: 'Go to Command Center', href: '/' },
     quickReplies: ['Track Active Storms', 'Aerial Measurement', 'New Estimate', 'Golden Report'],
   }
