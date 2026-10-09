@@ -1,5 +1,3 @@
-import OpenAI from 'openai'
-
 export type ChatMessage = {
   role: 'user' | 'assistant'
   content: string
@@ -115,46 +113,6 @@ export async function processChatCopilot(input: {
   }
 
   const matchedNav = ROOF_OS_NAVIGATION_MAP.find((item) => item.keywords.test(query))
-
-  const apiKey = process.env.OPENAI_API_KEY?.trim()
-  if (apiKey) {
-    try {
-      const client = new OpenAI({ apiKey })
-      const completion = await client.chat.completions.create({
-        model: process.env.CHAT_AI_MODEL || 'gpt-4o-mini',
-        temperature: 0.3,
-        messages: [
-          {
-            role: 'system',
-            content: [
-              'You are the ROOF/OS AI Operations Copilot for roofing contractors and storm restoration specialists.',
-              'Be concise, clear, and action-oriented (2-3 sentences max).',
-              'Guide the user to the correct operational tool in ROOF/OS: /weather (storms), /leads (CRM), /measure (aerial roof measurement), /damage-detection (photo AI), /pricing (estimates and price book), /reports (golden reports), /payment (invoices and payments), /tasks (production).',
-              'If the user asks a calculation or roofing question (e.g. squares = sqft / 100, pitch multiplier = sqrt(1 + (pitch/12)^2)), explain clearly and concisely.',
-              'Do not invent non-existent features. Answer directly.',
-            ].join(' '),
-          },
-          ...(input.history || []).slice(-6).map((msg) => ({
-            role: msg.role === 'assistant' ? ('assistant' as const) : ('user' as const),
-            content: msg.content,
-          })),
-          { role: 'user', content: query },
-        ],
-      })
-
-      const rawReply = completion.choices[0]?.message.content?.trim()
-      if (rawReply) {
-        return {
-          reply: rawReply,
-          suggestedAction: matchedNav?.action,
-          quickReplies: getSuggestedQuickReplies(matchedNav?.action?.href),
-        }
-      }
-    } catch {
-      // Fall through to operational rule response
-    }
-  }
-
   if (matchedNav) {
     return {
       reply: `${matchedNav.defaultReply} Would you like to jump right there?`,
