@@ -6,7 +6,9 @@ import AiChatBar from './AiChatBar'
 export default function ConditionalAiChatBar() {
   const pathname = usePathname()
 
-  if (pathname === '/auth/login') return null
+  // Authentication screens should stay focused and unobstructed. Keep the
+  // copilot available everywhere else in the operations app.
+  if (pathname?.startsWith('/auth')) return null
 
   return <AiChatBar />
 }
