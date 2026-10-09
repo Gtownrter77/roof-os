@@ -50,6 +50,15 @@ Exactly three mobile weaknesses were addressed:
 
 Static, runtime bundle, and repository security checks passed. A signed EAS APK artifact remains the final delivery gate.
 
+
+## 0.4.0 hardening batch — 2026-10-05
+This batch completed three integration steps:
+1. Added CI and release guards for migrations 050–051, including technician verification and complete field measurement columns.
+2. Expanded the deterministic mobile contract checks and aligned the real-device E2E preconditions through migration 052.
+3. Verified Expo configuration and the Android bundle embed locally; the signed APK still requires the existing EAS workflow with `EXPO_TOKEN`.
+
+The field app version is now `0.4.0`.
+
 ## APK artifact verification — 2026-10-04
 
 The manual EAS workflow completed successfully on commit `bd922eefed812471b026e243c0939c04e25b4557`.
