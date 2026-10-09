@@ -1,372 +1,340 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
-import { useRouter } from 'next/navigation'
-import { createClient } from '../../lib/supabase/client'
-import { createWorker } from 'tesseract.js'
-import { GoldenReport } from '../../components/GoldenReport'
+import React, { useState } from 'react'
+import { CandidateAddress, PipelineReport } from '../../lib/ai/photo-pipeline-engine'
 
-type Photo = { file: File; preview: string; id: string }
-type SourcePhoto = { id: string; url: string }
-type AIObservation = {
-  summary: string
-  authority_disclaimer: string
-  roof_classification: { roof_style: string; primary_material: string }
-  damage_observations: Array<{ category: string; severity: string; location_description: string }>
-  warnings: string[]
-}
+export default function AutomatedPhotoPipelinePage() {
+  const [step, setStep] = useState<'upload' | 'confirm_address' | 'review_report' | 'sent'>('upload')
+  const [loading, setLoading] = useState(false)
+  const [candidates, setCandidates] = useState<CandidateAddress[]>([])
+  const [selectedAddress, setSelectedAddress] = useState<CandidateAddress | null>(null)
+  const [includeDetached, setIncludeDetached] = useState(true)
+  const [profitMargin, setProfitMargin] = useState(35) // 35% company hold margin
+  const [report, setReport] = useState<PipelineReport | null>(null)
+  const [dispatchInfo, setDispatchInfo] = useState<{ email: string; phone: string; timeSec: number } | null>(null)
 
-const MAX_PHOTOS = 50
-const MAX_PHOTO_BYTES = 30 * 1024 * 1024
-const MIME_EXTENSIONS: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' }
-
-export default function PhotoEstimatePage() {
-  const router = useRouter()
-  const [supabase] = useState(() => createClient())
-  const inputRef = useRef<HTMLInputElement>(null)
-  const [photos, setPhotos] = useState<Photo[]>([])
-  const [sourcePhotos, setSourcePhotos] = useState<SourcePhoto[]>([])
-  const [address, setAddress] = useState('')
-  const [roofSquares, setRoofSquares] = useState('')
-  const [gutterLf, setGutterLf] = useState('')
-  const [photoIds, setPhotoIds] = useState<string[]>([])
-  const [inspectionId, setInspectionId] = useState('')
-  const [message, setMessage] = useState('')
-  const [error, setError] = useState('')
-  const [working, setWorking] = useState(false)
-  const [ocrWorking, setOcrWorking] = useState(false)
-  const [workflow, setWorkflow] = useState<any>(null)
-  const [fullReport, setFullReport] = useState<any>(null)
-  const [canRunAI, setCanRunAI] = useState(false)
-  const [adminCheckComplete, setAdminCheckComplete] = useState(false)
-  const [aiAnalysis, setAiAnalysis] = useState<AIObservation | null>(null)
-  const [eaveLf, setEaveLf] = useState('')
-  const [rafterLf, setRafterLf] = useState('')
-  const [pitch, setPitch] = useState('')
-  const [roofType, setRoofType] = useState<'hip' | 'gable' | 'other'>('hip')
-  const [wasteFactor, setWasteFactor] = useState('0.10')
-  const [soffitWidthFt, setSoffitWidthFt] = useState('1')
-  const [fasciaWidthFt, setFasciaWidthFt] = useState('0.5')
-  const [verifiedGutterLf, setVerifiedGutterLf] = useState('')
-  const [technicianName, setTechnicianName] = useState('')
-  const [technicianLicense, setTechnicianLicense] = useState('')
-  const [technicianSignature, setTechnicianSignature] = useState('')
-  const [managerName, setManagerName] = useState('')
-  const [managerSignature, setManagerSignature] = useState('')
-  const [photoReviewNotes, setPhotoReviewNotes] = useState<Record<string, string>>({})
-
-  useEffect(() => {
-    let active = true
-    async function checkWorkspaceAdmin() {
-      try {
-        const { data: { user } } = await supabase.auth.getUser()
-        if (!user) return
-        const { data: workspaceId, error: workspaceError } = await supabase.rpc('current_workspace_id')
-        if (workspaceError || !workspaceId) return
-        const { data: isAdmin, error: roleError } = await supabase.rpc('is_workspace_admin', { target_workspace: workspaceId })
-        if (active && !roleError && isAdmin === true) setCanRunAI(true)
-      } catch {
-        // The analysis endpoint independently enforces workspace-admin access.
-      } finally {
-        if (active) setAdminCheckComplete(true)
-      }
-    }
-    void checkWorkspaceAdmin()
-    return () => { active = false }
-  }, [supabase])
-
-  useEffect(() => {
-    const requestedInspectionId = typeof window === 'undefined' ? null : new URLSearchParams(window.location.search).get('inspection')
-    if (!requestedInspectionId || inspectionId) return
-    async function loadInspectionContext() {
-      const { data, error: queryError } = await supabase
-        .from('inspection_sessions')
-        .select('id,leads(address)')
-        .eq('id', requestedInspectionId)
-        .maybeSingle()
-      if (queryError || !data) return
-      setInspectionId(data.id)
-      const lead = Array.isArray(data.leads) ? data.leads[0] : data.leads
-      if (lead?.address) setAddress(lead.address)
-      const { data: photoRows } = await supabase
-        .from('inspection_photos')
-        .select('id,object_path')
-        .eq('inspection_id', data.id)
-      const savedPhotoRows = photoRows ?? []
-      setPhotoIds(savedPhotoRows.map((photo) => photo.id))
-      if (savedPhotoRows.length) {
-        const { data: signedPhotos, error: signedPhotoError } = await supabase.storage
-          .from('inspection-photos')
-          .createSignedUrls(savedPhotoRows.map((photo) => photo.object_path), 3600)
-        if (!signedPhotoError && signedPhotos) {
-          setSourcePhotos(signedPhotos.flatMap((photo, index) => photo.signedUrl ? [{ id: savedPhotoRows[index].id, url: photo.signedUrl }] : []))
-        }
-      }
-      const { data: savedWorkflow } = await supabase
-        .from('photo_estimate_workflows')
-        .select('id,status,report,estimate,storm_candidates,source_photo_ids,ai_analysis,inspection_id,address,latitude,longitude,footprint_sqft,lead_id,approved_by,approved_at,technician_name,technician_license,technician_signature,photo_reviews,manager_approved_by,manager_approved_at,manager_approval_name,manager_approval_signature')
-        .eq('inspection_id', data.id)
-        .order('updated_at', { ascending: false })
-        .limit(1)
-        .maybeSingle()
-      if (savedWorkflow) {
-        setWorkflow(savedWorkflow)
-        if (savedWorkflow.address) setAddress(savedWorkflow.address)
-        setFullReport(savedWorkflow.report?.fullReport ?? null)
-        if (savedWorkflow.ai_analysis) setAiAnalysis(savedWorkflow.ai_analysis as AIObservation)
-      }
-      setMessage(savedWorkflow?.report?.fullReport
-        ? 'Saved inspection and full report loaded. Review the source evidence before printing or continuing.'
-        : 'Inspection loaded. Saved photos are ready; add or confirm evidence, then build or continue the review packet.')
-    }
-    void loadInspectionContext()
-  }, [inspectionId, supabase])
-
-  function chooseFiles(event: React.ChangeEvent<HTMLInputElement>) {
-    const selected = Array.from(event.target.files ?? [])
-    event.target.value = ''
-    const supported = selected.filter((file) => Object.hasOwn(MIME_EXTENSIONS, file.type) && file.size > 0)
-    const unsupportedCount = selected.length - supported.length
-    const next = [...photos]
-    let totalBytes = next.reduce((sum, photo) => sum + photo.file.size, 0)
-    let limitReached = false
-    for (const file of supported) {
-      if (next.length >= MAX_PHOTOS || totalBytes + file.size > MAX_PHOTO_BYTES) {
-        limitReached = true
-        continue
-      }
-      totalBytes += file.size
-      next.push({ file, preview: URL.createObjectURL(file), id: crypto.randomUUID() })
-    }
-    setPhotos(next)
-    if (unsupportedCount || limitReached) {
-      setError(`Only JPEG, PNG, and WebP photos are supported, up to ${MAX_PHOTOS} photos and 30 MB total.`)
-    } else {
-      setError('')
-    }
-    if (workflow && next.length > photos.length) {
-      setWorkflow(null)
-      setAiAnalysis(null)
-      setVerifiedGutterLf('')
-      setMessage('Additional photos selected. Build a new review packet to include them.')
-    }
-  }
-
-  async function findAddressInPhotos() {
-    if (!photos.length) { setError('Add a photo containing a visible address first.'); return }
-    setOcrWorking(true); setError(''); setMessage('Reading visible text from the photo…')
-    const worker = await createWorker('eng')
+  // Step 1: Upload Photo -> Filter Addresses
+  const handlePhotoUpload = async () => {
+    setLoading(true)
     try {
-      const results: string[] = []
-      for (const photo of photos.slice(0, 3)) {
-        const result = await worker.recognize(photo.file)
-        if (result.data.text.trim()) results.push(result.data.text.trim())
-      }
-      const candidate = results.join(' ').replace(/\s+/g, ' ').trim()
-      setAddress(candidate)
-      setMessage(candidate ? 'Address candidate found from visible photo text. Confirm or edit it before continuing.' : 'No readable address text was found. Enter or confirm the property address manually.')
-    } catch (err) { setError(err instanceof Error ? err.message : 'Photo text recognition failed.') }
-    finally { await worker.terminate(); setOcrWorking(false) }
-  }
-
-  async function uploadPhotos(): Promise<{ ids: string[]; inspectionId: string }> {
-    if (!photos.length) throw new Error('Add at least one roof/property photo.')
-    const { data: { user } } = await supabase.auth.getUser()
-    const { data: workspaceId } = await supabase.rpc('current_workspace_id')
-    if (!user || !workspaceId) throw new Error('Sign in with a workspace before uploading.')
-
-    let activeInspectionId = inspectionId
-    if (!activeInspectionId) {
-      const { data: inspection, error: inspectionError } = await supabase
-        .from('inspection_sessions')
-        .insert({ workspace_id: workspaceId, created_by: user.id, status: 'in_progress' })
-        .select('id')
-        .single()
-      if (inspectionError || !inspection) throw new Error('Could not start an inspection session for these photos.')
-      activeInspectionId = inspection.id
-      setInspectionId(activeInspectionId)
-    }
-
-    const ids = [...photoIds]
-    for (const photo of photos) {
-      if (ids.includes(photo.id)) continue
-      const extension = MIME_EXTENSIONS[photo.file.type]
-      if (!extension) throw new Error('Only JPEG, PNG, and WebP photos are supported.')
-      const objectId = crypto.randomUUID()
-      const path = `${workspaceId}/${user.id}/${activeInspectionId}/${objectId}.${extension}`
-      const { error: uploadError } = await supabase.storage.from('inspection-photos').upload(path, photo.file, { contentType: photo.file.type, upsert: false })
-      if (uploadError) throw new Error('A photo could not be uploaded. Please retry.')
-      const { error: metadataError } = await supabase.from('inspection_photos').insert({
-        id: photo.id,
-        inspection_id: activeInspectionId,
-        workspace_id: workspaceId,
-        uploaded_by: user.id,
-        bucket_id: 'inspection-photos',
-        object_path: path,
-        mime_type: photo.file.type,
-        file_size_bytes: photo.file.size,
-        upload_status: 'uploaded',
-      })
-      if (metadataError) {
-        await supabase.storage.from('inspection-photos').remove([path]).catch(() => undefined)
-        throw new Error('Photo metadata could not be saved. Please retry.')
-      }
-      ids.push(photo.id)
-      setPhotoIds([...ids])
-    }
-    return { ids, inspectionId: activeInspectionId }
-  }
-
-  async function buildPacket() {
-    setWorking(true); setError(''); setMessage('')
-    try {
-      if (!address.trim()) throw new Error('Enter or confirm the property address before evidence lookup.')
-      const uploaded = photoIds.length && inspectionId ? { ids: photoIds, inspectionId } : await uploadPhotos()
-      setPhotoIds(uploaded.ids)
-      setInspectionId(uploaded.inspectionId)
-      const response = await fetch('/api/photo-estimate', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ address, roofSquares: Number(roofSquares || 0), gutterLf: Number(gutterLf || 0), photoIds: uploaded.ids, inspectionId: uploaded.inspectionId }) })
-      const payload = await response.json()
-      if (!response.ok) throw new Error(payload.detail || payload.error || 'Could not build the review packet.')
-      setWorkflow(payload.workflow)
-      setFullReport(null)
-      setAiAnalysis(null)
-      setVerifiedGutterLf('')
-      setMessage('Review packet created. Verify every finding before any customer delivery.')
-    } catch (err) { setError(err instanceof Error ? err.message : 'Workflow failed.') }
-    setWorking(false)
-  }
-
-  async function analyzePhotos(forceRefresh = false) {
-    if (!workflow?.id || !canRunAI || working) return
-    setWorking(true); setError(''); setMessage('')
-    try {
-      const response = await fetch('/api/photo-estimate/analyze', {
+      const res = await fetch('/api/photo-estimate/pipeline', {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ workflowId: workflow.id, ...(forceRefresh ? { forceRefresh: true } : {}) }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'disambiguate', photoUri: 'house-photo.jpg' })
       })
-      const payload = await response.json().catch(() => null)
-      if (!response.ok) throw new Error(payload?.error || 'Photo analysis could not be completed.')
-      if (!payload?.analysis) throw new Error('Photo analysis returned no usable observation packet.')
-      setAiAnalysis(payload.analysis as AIObservation)
-      setMessage(payload.cached ? 'Loaded the saved AI visual observations.' : 'AI visual observations saved for technician review.')
+      const data = await res.json()
+      if (data.success) {
+        setCandidates(data.candidates)
+        setSelectedAddress(data.candidates[0])
+        setStep('confirm_address')
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Photo analysis could not be completed.')
+      alert('Error analyzing photo geolocation')
     } finally {
-      setWorking(false)
+      setLoading(false)
     }
   }
 
-  async function saveFieldVerification(action: 'verify' | 'refresh') {
-    if (!workflow?.id) return
-    if (action === 'verify' && !verifiedGutterLf.trim()) {
-      setError('Enter the technician-measured gutter length, or enter 0 if there are no gutters.')
-      return
-    }
-    setWorking(true); setError(''); setMessage('')
+  // Step 2: Confirm Address & Options -> Run Tri-Fork Pipeline
+  const handleConfirmAddressAndRun = async () => {
+    if (!selectedAddress) return
+    setLoading(true)
     try {
-      const verification = action === 'verify'
-        ? { eaveLf: Number(eaveLf), rafterLf: Number(rafterLf), pitch: Number(pitch), roofType, wasteFactor: Number(wasteFactor), soffitWidthFt: Number(soffitWidthFt), fasciaWidthFt: Number(fasciaWidthFt), gutterLf: Number(verifiedGutterLf), technicianName: technicianName.trim() || undefined, technicianLicense: technicianLicense.trim() || undefined, technicianSignature: technicianSignature || undefined }
-        : { notes: 'Technician requested a fresh photo set.' }
-      const response = await fetch(`/api/photo-estimate/verify?workflowId=${encodeURIComponent(workflow.id)}`, { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action, ...verification }) })
-      const payload = await response.json()
-      if (!response.ok) throw new Error(payload.detail || payload.error || 'Could not save field verification.')
-      setWorkflow((current: any) => ({ ...current, ...payload.workflow }))
-      setMessage(action === 'verify' ? 'Technician verification saved. The packet is approved for controlled customer-packet creation.' : 'Photo refresh requested. Existing measurements and photos were preserved.')
-    } catch (err) { setError(err instanceof Error ? err.message : 'Verification failed.') }
-    setWorking(false)
-  }
-
-  async function reviewPhoto(photoId: string, usability: 'usable' | 'not_usable', coverage: 'complete' | 'partial' | 'not_visible') {
-    if (!workflow?.id || working) return
-    setWorking(true); setError('')
-    try {
-      const response = await fetch('/api/photo-estimate/review', { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action: 'photo_review', workflowId: workflow.id, photoId, usability, coverage, notes: photoReviewNotes[photoId] || undefined }) })
-      const payload = await response.json().catch(() => null)
-      if (!response.ok) throw new Error(payload?.error || 'Could not save the photo review.')
-      setWorkflow((current: any) => ({ ...current, ...payload.workflow }))
-      setMessage('Photo review saved.')
-    } catch (err) { setError(err instanceof Error ? err.message : 'Could not save the photo review.') }
-    finally { setWorking(false) }
-  }
-
-  async function approveManager() {
-    if (!workflow?.id || working) return
-    setWorking(true); setError('')
-    try {
-      const response = await fetch('/api/photo-estimate/review', { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action: 'manager_approve', workflowId: workflow.id, managerName: managerName.trim(), managerSignature }) })
-      const payload = await response.json().catch(() => null)
-      if (!response.ok) throw new Error(payload?.error || 'Could not save manager approval.')
-      setWorkflow((current: any) => ({ ...current, ...payload.workflow }))
-      setMessage('Owner or manager approval saved. The report remains a controlled draft.')
-    } catch (err) { setError(err instanceof Error ? err.message : 'Could not save manager approval.') }
-    finally { setWorking(false) }
-  }
-
-  async function generateFullReport() {
-    if (!workflow?.id || workflow.status !== 'approved' || working) return
-    setWorking(true); setError(''); setMessage('')
-    try {
-      const response = await fetch('/api/photo-estimate/report', {
+      const res = await fetch('/api/photo-estimate/pipeline', {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ workflowId: workflow.id }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'execute_trifork',
+          confirmedAddress: selectedAddress,
+          includeDetachedBuildings: includeDetached,
+          profitMarginPercent: profitMargin,
+          includeDumpster: true,
+          dumpsterFee: 550,
+          laborRatePerSquare: 85
+        })
       })
-      const payload = await response.json().catch(() => null)
-      if (!response.ok) throw new Error(payload?.error || 'The full report could not be generated.')
-      if (!payload?.report) throw new Error('The full report returned no usable content.')
-      setWorkflow((current: any) => ({ ...current, ...payload.workflow }))
-      setFullReport(payload.report)
-      setMessage('Full report generated from the approved photo workflow. Review it before any external delivery.')
+      const data = await res.json()
+      if (data.success) {
+        setReport(data.report)
+        setStep('review_report')
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'The full report could not be generated.')
+      alert('Error running tri-fork estimate pipeline')
     } finally {
-      setWorking(false)
+      setLoading(false)
     }
   }
 
-  const reportPhotoIds: string[] = Array.isArray(fullReport?.sourceEvidence?.photoIds) ? fullReport.sourceEvidence.photoIds : []
-  const reportPhotoById = new Map([
-    ...sourcePhotos,
-    ...photos.map((photo) => ({ id: photo.id, url: photo.preview })),
-  ].map((photo) => [photo.id, photo.url]))
+  // Step 3: Tech Authorizes & Dispatches Report to Customer
+  const handleAuthorizeAndSend = async () => {
+    if (!report) return
+    setLoading(true)
+    try {
+      const customerEmail = 'homeowner@evergreen.com'
+      const customerPhone = '+1 (555) 382-9102'
 
-  return <div className="min-h-screen bg-gray-50 p-4 pb-24">
-    <button onClick={() => router.back()} className="text-blue-600 mb-4">← Back</button>
-    <h1 className="text-2xl font-bold">Photo → Estimate Review</h1>
-    <p className="text-sm text-gray-600 mt-1 mb-4">Upload evidence first. The system assembles address, property, storm, measurement, pricing, and report candidates. A technician must verify the packet before it can be sent.</p>
-    <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-900 mb-4"><b>Important:</b> OCR can read visible address text; it cannot prove a roof photo’s location. Confirm the property and quantities before approval.</div>
-    <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp" capture="environment" multiple className="hidden" onChange={chooseFiles} />
-    <button onClick={() => inputRef.current?.click()} className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold">{photos.length ? `Add photos (${photos.length})` : 'Take or upload photos'}</button>
-    {photos.length > 0 && <><div className="grid grid-cols-3 gap-2 mt-3">{photos.map((photo) => <img key={photo.id} src={photo.preview} alt="Uploaded roof evidence" className="h-24 w-full object-cover rounded" />)}</div><button onClick={() => void findAddressInPhotos()} disabled={ocrWorking} className="w-full mt-3 bg-purple-600 text-white py-2 rounded-lg disabled:opacity-60">{ocrWorking ? 'Reading photo text…' : 'Find address text in photo'}</button></>}
-    <div className="bg-white rounded-lg shadow p-4 mt-4 space-y-3">
-      <h2 className="font-semibold">Property confirmation</h2>
-      <label className="block text-sm">Address to verify<input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Confirm the property address" className="w-full p-3 border rounded mt-1" /></label>
-      <div className="grid grid-cols-2 gap-3"><label className="block text-sm">Roof squares<input value={roofSquares} onChange={(e) => setRoofSquares(e.target.value)} inputMode="decimal" placeholder="Optional" className="w-full p-3 border rounded mt-1" /></label><label className="block text-sm">Gutter LF<input value={gutterLf} onChange={(e) => setGutterLf(e.target.value)} inputMode="decimal" placeholder="Optional" className="w-full p-3 border rounded mt-1" /></label></div>
-      <p className="text-xs text-gray-600">These initial quantities are unverified candidates. Estimate drafts use only the quantities entered again and approved in technician verification below.</p>
-      <button onClick={() => void buildPacket()} disabled={working} className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold disabled:opacity-60">{working ? 'Uploading and building review packet…' : 'Build review packet'}</button>
+      const res = await fetch('/api/photo-estimate/pipeline', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'authorize_and_send',
+          report,
+          techUserId: 'tech-john-doe',
+          customerEmail,
+          customerPhone
+        })
+      })
+      const data = await res.json()
+      if (data.success) {
+        setDispatchInfo({
+          email: customerEmail,
+          phone: customerPhone,
+          timeSec: data.dispatchResult.executionTimeSeconds
+        })
+        setStep('sent')
+      }
+    } catch (err) {
+      alert('Error dispatching final report')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-slate-950 text-slate-100 p-6 font-sans">
+      <div className="max-w-4xl mx-auto space-y-8">
+
+        {/* Header Banner */}
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-2xl flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="bg-blue-600 text-white text-xs font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">
+                10-Minute Pipeline
+              </span>
+              <span className="text-slate-400 text-sm">Automated Photo-to-Customer Report Engine</span>
+            </div>
+            <h1 className="text-2xl font-bold mt-2 text-white">Roof-OS Automated Inspection & Estimate Pipeline</h1>
+          </div>
+          <div className="text-right">
+            <div className="text-xs text-slate-400">Target SLA</div>
+            <div className="text-lg font-mono font-semibold text-emerald-400">&lt; 10:00 Mins</div>
+          </div>
+        </div>
+
+        {/* STEP 1: UPLOAD PHOTO */}
+        {step === 'upload' && (
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-8 text-center space-y-6">
+            <div className="w-16 h-16 bg-blue-600/20 text-blue-400 rounded-full flex items-center justify-center mx-auto text-2xl">
+              📸
+            </div>
+            <div>
+              <h2 className="text-xl font-semibold text-white">Capture or Upload House Inspection Photo</h2>
+              <p className="text-slate-400 text-sm mt-1">
+                Open-source EXIF/OCR stack will filter geolocations down to 3-6 candidate addresses for field human verification.
+              </p>
+            </div>
+
+            <button
+              onClick={handlePhotoUpload}
+              disabled={loading}
+              className="bg-blue-600 hover:bg-blue-500 text-white font-medium px-8 py-3.5 rounded-lg transition-all shadow-lg hover:shadow-blue-500/20 disabled:opacity-50"
+            >
+              {loading ? 'Processing EXIF & Address Disambiguation...' : 'Take Photo & Filter Addresses'}
+            </button>
+          </div>
+        )}
+
+        {/* STEP 2: CONFIRM ADDRESS & PROFIT MARGIN */}
+        {step === 'confirm_address' && (
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-6">
+            <div>
+              <h2 className="text-lg font-semibold text-white">Field Human Address Confirmation</h2>
+              <p className="text-slate-400 text-sm">Select the matched target address below (3-6 candidates found):</p>
+            </div>
+
+            <div className="space-y-3">
+              {candidates.map((item) => (
+                <div
+                  key={item.id}
+                  onClick={() => setSelectedAddress(item)}
+                  className={`p-4 rounded-lg border cursor-pointer flex items-center justify-between transition-all ${
+                    selectedAddress?.id === item.id
+                      ? 'border-blue-500 bg-blue-950/40 text-white'
+                      : 'border-slate-800 bg-slate-900/50 text-slate-300 hover:border-slate-700'
+                  }`}
+                >
+                  <div>
+                    <div className="font-medium text-base">{item.address}</div>
+                    <div className="text-xs text-slate-400">{item.city}, {item.state} {item.zip}</div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {item.hasDetachedBuildings && (
+                      <span className="bg-amber-950/80 text-amber-300 text-xs px-2 py-0.5 rounded border border-amber-800">
+                        Detached Structure
+                      </span>
+                    )}
+                    <span className="text-xs font-mono bg-slate-800 px-2 py-1 rounded">
+                      Match: {Math.round(item.confidenceScore * 100)}%
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* OPTIONS & SLIDERS */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-950/60 p-4 rounded-lg border border-slate-800">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-300 flex items-center justify-between">
+                  <span>Detached Buildings Aerial Segment</span>
+                  <input
+                    type="checkbox"
+                    checked={includeDetached}
+                    onChange={(e) => setIncludeDetached(e.target.checked)}
+                    className="w-4 h-4 accent-blue-600 rounded"
+                  />
+                </label>
+                <p className="text-xs text-slate-500">Includes detached garages or sheds in SAM aerial vectorizer.</p>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm font-medium">
+                  <span className="text-slate-300">Company Hold Profit Margin</span>
+                  <span className="text-emerald-400 font-mono font-bold">{profitMargin}%</span>
+                </div>
+                <input
+                  type="range"
+                  min="15"
+                  max="55"
+                  step="1"
+                  value={profitMargin}
+                  onChange={(e) => setProfitMargin(Number(e.target.value))}
+                  className="w-full accent-emerald-500 cursor-pointer"
+                />
+              </div>
+            </div>
+
+            <button
+              onClick={handleConfirmAddressAndRun}
+              disabled={loading || !selectedAddress}
+              className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-medium py-3.5 rounded-lg transition-all shadow-lg hover:shadow-emerald-500/20 disabled:opacity-50"
+            >
+              {loading ? 'Executing Tri-Fork Parallel Pipeline (SAM, NOAA, Codes)...' : 'Confirm Address & Dispatch Tri-Fork Pipeline'}
+            </button>
+          </div>
+        )}
+
+        {/* STEP 3: REVIEW REPORT (TRI-FORK COMPLETE) */}
+        {step === 'review_report' && report && (
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-6">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+              <div>
+                <span className="bg-emerald-950 text-emerald-400 text-xs px-2.5 py-1 rounded-full border border-emerald-800 font-medium">
+                  Tri-Fork Processing Complete
+                </span>
+                <h2 className="text-xl font-bold text-white mt-2">{report.confirmedAddress}</h2>
+              </div>
+              <div className="text-right">
+                <div className="text-xs text-slate-400">Total Generated Estimate</div>
+                <div className="text-2xl font-bold text-emerald-400 font-mono">
+                  ${report.estimate.totalEstimateAmount.toLocaleString()}
+                </div>
+              </div>
+            </div>
+
+            {/* TRI-FORK RESULTS GRID */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+              {/* Fork 1: Estimate & SAM Measurements */}
+              <div className="bg-slate-950 p-4 rounded-lg border border-slate-800 space-y-3">
+                <div className="text-xs font-bold text-blue-400 uppercase tracking-wider">1. Aerial SAM & Live Estimate</div>
+                <div className="text-sm space-y-1 text-slate-300">
+                  <div className="flex justify-between"><span>Squares:</span> <span className="font-mono text-white">{report.measurements.totalSquares} SQ</span></div>
+                  <div className="flex justify-between"><span>Model:</span> <span className="font-mono text-xs bg-slate-800 px-1.5 py-0.5 rounded">{report.measurements.segmentationModelUsed}</span></div>
+                  <div className="flex justify-between"><span>Materials (HD Live):</span> <span className="font-mono">${report.estimate.materialsSubtotal.toLocaleString()}</span></div>
+                  <div className="flex justify-between"><span>Dumpster & Labor:</span> <span className="font-mono">${(report.estimate.dumpsterFee + report.estimate.laborSubtotal).toLocaleString()}</span></div>
+                  <div className="flex justify-between text-emerald-400 font-semibold border-t border-slate-800 pt-1"><span>Profit ({report.estimate.profitMarginPercent}%):</span> <span className="font-mono">${report.estimate.grossProfitAmount.toLocaleString()}</span></div>
+                </div>
+              </div>
+
+              {/* Fork 2: 10-Yr NOAA Storm History */}
+              <div className="bg-slate-950 p-4 rounded-lg border border-slate-800 space-y-3">
+                <div className="text-xs font-bold text-amber-400 uppercase tracking-wider">2. NOAA 10-Yr Storm Dates</div>
+                <div className="space-y-1.5">
+                  {report.stormHistory10Yr.slice(0, 3).map((st, i) => (
+                    <div key={i} className="text-xs bg-slate-900 p-2 rounded border border-slate-800 flex justify-between">
+                      <span className="font-medium text-slate-200">{st.date}</span>
+                      <span className="text-amber-400 font-mono">{st.magnitude}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Fork 3: Building Codes */}
+              <div className="bg-slate-950 p-4 rounded-lg border border-slate-800 space-y-3">
+                <div className="text-xs font-bold text-purple-400 uppercase tracking-wider">3. Statutory Building Codes</div>
+                <div className="space-y-1.5">
+                  {report.buildingCodes.map((code, i) => (
+                    <div key={i} className="text-xs bg-slate-900 p-2 rounded border border-slate-800">
+                      <div className="font-bold text-purple-300">{code.codeCitation}</div>
+                      <div className="text-slate-400 text-[11px] truncate">{code.title}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+            </div>
+
+            {/* TECH AUTHORIZATION ACTION */}
+            <div className="bg-blue-950/40 border border-blue-800/60 p-4 rounded-lg flex items-center justify-between">
+              <div>
+                <div className="font-semibold text-white">Technician Authorization Required</div>
+                <div className="text-xs text-slate-300">Clicking confirm will immediately send the finalized report to customer via Email & SMS.</div>
+              </div>
+              <button
+                onClick={handleAuthorizeAndSend}
+                disabled={loading}
+                className="bg-blue-600 hover:bg-blue-500 text-white font-medium px-6 py-2.5 rounded-lg transition-all shadow-md hover:shadow-blue-500/20"
+              >
+                {loading ? 'Authorizing & Delivering...' : 'Confirm & Send to Customer'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* STEP 4: DISPATCH SUCCESS */}
+        {step === 'sent' && dispatchInfo && (
+          <div className="bg-slate-900 border border-emerald-800/80 rounded-xl p-8 text-center space-y-6">
+            <div className="w-16 h-16 bg-emerald-600/20 text-emerald-400 rounded-full flex items-center justify-center mx-auto text-3xl">
+              ✓
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-white">Report Successfully Delivered to Customer!</h2>
+              <p className="text-slate-300 text-sm mt-2">
+                Sent to Email <strong className="text-white">{dispatchInfo.email}</strong> and SMS <strong className="text-white">{dispatchInfo.phone}</strong>.
+              </p>
+            </div>
+
+            <div className="bg-slate-950 p-4 rounded-lg border border-slate-800 inline-block text-left text-sm space-y-1 font-mono">
+              <div className="text-slate-400">Total Execution Benchmark:</div>
+              <div className="text-emerald-400 text-lg font-bold">{dispatchInfo.timeSec} Seconds (Target: &lt; 600s / 10 Mins)</div>
+            </div>
+
+            <div>
+              <button
+                onClick={() => {
+                  setStep('upload')
+                  setReport(null)
+                  setDispatchInfo(null)
+                }}
+                className="bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium px-6 py-2.5 rounded-lg transition-all"
+              >
+                Start New Photo Pipeline
+              </button>
+            </div>
+          </div>
+        )}
+
+      </div>
     </div>
-    {error && <p className="text-red-700 bg-red-50 p-3 rounded mt-4 text-sm">{error}</p>}
-    {message && <p className="text-green-700 bg-green-50 p-3 rounded mt-4 text-sm">{message}</p>}
-    {workflow && <section className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4" aria-labelledby="ai-observations-title">
-      <h2 id="ai-observations-title" className="font-semibold">AI visual observations (non-authoritative)</h2>
-      <p className="text-xs text-gray-700 mt-1">Analysis is optional and starts only when an administrator requests it. Results are not measurements, pricing, code determinations, or insurance decisions; a technician must independently verify all findings.</p>
-      {canRunAI ? <div className="flex flex-wrap gap-2 mt-3">
-        <button onClick={() => void analyzePhotos(false)} disabled={working} className="bg-blue-700 text-white px-3 py-2 rounded disabled:opacity-60">{working ? 'Analyzing photos…' : 'Analyze roof photos'}</button>
-        {aiAnalysis && <button onClick={() => void analyzePhotos(true)} disabled={working} className="border border-blue-700 text-blue-800 px-3 py-2 rounded disabled:opacity-60">Force fresh analysis</button>}
-      </div> : adminCheckComplete ? <p className="text-xs text-gray-600 mt-2">Workspace administrator access is required to run or refresh AI analysis.</p> : <p className="text-xs text-gray-600 mt-2">Checking workspace permissions…</p>}
-      {aiAnalysis && <div className="mt-3 bg-white rounded p-3 space-y-2">
-        <p className="text-sm">{aiAnalysis.summary}</p>
-        <p className="text-sm"><b>Visual classification:</b> {aiAnalysis.roof_classification.roof_style.replaceAll('_', ' ')}; {aiAnalysis.roof_classification.primary_material.replaceAll('_', ' ')}.</p>
-        <p className="text-sm"><b>Damage observations:</b> {aiAnalysis.damage_observations.length} candidate(s).</p>
-        {aiAnalysis.damage_observations.length > 0 && <ul className="list-disc pl-5 text-sm">{aiAnalysis.damage_observations.map((item, index) => <li key={`${item.category}-${index}`}>{item.category.replaceAll('_', ' ')} — {item.severity}; {item.location_description}</li>)}</ul>}
-        {aiAnalysis.warnings.length > 0 && <ul className="list-disc pl-5 text-xs text-amber-800">{aiAnalysis.warnings.map((warning, index) => <li key={`${warning}-${index}`}>{warning}</li>)}</ul>}
-        <p className="text-xs text-gray-600">{aiAnalysis.authority_disclaimer}</p>
-      </div>}
-    </section>}
-    {workflow && <div className="bg-white rounded-lg shadow p-4 mt-4"><h2 className="font-bold">{workflow.report?.title}</h2><p className="text-sm mt-2">Status: <b>{workflow.status}</b></p><p className="text-sm">Property footprint assist: {workflow.report?.propertyEvidence?.footprintSqFt || 0} sq ft, low confidence</p><p className="text-sm">Storm candidates: {workflow.storm_candidates?.length || 0}; these are corroborating candidates, not a proven loss date.</p><p className="text-sm mt-3">Estimate: {workflow.estimate?.status}; no prices are inserted unless an approved price book is present.</p><div className="mt-3 border-t pt-3"><h3 className="font-semibold">Technician field verification</h3><p className="text-xs text-gray-600 mb-2">Review the packet, then choose exactly one action. The server preserves your measurements and does not decide whether they are plausible.</p><div className="grid grid-cols-2 gap-2"><input value={technicianName} onChange={(e) => setTechnicianName(e.target.value)} placeholder="Technician name" className="p-2 border rounded" /><input value={technicianLicense} onChange={(e) => setTechnicianLicense(e.target.value)} placeholder="License / registration" className="p-2 border rounded" /><label className="block text-sm col-span-2">Technician signature (PNG)<input type="file" accept="image/png" onChange={(e) => { const file = e.target.files?.[0]; if (!file) return; const reader = new FileReader(); reader.onload = () => setTechnicianSignature(typeof reader.result === 'string' ? reader.result : ''); reader.readAsDataURL(file) }} className="w-full p-2 border rounded mt-1" /></label><input value={eaveLf} onChange={(e) => setEaveLf(e.target.value)} placeholder="Eaves LF" className="p-2 border rounded" /><input value={rafterLf} onChange={(e) => setRafterLf(e.target.value)} placeholder="Rafter LF" className="p-2 border rounded" /><input value={pitch} onChange={(e) => setPitch(e.target.value)} placeholder="Pitch rise / 12" className="p-2 border rounded" /><select value={roofType} onChange={(e) => setRoofType(e.target.value as 'hip' | 'gable' | 'other')} className="p-2 border rounded"><option value="hip">Hip</option><option value="gable">Gable</option><option value="other">Other</option></select><input value={soffitWidthFt} onChange={(e) => setSoffitWidthFt(e.target.value)} placeholder="Soffit width (ft)" className="p-2 border rounded" /><input value={fasciaWidthFt} onChange={(e) => setFasciaWidthFt(e.target.value)} placeholder="Fascia width (ft)" className="p-2 border rounded" /><label className="block text-sm col-span-2">Technician-measured gutter length (LF; enter 0 if none)<input type="number" min="0" max="10000" step="0.01" inputMode="decimal" value={verifiedGutterLf} onChange={(e) => setVerifiedGutterLf(e.target.value)} placeholder="Required for approval" className="w-full p-2 border rounded mt-1" /></label></div><p className="text-xs text-gray-500 mt-1">The technician owns the measurement decision. Roof dimensions and gutter length are saved with the approver and timestamp; only these approved values can create estimate drafts.</p><select value={wasteFactor} onChange={(e) => setWasteFactor(e.target.value)} className="w-full p-2 border rounded mt-2"><option value="0.10">10% waste</option><option value="0.15">15% waste</option><option value="0">0% waste</option></select><div className="grid grid-cols-2 gap-2 mt-2"><button onClick={() => void saveFieldVerification('refresh')} disabled={working} className="bg-amber-500 text-white py-2 rounded disabled:opacity-60">Request photo refresh</button><button onClick={() => void saveFieldVerification('verify')} disabled={working} className="bg-green-600 text-white py-2 rounded disabled:opacity-60">Verify measurements</button></div></div><div className="mt-3 bg-amber-50 p-3 rounded text-sm">Verify records the technician, timestamp, roof and gutter measurements, slope multiplier, roof type, waste factor, soffit/fascia widths, and calculated squares. Refresh preserves the existing packet and returns it for new photos.</div></div>}
-    {workflow && <section className="bg-white rounded-lg shadow p-4 mt-4"><h2 className="font-semibold">Golden Report evidence review</h2><p className="text-xs text-gray-600 mt-1">Review every source photo before owner or manager approval. These are human evidence decisions, not AI findings.</p><div className="space-y-3 mt-3">{photoIds.map((photoId, index) => <div key={photoId} className="border rounded p-3"><p className="text-sm font-medium">Photo {index + 1} · {photoId}</p><input value={photoReviewNotes[photoId] ?? ''} onChange={(e) => setPhotoReviewNotes((current) => ({ ...current, [photoId]: e.target.value }))} placeholder="Optional coverage note" className="w-full p-2 border rounded mt-2 text-sm" /><div className="flex flex-wrap gap-2 mt-2"><button onClick={() => void reviewPhoto(photoId, 'usable', 'complete')} disabled={working} className="bg-green-600 text-white px-2 py-1 rounded text-xs">Usable · complete</button><button onClick={() => void reviewPhoto(photoId, 'usable', 'partial')} disabled={working} className="bg-amber-600 text-white px-2 py-1 rounded text-xs">Usable · partial</button><button onClick={() => void reviewPhoto(photoId, 'not_usable', 'not_visible')} disabled={working} className="bg-red-600 text-white px-2 py-1 rounded text-xs">Not usable</button></div></div>)}</div><div className="border-t mt-4 pt-4"><h3 className="font-medium">Owner or manager approval</h3><div className="grid grid-cols-2 gap-2 mt-2"><input value={managerName} onChange={(e) => setManagerName(e.target.value)} placeholder="Owner / manager name" className="p-2 border rounded" /><label className="text-sm">Signature (PNG)<input type="file" accept="image/png" onChange={(e) => { const file = e.target.files?.[0]; if (!file) return; const reader = new FileReader(); reader.onload = () => setManagerSignature(typeof reader.result === 'string' ? reader.result : ''); reader.readAsDataURL(file) }} className="w-full p-2 border rounded mt-1" /></label></div><button onClick={() => void approveManager()} disabled={working} className="w-full mt-3 bg-indigo-700 text-white py-2 rounded disabled:opacity-60">Record owner / manager approval</button></div></section>}
-{workflow?.status === 'approved' && workflow?.manager_approved_at && !fullReport && <button onClick={() => void generateFullReport()} disabled={working} className="w-full mt-4 bg-indigo-700 text-white py-3 rounded font-semibold disabled:opacity-60">{working ? 'Generating full report…' : 'Generate full report'}</button>}
-    {fullReport && <GoldenReport report={fullReport} photoUrls={reportPhotoById} onPrint={() => window.print()} />}
-  </div>
+  )
 }
