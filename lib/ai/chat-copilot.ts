@@ -102,26 +102,29 @@ const ROOF_OS_NAVIGATION_MAP: { keywords: RegExp; action: ChatAction; defaultRep
   },
 ]
 
-const BAKED_IN_LANGUAGES = new Set(['en', 'es', 'zh', 'fr'])
-
-export async function processAudioTranscription(audioBlob: Blob, language = 'en'): Promise<string> {
-  const code = language.split('-')[0].toLowerCase()
-  if (!BAKED_IN_LANGUAGES.has(code) && code !== 'ko') {
-    throw new Error(`Language ${code} is not enabled.`)
+/**
+ * Transcribe audio using the open-source faster-whisper worker.
+ * Falls back to an explicit Unknown result when the worker is unavailable;
+ * it never fabricates transcription text.
+ */
+export async function processAudioTranscription(audioBlob: Blob, language = process.env.WHISPER_LANGUAGE || 'en'): Promise<string> {
+  const workerUrl = process.env.WHISPER_WORKER_URL?.trim()
+  if (!workerUrl) return 'Unknown'
+  try {
+    const form = new FormData()
+    form.append('audio', audioBlob, 'audio.webm')
+    form.append('language', language)
+    const response = await fetch(workerUrl, {
+      method: 'POST',
+      body: form,
+      signal: AbortSignal.timeout(120_000),
+    })
+    if (!response.ok) return 'Unknown'
+    const payload = await response.json() as { text?: string }
+    return payload.text?.trim() || 'Unknown'
+  } catch {
+    return 'Unknown'
   }
-  const worker = process.env.WHISPER_URL?.trim()
-  if (!worker) {
-    throw new Error('Local Whisper worker is not configured. Set WHISPER_URL.')
-  }
-  const body = new FormData()
-  body.append('file', new File([audioBlob], 'audio.webm', { type: audioBlob.type || 'audio/webm' }))
-  body.append('language', code)
-  const response = await fetch(`${worker.replace(/\/$/, '')}/transcribe`, { method: 'POST', body })
-  if (!response.ok) {
-    throw new Error(`Local Whisper failed (${response.status}).`)
-  }
-  const payload = await response.json() as { text?: string }
-  return payload.text?.trim() || ''
 }
 
 export async function processChatCopilot(input: {
