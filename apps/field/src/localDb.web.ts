@@ -19,6 +19,12 @@ type MeasurementRow = {
   clientId: string
   roofSquares: number
   gutterLf: number
+  eaveLf: number
+  rafterLf: number
+  pitch: number
+  soffitLf: number
+  fasciaLf: number
+  roofType: string
   latitude: number | null
   longitude: number | null
   capturedAt: string
@@ -34,6 +40,11 @@ type PhotoRow = {
   clientId: string
   localUri: string
   album: string
+  caption: string | null
+  mimeType: string
+  fileSizeBytes: number | null
+  width: number | null
+  height: number | null
   capturedAt: string
   syncStatus: string
   remoteId: string | null
@@ -73,7 +84,19 @@ export const db = {
     const secondStatus = String(args[2] ?? '')
     const now = String(args[3] ?? '')
 
-    if (sql.startsWith('SELECT id, client_id, roof_squares, gutter_lf')) {
+    if (sql.startsWith('SELECT roof_squares, gutter_lf, eave_lf')) {
+      return measurements.filter((row) => row.draftId === draftId).sort((a, b) => b.capturedAt.localeCompare(a.capturedAt)).slice(0, 1).map((row) => ({ roof_squares: row.roofSquares, gutter_lf: row.gutterLf, eave_lf: row.eaveLf, rafter_lf: row.rafterLf, pitch: row.pitch, soffit_lf: row.soffitLf, fascia_lf: row.fasciaLf, roof_type: row.roofType }) as T)
+    }
+
+    if (sql.startsWith('SELECT retry_count FROM inspection_measurements_local')) {
+      return measurements.filter((row) => row.draftId === draftId && (row.syncStatus === firstStatus || row.syncStatus === secondStatus)).map((row) => ({ retry_count: row.retryCount }) as T)
+    }
+
+    if (sql.startsWith('SELECT retry_count FROM inspection_photo_queue')) {
+      return photos.filter((row) => row.draftId === draftId && (row.syncStatus === firstStatus || row.syncStatus === secondStatus)).map((row) => ({ retry_count: row.retryCount }) as T)
+    }
+
+    if (sql.startsWith('SELECT id, client_id, roof_squares, gutter_lf, eave_lf')) {
       return measurements
         .filter((row) => row.draftId === draftId && (row.syncStatus === firstStatus || row.syncStatus === secondStatus) && isReady(row.nextRetryAt, now))
         .map((row) => ({
@@ -81,20 +104,21 @@ export const db = {
           client_id: row.clientId,
           roof_squares: row.roofSquares,
           gutter_lf: row.gutterLf,
+          eave_lf: row.eaveLf, rafter_lf: row.rafterLf, pitch: row.pitch, soffit_lf: row.soffitLf, fascia_lf: row.fasciaLf, roof_type: row.roofType,
           latitude: row.latitude,
           longitude: row.longitude,
           captured_at: row.capturedAt,
         }) as T)
     }
 
-    if (sql.startsWith('SELECT id, client_id, local_uri, album, captured_at')) {
+    if (sql.startsWith('SELECT id, client_id, local_uri, album, caption, mime_type')) {
       return photos
         .filter((row) => row.draftId === draftId && (row.syncStatus === firstStatus || row.syncStatus === secondStatus) && isReady(row.nextRetryAt, now))
         .map((row) => ({
           id: row.id,
           client_id: row.clientId,
           local_uri: row.localUri,
-          album: row.album,
+          album: row.album, caption: row.caption, mime_type: row.mimeType, file_size_bytes: row.fileSizeBytes, width: row.width, height: row.height,
           captured_at: row.capturedAt,
         }) as T)
     }
@@ -154,9 +178,10 @@ export const db = {
         clientId: String(args[1]),
         roofSquares: Number(args[2]),
         gutterLf: Number(args[3]),
-        latitude: args[4] == null ? null : Number(args[4]),
-        longitude: args[5] == null ? null : Number(args[5]),
-        capturedAt: String(args[6]),
+        eaveLf: Number(args[4]), rafterLf: Number(args[5]), pitch: Number(args[6]), soffitLf: Number(args[7]), fasciaLf: Number(args[8]), roofType: String(args[9]),
+        latitude: args[10] == null ? null : Number(args[10]),
+        longitude: args[11] == null ? null : Number(args[11]),
+        capturedAt: String(args[12]),
         syncStatus: 'queued',
         retryCount: 0,
         nextRetryAt: null,
@@ -197,7 +222,8 @@ export const db = {
         clientId: String(args[1]),
         localUri: String(args[2]),
         album: String(args[3] ?? 'general'),
-        capturedAt: String(args[4]),
+        caption: args[4] == null ? null : String(args[4]), mimeType: String(args[5] ?? 'image/jpeg'), fileSizeBytes: args[6] == null ? null : Number(args[6]), width: args[7] == null ? null : Number(args[7]), height: args[8] == null ? null : Number(args[8]),
+        capturedAt: String(args[9]),
         syncStatus: 'queued',
         remoteId: null,
         error: null,
