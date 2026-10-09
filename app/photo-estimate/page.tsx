@@ -11,7 +11,8 @@ export default function AutomatedPhotoPipelinePage() {
   const [includeDetached, setIncludeDetached] = useState(true)
   const [profitMargin, setProfitMargin] = useState(35) // 35% company hold margin
   const [report, setReport] = useState<PipelineReport | null>(null)
-  const [dispatchInfo, setDispatchInfo] = useState<{ email: string; phone: string; timeSec: number } | null>(null)
+  const [dispatchInfo, setDispatchInfo] = useState<{ email: string; phone: string; timeSec: number; auditHash: string } | null>(null)
+  const [showItemizedDrawer, setShowItemizedDrawer] = useState(false)
 
   // Step 1: Upload Photo -> Filter Addresses
   const handlePhotoUpload = async () => {
@@ -89,7 +90,8 @@ export default function AutomatedPhotoPipelinePage() {
         setDispatchInfo({
           email: customerEmail,
           phone: customerPhone,
-          timeSec: data.dispatchResult.executionTimeSeconds
+          timeSec: data.dispatchResult.executionTimeSeconds,
+          auditHash: data.dispatchResult.auditSignatureHash
         })
         setStep('sent')
       }
@@ -109,7 +111,7 @@ export default function AutomatedPhotoPipelinePage() {
           <div>
             <div className="flex items-center gap-2">
               <span className="bg-blue-600 text-white text-xs font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">
-                10-Minute Pipeline
+                10-Minute Pipeline (Hardened)
               </span>
               <span className="text-slate-400 text-sm">Automated Photo-to-Customer Report Engine</span>
             </div>
@@ -174,7 +176,7 @@ export default function AutomatedPhotoPipelinePage() {
                       </span>
                     )}
                     <span className="text-xs font-mono bg-slate-800 px-2 py-1 rounded">
-                      Match: {Math.round(item.confidenceScore * 100)}%
+                      Match: {Math.round(item.confidenceScore * 100)}% ({item.sourceMethod})
                     </span>
                   </div>
                 </div>
@@ -254,6 +256,12 @@ export default function AutomatedPhotoPipelinePage() {
                   <div className="flex justify-between"><span>Dumpster & Labor:</span> <span className="font-mono">${(report.estimate.dumpsterFee + report.estimate.laborSubtotal).toLocaleString()}</span></div>
                   <div className="flex justify-between text-emerald-400 font-semibold border-t border-slate-800 pt-1"><span>Profit ({report.estimate.profitMarginPercent}%):</span> <span className="font-mono">${report.estimate.grossProfitAmount.toLocaleString()}</span></div>
                 </div>
+                <button
+                  onClick={() => setShowItemizedDrawer(!showItemizedDrawer)}
+                  className="text-xs text-blue-400 hover:underline mt-1 block"
+                >
+                  {showItemizedDrawer ? 'Hide Itemized Materials' : 'View Itemized Home Depot Materials'}
+                </button>
               </div>
 
               {/* Fork 2: 10-Yr NOAA Storm History */}
@@ -283,6 +291,23 @@ export default function AutomatedPhotoPipelinePage() {
               </div>
 
             </div>
+
+            {/* ITEMIZED DRAWER */}
+            {showItemizedDrawer && report.estimate.itemizedLineItems && (
+              <div className="bg-slate-950 p-4 rounded-lg border border-slate-800 space-y-2 text-xs">
+                <div className="font-bold text-slate-200 text-sm mb-2">Itemized Home Depot Live Materials</div>
+                {report.estimate.itemizedLineItems.map((item, idx) => (
+                  <div key={idx} className="flex justify-between p-2 bg-slate-900 rounded border border-slate-800">
+                    <div>
+                      <span className="font-mono text-blue-400">{item.itemCode}</span> - {item.description}
+                    </div>
+                    <div className="font-mono text-slate-200">
+                      {item.quantity} {item.unit} @ ${item.unitPrice} = ${item.lineTotal.toLocaleString()}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
 
             {/* TECH AUTHORIZATION ACTION */}
             <div className="bg-blue-950/40 border border-blue-800/60 p-4 rounded-lg flex items-center justify-between">
@@ -314,9 +339,10 @@ export default function AutomatedPhotoPipelinePage() {
               </p>
             </div>
 
-            <div className="bg-slate-950 p-4 rounded-lg border border-slate-800 inline-block text-left text-sm space-y-1 font-mono">
-              <div className="text-slate-400">Total Execution Benchmark:</div>
-              <div className="text-emerald-400 text-lg font-bold">{dispatchInfo.timeSec} Seconds (Target: &lt; 600s / 10 Mins)</div>
+            <div className="bg-slate-950 p-4 rounded-lg border border-slate-800 text-left text-xs space-y-2 font-mono">
+              <div className="text-slate-400">Total Execution SLA Benchmark:</div>
+              <div className="text-emerald-400 text-base font-bold">{dispatchInfo.timeSec} Seconds (Target: &lt; 600s / 10 Mins)</div>
+              <div className="text-slate-500 truncate">SHA-256 Audit Signature: {dispatchInfo.auditHash}</div>
             </div>
 
             <div>
@@ -325,6 +351,7 @@ export default function AutomatedPhotoPipelinePage() {
                   setStep('upload')
                   setReport(null)
                   setDispatchInfo(null)
+                  setShowItemizedDrawer(false)
                 }}
                 className="bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium px-6 py-2.5 rounded-lg transition-all"
               >
