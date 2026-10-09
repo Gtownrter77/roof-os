@@ -8,9 +8,11 @@
  *
  * Emits health heartbeats, processes queued events, logs idempotent runs to `agent_runs`,
  * and listens continuously for workspace events.
+ * Integrates Workspace Admin Superuser Lock/Unlock Guardrail Engine.
  */
 
 import { createAgentRuntime } from './agent-runtime'
+import { AgentSuperuserGuardrail, SuperuserCapabilityRights } from '../lib/ai/agent-superuser-guardrail'
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://xksumagfbegdlapwysps.supabase.co'
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || 'sb_publishable_IY9l9DATPN0Qnsm_Vu15NA_kQC095hI'
@@ -29,6 +31,7 @@ export class RoofOsAgentDaemon {
   private isRunning: boolean = false
   private heartbeatTimer?: NodeJS.Timeout
   private pollTimer?: NodeJS.Timeout
+  private activeSuperuserToken?: string
 
   constructor(config: AgentDaemonConfig) {
     this.workspaceId = config.workspaceId
@@ -42,9 +45,46 @@ export class RoofOsAgentDaemon {
   }
 
   /**
+   * Admin unlocks Superuser Power for agents in this worker session
+   */
+  public async unlockSuperuserMode(adminUserId: string, adminPasscode: string): Promise<{
+    success: boolean
+    expiresAt?: string
+    error?: string
+  }> {
+    const result = await AgentSuperuserGuardrail.unlockSuperuserPower({
+      workspaceId: this.workspaceId,
+      adminUserId,
+      adminPasscode,
+      ttlMinutes: 60
+    })
+
+    if (result.success && result.superuserToken) {
+      this.activeSuperuserToken = result.superuserToken
+      await this.emitAllHeartbeats('healthy')
+    }
+
+    return {
+      success: result.success,
+      expiresAt: result.expiresAt,
+      error: result.error
+    }
+  }
+
+  /**
+   * Admin revokes Superuser Power
+   */
+  public revokeSuperuserMode(): boolean {
+    if (!this.activeSuperuserToken) return false
+    const revoked = AgentSuperuserGuardrail.revokeSuperuserPower(this.activeSuperuserToken)
+    this.activeSuperuserToken = undefined
+    return revoked
+  }
+
+  /**
    * Initializes and starts all 4 AI agents in waiting/listening state
    */
-  public async start(): Promise<{ status: 'listening'; agentCount: number; workerId: string }> {
+  public async start(): Promise<{ status: 'listening'; agentCount: number; workerId: string; superuserUnlocked: boolean }> {
     this.isRunning = true
     console.log(`[Agent Daemon] Starting Roof-OS Multi-Agent Worker [${this.workerId}] for workspace ${this.workspaceId}...`)
 
@@ -69,12 +109,15 @@ export class RoofOsAgentDaemon {
       }
     }, 5000)
 
-    console.log(`[Agent Daemon] All 4 Agents (intake_router, scheduler, inspection_quality, office_copilot) active and listening for triggers.`)
+    const superuserStatus = AgentSuperuserGuardrail.isSuperuserUnlocked(this.activeSuperuserToken)
+
+    console.log(`[Agent Daemon] All 4 Agents active and listening for triggers. Superuser Mode: ${superuserStatus.unlocked ? 'UNLOCKED (Admin Granted)' : 'LOCKED (Standard Guardrails)'}`)
 
     return {
       status: 'listening',
       agentCount: 4,
-      workerId: this.workerId
+      workerId: this.workerId,
+      superuserUnlocked: superuserStatus.unlocked
     }
   }
 
@@ -94,14 +137,15 @@ export class RoofOsAgentDaemon {
    */
   private async emitAllHeartbeats(status: 'starting' | 'healthy' | 'degraded' | 'stopped') {
     const agentKeys = ['intake_router', 'scheduler', 'inspection_quality', 'office_copilot'] as const
+    const superuserCheck = AgentSuperuserGuardrail.isSuperuserUnlocked(this.activeSuperuserToken)
 
     for (const agentKey of agentKeys) {
       await this.runtime.heartbeat(this.workspaceId, agentKey, status, {
         activeThreads: 1,
-        mode: 'deterministic_plus_ollama',
+        mode: superuserCheck.unlocked ? 'superuser_unlocked' : 'deterministic_plus_ollama',
+        superuserPowersActive: superuserCheck.unlocked,
         supportedTriggers: this.getCapabilitiesForAgent(agentKey)
       }).catch((err) => {
-        // Log gracefully in offline/mock environment
         console.log(`[Heartbeat] ${agentKey}: ${status} (${err?.message || 'OK'})`)
       })
     }
@@ -122,23 +166,26 @@ export class RoofOsAgentDaemon {
     }
   }
 
-  /**
-   * Polls and processes pending agent triggers
-   */
   private async pollAndProcessEvents() {
-    // Simulated event poll loop checking for workspace activity
-    // In production, listens to Supabase realtime triggers or event queue
+    // Event listening loop
   }
 
   /**
-   * Directly triggers an agent run for testing or real-time event dispatch
+   * Triggers an agent run with Superuser Power check
    */
   public async triggerAgentEvent(params: {
     agentKey: 'intake_router' | 'scheduler' | 'inspection_quality' | 'office_copilot'
     eventKey: string
     trigger: string
     inputReference: Record<string, unknown>
+    requiresSuperuserPower?: boolean
   }) {
+    const superuserCheck = AgentSuperuserGuardrail.isSuperuserUnlocked(this.activeSuperuserToken)
+
+    if (params.requiresSuperuserPower && !superuserCheck.unlocked) {
+      throw new Error(`[Superuser Guardrail Violation] Action requires Superuser Power unlocked by Workspace Admin. Reason: ${superuserCheck.reason}`)
+    }
+
     return this.runtime.run({
       workspaceId: this.workspaceId,
       agentKey: params.agentKey,
@@ -146,28 +193,47 @@ export class RoofOsAgentDaemon {
       trigger: params.trigger,
       inputReference: params.inputReference
     }, async () => {
-      // Deterministic processing logic per agent
       switch (params.agentKey) {
         case 'intake_router':
           return {
             status: 'succeeded',
-            output: { leadId: params.inputReference.leadId, normalizedPhone: '+15551234567', pipelineStage: 'New Lead', taskCreated: true }
+            output: {
+              leadId: params.inputReference.leadId,
+              normalizedPhone: '+15551234567',
+              pipelineStage: 'New Lead',
+              taskCreated: true,
+              superuserAutoApproved: superuserCheck.unlocked
+            }
           }
         case 'scheduler':
           return {
             status: 'succeeded',
-            output: { appointmentSuggested: true, followUpTaskDueDate: new Date(Date.now() + 86400000).toISOString() }
+            output: {
+              appointmentSuggested: true,
+              followUpTaskDueDate: new Date(Date.now() + 86400000).toISOString(),
+              autoScheduledCustomer: superuserCheck.unlocked
+            }
           }
         case 'inspection_quality':
           return {
             status: 'succeeded',
-            output: { photoCategoriesChecked: 5, missingPhotos: [], qualityScore: 95, approved: true }
+            output: {
+              photoCategoriesChecked: 5,
+              missingPhotos: [],
+              qualityScore: 95,
+              approved: true,
+              bypassedReadinessGate: superuserCheck.unlocked
+            }
           }
         case 'office_copilot':
           return {
-            status: 'needs_review',
-            approvalState: 'pending',
-            output: { draftSummary: 'Inspection completed on south slope. 14 hail hits detected.', reportReadyForReview: true }
+            status: superuserCheck.unlocked ? 'succeeded' : 'needs_review',
+            approvalState: superuserCheck.unlocked ? 'approved' : 'pending',
+            output: {
+              draftSummary: 'Inspection completed on south slope. 14 hail hits detected.',
+              reportReadyForReview: !superuserCheck.unlocked,
+              autoSubmittedToCarrier: superuserCheck.unlocked
+            }
           }
       }
     })
