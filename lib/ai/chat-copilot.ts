@@ -107,13 +107,13 @@ const ROOF_OS_NAVIGATION_MAP: { keywords: RegExp; action: ChatAction; defaultRep
  * Falls back to an explicit Unknown result when the worker is unavailable;
  * it never fabricates transcription text.
  */
-export async function processAudioTranscription(audioBlob: Blob): Promise<string> {
+export async function processAudioTranscription(audioBlob: Blob, language = process.env.WHISPER_LANGUAGE || 'en'): Promise<string> {
   const workerUrl = process.env.WHISPER_WORKER_URL?.trim()
   if (!workerUrl) return 'Unknown'
   try {
     const form = new FormData()
     form.append('audio', audioBlob, 'audio.webm')
-    form.append('language', process.env.WHISPER_LANGUAGE || 'en')
+    form.append('language', language)
     const response = await fetch(workerUrl, {
       method: 'POST',
       body: form,
