@@ -1,3 +1,5 @@
+import { askOllamaJson } from './ai/ollama.ts'
+
 export type ReceptionistIntent = 'schedule' | 'follow_up' | 'payment_request' | 'human' | 'question' | 'opt_out' | 'unknown'
 export type ReceptionistTurn = { reply: string; intent: ReceptionistIntent; requestedDateTime?: string; callerName?: string; address?: string }
 
@@ -28,24 +30,12 @@ function ruleTurn(transcript: string): ReceptionistTurn {
 }
 
 export async function generateReceptionistTurn(input: { transcript: string; callerPhone?: string; history?: string[] }): Promise<ReceptionistTurn> {
-  const ollamaHost = process.env.OLLAMA_HOST?.trim() || 'http://localhost:11434'
-  try {
-    const res = await fetch(`${ollamaHost}/api/generate`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        model: process.env.OLLAMA_MODEL || 'llama3:8b',
-        prompt: `System: You are the ROOF/OS AI receptionist for a roofing company. Return strict JSON with reply, intent (schedule, follow_up, payment_request, human, question, opt_out, or unknown), and optional requestedDateTime, callerName, address.\nCaller: ${input.transcript}`,
-        format: 'json',
-        stream: false,
-      }),
-    })
-    if (res.ok) {
-      const data = await res.json()
-      if (data.response) return fromParsed(JSON.parse(data.response) as Partial<ReceptionistTurn>)
-    }
-  } catch {
-    // Local model is down. Rule engine only. No paid API.
-  }
+  const result = await askOllamaJson<Partial<ReceptionistTurn>>([
+    'You are the ROOF/OS AI receptionist for a roofing company.',
+    'Return only JSON with reply, intent (schedule, follow_up, payment_request, human, question, opt_out, or unknown), and optional requestedDateTime, callerName, address.',
+    'Never promise a booking, payment, contract, estimate, or external message. A human approval step is required for those actions.',
+    `Caller transcript: ${input.transcript.slice(0, 4000)}`,
+  ].join('\n'), { timeoutMs: 1_500 })
+  if (result?.value) return fromParsed(result.value)
   return ruleTurn(input.transcript)
 }
