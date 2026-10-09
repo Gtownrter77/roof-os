@@ -1,4 +1,4 @@
-import { askOllama } from './ollama'
+import { askOllama } from './ollama.ts'
 
 export type ChatMessage = {
   role: 'user' | 'assistant'
