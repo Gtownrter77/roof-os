@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { processAudioTranscription } from '@/lib/ai/chat-copilot'
+import { processAudioTranscription } from '../../../../lib/ai/chat-copilot'
 
 export const runtime = 'nodejs'
 
