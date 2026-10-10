@@ -4,6 +4,8 @@ import { establishOwnerSession } from '../../../lib/auth/owner-enter'
 import { safeNextPath } from '../../../lib/safe-next'
 import { getSupabaseEnv } from '../../../lib/supabase/env'
 
+const SKIP_ENTER_COOKIE = 'roof_os_skip_enter'
+
 export async function GET(request: NextRequest) {
   const url = request.nextUrl
   const next = safeNextPath(url.searchParams.get('next'), url.origin)
@@ -28,6 +30,7 @@ export async function GET(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser()
   if (user) {
+    response.cookies.set(SKIP_ENTER_COOKIE, '', { path: '/', maxAge: 0 })
     return response
   }
 
@@ -36,6 +39,16 @@ export async function GET(request: NextRequest) {
     destination.searchParams.set('enter_error', result.reason.slice(0, 120))
     response = NextResponse.redirect(destination)
     response.headers.set('Cache-Control', 'no-store, max-age=0')
+    // Prevent proxy <-> enter redirect loops when minting fails.
+    response.cookies.set(SKIP_ENTER_COOKIE, '1', {
+      path: '/',
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: true,
+      maxAge: 60 * 30,
+    })
+  } else {
+    response.cookies.set(SKIP_ENTER_COOKIE, '', { path: '/', maxAge: 0 })
   }
 
   return response
