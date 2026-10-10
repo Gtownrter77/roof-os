@@ -1,4 +1,4 @@
-import { askLlmJson } from './ai/llm.ts'
+import { askOllamaJson } from './ai/ollama.ts'
 
 export type ReceptionistIntent =
   | 'schedule'
@@ -62,14 +62,14 @@ export async function generateReceptionistTurn(input: {
   callerPhone?: string
   history?: string[]
 }): Promise<ReceptionistTurn> {
-  const result = await askLlmJson<Partial<ReceptionistTurn>>(
+  const result = await askOllamaJson<Partial<ReceptionistTurn>>(
     [
       'You are the ROOF/OS AI receptionist for a roofing company.',
       'Return only JSON with reply, intent (schedule, follow_up, payment_request, human, question, opt_out, or unknown), and optional requestedDateTime, callerName, address.',
       'Never promise a booking, payment, contract, estimate, or external message. A human approval step is required for those actions.',
       `Caller transcript: ${input.transcript.slice(0, 4000)}`,
     ].join('\n'),
-    { timeoutMs: 15_000 },
+    { timeoutMs: 8_000 },
   )
   if (result?.value) return fromParsed(result.value)
   return ruleTurn(input.transcript)

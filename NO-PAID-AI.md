@@ -1,12 +1,10 @@
 # AI provider policy
 
-ROOF/OS text AI uses **SpaceXAI** (`XAI_API_KEY` → `https://api.x.ai/v1`) in production.
+ROOF/OS text AI does not call a hosted chat API. There is no `XAI_API_KEY`, OpenAI chat key, or other paid text-model key in this app.
 
-Fallbacks and other rails:
-
-- Text chat / receptionist / advisory agents: SpaceXAI first; local Ollama (`OLLAMA_HOST`) when the cloud key is unset or unreachable; keyword rules last.
-- Vision (photo / aerial / siding analyze): Gemini via `GEMINI_API_KEY`. Controlled `503` when unset.
-- Speech-to-text: local faster-whisper via `WHISPER_URL` / `WHISPER_WORKER_URL`. If the worker is down, transcription returns `Unknown` and does not invent text.
-- Claims import: CapOut via `CAPOUT_API_KEY` (optional add-on).
+- Text chat, receptionist, and advisory agents: local Ollama (`OLLAMA_HOST`, default `llama3:8b`). If Ollama is down, keyword rules answer. They do not invent prices, coverage, or measurements.
+- Speech-to-text: local faster-whisper via `WHISPER_URL` or `WHISPER_WORKER_URL`. If the worker is down, transcription returns `Unknown`.
+- Vision (photo, aerial, siding): Gemini via `GEMINI_API_KEY` is still wired. Those routes return `503` when the key is absent. A local vision helper exists and has not replaced those routes yet.
+- Claims import: CapOut via `CAPOUT_API_KEY` is an optional add-on.
 
 Stripe and Twilio remain the payment and phone rails. Never put model keys in `NEXT_PUBLIC_*` or the browser bundle.
