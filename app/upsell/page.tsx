@@ -155,21 +155,21 @@ export default function UpsellPage() {
       'Medium': 'bg-yellow-100 text-yellow-800 border-yellow-400',
       'Low': 'bg-green-100 text-green-800 border-green-400'
     }
-    return colors[priority] || 'bg-gray-100 text-gray-800'
+    return colors[priority] || 'bg-white/10 text-slate-100'
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
-      <header className="bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-lg sticky top-0 z-10">
+    <div className="space-y-4 pb-4">
+      <header className="glass sticky top-0 z-10 rounded-xl mb-4">
         <div className="px-4 py-3 flex items-center">
-          <button onClick={() => router.back()} className="text-white mr-3 text-xl">←</button>
+          <button onClick={() => router.back()} className="mr-3 text-xl text-cyan-300">←</button>
           <h1 className="text-xl font-bold">💰 Upsell Suggestions</h1>
-          <span className="ml-2 bg-green-500 text-white text-xs px-2 py-0.5 rounded-full">REFERENCE</span>
+          <span className="ml-2 bg-emerald-400/100 text-white text-xs px-2 py-0.5 rounded-full">REFERENCE</span>
         </div>
       </header>
 
       <main className="p-4">
-        <div className="bg-white rounded-lg shadow-lg p-4 mb-4 border border-amber-200">
+        <div className="glass rounded-xl p-4 mb-4 border border-amber-400/30">
           <h3 className="font-semibold text-sm mb-3 flex items-center">
             <span className="text-xl mr-2">🎯</span> Select Project Type
           </h3>
@@ -196,11 +196,11 @@ export default function UpsellPage() {
           <div className="space-y-4 animate-fadeIn">
             <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-lg shadow-lg p-4 border-2 border-amber-500">
               <p className="font-semibold text-sm">Reference suggestions only</p>
-              <p className="text-xs text-gray-600 mt-1">No ROI, margin, or selling price is calculated here. Use the active owner-managed price book before quoting a customer.</p>
+              <p className="text-xs text-slate-300 mt-1">No ROI, margin, or selling price is calculated here. Use the active owner-managed price book before quoting a customer.</p>
             </div>
 
             {upsells.primary && upsells.primary.length > 0 && (
-              <div className="bg-white rounded-lg shadow-lg p-4 border-l-4 border-amber-500">
+              <div className="glass rounded-xl p-4 border-l-4 border-amber-500">
                 <h3 className="font-semibold text-sm mb-3 flex items-center">
                   <span className="text-xl mr-2">⬆️</span> Premium Upgrades
                 </h3>
@@ -209,32 +209,32 @@ export default function UpsellPage() {
                     <div className="flex justify-between items-start">
                       <div>
                         <p className="font-medium text-sm">{item.name}</p>
-                        <p className="text-xs text-gray-600">{item.upgrade}</p>
+                        <p className="text-xs text-slate-300">{item.upgrade}</p>
                       </div>
                       <span className={`text-xs px-2 py-0.5 rounded ${
-                        item.priority === 'High' ? 'bg-red-500 text-white' :
-                        item.priority === 'Medium' ? 'bg-yellow-500 text-white' :
-                        'bg-green-500 text-white'
+                        item.priority === 'High' ? 'bg-red-400/100 text-white' :
+                        item.priority === 'Medium' ? 'bg-amber-400/100 text-white' :
+                        'bg-emerald-400/100 text-white'
                       }`}>
                         {item.priority}
                       </span>
                     </div>
-                    <p className="text-xs text-gray-600 mt-2">✅ {item.customerBenefit}</p>
+                    <p className="text-xs text-slate-300 mt-2">✅ {item.customerBenefit}</p>
                   </div>
                 ))}
               </div>
             )}
 
             {upsells.crossSell && upsells.crossSell.length > 0 && (
-              <div className="bg-white rounded-lg shadow-lg p-4 border-l-4 border-blue-500">
+              <div className="glass rounded-xl p-4 border-l-4 border-blue-500">
                 <h3 className="font-semibold text-sm mb-3 flex items-center">
                   <span className="text-xl mr-2">🔄</span> Cross-Sell Opportunities
                 </h3>
                 <div className="grid grid-cols-2 gap-2">
                   {upsells.crossSell.map((item: any, i: number) => (
-                    <div key={i} className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                    <div key={i} className="bg-cyan-400/10 border border-cyan-400/30 rounded-lg p-3">
                       <p className="font-medium text-sm">{item.name}</p>
-                      <p className="text-xs text-gray-500">{item.description}</p>
+                      <p className="text-xs text-slate-400">{item.description}</p>
                       <span className={`text-xs px-2 py-0.5 rounded ${
                         item.priority === 'High' ? 'bg-red-100 text-red-800' :
                         item.priority === 'Medium' ? 'bg-yellow-100 text-yellow-800' :
@@ -256,13 +256,13 @@ export default function UpsellPage() {
                 💰 Open Estimate
               </button>
             </div>
-            {message && <p className="mt-3 text-sm text-blue-800 bg-blue-50 rounded p-3" role="status">{message}</p>}
+            {message && <p className="mt-3 text-sm text-cyan-200 bg-cyan-400/10 rounded p-3" role="status">{message}</p>}
           </div>
         )}
       </main>
 
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around py-2 px-4">
-        <button onClick={() => router.push('/')} className="flex flex-col items-center text-gray-400">
+      <nav className="fixed bottom-0 left-0 right-0 z-30 flex justify-around border-t border-white/10 bg-[#070b14]/95 py-2 px-4 backdrop-blur lg:hidden">
+        <button onClick={() => router.push('/')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">🏠</span>
           <span className="text-xs">Home</span>
         </button>
@@ -270,15 +270,15 @@ export default function UpsellPage() {
           <span className="text-xl">💰</span>
           <span className="text-xs">Upsell</span>
         </button>
-        <button onClick={() => router.push('/templates')} className="flex flex-col items-center text-gray-400">
+        <button onClick={() => router.push('/templates')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">📄</span>
           <span className="text-xs">Templates</span>
         </button>
-        <button onClick={() => router.push('/insurance')} className="flex flex-col items-center text-gray-400">
+        <button onClick={() => router.push('/insurance')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">📞</span>
           <span className="text-xs">Insurance</span>
         </button>
-        <button onClick={() => router.push('/settings')} className="flex flex-col items-center text-gray-400">
+        <button onClick={() => router.push('/settings')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">⚙️</span>
           <span className="text-xs">Settings</span>
         </button>
