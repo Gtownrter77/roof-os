@@ -38,6 +38,7 @@ export default function RadarCinemaMap({
     if (!node) return
     let disposed = false
     let map: import('maplibre-gl').Map | undefined
+    let onCinemaCommand: ((event: Event) => void) | undefined
 
     void import('maplibre-gl').then((maplibregl) => {
       if (disposed || !container.current) return
@@ -46,13 +47,14 @@ export default function RadarCinemaMap({
         style: OPENFREEMAP_DARK_STYLE,
         center: [longitude, latitude],
         zoom: 7.2,
-        minZoom: 3,
-        maxZoom: 14,
+        // Expand as far as needed for continental storm watch; zoom in for neighborhood detail.
+        minZoom: 0,
+        maxZoom: 18,
         attributionControl: false,
         cooperativeGestures: false,
       })
       mapRef.current = map
-      map.addControl(new maplibregl.NavigationControl({ showCompass: true }), 'top-right')
+      map.addControl(new maplibregl.NavigationControl({ showCompass: true, visualizePitch: false }), 'top-right')
       map.addControl(new maplibregl.ScaleControl({ maxWidth: 140 }), 'bottom-left')
       map.addControl(new maplibregl.AttributionControl({
         compact: true,
@@ -64,12 +66,29 @@ export default function RadarCinemaMap({
       map.on('load', () => {
         map?.resize()
       })
+
+      onCinemaCommand = (event: Event) => {
+        const detail = (event as CustomEvent<string>).detail
+        if (!map) return
+        if (detail === 'expand') {
+          // Pull back for continental / multi-state storm watch while staying anchored on the user.
+          map.easeTo({ zoom: 3.2, center: [longitude, latitude], duration: 700 })
+        } else if (detail === 'expand-max') {
+          map.easeTo({ zoom: 1.4, center: [longitude, latitude], duration: 800 })
+        } else if (detail === 'localize') {
+          map.easeTo({ zoom: 7.2, center: [longitude, latitude], duration: 700 })
+        } else if (detail === 'street') {
+          map.easeTo({ zoom: 11.5, center: [longitude, latitude], duration: 700 })
+        }
+      }
+      window.addEventListener('roofos-radar-view', onCinemaCommand)
     }).catch(() => {
       if (!disposed) setMapError(true)
     })
 
     return () => {
       disposed = true
+      if (onCinemaCommand) window.removeEventListener('roofos-radar-view', onCinemaCommand)
       map?.remove()
       mapRef.current = null
     }
