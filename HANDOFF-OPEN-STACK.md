@@ -9,8 +9,9 @@ Branch: wire/local-whisper. Not on main until the pull request is merged.
 | Paid call | Free replacement | Where |
 | --- | --- | --- |
 | OpenAI whisper-1 | faster-whisper, MIT build of openai/whisper. No key. | workers/whisper, WHISPER_URL |
-| OpenAI gpt-4o-mini chat | Ollama llama3:8b. Keywords only if Ollama is down. | lib/ai/ollama.ts |
-| Receptionist OpenAI fallback | Same Ollama model, then the keyword rule engine. | lib/receptionist-ai.ts |
+| OpenAI gpt-4o-mini chat | SpaceXAI (`XAI_API_KEY` → api.x.ai) first; Ollama local fallback; keywords last. | lib/ai/llm.ts, lib/ai/chat-copilot.ts |
+| Receptionist OpenAI fallback | Same SpaceXAI + Ollama path, then the keyword rule engine. | lib/receptionist-ai.ts |
+
 | Gemini 2.5 Flash photo analysis | Ollama llava helper is in. Photo, siding, and aerial routes still call Gemini until switched. | lib/ai/local-vision.mjs |
 
 ## Retailer prices are add-ons

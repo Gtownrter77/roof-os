@@ -1,9 +1,12 @@
-# No paid AI
+# AI provider policy
 
-The AI path on this branch does not call OpenAI, Gemini, or any hosted model API.
+ROOF/OS text AI uses **SpaceXAI** (`XAI_API_KEY` → `https://api.x.ai/v1`) in production.
 
-- Speech-to-text: local faster-whisper via WHISPER_URL. If the worker is down, transcription fails. It does not invent text.
-- Receptionist: local Ollama (OLLAMA_HOST, default llama3:8b). If Ollama is down, a keyword rule engine answers. No OpenAI fallback.
-- Chat copilot: keyword router only. The OpenAI chat completion call is removed.
+Fallbacks and other rails:
 
-Stripe and Twilio remain. They are the shop's payment and phone rails, not the model stack. Say if those should come out too.
+- Text chat / receptionist / advisory agents: SpaceXAI first; local Ollama (`OLLAMA_HOST`) when the cloud key is unset or unreachable; keyword rules last.
+- Vision (photo / aerial / siding analyze): Gemini via `GEMINI_API_KEY`. Controlled `503` when unset.
+- Speech-to-text: local faster-whisper via `WHISPER_URL` / `WHISPER_WORKER_URL`. If the worker is down, transcription returns `Unknown` and does not invent text.
+- Claims import: CapOut via `CAPOUT_API_KEY` (optional add-on).
+
+Stripe and Twilio remain the payment and phone rails. Never put model keys in `NEXT_PUBLIC_*` or the browser bundle.

@@ -1,4 +1,4 @@
-import { askOllama } from './ollama.ts'
+import { askLlm } from './llm.ts'
 
 export type ChatMessage = {
   role: 'user' | 'assistant'
@@ -84,8 +84,12 @@ const ROOF_OS_NAVIGATION_MAP: { keywords: RegExp; action: ChatAction; defaultRep
  * Falls back to an explicit Unknown result when the worker is unavailable;
  * it never fabricates transcription text.
  */
-export async function processAudioTranscription(audioBlob: Blob, language = process.env.WHISPER_LANGUAGE || 'en'): Promise<string> {
-  const workerUrl = process.env.WHISPER_WORKER_URL?.trim()
+export async function processAudioTranscription(
+  audioBlob: Blob,
+  language = process.env.WHISPER_LANGUAGE || 'en',
+): Promise<string> {
+  const workerUrl =
+    process.env.WHISPER_WORKER_URL?.trim() || process.env.WHISPER_URL?.trim()
   if (!workerUrl) return 'Unknown'
   try {
     const form = new FormData()
@@ -97,7 +101,7 @@ export async function processAudioTranscription(audioBlob: Blob, language = proc
       signal: AbortSignal.timeout(120_000),
     })
     if (!response.ok) return 'Unknown'
-    const payload = await response.json() as { text?: string }
+    const payload = (await response.json()) as { text?: string }
     return payload.text?.trim() || 'Unknown'
   } catch {
     return 'Unknown'
@@ -112,21 +116,37 @@ export async function processChatCopilot(input: {
   const query = input.message.trim()
   if (!query) {
     return {
-      reply: 'What would you like to do now? You can ask me to navigate, calculate measurements, review storms, or generate reports.',
+      reply:
+        'What would you like to do now? You can ask me to navigate, calculate measurements, review storms, or generate reports.',
       quickReplies: ['Review Storm Leads', 'Aerial Roof Measure', 'Create Estimate', 'Golden Report'],
     }
   }
 
   const matchedNav = ROOF_OS_NAVIGATION_MAP.find((item) => item.keywords.test(query))
-  const local = await askOllama([
-    'You are the ROOF/OS operations copilot. Answer in two sentences. Do not invent prices, coverage, or measurements.',
-    matchedNav ? `The matching screen is ${matchedNav.action.href}.` : 'No screen matched.',
-    `User: ${query}`,
-  ].join('\n'))
+  const historyBlock = (input.history || [])
+    .slice(-6)
+    .map((item) => `${item.role}: ${item.content}`)
+    .join('\n')
 
-  if (local) {
+  const llmReply = await askLlm(
+    [
+      'You are the ROOF/OS operations copilot for a roofing company.',
+      'Answer in at most two short sentences.',
+      'Do not invent prices, coverage decisions, measurements, or claim outcomes.',
+      'If a matching screen is provided, mention it and keep the user oriented.',
+      matchedNav ? `The matching screen is ${matchedNav.action.href} (${matchedNav.action.label}).` : 'No screen matched.',
+      input.currentPath ? `Current path: ${input.currentPath}` : '',
+      historyBlock ? `Recent conversation:\n${historyBlock}` : '',
+      `User: ${query}`,
+    ]
+      .filter(Boolean)
+      .join('\n'),
+    { timeoutMs: 20_000 },
+  )
+
+  if (llmReply) {
     return {
-      reply: local,
+      reply: llmReply,
       suggestedAction: matchedNav?.action,
       quickReplies: getSuggestedQuickReplies(matchedNav?.action.href),
     }
@@ -141,7 +161,8 @@ export async function processChatCopilot(input: {
   }
 
   return {
-    reply: 'Local Ollama is not reachable. I can still open storm, leads, measure, reports, or invoices from the menu.',
+    reply:
+      'AI text is not configured on this server yet. I can still open storms, leads, measurements, estimates, reports, or invoices from here.',
     suggestedAction: { label: 'Go to Command Center', href: '/' },
     quickReplies: ['Track Active Storms', 'Aerial Measurement', 'New Estimate', 'Golden Report'],
   }
@@ -157,5 +178,7 @@ function getSuggestedQuickReplies(currentHref?: string): string[] {
     'Golden Report',
     'Manage Invoices',
   ]
-  return all.filter((item) => !currentHref || !item.toLowerCase().includes(currentHref.replace('/', ''))).slice(0, 4)
+  return all
+    .filter((item) => !currentHref || !item.toLowerCase().includes(currentHref.replace('/', '')))
+    .slice(0, 4)
 }

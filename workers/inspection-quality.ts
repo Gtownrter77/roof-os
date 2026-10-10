@@ -33,7 +33,9 @@ export async function runInspectionQuality(
 
   await runtime.heartbeat(workspaceId, 'inspection_quality', 'healthy', {
     deterministic: true,
-    llama_advisory: process.env.LLAMA_AGENT_ENABLED?.trim().toLowerCase() === 'true',
+    llama_advisory:
+      Boolean(process.env.XAI_API_KEY?.trim()) ||
+      process.env.LLAMA_AGENT_ENABLED?.trim().toLowerCase() === 'true',
     checks: ['photo_presence', 'upload_status', 'caption_presence', 'duplicate_object_path'],
   })
 
