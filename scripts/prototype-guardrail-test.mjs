@@ -10,11 +10,13 @@ for (const marker of ['/quantum','/genetic','/vr','/ar','/pitch-gauge','/voice-a
 for (const marker of ['PILOT / PROTOTYPE','simulated or non-authoritative results','customer quotes','insurance claims']) assert.ok(notice.includes(marker), `disclosure missing: ${marker}`)
 assert.ok(layout.includes("import PrototypeNotice from '../components/PrototypeNotice'"))
 assert.ok(layout.includes('<PrototypeNotice />'))
-assert.ok(canvass.includes('useState<CanvassPin[]>([])'), 'canvassing must start without fabricated pins')
+assert.ok(canvass.includes('useState<CanvassLead[]>([])'), 'canvassing must start without fabricated leads')
+assert.ok(canvass.includes('CANVASS_LEAD_SOURCE'), 'canvass must persist knocks into Leads CRM')
+assert.ok(!canvass.includes('CanvassPin'), 'canvass must not use local fabricated pin state')
 for (const marker of ['Evergreen Terrace', 'Homer Simpson', 'Alex Rivera', 'GA-RCN-2026-88', 'August 2026']) {
   assert.ok(!canvass.includes(marker), `canvass must not contain fabricated customer or credential data: ${marker}`)
 }
-assert.ok(canvass.includes('session only'), 'canvass must disclose that unconverted pins are not persisted')
+assert.ok(canvass.includes('Live from workspace CRM'), 'canvass must disclose leads come from workspace CRM')
 assert.ok(portal.includes('Customer records are not connected yet'))
 for (const marker of ['John Doe', 'Jane Smith', 'Bob Johnson', 'john@example.com', '(555)']) {
   assert.ok(!portal.includes(marker), `customer portal must not contain fake customer data: ${marker}`)
