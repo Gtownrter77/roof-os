@@ -48,7 +48,9 @@ assert.ok(proxy.includes("pathname === '/admin'"), 'developer console route stay
 assert.ok(proxy.includes("pathname === '/api/status'"), 'status health stays reachable without a session')
 assert.ok(proxy.includes("/auth/enter"), 'unauthenticated HTML navigations enter via owner auto-session')
 assert.ok(proxy.includes("pathname === '/auth/login'"), 'login route is bounced into enter')
+assert.ok(proxy.includes('roof_os_skip_enter'), 'proxy stops enter loops after a failed mint')
 assert.ok(!proxy.includes("NextResponse.redirect(login)"), 'proxy must not send users to the login wall')
+assert.ok(enter.includes('roof_os_skip_enter'), 'enter sets a skip cookie when minting fails')
 
 assert.ok(enter.includes('establishOwnerSession'), 'enter route mints an owner session')
 assert.ok(enter.includes('safeNextPath'), 'enter route keeps redirects on-site')

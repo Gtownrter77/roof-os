@@ -2,6 +2,8 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { getSupabaseEnv } from './lib/supabase/env'
 
+const SKIP_ENTER_COOKIE = 'roof_os_skip_enter'
+
 function isCronPath(pathname: string) {
   return pathname.startsWith('/api/cron/')
 }
@@ -68,16 +70,24 @@ export async function proxy(request: NextRequest) {
   })
 
   const { data: { user } } = await supabase.auth.getUser()
+  const skipEnter = request.cookies.get(SKIP_ENTER_COOKIE)?.value === '1'
+    || request.nextUrl.searchParams.has('enter_error')
 
   // Leave the login page out of the flow: bounce it straight into owner enter.
-  if (pathname === '/auth/login' || pathname === '/auth/signup') {
+  if ((pathname === '/auth/login' || pathname === '/auth/signup') && !skipEnter) {
     const enter = new URL('/auth/enter', request.url)
     const next = request.nextUrl.searchParams.get('next')
     if (next) enter.searchParams.set('next', next)
     return applySecurityPolicy(NextResponse.redirect(enter), nonce)
   }
 
-  if (!user && !isAuthUtilityPath(pathname) && wantsHtml(request) && !pathname.startsWith('/api/')) {
+  if (
+    !user
+    && !skipEnter
+    && !isAuthUtilityPath(pathname)
+    && wantsHtml(request)
+    && !pathname.startsWith('/api/')
+  ) {
     const enter = new URL('/auth/enter', request.url)
     enter.searchParams.set('next', pathname + request.nextUrl.search)
     return applySecurityPolicy(NextResponse.redirect(enter), nonce)
