@@ -5,6 +5,7 @@ import {
   Modal,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -20,25 +21,69 @@ type Props = {
 
 type Coords = { latitude: number; longitude: number }
 
-function radarRegion(latitude: number, longitude: number): string | null {
+type LayerPrefs = {
+  bref: boolean
+  cref: boolean
+  echoTops: boolean
+  precipType: boolean
+  locationPin: boolean
+  basemapLabels: boolean
+  basemap: boolean
+  radarOpacity: number
+}
+
+const DEFAULT_PREFS: LayerPrefs = {
+  bref: true,
+  cref: false,
+  echoTops: false,
+  precipType: false,
+  locationPin: true,
+  basemapLabels: true,
+  basemap: true,
+  radarOpacity: 0.82,
+}
+
+const LAYER_ROWS: Array<{ id: keyof LayerPrefs; label: string }> = [
+  { id: 'bref', label: 'Base reflectivity' },
+  { id: 'cref', label: 'Composite reflectivity' },
+  { id: 'echoTops', label: 'Echo tops' },
+  { id: 'precipType', label: 'Precip type' },
+  { id: 'locationPin', label: 'Location pin' },
+  { id: 'basemapLabels', label: 'Map labels' },
+  { id: 'basemap', label: 'Basemap' },
+]
+
+function radarRegion(latitude: number, longitude: number): string {
   if (latitude >= 50 && latitude <= 73 && longitude >= -180 && longitude <= -129) return 'alaska'
   if (latitude >= 18 && latitude <= 23.5 && longitude >= -161 && longitude <= -154) return 'hawaii'
   if (latitude >= 17 && latitude <= 20 && longitude >= -69 && longitude <= -64) return 'carib'
   if (latitude >= 12.5 && latitude <= 14 && longitude >= 144 && longitude <= 146) return 'guam'
-  if (latitude >= 24 && latitude <= 50 && longitude >= -125 && longitude <= -66) return 'conus'
-  return null
+  return 'conus'
 }
 
-function buildRadarHtml(coords: Coords, opacity: number, refreshKey: number) {
+function tileUrl(region: string, product: string, refreshKey: number) {
+  const layer = `${region}_${product}`
+  return `https://opengeo.ncep.noaa.gov/geoserver/${region}/${layer}/ows`
+    + `?service=WMS&version=1.1.1&request=GetMap&layers=${encodeURIComponent(layer)}`
+    + '&styles=&format=image%2Fpng&transparent=true&srs=EPSG%3A3857'
+    + '&width=256&height=256&bbox={bbox-epsg-3857}'
+    + `&_=${refreshKey}`
+}
+
+function buildRadarHtml(coords: Coords, prefs: LayerPrefs, refreshKey: number) {
   const { latitude, longitude } = coords
-  const region = radarRegion(latitude, longitude) ?? 'conus'
-  const layer = `${region}_bref_qcd`
-  const wms =
-    `https://opengeo.ncep.noaa.gov/geoserver/${region}/${layer}/ows`
-      + `?service=WMS&version=1.1.1&request=GetMap&layers=${encodeURIComponent(layer)}`
-      + '&styles=&format=image%2Fpng&transparent=true&srs=EPSG%3A3857'
-      + '&width=256&height=256&bbox={bbox-epsg-3857}'
-      + `&_=${refreshKey}`
+  const region = radarRegion(latitude, longitude)
+  const products = [
+    prefs.bref ? { id: 'bref', product: 'bref_qcd' } : null,
+    prefs.cref ? { id: 'cref', product: 'cref_qcd' } : null,
+    prefs.echoTops ? { id: 'echoTops', product: 'neet_v18' } : null,
+    prefs.precipType ? { id: 'precipType', product: 'pcpn_typ' } : null,
+  ].filter(Boolean) as Array<{ id: string; product: string }>
+
+  const productJs = products.map((item) => ({
+    id: item.id,
+    url: tileUrl(region, item.product, refreshKey),
+  }))
 
   return `<!DOCTYPE html>
 <html>
@@ -55,45 +100,68 @@ function buildRadarHtml(coords: Coords, opacity: number, refreshKey: number) {
   <div id="map"></div>
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"><\/script>
   <script>
+    const products = ${JSON.stringify(productJs)};
+    const prefs = ${JSON.stringify({
+      radarOpacity: prefs.radarOpacity,
+      locationPin: prefs.locationPin,
+      basemap: prefs.basemap,
+      basemapLabels: prefs.basemapLabels,
+    })};
     const map = new maplibregl.Map({
       container: 'map',
       style: 'https://tiles.openfreemap.org/styles/dark',
       center: [${longitude}, ${latitude}],
       zoom: 7.2,
       minZoom: 3,
-      maxZoom: 14,
-      attributionControl: true
+      maxZoom: 14
     });
     map.addControl(new maplibregl.NavigationControl({ visualizePitch: false }), 'top-right');
+    map.addControl(new maplibregl.ScaleControl({ maxWidth: 120 }), 'bottom-left');
     map.on('load', () => {
-      map.addSource('noaa-mrms-radar', {
-        type: 'raster',
-        tiles: [${JSON.stringify(wms)}],
-        tileSize: 256,
-        attribution: 'Radar: NOAA/NWS MRMS'
-      });
-      const firstLabel = map.getStyle().layers.find((l) => l.type === 'symbol');
-      map.addLayer({
-        id: 'noaa-mrms-reflectivity',
-        type: 'raster',
-        source: 'noaa-mrms-radar',
-        paint: { 'raster-opacity': ${opacity}, 'raster-fade-duration': 150 }
-      }, firstLabel && firstLabel.id);
-      map.addSource('you', {
-        type: 'geojson',
-        data: { type: 'Feature', geometry: { type: 'Point', coordinates: [${longitude}, ${latitude}] }, properties: {} }
-      });
-      map.addLayer({
-        id: 'you-point',
-        type: 'circle',
-        source: 'you',
-        paint: {
-          'circle-radius': 7,
-          'circle-color': '#ff3b4f',
-          'circle-stroke-width': 2,
-          'circle-stroke-color': '#ffffff'
-        }
-      });
+      const layers = map.getStyle().layers || [];
+      for (const layer of layers) {
+        if (layer.id.startsWith('noaa-') || layer.id.startsWith('you')) continue;
+        const isLabel = layer.type === 'symbol';
+        map.setLayoutProperty(
+          layer.id,
+          'visibility',
+          isLabel
+            ? (prefs.basemap && prefs.basemapLabels ? 'visible' : 'none')
+            : (prefs.basemap ? 'visible' : 'none')
+        );
+      }
+      const firstLabel = layers.find((l) => l.type === 'symbol');
+      for (const product of products) {
+        map.addSource('noaa-' + product.id, {
+          type: 'raster',
+          tiles: [product.url],
+          tileSize: 256,
+          attribution: 'Radar: NOAA/NWS MRMS'
+        });
+        map.addLayer({
+          id: 'noaa-' + product.id + '-layer',
+          type: 'raster',
+          source: 'noaa-' + product.id,
+          paint: { 'raster-opacity': prefs.radarOpacity, 'raster-fade-duration': 150 }
+        }, firstLabel && firstLabel.id);
+      }
+      if (prefs.locationPin) {
+        map.addSource('you', {
+          type: 'geojson',
+          data: { type: 'Feature', geometry: { type: 'Point', coordinates: [${longitude}, ${latitude}] }, properties: {} }
+        });
+        map.addLayer({
+          id: 'you-point',
+          type: 'circle',
+          source: 'you',
+          paint: {
+            'circle-radius': 7,
+            'circle-color': '#ff3b4f',
+            'circle-stroke-width': 2,
+            'circle-stroke-color': '#ffffff'
+          }
+        });
+      }
     });
   <\/script>
 </body>
@@ -104,9 +172,10 @@ export default function RadarCinema({ visible, onClose, webAppUrl }: Props) {
   const [coords, setCoords] = useState<Coords | null>(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const [opacity, setOpacity] = useState(0.82)
+  const [prefs, setPrefs] = useState<LayerPrefs>(DEFAULT_PREFS)
   const [refreshKey, setRefreshKey] = useState(0)
   const [hud, setHud] = useState(true)
+  const [layersOpen, setLayersOpen] = useState(true)
 
   const locate = useCallback(async () => {
     setLoading(true)
@@ -140,8 +209,8 @@ export default function RadarCinema({ visible, onClose, webAppUrl }: Props) {
   }, [visible, locate])
 
   const html = useMemo(
-    () => (coords ? buildRadarHtml(coords, opacity, refreshKey) : ''),
-    [coords, opacity, refreshKey],
+    () => (coords ? buildRadarHtml(coords, prefs, refreshKey) : ''),
+    [coords, prefs, refreshKey],
   )
 
   async function openWebFallback() {
@@ -157,7 +226,7 @@ export default function RadarCinema({ visible, onClose, webAppUrl }: Props) {
             <View style={styles.webFallback}>
               <Text style={styles.webTitle}>Radar cinema</Text>
               <Text style={styles.webBody}>
-                Open the immersive NOAA radar page in the browser for the full cinema experience on web.
+                Open the immersive NOAA radar page in the browser for full multi-layer cinema on web.
               </Text>
               <Pressable style={styles.primary} onPress={() => void openWebFallback()}>
                 <Text style={styles.primaryText}>Open web radar</Text>
@@ -193,7 +262,7 @@ export default function RadarCinema({ visible, onClose, webAppUrl }: Props) {
           <View style={styles.hudTop} pointerEvents="box-none">
             <View>
               <Text style={styles.eyebrow}>ROOF/OS FIELD · RADAR CINEMA</Text>
-              <Text style={styles.title}>NOAA MRMS reflectivity</Text>
+              <Text style={styles.title}>NOAA MRMS multi-layer</Text>
               <Text style={styles.meta}>
                 {coords
                   ? `${coords.latitude.toFixed(3)}, ${coords.longitude.toFixed(3)} · auto-refresh 3 min`
@@ -203,6 +272,9 @@ export default function RadarCinema({ visible, onClose, webAppUrl }: Props) {
             <View style={styles.hudActions}>
               <Pressable style={styles.chip} onPress={() => setRefreshKey((n) => n + 1)}>
                 <Text style={styles.chipText}>Refresh</Text>
+              </Pressable>
+              <Pressable style={styles.chip} onPress={() => setLayersOpen((v) => !v)}>
+                <Text style={styles.chipText}>Layers</Text>
               </Pressable>
               <Pressable style={styles.chip} onPress={() => void locate()}>
                 <Text style={styles.chipText}>Relocate</Text>
@@ -217,19 +289,52 @@ export default function RadarCinema({ visible, onClose, webAppUrl }: Props) {
           </View>
         )}
 
-        {hud && coords && (
-          <View style={styles.hudBottom}>
-            <Text style={styles.hint}>Pinch to zoom · drag to pan · not a damage assessment</Text>
+        {hud && layersOpen && (
+          <View style={styles.layerPanel}>
+            <Text style={styles.layerTitle}>Layers</Text>
+            <ScrollView style={{ maxHeight: 280 }}>
+              {LAYER_ROWS.map((row) => (
+                <Pressable
+                  key={row.id}
+                  style={styles.layerRow}
+                  onPress={() => setPrefs((prev) => ({ ...prev, [row.id]: !prev[row.id] }))}
+                >
+                  <Text style={styles.layerCheck}>{prefs[row.id] ? 'ON' : 'OFF'}</Text>
+                  <Text style={styles.layerLabel}>{row.label}</Text>
+                </Pressable>
+              ))}
+            </ScrollView>
             <View style={styles.opacityRow}>
               <Text style={styles.hint}>Opacity</Text>
-              <Pressable style={styles.chip} onPress={() => setOpacity((v) => Math.max(0.35, Number((v - 0.1).toFixed(2))))}>
+              <Pressable
+                style={styles.chip}
+                onPress={() => setPrefs((p) => ({
+                  ...p,
+                  radarOpacity: Math.max(0.2, Number((p.radarOpacity - 0.1).toFixed(2))),
+                }))}
+              >
                 <Text style={styles.chipText}>−</Text>
               </Pressable>
-              <Text style={styles.opacityValue}>{Math.round(opacity * 100)}%</Text>
-              <Pressable style={styles.chip} onPress={() => setOpacity((v) => Math.min(1, Number((v + 0.1).toFixed(2))))}>
+              <Text style={styles.opacityValue}>{Math.round(prefs.radarOpacity * 100)}%</Text>
+              <Pressable
+                style={styles.chip}
+                onPress={() => setPrefs((p) => ({
+                  ...p,
+                  radarOpacity: Math.min(1, Number((p.radarOpacity + 0.1).toFixed(2))),
+                }))}
+              >
                 <Text style={styles.chipText}>+</Text>
               </Pressable>
             </View>
+            <Pressable style={styles.chip} onPress={() => setPrefs({ ...DEFAULT_PREFS })}>
+              <Text style={styles.chipText}>Reset defaults</Text>
+            </Pressable>
+          </View>
+        )}
+
+        {hud && coords && !layersOpen && (
+          <View style={styles.hudBottom}>
+            <Text style={styles.hint}>Pinch to zoom · Layers for bref / cref / echo tops / precip · not a damage assessment</Text>
           </View>
         )}
 
@@ -286,8 +391,37 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: Platform.OS === 'ios' ? 28 : 16,
     backgroundColor: 'rgba(0,0,0,0.55)',
+  },
+  layerPanel: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 150 : 120,
+    right: 12,
+    width: 260,
+    maxHeight: '60%',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: 'rgba(2,6,23,0.94)',
+    padding: 12,
     gap: 8,
   },
+  layerTitle: { color: '#67e8f9', fontWeight: '900', fontSize: 12, letterSpacing: 1, textTransform: 'uppercase' },
+  layerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(255,255,255,0.08)',
+  },
+  layerCheck: {
+    width: 36,
+    textAlign: 'center',
+    color: '#22d3ee',
+    fontWeight: '900',
+    fontSize: 11,
+  },
+  layerLabel: { color: '#f8fafc', fontSize: 13, fontWeight: '600', flex: 1 },
   eyebrow: { color: '#67e8f9', fontSize: 10, fontWeight: '800', letterSpacing: 1.5 },
   title: { color: '#fff', fontSize: 18, fontWeight: '900' },
   meta: { color: '#cbd5e1', fontSize: 12, marginTop: 2 },
@@ -303,7 +437,7 @@ const styles = StyleSheet.create({
   chipExit: { borderColor: 'rgba(34,211,238,0.5)', backgroundColor: 'rgba(34,211,238,0.15)' },
   chipText: { color: '#f8fafc', fontSize: 12, fontWeight: '700' },
   hint: { color: '#94a3b8', fontSize: 11 },
-  opacityRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  opacityRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 },
   opacityValue: { color: '#fff', fontWeight: '800', minWidth: 40, textAlign: 'center' },
   showHud: {
     position: 'absolute',

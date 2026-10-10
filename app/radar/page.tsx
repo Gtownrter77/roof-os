@@ -3,7 +3,15 @@
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import WeatherRadarMap from '../../components/WeatherRadarMap'
+import RadarCinemaMap from '../../components/RadarCinemaMap'
+import {
+  DEFAULT_RADAR_LAYER_PREFS,
+  RADAR_UI_LAYERS,
+  loadRadarLayerPrefs,
+  saveRadarLayerPrefs,
+  type RadarLayerId,
+  type RadarLayerPrefs,
+} from '../../lib/radar/cinema-layers'
 import type { WeatherAlert } from '../../lib/services/weather'
 
 type Summary = {
@@ -13,7 +21,6 @@ type Summary = {
   alerts?: WeatherAlert[]
   forecast?: { period: string; temperature: number; temperatureUnit: string; conditions: string } | null
   error?: string
-  message?: string
 }
 
 const REFRESH_MS = 3 * 60 * 1000
@@ -30,10 +37,23 @@ export default function RadarCinemaPage() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [chrome, setChrome] = useState(true)
-  const [opacity, setOpacity] = useState(0.82)
+  const [layersOpen, setLayersOpen] = useState(true)
+  const [prefs, setPrefs] = useState<RadarLayerPrefs>(DEFAULT_RADAR_LAYER_PREFS)
   const [refreshTick, setRefreshTick] = useState(0)
   const [locating, setLocating] = useState(false)
   const [coordsOverride, setCoordsOverride] = useState<{ latitude: number; longitude: number } | null>(null)
+  const [alertGeoJson, setAlertGeoJson] = useState<{
+    type: 'FeatureCollection'
+    features: Array<{ type: 'Feature'; geometry: unknown; properties?: Record<string, unknown> | null }>
+  } | null>(null)
+
+  useEffect(() => {
+    setPrefs(loadRadarLayerPrefs())
+  }, [])
+
+  useEffect(() => {
+    saveRadarLayerPrefs(prefs)
+  }, [prefs])
 
   const load = useCallback(async (query = '') => {
     setLoading(true)
@@ -58,6 +78,36 @@ export default function RadarCinemaPage() {
     void load(query)
   }, [load, coordsOverride, refreshTick])
 
+  // Active alert polygons for the point (NWS public API)
+  useEffect(() => {
+    const location = summary?.status === 'ready' ? summary.location : null
+    if (!location || !prefs.alerts) {
+      setAlertGeoJson(null)
+      return
+    }
+    let cancelled = false
+    const url = `https://api.weather.gov/alerts/active?point=${location.latitude},${location.longitude}`
+    void fetch(url, {
+      headers: { Accept: 'application/geo+json', 'User-Agent': 'ROOF-OS/1.0 (radar-cinema)' },
+      cache: 'no-store',
+    })
+      .then(async (response) => {
+        if (!response.ok) throw new Error('alerts unavailable')
+        return response.json() as Promise<{ features?: Array<{ type: 'Feature'; geometry: unknown; properties?: Record<string, unknown> | null }> }>
+      })
+      .then((collection) => {
+        if (cancelled) return
+        setAlertGeoJson({
+          type: 'FeatureCollection',
+          features: (collection.features || []).filter((feature) => Boolean(feature.geometry)),
+        })
+      })
+      .catch(() => {
+        if (!cancelled) setAlertGeoJson(null)
+      })
+    return () => { cancelled = true }
+  }, [summary, prefs.alerts, refreshTick])
+
   useEffect(() => {
     const id = window.setInterval(() => setRefreshTick((n) => n + 1), REFRESH_MS)
     return () => window.clearInterval(id)
@@ -68,6 +118,10 @@ export default function RadarCinemaPage() {
       if (event.key === 'h' || event.key === 'H') {
         event.preventDefault()
         setChrome((v) => !v)
+      }
+      if (event.key === 'l' || event.key === 'L') {
+        event.preventDefault()
+        setLayersOpen((v) => !v)
       }
       if (event.key === 'f' || event.key === 'F') {
         event.preventDefault()
@@ -113,23 +167,26 @@ export default function RadarCinemaPage() {
     }
   }
 
+  function toggleLayer(id: RadarLayerId) {
+    setPrefs((prev) => ({ ...prev, [id]: !prev[id] }))
+  }
+
   const location = summary?.status === 'ready' ? summary.location : null
   const alerts = summary?.alerts ?? []
-  const refreshKey = `${summary?.checkedAt ?? 'na'}-${refreshTick}-${opacity}`
+  const refreshKey = `${summary?.checkedAt ?? 'na'}-${refreshTick}`
+  const activeRadarCount = (['bref', 'cref', 'echoTops', 'precipType'] as const).filter((id) => prefs[id]).length
 
   return (
     <div className="fixed inset-0 z-[80] bg-black text-white">
       {location ? (
-        <WeatherRadarMap
+        <RadarCinemaMap
           latitude={location.latitude}
           longitude={location.longitude}
           locationLabel={location.label}
+          prefs={prefs}
           refreshKey={refreshKey}
-          zoom={7.2}
-          opacity={opacity}
-          edgeToEdge
-          showBadge={false}
-          className="h-full w-full rounded-none border-0"
+          alerts={alerts}
+          alertGeoJson={alertGeoJson}
         />
       ) : (
         <div className="flex h-full w-full items-center justify-center bg-[#050914] p-6">
@@ -162,7 +219,6 @@ export default function RadarCinemaPage() {
         </div>
       )}
 
-      {/* Top HUD */}
       {chrome && (
         <div className="pointer-events-none absolute inset-x-0 top-0 z-10 bg-gradient-to-b from-black/80 via-black/40 to-transparent p-4 pb-16">
           <div className="pointer-events-auto mx-auto flex max-w-7xl flex-wrap items-start justify-between gap-3">
@@ -172,25 +228,13 @@ export default function RadarCinemaPage() {
                 {location ? `${location.label} · ${location.postalCode}` : 'NOAA MRMS'}
               </h1>
               <p className="mt-1 text-xs text-slate-300">
-                Live composite reflectivity · refreshed {checkedLabel(summary?.checkedAt)} · auto every 3 min
+                {activeRadarCount} radar product{activeRadarCount === 1 ? '' : 's'} · refreshed {checkedLabel(summary?.checkedAt)} · auto 3 min
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => setRefreshTick((n) => n + 1)}
-                className="rounded-lg border border-white/20 bg-black/50 px-3 py-1.5 text-xs font-semibold hover:bg-white/10"
-              >
-                Refresh
-              </button>
-              <button
-                type="button"
-                onClick={() => void useDeviceLocation()}
-                disabled={locating}
-                className="rounded-lg border border-white/20 bg-black/50 px-3 py-1.5 text-xs font-semibold hover:bg-white/10 disabled:opacity-50"
-              >
-                {locating ? 'Locating…' : 'My location'}
-              </button>
+              <button type="button" onClick={() => setRefreshTick((n) => n + 1)} className="rounded-lg border border-white/20 bg-black/50 px-3 py-1.5 text-xs font-semibold hover:bg-white/10">Refresh</button>
+              <button type="button" onClick={() => void useDeviceLocation()} disabled={locating} className="rounded-lg border border-white/20 bg-black/50 px-3 py-1.5 text-xs font-semibold hover:bg-white/10 disabled:opacity-50">{locating ? 'Locating…' : 'My location'}</button>
+              <button type="button" onClick={() => setLayersOpen((v) => !v)} className="rounded-lg border border-cyan-400/40 bg-cyan-400/15 px-3 py-1.5 text-xs font-semibold text-cyan-100">Layers (L)</button>
               <button
                 type="button"
                 onClick={() => {
@@ -198,29 +242,80 @@ export default function RadarCinemaPage() {
                   if (!document.fullscreenElement) void root.requestFullscreen?.()
                   else void document.exitFullscreen?.()
                 }}
-                className="rounded-lg border border-cyan-400/40 bg-cyan-400/15 px-3 py-1.5 text-xs font-semibold text-cyan-100"
-              >
-                Browser fullscreen
-              </button>
-              <button
-                type="button"
-                onClick={() => setChrome(false)}
                 className="rounded-lg border border-white/20 bg-black/50 px-3 py-1.5 text-xs font-semibold hover:bg-white/10"
               >
-                Hide HUD (H)
+                Fullscreen (F)
               </button>
-              <Link
-                href="/weather"
-                className="rounded-lg border border-white/20 bg-black/50 px-3 py-1.5 text-xs font-semibold hover:bg-white/10"
-              >
-                Exit
-              </Link>
+              <button type="button" onClick={() => setChrome(false)} className="rounded-lg border border-white/20 bg-black/50 px-3 py-1.5 text-xs font-semibold hover:bg-white/10">Hide HUD (H)</button>
+              <Link href="/settings" className="rounded-lg border border-white/20 bg-black/50 px-3 py-1.5 text-xs font-semibold hover:bg-white/10">Settings</Link>
+              <Link href="/weather" className="rounded-lg border border-white/20 bg-black/50 px-3 py-1.5 text-xs font-semibold hover:bg-white/10">Exit</Link>
             </div>
           </div>
         </div>
       )}
 
-      {/* Bottom HUD */}
+      {/* Layer panel */}
+      {chrome && layersOpen && (
+        <aside className="absolute right-3 top-28 z-20 w-[min(100%-1.5rem,320px)] rounded-2xl border border-white/15 bg-slate-950/92 p-4 shadow-2xl backdrop-blur">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-sm font-black uppercase tracking-wide text-cyan-200">Layers</h2>
+            <button type="button" onClick={() => setLayersOpen(false)} className="text-xs text-slate-400 hover:text-white">Close</button>
+          </div>
+          <div className="space-y-2">
+            {RADAR_UI_LAYERS.map((layer) => (
+              <label key={layer.id} className="flex cursor-pointer items-start gap-3 rounded-lg border border-white/10 bg-black/30 p-2.5 hover:border-cyan-400/30">
+                <input
+                  type="checkbox"
+                  className="mt-1"
+                  checked={Boolean(prefs[layer.id])}
+                  onChange={() => toggleLayer(layer.id)}
+                />
+                <span>
+                  <span className="block text-sm font-semibold text-white">{layer.label}</span>
+                  <span className="block text-[11px] text-slate-400">{layer.detail}</span>
+                </span>
+              </label>
+            ))}
+          </div>
+          <div className="mt-4 space-y-3 border-t border-white/10 pt-3">
+            <label className="block text-[10px] uppercase tracking-wide text-slate-400">
+              Radar opacity · {Math.round(prefs.radarOpacity * 100)}%
+              <input
+                type="range"
+                min={0.2}
+                max={1}
+                step={0.05}
+                value={prefs.radarOpacity}
+                onChange={(e) => setPrefs((p) => ({ ...p, radarOpacity: Number(e.target.value) }))}
+                className="mt-1 w-full"
+              />
+            </label>
+            <label className="block text-[10px] uppercase tracking-wide text-slate-400">
+              Alert fill opacity · {Math.round(prefs.alertsOpacity * 100)}%
+              <input
+                type="range"
+                min={0.1}
+                max={0.8}
+                step={0.05}
+                value={prefs.alertsOpacity}
+                onChange={(e) => setPrefs((p) => ({ ...p, alertsOpacity: Number(e.target.value) }))}
+                className="mt-1 w-full"
+              />
+            </label>
+            <button
+              type="button"
+              onClick={() => setPrefs({ ...DEFAULT_RADAR_LAYER_PREFS })}
+              className="w-full rounded-lg border border-white/15 py-2 text-xs font-semibold text-slate-200 hover:bg-white/5"
+            >
+              Reset to defaults
+            </button>
+            <p className="text-[10px] text-slate-500">
+              Saved on this device. Same toggles live under Settings → Radar cinema layers.
+            </p>
+          </div>
+        </aside>
+      )}
+
       {chrome && location && (
         <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black/85 via-black/45 to-transparent p-4 pt-20">
           <div className="pointer-events-auto mx-auto flex max-w-7xl flex-col gap-3 md:flex-row md:items-end md:justify-between">
@@ -256,21 +351,14 @@ export default function RadarCinemaPage() {
                 )}
               </div>
               <p className="text-[10px] text-slate-500">
-                Keys: H hide HUD · F browser fullscreen · R refresh · Esc exit · Radar: NOAA/NWS MRMS · not a damage assessment
+                Keys: L layers · H HUD · F fullscreen · R refresh · Esc exit · NOAA/NWS · not a damage assessment
               </p>
             </div>
-            <label className="flex min-w-[200px] flex-col gap-1 text-[10px] uppercase tracking-wide text-slate-400">
-              Radar opacity
-              <input
-                type="range"
-                min={0.35}
-                max={1}
-                step={0.05}
-                value={opacity}
-                onChange={(e) => setOpacity(Number(e.target.value))}
-                className="w-full"
-              />
-            </label>
+            <div className="rounded-xl border border-white/10 bg-black/50 px-3 py-2 text-[10px] text-slate-300">
+              <p className="font-bold uppercase tracking-wide text-slate-200">Legend</p>
+              <p>Reflectivity greens → yellows → reds = stronger returns</p>
+              <p>Amber polygons = NWS alert areas (when enabled)</p>
+            </div>
           </div>
         </div>
       )}

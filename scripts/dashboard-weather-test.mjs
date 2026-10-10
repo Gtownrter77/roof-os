@@ -71,7 +71,11 @@ for (const route of ['weather', 'radar', 'storms', 'leads', 'inspections', 'meas
   assert.ok(existsSync(new URL(`../app/${route}/page.tsx`, import.meta.url)), `dashboard feature route /${route} must exist`)
 }
 assert.match(read('app/radar/page.tsx'), /radar cinema/i)
-assert.match(read('app/radar/page.tsx'), /WeatherRadarMap/)
+assert.match(read('app/radar/page.tsx'), /RadarCinemaMap/)
+assert.match(read('app/radar/page.tsx'), /Layers \(L\)/)
+assert.match(read('lib/radar/cinema-layers.ts'), /bref_qcd/)
+assert.match(read('lib/radar/cinema-layers.ts'), /RADAR_PREFS_KEY/)
+assert.match(read('app/settings/page.tsx'), /Radar cinema layers/)
 assert.match(read('lib/nav.ts'), /\/radar/)
 assert.match(read('lib/nav.ts'), /APP_SHELL_HIDDEN[\s\S]*\/radar/)
 
