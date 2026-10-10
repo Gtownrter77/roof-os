@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { smartBack } from '../../lib/smart-back'
 
 export default function VRPage() {
   const router = useRouter()
@@ -77,9 +78,9 @@ export default function VRPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 to-indigo-900 text-white pb-20">
-      <header className="glass sticky top-0 z-10 rounded-xl mb-4">
+      <header className="glass rounded-xl mb-4">
         <div className="px-4 py-3 flex items-center">
-          <button onClick={() => router.back()} className="mr-3 text-xl text-cyan-300" type="button" aria-label="Go back">←</button>
+          <button onClick={() => smartBack(router)} className="mr-3 text-xl text-cyan-300" type="button" aria-label="Go back">←</button>
           <h1 className="text-xl font-bold">🥽 Walkthrough Session</h1>
           <span className="ml-2 bg-amber-400/100 text-white text-xs px-2 py-0.5 rounded-full">VIEWER</span>
         </div>
