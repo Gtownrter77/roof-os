@@ -22,20 +22,20 @@ These results apply to the recorded commit and automated checks only; they do no
 ## Confirmed problems
 
 1. **Unsafe legacy prototype on a non-main branch.** The Jules branch's `app/api/photo-estimate/pipeline/route.ts` called a prototype engine that returns hard-coded example addresses, roof quantities, prices, storm history, and fallback customer contact details. The route also accepted raw `request.json()` without an authentication check. This is not evidence that the endpoint exists on current main or is exposed in production.
-2. **Duplicate migration SQL.** Current main has identical contents in these pairs:
+2. **Fabricated sample data in current main.** The canvassing page displayed Homer Simpson at Evergreen Terrace, a fabricated inspector name/contact/license, and a fixed storm date. The customer portal displayed four fictional customers, and notifications displayed six invented alerts as if recent. The canvassing mentor also made unsupported claims about hail damage and insurance-rate effects. These UI values were removed on the audit branch; canvassing now labels unconverted pins as session-only, the portal directs users to real leads, notifications show an honest unconnected empty state, and the script guide avoids unsupported insurance guarantees.\n3. **Duplicate migration SQL.** Current main has identical contents in these pairs:
    - `021_photo_estimate_workflows.sql` / `022_photo_estimate_workflows.sql`
    - `022_soffit_measurement_fields.sql` / `023_soffit_measurement_fields.sql`
    - `023_photo_refresh_decisions.sql` / `024_photo_refresh_decisions.sql`
-3. **Stale migration guidance.** The prior guide said the next prefix was `039`, but repository files extend through `052`. The guide now says `053` is the next new local prefix and documents the duplicate-content finding. The old migrations were not renamed or deleted.
-4. **Stale status snapshots.** README and CURRENT-STATE contained old baseline SHAs and historical deployment/test statements that could be mistaken for current verification. They now identify the current baseline and link this report.
-5. **CI write-job scope.** The `refresh-field-lock` job has `contents: write` and pushes to a branch. It was not gated away from pull-request events. The workflow now limits this writer job to non-main push events, avoiding branch-name resolution and writes during PR runs.
+4. **Stale migration guidance.** The prior guide said the next prefix was `039`, but repository files extend through `052`. The guide now says `053` is the next new local prefix and documents the duplicate-content finding. The old migrations were not renamed or deleted.
+5. **Stale status snapshots.** README and CURRENT-STATE contained old baseline SHAs and historical deployment/test statements that could be mistaken for current verification. They now identify the current baseline and link this report.
+6. **CI write-job scope.** The `refresh-field-lock` job has `contents: write` and pushes to a branch. It was not gated away from pull-request events. The workflow now limits this writer job to non-main push events, avoiding branch-name resolution and writes during PR runs.
 
 ## Fixes made on branches
 
 - On `audit/fix-verified-findings-20261009`:
   - Restricted the lockfile-writing CI job to non-main push events.
   - Corrected migration-order documentation to the current repository migration head and documented duplicate SQL without rewriting history.
-  - Added this status report and marked older README/CURRENT-STATE checkpoints as historical.
+  - Added this status report and marked older README/CURRENT-STATE checkpoints as historical.\n  - Removed fabricated canvassing pins, fake inspector credentials, fake portal customers, and invented notification records.\n  - Replaced unsupported canvassing/insurance claims with cautious, non-authoritative wording.\n  - Added regression assertions preventing those fake records from returning.
 - On `jules-8591243431038068273-0357cdff`:
   - Replaced the unauthenticated prototype endpoint with a fail-closed handler requiring an authenticated user, an active workspace, and workspace-admin authorization.
   - Added the bounded JSON reader.
