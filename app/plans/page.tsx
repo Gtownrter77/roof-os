@@ -12,47 +12,34 @@ export default function PlansPage() {
     {
       id: 'starter',
       name: 'Starter',
-      price: '29',
-      period: '/month',
       features: [
-        'Up to 50 leads',
-        'Basic inspections',
+        'Lead capture',
+        'Inspections',
         'Weather alerts',
-        'Email support'
       ],
-      button: 'Start Free Trial',
+      button: 'Not for sale here',
       popular: false
     },
     {
       id: 'pro',
       name: 'Pro',
-      price: '79',
-      period: '/month',
       features: [
-        'Unlimited leads',
-        'AI report generation',
-        'Advanced analytics',
-        'Priority support',
-        'Camera integration',
-        'Voice assistant'
+        'Workspace leads',
+        'Inspection evidence',
+        'Local text assistant',
+        'Camera',
       ],
-      button: 'Start Free Trial',
+      button: 'Not for sale here',
       popular: true
     },
     {
       id: 'enterprise',
       name: 'Enterprise',
-      price: '199',
-      period: '/month',
       features: [
-        'Everything in Pro',
-        'Multi-location support',
-        'Custom integrations',
-        'Dedicated support',
-        'White-label option',
-        'API access'
+        'Same product',
+        'Price stays Unknown until a human approves it',
       ],
-      button: 'Contact Sales',
+      button: 'Not for sale here',
       popular: false
     }
   ]
@@ -68,8 +55,8 @@ export default function PlansPage() {
 
       <main className="p-4"><p className="text-sm glass rounded-xl p-4 mb-4">This plan screen does not write a price.</p>
         <div className="text-center mb-6">
-          <h2 className="text-2xl font-bold">Choose Your Plan</h2>
-          <p className="text-sm text-slate-400">Start free, upgrade anytime</p>
+          <h2 className="text-2xl font-bold">Plans are not sold on this screen</h2>
+          <p className="text-sm text-slate-400">Price stays Unknown until a human approves it.</p>
         </div>
 
         <div className="space-y-4">
@@ -88,7 +75,6 @@ export default function PlansPage() {
                   <h3 className="text-xl font-bold">{plan.name}</h3>
                   <div className="mt-1">
                     <span className="text-3xl font-bold">Unknown</span>
-                    <span className="text-slate-400 text-sm">{plan.period}</span>
                   </div>
                 </div>
                 <button 
@@ -111,7 +97,7 @@ export default function PlansPage() {
 
         <div className="mt-6 bg-cyan-400/10 border border-cyan-400/30 rounded-lg p-4">
           <p className="text-sm text-cyan-200 text-center">
-            🔒 All plans include 14-day free trial • No credit card required
+            No checkout runs from this page.
           </p>
         </div>
       </main>

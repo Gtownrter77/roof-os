@@ -14,17 +14,46 @@ export default function ChatPage() {
     { id: 'local', name: 'This browser only', icon: '💬', unread: 0 },
   ]
 
-  const sendMessage = (e: React.FormEvent) => {
+  const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!newMessage.trim()) return
-    setMessages([...messages, {
-      id: Date.now(),
-      user: 'You',
-      message: newMessage,
-      time: 'Just now',
-      avatar: '👤'
-    }])
+    const text = newMessage.trim()
+    if (!text) return
+    const mine = { id: Date.now(), user: 'You', message: text, time: 'Just now', avatar: '👤' }
+    setMessages((current) => [...current, mine])
     setNewMessage('')
+    try {
+      const response = await fetch('/api/ai/chat', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          message: text,
+          currentPath: '/chat',
+          history: messages.slice(-6).map((item) => ({
+            role: item.user === 'You' ? 'user' : 'assistant',
+            content: item.message,
+          })),
+        }),
+      })
+      const payload = await response.json()
+      const reply = typeof payload.reply === 'string' && payload.reply.trim()
+        ? payload.reply.trim()
+        : 'The local assistant did not answer. Try storms, leads, or an estimate from the menu.'
+      setMessages((current) => [...current, {
+        id: Date.now() + 1,
+        user: 'ROOF/OS',
+        message: reply,
+        time: 'Just now',
+        avatar: '🛠️',
+      }])
+    } catch {
+      setMessages((current) => [...current, {
+        id: Date.now() + 1,
+        user: 'ROOF/OS',
+        message: 'The assistant could not be reached from this browser.',
+        time: 'Just now',
+        avatar: '🛠️',
+      }])
+    }
   }
 
   return (
@@ -37,7 +66,7 @@ export default function ChatPage() {
         </div>
       </header>
 
-      <main className="p-4"><p className="text-sm glass rounded-xl p-4 mb-4">Messages stay in this browser. They are not saved and are not a team chat.</p>
+      <main className="p-4"><p className="text-sm glass rounded-xl p-4 mb-4">This uses the same local assistant as the corner chat. Messages stay in this browser. They are not a team inbox and they do not set a price.</p>
         {/* Chat List */}
         <div className="glass rounded-xl mb-4">
           <div className="p-3 border-b">

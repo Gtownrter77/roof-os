@@ -4,163 +4,85 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { smartBack } from '../../lib/smart-back'
 
+type Watch = {
+  place: string
+  forecast: string
+  alerts: string[]
+  note: string
+}
+
 export default function PredictPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
-  const [prediction, setPrediction] = useState<any>(null)
+  const [error, setError] = useState('')
+  const [watch, setWatch] = useState<Watch | null>(null)
 
-  const predictFutureDamage = () => {
+  async function loadWatch() {
     setLoading(true)
-    
-    // Simulate complex AI prediction
-    setTimeout(() => {
-      setPrediction({
-        roofLifeRemaining: '5-7 years',
-        riskScore: 78,
-        riskLevel: 'Moderate-High',
-        nextMajorStorm: '18-24 months',
-        vulnerabilityAreas: ['South slope', 'Chimney flashing', 'Gutter corners'],
-        weatherPatterns: 'Increasing severe weather expected',
-        recommendedActions: [
-          'Replace flashing in 6 months',
-          'Gutter reinforcement needed',
-          'Consider impact-resistant shingles',
-          'Schedule annual inspection'
-        ],
-        estimatedCosts: {
-          immediate: '$1,200 - $1,800',
-          nextYear: '$3,500 - $4,200',
-          fiveYear: '$12,000 - $15,000'
-        }
+    setError('')
+    try {
+      const response = await fetch('/api/weather/summary', { cache: 'no-store' })
+      const payload = await response.json()
+      if (!response.ok) throw new Error(payload.error ?? 'Weather could not be checked.')
+      const alerts = Array.isArray(payload.alerts)
+        ? payload.alerts.map((alert: { headline?: string }) => alert.headline).filter(Boolean)
+        : []
+      const forecast = payload.forecast
+        ? `${payload.forecast.period}: ${payload.forecast.temperature}°${payload.forecast.temperatureUnit}, ${payload.forecast.conditions}`
+        : 'Forecast Unknown'
+      setWatch({
+        place: payload.location?.label ?? 'Workspace location',
+        forecast,
+        alerts,
+        note: 'Roof life, risk score, and repair cost stay Unknown. This screen does not invent them.',
       })
+    } catch (cause) {
+      setWatch(null)
+      setError(cause instanceof Error ? cause.message : 'Weather could not be checked.')
+    } finally {
       setLoading(false)
-    }, 4000)
+    }
   }
 
   return (
     <div className="space-y-4 pb-4">
       <header className="glass rounded-xl mb-4">
         <div className="px-4 py-3 flex items-center">
-          <button onClick={() => smartBack(router)} className="mr-3 text-xl text-cyan-300">←</button>
-          <h1 className="text-xl font-bold">🧠 Predictive AI</h1>
-          <span className="ml-2 bg-amber-400/100 text-white text-xs px-2 py-0.5 rounded-full animate-pulse">BETA</span>
+          <button onClick={() => smartBack(router)} className="mr-3 text-xl text-cyan-300" aria-label="Go back">←</button>
+          <h1 className="text-xl font-bold">Storm watch</h1>
         </div>
       </header>
-
-      <main className="p-4"><p className="text-sm glass rounded-xl p-4 mb-4">A prediction without a source stays Unknown.</p>
-        <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg shadow-lg p-4 mb-4 border border-purple-200">
-          <div className="flex items-center">
-            <span className="text-3xl mr-3">🧠</span>
-            <div>
-              <h3 className="font-semibold">AI Future Damage Predictor</h3>
-              <p className="text-xs text-slate-400">Machine learning predicts future roof issues</p>
-            </div>
-          </div>
-        </div>
-
-        <button 
-          onClick={predictFutureDamage}
+      <main className="p-4 space-y-4">
+        <p className="text-sm glass rounded-xl p-4">
+          Uses the live National Weather Service check for this workspace. It is not a damage forecast and it does not call a paid model.
+        </p>
+        <button
+          type="button"
+          onClick={() => void loadWatch()}
           disabled={loading}
-          className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-3 rounded-lg font-semibold disabled:opacity-50"
+          className="w-full rounded-lg bg-cyan-400 py-3 font-semibold text-slate-950 disabled:opacity-50"
         >
-          {loading ? '⏳ Analyzing...' : '🔮 Predict Future Damage'}
+          {loading ? 'Checking weather…' : 'Check current storm watch'}
         </button>
-
-        {prediction && (
-          <div className="mt-4 space-y-4 animate-fadeIn">
-            <div className="glass rounded-xl p-4 border-2 border-purple-500">
-              <h3 className="font-semibold text-sm mb-3">📊 Prediction Results</h3>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-white/5 p-2 rounded">
-                  <p className="text-xs text-slate-400">Roof Life Remaining</p>
-                  <p className="font-bold text-cyan-300">{prediction.roofLifeRemaining}</p>
-                </div>
-                <div className="bg-white/5 p-2 rounded">
-                  <p className="text-xs text-slate-400">Risk Score</p>
-                  <p className={`font-bold Unknown`}>
-                    {prediction.riskScore}/100
-                  </p>
-                </div>
-                <div className="bg-white/5 p-2 rounded">
-                  <p className="text-xs text-slate-400">Next Major Storm</p>
-                  <p className="font-bold text-orange-600">{prediction.nextMajorStorm}</p>
-                </div>
-                <div className="bg-white/5 p-2 rounded">
-                  <p className="text-xs text-slate-400">Risk Level</p>
-                  <p className={`font-bold Unknown`}>
-                    {prediction.riskLevel}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="glass rounded-xl p-4">
-              <h3 className="font-semibold text-sm mb-2">⚠️ Vulnerable Areas</h3>
-              <div className="flex flex-wrap gap-1">
-                {prediction.vulnerabilityAreas.map((area: string, i: number) => (
-                  <span key={i} className="bg-red-100 text-red-800 text-xs px-2 py-1 rounded">
-                    {area}
-                  </span>
-                ))}
-              </div>
-              <p className="text-xs text-slate-400 mt-2">Weather patterns: {prediction.weatherPatterns}</p>
-            </div>
-
-            <div className="glass rounded-xl p-4 border-l-4 border-green-500">
-              <h3 className="font-semibold text-sm mb-2">✅ Recommended Actions</h3>
-              <ul className="space-y-1">
-                {prediction.recommendedActions.map((action: string, i: number) => (
-                  <li key={i} className="text-sm flex items-start">
-                    <span className="text-green-500 mr-2">•</span>
-                    {action}
-                  </li>
-                ))}
+        {error ? <p className="text-sm text-amber-200" role="alert">{error}</p> : null}
+        {watch ? (
+          <section className="glass rounded-xl p-4 space-y-3">
+            <h2 className="font-semibold">{watch.place}</h2>
+            <p className="text-sm text-slate-200">{watch.forecast}</p>
+            {watch.alerts.length === 0 ? (
+              <p className="text-sm text-slate-400">No active alerts in this check.</p>
+            ) : (
+              <ul className="space-y-2 text-sm text-amber-100">
+                {watch.alerts.map((headline) => <li key={headline}>{headline}</li>)}
               </ul>
-            </div>
-
-            <div className="glass rounded-xl p-4">
-              <h3 className="font-semibold text-sm mb-2">💰 Cost Projections</h3>
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span>Immediate</span>
-                  <span className="font-medium">{prediction.estimatedCosts.immediate}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span>Next Year</span>
-                  <span className="font-medium">{prediction.estimatedCosts.nextYear}</span>
-                </div>
-                <div className="flex justify-between text-sm border-t pt-2 font-bold">
-                  <span>5 Year Projection</span>
-                  <span className="text-red-300">{prediction.estimatedCosts.fiveYear}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+            )}
+            <p className="text-xs text-slate-400">{watch.note}</p>
+            <button type="button" onClick={() => router.push('/radar')} className="text-sm font-semibold text-cyan-300">
+              Open radar cinema
+            </button>
+          </section>
+        ) : null}
       </main>
-
-      <nav className="fixed bottom-0 left-0 right-0 z-30 flex justify-around border-t border-white/10 bg-[#070b14]/95 py-2 px-4 backdrop-blur lg:hidden">
-        <button onClick={() => router.push('/')} className="flex flex-col items-center text-slate-400">
-          <span className="text-xl">🏠</span>
-          <span className="text-xs">Home</span>
-        </button>
-        <button onClick={() => router.push('/predict')} className="flex flex-col items-center text-cyan-300">
-          <span className="text-xl">🧠</span>
-          <span className="text-xs">Predict</span>
-        </button>
-        <button onClick={() => router.push('/drone')} className="flex flex-col items-center text-slate-400">
-          <span className="text-xl">🚁</span>
-          <span className="text-xs">Drone</span>
-        </button>
-        <button onClick={() => router.push('/supplement')} className="flex flex-col items-center text-slate-400">
-          <span className="text-xl">📋</span>
-          <span className="text-xs">Supplement</span>
-        </button>
-        <button onClick={() => router.push('/settings')} className="flex flex-col items-center text-slate-400">
-          <span className="text-xl">⚙️</span>
-          <span className="text-xs">Settings</span>
-        </button>
-      </nav>
     </div>
   )
 }
