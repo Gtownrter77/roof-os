@@ -18,6 +18,16 @@ The current repository has three duplicate numeric prefixes. Migrations 036, 037
 
 The release checker locks this exact legacy set and fails if a new collision appears. The live ledger is timestamped and confirms individual migrations; do not add files under any existing or duplicated numeric prefix.
 
+## Duplicate migration contents found in the repository
+
+In addition to the numeric-prefix collisions above, these pairs have identical SQL content in the current `main` snapshot:
+
+- `021_photo_estimate_workflows.sql` and `022_photo_estimate_workflows.sql`
+- `022_soffit_measurement_fields.sql` and `023_soffit_measurement_fields.sql`
+- `023_photo_refresh_decisions.sql` and `024_photo_refresh_decisions.sql`
+
+Treat this as a repository-history reconciliation task, not permission to delete or renumber files. Before any cleanup, compare the actual production migration ledger and the SQL state already applied. New work must use a unique prefix greater than `052`.
+
 ## Safe forward path
 
 1. Before using `supabase migration repair`, renaming a historical file, or changing a production ledger, inspect the recorded production migration versions.
