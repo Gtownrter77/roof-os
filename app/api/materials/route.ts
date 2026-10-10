@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Authentication required.' }, { status: 401 })
   const query = request.nextUrl.searchParams.get('q')?.trim() ?? ''
   const category = request.nextUrl.searchParams.get('category')?.trim()
-  let builder = supabase.from('material_catalog').select('id,category,subcategory,brand,product_line,product_name,variant,unit,coverage_per_unit,color_options,search_terms').eq('active', true).order('category').order('brand').order('product_name').limit(100)
+  let builder = supabase.from('material_catalog').select('id,category,subcategory,brand,product_line,product_name,variant,unit,coverage_per_unit,color_options,search_terms').eq('active', true).order('category').order('brand').order('product_name').limit(500)
   if (category) builder = builder.eq('category', category)
   if (query) { const sanitized = query.replace(/[,\(\):%_]/g, ' ').trim().slice(0, 80); if (sanitized) { builder = builder.or(`product_name.ilike.%${sanitized}%,brand.ilike.%${sanitized}%,product_line.ilike.%${sanitized}%,variant.ilike.%${sanitized}%`); } }
   const { data, error } = await builder
