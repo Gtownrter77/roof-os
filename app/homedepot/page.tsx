@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { smartBack } from '../../lib/smart-back'
 import { createClient } from '../../lib/supabase/client'
 
 type ReferenceProduct = {
@@ -163,9 +164,9 @@ export default function HomeDepotPage() {
 
   return (
     <div className="space-y-4 pb-4">
-      <header className="glass sticky top-0 z-10 rounded-xl mb-4">
+      <header className="glass rounded-xl mb-4">
         <div className="px-4 py-3 flex items-center">
-          <button type="button" onClick={() => router.back()} className="mr-3 text-xl text-cyan-300" aria-label="Go back">←</button>
+          <button type="button" onClick={() => smartBack(router)} className="mr-3 text-xl text-cyan-300" aria-label="Go back">←</button>
           <h1 className="text-xl font-bold">🏪 Home Depot Reference</h1>
           <span className="ml-2 bg-white/20 text-white text-xs px-2 py-0.5 rounded-full">SOURCE DATA</span>
         </div>

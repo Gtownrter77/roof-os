@@ -63,7 +63,7 @@ export default function InvoicesPage() {
 
   return (
     <main className="space-y-4 pb-4">
-      <header className="glass sticky top-0 z-10 rounded-xl mb-4">
+      <header className="glass rounded-xl mb-4">
         <div className="px-4 py-3 flex items-center">
           <h1 className="text-xl font-bold">Invoices</h1>
         </div>
