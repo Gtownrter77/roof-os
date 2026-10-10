@@ -67,8 +67,12 @@ assert.match(csp, /tiles\.openfreemap\.org/)
 assert.match(csp, /opengeo\.ncep\.noaa\.gov/)
 assert.match(csp, /worker-src 'self' blob:/)
 
-for (const route of ['weather', 'storms', 'leads', 'inspections', 'measure', 'photo-estimate', 'reports', 'pricing-config', 'tasks', 'calendar', 'warranty', 'settings']) {
+for (const route of ['weather', 'radar', 'storms', 'leads', 'inspections', 'measure', 'photo-estimate', 'reports', 'pricing-config', 'tasks', 'calendar', 'warranty', 'settings']) {
   assert.ok(existsSync(new URL(`../app/${route}/page.tsx`, import.meta.url)), `dashboard feature route /${route} must exist`)
 }
+assert.match(read('app/radar/page.tsx'), /radar cinema/i)
+assert.match(read('app/radar/page.tsx'), /WeatherRadarMap/)
+assert.match(read('lib/nav.ts'), /\/radar/)
+assert.match(read('lib/nav.ts'), /APP_SHELL_HIDDEN[\s\S]*\/radar/)
 
 console.log('Dashboard, workspace weather, login consent, source, and CSP contract tests passed')

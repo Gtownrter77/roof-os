@@ -11,9 +11,26 @@ type Props = {
   interactive?: boolean
   showBadge?: boolean
   refreshKey?: string
+  /** Initial map zoom. Immersive watch mode likes ~6.5–8. */
+  zoom?: number
+  /** Radar layer opacity 0–1. */
+  opacity?: number
+  /** Drop rounded chrome for true edge-to-edge cinema. */
+  edgeToEdge?: boolean
 }
 
-export default function WeatherRadarMap({ latitude, longitude, locationLabel, className = 'h-72', interactive = true, showBadge = true, refreshKey }: Props) {
+export default function WeatherRadarMap({
+  latitude,
+  longitude,
+  locationLabel,
+  className = 'h-72',
+  interactive = true,
+  showBadge = true,
+  refreshKey,
+  zoom = 7,
+  opacity = 0.78,
+  edgeToEdge = false,
+}: Props) {
   const container = useRef<HTMLDivElement>(null)
   const [mapError, setMapError] = useState(false)
   const radar = useMemo(() => getRadarServiceForPoint(latitude, longitude), [latitude, longitude])
@@ -32,15 +49,15 @@ export default function WeatherRadarMap({ latitude, longitude, locationLabel, cl
         container: node,
         style: OPENFREEMAP_DARK_STYLE,
         center: [longitude, latitude],
-        zoom: 7,
+        zoom,
         minZoom: 3,
         maxZoom: 14,
         interactive,
         attributionControl: false,
-        cooperativeGestures: interactive,
+        cooperativeGestures: interactive && !edgeToEdge,
       })
       if (interactive) {
-        map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right')
+        map.addControl(new maplibregl.NavigationControl({ showCompass: true }), 'top-right')
         map.addControl(new maplibregl.AttributionControl({
           compact: true,
           customAttribution: 'Radar: NOAA/NWS MRMS · Basemap: OpenFreeMap · © OpenStreetMap contributors',
@@ -61,7 +78,7 @@ export default function WeatherRadarMap({ latitude, longitude, locationLabel, cl
             id: 'noaa-mrms-reflectivity',
             type: 'raster',
             source: 'noaa-mrms-radar',
-            paint: { 'raster-opacity': 0.78, 'raster-fade-duration': 150 },
+            paint: { 'raster-opacity': opacity, 'raster-fade-duration': 150 },
           }, firstLabel)
         }
         map.addSource('roofos-service-location', {
@@ -83,6 +100,8 @@ export default function WeatherRadarMap({ latitude, longitude, locationLabel, cl
             'circle-stroke-color': '#ffffff',
           },
         })
+        // Cinema: fill the container after chrome settles
+        map.resize()
       })
       map.on('error', () => {
         if (!disposed) setMapError(true)
@@ -95,20 +114,22 @@ export default function WeatherRadarMap({ latitude, longitude, locationLabel, cl
       disposed = true
       map?.remove()
     }
-  }, [latitude, longitude, locationLabel, radarTiles, radar, interactive, refreshKey])
+  }, [latitude, longitude, locationLabel, radarTiles, radar, interactive, refreshKey, zoom, opacity, edgeToEdge])
 
   return (
-    <div className={`relative overflow-hidden rounded-xl border border-white/10 bg-slate-950 ${className}`}>
+    <div className={`relative overflow-hidden bg-slate-950 ${edgeToEdge ? '' : 'rounded-xl border border-white/10'} ${className}`}>
       <div
         ref={container}
         className="absolute inset-0"
         role="img"
         aria-label={`Interactive weather radar map centered near ${locationLabel}; NOAA MRMS radar overlay where supported.`}
       />
-      {showBadge && <div className="pointer-events-none absolute left-3 top-3 z-10 flex items-center gap-2 rounded-full border border-white/15 bg-slate-950/85 px-3 py-1.5 text-xs font-semibold text-white shadow">
-        <span className={`h-2 w-2 rounded-full ${radar ? 'bg-emerald-400' : 'bg-amber-400'}`} />
-        {radar ? 'NOAA MRMS radar · latest available' : 'Radar coverage unavailable here'}
-      </div>}
+      {showBadge && (
+        <div className="pointer-events-none absolute left-3 top-3 z-10 flex items-center gap-2 rounded-full border border-white/15 bg-slate-950/85 px-3 py-1.5 text-xs font-semibold text-white shadow">
+          <span className={`h-2 w-2 rounded-full ${radar ? 'bg-emerald-400' : 'bg-amber-400'}`} />
+          {radar ? 'NOAA MRMS radar · latest available' : 'Radar coverage unavailable here'}
+        </div>
+      )}
       {showBadge && mapError && (
         <div className="absolute inset-x-4 bottom-10 z-10 rounded-lg bg-slate-950/90 p-3 text-xs text-amber-100" role="status">
           The map service did not load. Weather figures are kept separate from the map display.

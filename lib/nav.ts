@@ -9,6 +9,7 @@ import {
   Gauge,
   Home as HomeIcon,
   ListChecks,
+  Radar,
   Settings,
   ShieldCheck,
   Sparkles,
@@ -27,6 +28,7 @@ export type AppNavItem = {
 export const APP_NAV_ITEMS: AppNavItem[] = [
   { href: '/', label: 'Dashboard', icon: HomeIcon },
   { href: '/weather', label: 'Weather & radar', icon: CloudLightning },
+  { href: '/radar', label: 'Radar cinema', icon: Radar },
   { href: '/storms', label: 'Storm alerts', icon: Activity },
   { href: '/leads', label: 'Leads & CRM', icon: Users },
   { href: '/canvass', label: 'Field canvass', icon: Footprints },
@@ -42,4 +44,4 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
   { href: '/settings', label: 'Settings', icon: Settings },
 ]
 
-export const APP_SHELL_HIDDEN = ['/auth', '/onboarding', '/admin', '/portal', '/team/invitations']
+export const APP_SHELL_HIDDEN = ['/auth', '/onboarding', '/admin', '/portal', '/team/invitations', '/radar']
