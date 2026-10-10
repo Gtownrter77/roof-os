@@ -3,6 +3,14 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { smartBack } from '../../lib/smart-back'
+import {
+  DEFAULT_RADAR_LAYER_PREFS,
+  RADAR_UI_LAYERS,
+  loadRadarLayerPrefs,
+  saveRadarLayerPrefs,
+  type RadarLayerId,
+  type RadarLayerPrefs,
+} from '../../lib/radar/cinema-layers'
 
 type Settings = {
   price_refresh_frequency: string
@@ -68,12 +76,14 @@ export default function SettingsPage() {
   const [settings, setSettings] = useState<Settings>(initialSettings)
   const [taxRates, setTaxRates] = useState<TaxRates>(initialTax)
   const [taxSource, setTaxSource] = useState('')
+  const [radarPrefs, setRadarPrefs] = useState<RadarLayerPrefs>(DEFAULT_RADAR_LAYER_PREFS)
   const [loaded, setLoaded] = useState(false)
   const [message, setMessage] = useState('')
   const [refreshing, setRefreshing] = useState(false)
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
+    setRadarPrefs(loadRadarLayerPrefs())
     Promise.all([fetch('/api/settings'), fetch('/api/pricing/labor-rates')]).then(async ([settingsResponse, pricingResponse]) => {
       const settingsPayload = await settingsResponse.json()
       const pricingPayload = await pricingResponse.json()
@@ -235,6 +245,76 @@ export default function SettingsPage() {
               {refreshing ? 'Refreshing Retailers…' : '🔄 Refresh Retailer Prices Now'}
             </button>
           </div>
+        </section>
+
+        {/* Radar cinema layers */}
+        <section className="glass rounded-xl p-4 border-l-4 border-cyan-500 space-y-3">
+          <h2 className="font-bold text-sm text-white flex items-center">
+            <span className="text-lg mr-1.5">📡</span> Radar cinema layers
+          </h2>
+          <p className="text-xs text-slate-400">
+            Defaults for <a href="/radar" className="text-cyan-300 underline">Radar cinema</a>. Turn layers off here or with <span className="font-semibold text-slate-200">L</span> on the map. Saved on this device.
+          </p>
+          <div className="space-y-2 text-xs">
+            {RADAR_UI_LAYERS.map((layer) => (
+              <ToggleRow
+                key={layer.id}
+                label={layer.label}
+                desc={layer.detail}
+                checked={Boolean(radarPrefs[layer.id])}
+                onToggle={() => {
+                  const id = layer.id as RadarLayerId
+                  const next = { ...radarPrefs, [id]: !radarPrefs[id] }
+                  setRadarPrefs(next)
+                  saveRadarLayerPrefs(next)
+                }}
+              />
+            ))}
+          </div>
+          <div className="grid gap-3 md:grid-cols-2 text-xs">
+            <label className="block text-slate-300">
+              Radar opacity · {Math.round(radarPrefs.radarOpacity * 100)}%
+              <input
+                type="range"
+                min={0.2}
+                max={1}
+                step={0.05}
+                value={radarPrefs.radarOpacity}
+                onChange={(e) => {
+                  const next = { ...radarPrefs, radarOpacity: Number(e.target.value) }
+                  setRadarPrefs(next)
+                  saveRadarLayerPrefs(next)
+                }}
+                className="mt-1 w-full"
+              />
+            </label>
+            <label className="block text-slate-300">
+              Alert fill opacity · {Math.round(radarPrefs.alertsOpacity * 100)}%
+              <input
+                type="range"
+                min={0.1}
+                max={0.8}
+                step={0.05}
+                value={radarPrefs.alertsOpacity}
+                onChange={(e) => {
+                  const next = { ...radarPrefs, alertsOpacity: Number(e.target.value) }
+                  setRadarPrefs(next)
+                  saveRadarLayerPrefs(next)
+                }}
+                className="mt-1 w-full"
+              />
+            </label>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setRadarPrefs({ ...DEFAULT_RADAR_LAYER_PREFS })
+              saveRadarLayerPrefs({ ...DEFAULT_RADAR_LAYER_PREFS })
+            }}
+            className="rounded-lg border border-white/15 px-3 py-2 text-xs font-semibold text-slate-200 hover:bg-white/5"
+          >
+            Reset radar layers to defaults
+          </button>
         </section>
 
         {/* Field Canvassing & Mobile Settings */}
