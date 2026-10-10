@@ -5,6 +5,7 @@ export type RadarLayerId =
   | 'cref'
   | 'echoTops'
   | 'precipType'
+  | 'stormLoop'
   | 'alerts'
   | 'locationPin'
   | 'basemapLabels'
@@ -20,6 +21,7 @@ export const DEFAULT_RADAR_LAYER_PREFS: RadarLayerPrefs = {
   cref: false,
   echoTops: false,
   precipType: false,
+  stormLoop: false,
   alerts: true,
   locationPin: true,
   basemapLabels: true,
@@ -29,7 +31,7 @@ export const DEFAULT_RADAR_LAYER_PREFS: RadarLayerPrefs = {
 }
 
 export type RadarProductDef = {
-  id: Exclude<RadarLayerId, 'alerts' | 'locationPin' | 'basemapLabels' | 'basemap'>
+  id: Exclude<RadarLayerId, 'alerts' | 'locationPin' | 'basemapLabels' | 'basemap' | 'stormLoop'>
   label: string
   detail: string
   /** NOAA product suffix after region_ */
@@ -74,6 +76,7 @@ export const RADAR_UI_LAYERS: Array<{ id: RadarLayerId; label: string; detail: s
   { id: 'cref', label: 'Composite reflectivity', detail: 'Column-max reflectivity' },
   { id: 'echoTops', label: 'Echo tops', detail: 'Storm top heights' },
   { id: 'precipType', label: 'Precip type', detail: 'Rain / mix / snow' },
+  { id: 'stormLoop', label: 'Storm loop', detail: 'Last hour of NEXRAD, 5-minute steps' },
   { id: 'alerts', label: 'NWS alert polygons', detail: 'Active warning / watch areas' },
   { id: 'locationPin', label: 'Location pin', detail: 'Service area or GPS center' },
   { id: 'basemapLabels', label: 'Map labels', detail: 'City / road name labels' },
@@ -89,6 +92,33 @@ export function radarRegionForPoint(latitude: number, longitude: number): string
   if (latitude >= 12.5 && latitude <= 14 && longitude >= 144 && longitude <= 146) return 'guam'
   if (latitude >= 24 && latitude <= 50 && longitude >= -125 && longitude <= -66) return 'conus'
   return null
+}
+
+/** Oldest → newest. IEM publishes these lagged CONUS/AK/HI/PR/GU mosaics. */
+export const STORM_LOOP_MINUTES = [55, 50, 45, 40, 35, 30, 25, 20, 15, 10, 5, 0] as const
+
+const IEM_NEXRAD_ROOT = 'https://mesonet.agron.iastate.edu/cgi-bin/wms/nexrad/n0q.cgi'
+
+export function iemRegionCode(region: string) {
+  if (region === 'alaska') return 'ak'
+  if (region === 'hawaii') return 'hi'
+  if (region === 'guam') return 'gu'
+  if (region === 'carib') return 'pr'
+  return 'conus'
+}
+
+/** Public IEM NEXRAD base reflectivity tile. minutesAgo 0 is the latest mosaic. */
+export function buildIemReflectivityTileUrl(region: string, minutesAgo: number) {
+  const code = iemRegionCode(region)
+  const lag = minutesAgo > 0 ? `-m${String(minutesAgo).padStart(2, '0')}m` : ''
+  const layer = `nexrad-n0q-900913${lag}-${code}`
+  return `${IEM_NEXRAD_ROOT}?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap&LAYERS=${encodeURIComponent(layer)}`
+    + '&STYLES=&FORMAT=image%2Fpng&TRANSPARENT=true&SRS=EPSG:3857'
+    + '&WIDTH=256&HEIGHT=256&BBOX={bbox-epsg-3857}'
+}
+
+export function stormLoopLabel(minutesAgo: number) {
+  return minutesAgo > 0 ? `${minutesAgo} min ago` : 'latest frame'
 }
 
 export function buildProductTileUrl(region: string, product: string, cacheBust: number | string) {

@@ -26,6 +26,7 @@ type LayerPrefs = {
   cref: boolean
   echoTops: boolean
   precipType: boolean
+  stormLoop: boolean
   locationPin: boolean
   basemapLabels: boolean
   basemap: boolean
@@ -37,6 +38,7 @@ const DEFAULT_PREFS: LayerPrefs = {
   cref: false,
   echoTops: false,
   precipType: false,
+  stormLoop: false,
   locationPin: true,
   basemapLabels: true,
   basemap: true,
@@ -48,6 +50,7 @@ const LAYER_ROWS: Array<{ id: keyof LayerPrefs; label: string }> = [
   { id: 'cref', label: 'Composite reflectivity' },
   { id: 'echoTops', label: 'Echo tops' },
   { id: 'precipType', label: 'Precip type' },
+  { id: 'stormLoop', label: 'Storm loop · last hour' },
   { id: 'locationPin', label: 'Location pin' },
   { id: 'basemapLabels', label: 'Map labels' },
   { id: 'basemap', label: 'Basemap' },
@@ -59,6 +62,23 @@ function radarRegion(latitude: number, longitude: number): string {
   if (latitude >= 17 && latitude <= 20 && longitude >= -69 && longitude <= -64) return 'carib'
   if (latitude >= 12.5 && latitude <= 14 && longitude >= 144 && longitude <= 146) return 'guam'
   return 'conus'
+}
+
+function iemCode(region: string) {
+  if (region === 'alaska') return 'ak'
+  if (region === 'hawaii') return 'hi'
+  if (region === 'guam') return 'gu'
+  if (region === 'carib') return 'pr'
+  return 'conus'
+}
+
+function loopTileUrl(region: string, minutesAgo: number) {
+  const lag = minutesAgo > 0 ? `-m${String(minutesAgo).padStart(2, '0')}m` : ''
+  const layer = `nexrad-n0q-900913${lag}-${iemCode(region)}`
+  return 'https://mesonet.agron.iastate.edu/cgi-bin/wms/nexrad/n0q.cgi'
+    + `?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap&LAYERS=${encodeURIComponent(layer)}`
+    + '&STYLES=&FORMAT=image%2Fpng&TRANSPARENT=true&SRS=EPSG:3857'
+    + '&WIDTH=256&HEIGHT=256&BBOX={bbox-epsg-3857}'
 }
 
 function tileUrl(region: string, product: string, refreshKey: number) {
@@ -74,7 +94,7 @@ function buildRadarHtml(coords: Coords, prefs: LayerPrefs, refreshKey: number) {
   const { latitude, longitude } = coords
   const region = radarRegion(latitude, longitude)
   const products = [
-    prefs.bref ? { id: 'bref', product: 'bref_qcd' } : null,
+    prefs.bref && !prefs.stormLoop ? { id: 'bref', product: 'bref_qcd' } : null,
     prefs.cref ? { id: 'cref', product: 'cref_qcd' } : null,
     prefs.echoTops ? { id: 'echoTops', product: 'neet_v18' } : null,
     prefs.precipType ? { id: 'precipType', product: 'pcpn_typ' } : null,
@@ -83,6 +103,11 @@ function buildRadarHtml(coords: Coords, prefs: LayerPrefs, refreshKey: number) {
   const productJs = products.map((item) => ({
     id: item.id,
     url: tileUrl(region, item.product, refreshKey),
+  }))
+  const loopFrames = [55, 50, 45, 40, 35, 30, 25, 20, 15, 10, 5, 0].map((minutes) => ({
+    minutes,
+    label: minutes > 0 ? `${minutes} min ago` : 'latest frame',
+    url: loopTileUrl(region, minutes),
   }))
 
   return `<!DOCTYPE html>
@@ -94,13 +119,17 @@ function buildRadarHtml(coords: Coords, prefs: LayerPrefs, refreshKey: number) {
   <style>
     html, body, #map { margin: 0; padding: 0; height: 100%; width: 100%; background: #050914; }
     .maplibregl-ctrl-attrib { font-size: 10px; }
+    #loop-readout { position: absolute; left: 12px; bottom: 28px; z-index: 2; color: #e2e8f0; font: 600 12px/1.3 sans-serif; background: rgba(0,0,0,.55); border: 1px solid rgba(255,255,255,.15); border-radius: 999px; padding: 6px 10px; display: none; }
   </style>
 </head>
 <body>
   <div id="map"></div>
+  <div id="loop-readout"></div>
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"><\/script>
   <script>
     const products = ${JSON.stringify(productJs)};
+    const loopFrames = ${JSON.stringify(loopFrames)};
+    const stormLoop = ${prefs.stormLoop ? 'true' : 'false'};
     const prefs = ${JSON.stringify({
       radarOpacity: prefs.radarOpacity,
       locationPin: prefs.locationPin,
@@ -149,6 +178,36 @@ function buildRadarHtml(coords: Coords, prefs: LayerPrefs, refreshKey: number) {
           source: 'noaa-' + product.id,
           paint: { 'raster-opacity': prefs.radarOpacity, 'raster-fade-duration': 150 }
         }, firstLabel && firstLabel.id);
+      }
+      if (stormLoop && loopFrames.length) {
+        let frame = 0;
+        const readout = document.getElementById('loop-readout');
+        map.addSource('iem-loop', {
+          type: 'raster',
+          tiles: [loopFrames[0].url],
+          tileSize: 256,
+          attribution: 'Radar loop: Iowa State IEM NEXRAD'
+        });
+        map.addLayer({
+          id: 'iem-loop-layer',
+          type: 'raster',
+          source: 'iem-loop',
+          paint: { 'raster-opacity': prefs.radarOpacity, 'raster-fade-duration': 80 }
+        }, firstLabel && firstLabel.id);
+        const paint = () => {
+          const item = loopFrames[frame];
+          const source = map.getSource('iem-loop');
+          if (source && source.setTiles) source.setTiles([item.url]);
+          if (readout) {
+            readout.style.display = 'block';
+            readout.textContent = 'Storm loop · ' + item.label;
+          }
+        };
+        paint();
+        window.__roofosLoop = setInterval(() => {
+          frame = (frame + 1) % loopFrames.length;
+          paint();
+        }, 800);
       }
       if (prefs.locationPin) {
         map.addSource('you', {

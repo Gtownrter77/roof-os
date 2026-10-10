@@ -7,8 +7,10 @@ import RadarCinemaMap from '../../components/RadarCinemaMap'
 import {
   DEFAULT_RADAR_LAYER_PREFS,
   RADAR_UI_LAYERS,
+  STORM_LOOP_MINUTES,
   loadRadarLayerPrefs,
   saveRadarLayerPrefs,
+  stormLoopLabel,
   type RadarLayerId,
   type RadarLayerPrefs,
 } from '../../lib/radar/cinema-layers'
@@ -24,6 +26,11 @@ type Summary = {
 }
 
 const REFRESH_MS = 3 * 60 * 1000
+
+function expiresLabel(value: string) {
+  const parsed = new Date(value)
+  return Number.isNaN(parsed.valueOf()) ? value : parsed.toLocaleString()
+}
 
 function checkedLabel(value?: string) {
   if (!value) return 'time unknown'
@@ -44,6 +51,8 @@ export default function RadarCinemaPage() {
   const [locationMode, setLocationMode] = useState<'device' | 'workspace'>('device')
   const [coordsOverride, setCoordsOverride] = useState<{ latitude: number; longitude: number } | null>(null)
   const [geoReady, setGeoReady] = useState(false)
+  const [loopIndex, setLoopIndex] = useState(STORM_LOOP_MINUTES.length - 1)
+  const [loopPaused, setLoopPaused] = useState(false)
   const [alertGeoJson, setAlertGeoJson] = useState<{
     type: 'FeatureCollection'
     features: Array<{ type: 'Feature'; geometry: unknown; properties?: Record<string, unknown> | null }>
@@ -159,6 +168,14 @@ export default function RadarCinemaPage() {
   }, [])
 
   useEffect(() => {
+    if (!prefs.stormLoop || loopPaused) return
+    const id = window.setInterval(() => {
+      setLoopIndex((index) => (index + 1) % STORM_LOOP_MINUTES.length)
+    }, 800)
+    return () => window.clearInterval(id)
+  }, [prefs.stormLoop, loopPaused])
+
+  useEffect(() => {
     function onKey(event: KeyboardEvent) {
       if (event.key === 'h' || event.key === 'H') {
         event.preventDefault()
@@ -180,6 +197,20 @@ export default function RadarCinemaPage() {
       if (event.key === 'r' || event.key === 'R') {
         event.preventDefault()
         setRefreshTick((n) => n + 1)
+      }
+      if (event.key === 'p' || event.key === 'P' || event.key === ' ') {
+        const target = event.target as HTMLElement | null
+        if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return
+        event.preventDefault()
+        setPrefs((prev) => {
+          if (!prev.stormLoop) {
+            setLoopPaused(false)
+            setLoopIndex(0)
+            return { ...prev, stormLoop: true }
+          }
+          setLoopPaused((paused) => !paused)
+          return prev
+        })
       }
       if (event.key === '-' || event.key === '_') {
         event.preventDefault()
@@ -249,6 +280,7 @@ export default function RadarCinemaPage() {
           refreshKey={refreshKey}
           alerts={alerts}
           alertGeoJson={alertGeoJson}
+          loopMinutesAgo={prefs.stormLoop ? STORM_LOOP_MINUTES[loopIndex] : null}
         />
       ) : (
         <div className="flex h-full w-full items-center justify-center bg-[#050914] p-6">
@@ -294,7 +326,8 @@ export default function RadarCinemaPage() {
               <p className="mt-1 text-xs text-slate-300">
                 {locationMode === 'device' ? 'Localized to you' : 'Workspace service ZIP'}
                 {' · '}
-                {activeRadarCount} radar product{activeRadarCount === 1 ? '' : 's'}
+                {activeRadarCount} MRMS product{activeRadarCount === 1 ? '' : 's'}
+                {prefs.stormLoop ? ` · loop ${stormLoopLabel(STORM_LOOP_MINUTES[loopIndex])}` : ''}
                 {' · '}
                 refreshed {checkedLabel(summary?.checkedAt)} · auto 3 min
               </p>
@@ -306,6 +339,22 @@ export default function RadarCinemaPage() {
               <button type="button" onClick={() => window.dispatchEvent(new CustomEvent('roofos-radar-view', { detail: 'expand' }))} className="rounded-lg border border-white/20 bg-black/50 px-3 py-1.5 text-xs font-semibold hover:bg-white/10">Expand</button>
               <button type="button" onClick={() => window.dispatchEvent(new CustomEvent('roofos-radar-view', { detail: 'expand-max' }))} className="rounded-lg border border-white/20 bg-black/50 px-3 py-1.5 text-xs font-semibold hover:bg-white/10">Expand max</button>
               <button type="button" onClick={() => window.dispatchEvent(new CustomEvent('roofos-radar-view', { detail: 'localize' }))} className="rounded-lg border border-white/20 bg-black/50 px-3 py-1.5 text-xs font-semibold hover:bg-white/10">Local</button>
+              <button
+                type="button"
+                onClick={() => {
+                  setPrefs((prev) => ({ ...prev, stormLoop: !prev.stormLoop }))
+                  setLoopPaused(false)
+                  setLoopIndex(0)
+                }}
+                className={`rounded-lg border px-3 py-1.5 text-xs font-semibold ${prefs.stormLoop ? 'border-cyan-400/50 bg-cyan-400/20 text-cyan-100' : 'border-white/20 bg-black/50 hover:bg-white/10'}`}
+              >
+                {prefs.stormLoop ? (loopPaused ? 'Loop paused' : `Loop · ${stormLoopLabel(STORM_LOOP_MINUTES[loopIndex])}`) : 'Storm loop'}
+              </button>
+              {prefs.stormLoop && (
+                <button type="button" onClick={() => setLoopPaused((paused) => !paused)} className="rounded-lg border border-white/20 bg-black/50 px-3 py-1.5 text-xs font-semibold hover:bg-white/10">
+                  {loopPaused ? 'Play' : 'Pause'}
+                </button>
+              )}
               <button type="button" onClick={() => setLayersOpen((v) => !v)} className="rounded-lg border border-cyan-400/40 bg-cyan-400/15 px-3 py-1.5 text-xs font-semibold text-cyan-100">Layers (L)</button>
               <button
                 type="button"
@@ -423,13 +472,33 @@ export default function RadarCinemaPage() {
                 )}
               </div>
               <p className="text-[10px] text-slate-500">
-                Keys: L layers · H HUD · F fullscreen · R refresh · − expand · + local · 0 expand max · Esc exit · pinch/scroll zooms 0–18 · NOAA/NWS · not a damage assessment
+                Keys: L layers · P or Space loop · H HUD · F fullscreen · R refresh · − expand · + local · 0 expand max · Esc exit · pinch/scroll zooms 0–18 · NOAA/NWS and IEM · not a damage assessment
               </p>
             </div>
-            <div className="rounded-xl border border-white/10 bg-black/50 px-3 py-2 text-[10px] text-slate-300">
-              <p className="font-bold uppercase tracking-wide text-slate-200">Legend</p>
-              <p>Reflectivity greens → yellows → reds = stronger returns</p>
-              <p>Amber polygons = NWS alert areas (when enabled)</p>
+            <div className="max-w-sm space-y-2">
+              {alerts.length > 0 && (
+                <div className="max-h-36 space-y-2 overflow-y-auto rounded-xl border border-amber-400/30 bg-black/55 p-2">
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-amber-200">Storm desk · {alerts.length} active</p>
+                  {alerts.slice(0, 3).map((alert) => (
+                    <article key={alert.id}>
+                      <p className="text-xs font-semibold text-amber-50">{alert.headline}</p>
+                      <p className="text-[10px] text-slate-400">
+                        {alert.severity} · {alert.urgency}
+                        {alert.expiresAt ? ` · until ${expiresLabel(alert.expiresAt)}` : ''}
+                      </p>
+                      {alert.description ? (
+                        <p className="line-clamp-2 text-[11px] text-slate-300">{alert.description}</p>
+                      ) : null}
+                    </article>
+                  ))}
+                </div>
+              )}
+              <div className="rounded-xl border border-white/10 bg-black/50 px-3 py-2 text-[10px] text-slate-300">
+                <p className="font-bold uppercase tracking-wide text-slate-200">Legend</p>
+                <div className="mt-1 h-2 rounded-full" style={{ background: 'linear-gradient(90deg,#64748b,#22c55e,#84cc16,#eab308,#f97316,#ef4444,#7f1d1d)' }} />
+                <p className="mt-1">Light returns through heavy and severe. Amber polygons are NWS alert areas.</p>
+                <p>Storm loop is the last hour of NEXRAD in 5-minute steps. It stands in for base reflectivity while it plays.</p>
+              </div>
             </div>
           </div>
         </div>

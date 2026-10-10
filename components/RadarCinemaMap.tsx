@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { OPENFREEMAP_DARK_STYLE } from '../lib/services/radar-source.mjs'
 import {
   RADAR_PRODUCTS,
+  buildIemReflectivityTileUrl,
   buildProductTileUrl,
   radarRegionForPoint,
   type RadarLayerPrefs,
@@ -16,6 +17,8 @@ type Props = {
   locationLabel: string
   prefs: RadarLayerPrefs
   refreshKey: string | number
+  /** When set, play this NEXRAD frame (minutes before latest) instead of MRMS base reflectivity. */
+  loopMinutesAgo?: number | null
   alerts?: WeatherAlert[]
   alertGeoJson?: { type: 'FeatureCollection'; features: Array<{ type: 'Feature'; geometry: unknown; properties?: Record<string, unknown> | null }> } | null
 }
@@ -26,6 +29,7 @@ export default function RadarCinemaMap({
   locationLabel,
   prefs,
   refreshKey,
+  loopMinutesAgo = null,
   alertGeoJson,
 }: Props) {
   const container = useRef<HTMLDivElement>(null)
@@ -117,7 +121,7 @@ export default function RadarCinemaMap({
       for (const product of RADAR_PRODUCTS) {
         const sourceId = `noaa-${product.id}`
         const layerId = `noaa-${product.id}-layer`
-        const enabled = Boolean(prefs[product.id]) && Boolean(region)
+        const enabled = Boolean(prefs[product.id]) && Boolean(region) && !(product.id === 'bref' && prefs.stormLoop)
 
         if (map.getLayer(layerId)) map.removeLayer(layerId)
         if (map.getSource(sourceId)) map.removeSource(sourceId)
@@ -206,6 +210,52 @@ export default function RadarCinemaMap({
     if (map.isStyleLoaded()) apply()
     else map.once('load', apply)
   }, [prefs, refreshKey, latitude, longitude, locationLabel, alertGeoJson])
+
+  // Swap only the loop frame so the rest of the map does not rebuild every step.
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map) return
+    const sourceId = 'iem-n0q-loop'
+    const layerId = 'iem-n0q-loop-layer'
+
+    const applyLoop = () => {
+      const region = radarRegionForPoint(latitude, longitude)
+      const show = prefs.stormLoop && loopMinutesAgo != null && Boolean(region)
+      if (!show || !region || loopMinutesAgo == null) {
+        if (map.getLayer(layerId)) map.removeLayer(layerId)
+        if (map.getSource(sourceId)) map.removeSource(sourceId)
+        return
+      }
+      const url = buildIemReflectivityTileUrl(region, loopMinutesAgo)
+      const existing = map.getSource(sourceId) as { setTiles?: (tiles: string[]) => void } | undefined
+      if (existing?.setTiles) {
+        existing.setTiles([url])
+        if (map.getLayer(layerId)) {
+          map.setPaintProperty(layerId, 'raster-opacity', prefs.radarOpacity)
+        }
+        return
+      }
+      const firstLabel = map.getStyle().layers?.find((layer) => layer.type === 'symbol')?.id
+      map.addSource(sourceId, {
+        type: 'raster',
+        tiles: [url],
+        tileSize: 256,
+        attribution: 'Radar loop: Iowa State IEM NEXRAD',
+      })
+      map.addLayer({
+        id: layerId,
+        type: 'raster',
+        source: sourceId,
+        paint: {
+          'raster-opacity': prefs.radarOpacity,
+          'raster-fade-duration': 80,
+        },
+      }, firstLabel)
+    }
+
+    if (map.isStyleLoaded()) applyLoop()
+    else map.once('load', applyLoop)
+  }, [prefs.stormLoop, prefs.radarOpacity, loopMinutesAgo, latitude, longitude])
 
   return (
     <div className="relative h-full w-full bg-black">
