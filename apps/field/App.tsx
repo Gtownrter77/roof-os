@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
   Alert,
   AppState,
+  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -106,6 +107,14 @@ type AgendaItem = {
 const photoAlbums = ['general', 'before', 'damage', 'measurements', 'completed'] as const
 type PhotoAlbum = typeof photoAlbums[number]
 type Point = { latitude: number; longitude: number }
+type QueuedPhoto = {
+  id: number
+  local_uri: string
+  album: string
+  caption: string | null
+  sync_status: string
+  last_error: string | null
+}
 
 const timestamp = () => new Date().toISOString()
 const clientId = (prefix: string) => `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 12)}`
@@ -158,6 +167,7 @@ export default function App() {
   const [online, setOnline] = useState(true)
   const [stormHeadline, setStormHeadline] = useState('')
   const [pendingUploads, setPendingUploads] = useState(0)
+  const [photoQueue, setPhotoQueue] = useState<QueuedPhoto[]>([])
   const draftRef = useRef<Draft | null>(null)
   const syncLock = useRef(false)
 
@@ -257,6 +267,13 @@ export default function App() {
     }
   }
 
+  function refreshPhotoQueue(draftId: number) {
+    setPhotoQueue(db.getAllSync<QueuedPhoto>(
+      'SELECT id, local_uri, album, caption, sync_status, last_error FROM inspection_photo_queue WHERE draft_id = ? ORDER BY captured_at DESC LIMIT 8',
+      draftId,
+    ))
+  }
+
   function selectDraft(row: Draft) {
     draftRef.current = row; setDraft(row); setSelectedLeadId(row.leadId); setAddress(row.address); setPhotos(row.photoCount); setTechnicianName(row.technicianName ?? ''); setTechnicianLicense(row.technicianLicense ?? ''); setVerificationNotes(row.verificationNotes ?? ''); if (row.latitude !== null && row.longitude !== null) setPoint({ latitude: row.latitude, longitude: row.longitude }); else setPoint(null)
     const measurements = db.getAllSync<{ roof_squares: number; gutter_lf: number; eave_lf: number; rafter_lf: number; pitch: number; soffit_lf: number; fascia_lf: number; roof_type: string }>('SELECT roof_squares, gutter_lf, eave_lf, rafter_lf, pitch, soffit_lf, fascia_lf, roof_type FROM inspection_measurements_local WHERE draft_id = ? ORDER BY captured_at DESC LIMIT 1', row.id)
@@ -264,6 +281,7 @@ export default function App() {
     if (latest) { setSquares(String(latest.roof_squares)); setGutters(String(latest.gutter_lf)); setEave(String(latest.eave_lf)); setRafter(String(latest.rafter_lf)); setPitch(String(latest.pitch)); setSoffit(String(latest.soffit_lf)); setFascia(String(latest.fascia_lf)); setRoofType(latest.roof_type) }
     else { setSquares(''); setGutters(''); setEave(''); setRafter(''); setPitch(''); setSoffit(''); setFascia(''); setRoofType('') }
     setPendingUploads(pendingRowCount(row.id))
+    refreshPhotoQueue(row.id)
     if (!row.technicianName) {
       void SecureStore.getItemAsync('roof_os_field_tech_name').then((saved) => {
         if (saved && draftRef.current?.id === row.id && !draftRef.current.technicianName) setTechnicianName(saved)
@@ -272,7 +290,7 @@ export default function App() {
   }
 
   function startNewInspection() {
-    draftRef.current = null; setDraft(null); setAddress(''); setPhotos(0); setSelectedLeadId(null); setPoint(null); setSquares(''); setGutters(''); setEave(''); setRafter(''); setPitch(''); setSoffit(''); setFascia(''); setRoofType(''); setPhotoCaption(''); setTechnicianName(''); setTechnicianLicense(''); setVerificationNotes(''); setNotice('New offline inspection ready. Choose a job or capture evidence.');
+    draftRef.current = null; setDraft(null); setAddress(''); setPhotos(0); setSelectedLeadId(null); setPoint(null); setSquares(''); setGutters(''); setEave(''); setRafter(''); setPitch(''); setSoffit(''); setFascia(''); setRoofType(''); setPhotoCaption(''); setTechnicianName(''); setTechnicianLicense(''); setVerificationNotes(''); setPhotoQueue([]); setPendingUploads(0); setNotice('New offline inspection ready. Choose a job or capture evidence.');
   }
 
   async function loadFieldData() {
@@ -511,7 +529,7 @@ export default function App() {
     if (!draftId) return
     const capturedAt = timestamp()
     result.assets.forEach((asset) => db.runSync('INSERT INTO inspection_photo_queue (draft_id, client_id, local_uri, album, caption, mime_type, file_size_bytes, width, height, captured_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', draftId, clientId('photo'), asset.uri, photoAlbum, photoCaption.trim() || null, asset.mimeType ?? 'image/jpeg', asset.fileSize ?? null, asset.width ?? null, asset.height ?? null, capturedAt))
-    setPhotos(count); setPhotoCaption(''); setNotice(`${result.assets.length} photo${result.assets.length === 1 ? '' : 's'} saved to the offline upload queue.`)
+    setPhotos(count); setPhotoCaption(''); refreshPhotoQueue(draftId); setNotice(`${result.assets.length} photo${result.assets.length === 1 ? '' : 's'} saved to the offline upload queue.`)
     if (session) void syncNow()
   }
 
@@ -705,12 +723,30 @@ export default function App() {
 
         <View style={styles.hero}>
           <Text style={styles.heroLabel}>UPGRADES ONLY · NO REGRESSIONS</Text>
-          <Text style={styles.heroTitle}>Inspect the property</Text>
+          <Text style={styles.heroTitle}>{agenda[0]?.title ?? 'No job on the board'}</Text>
           <Text style={styles.heroText}>
-            Capture photos on-site. Offline evidence queues locally and syncs automatically when signal returns.
+            {agenda[0]
+              ? `${agenda[0].startsAt ? new Date(agenda[0].startsAt).toLocaleString() : 'No time set'}${agenda[0].location ? ` · ${agenda[0].location}` : ''}`
+              : address.trim() || 'Capture the property. The photo stays on the phone until it syncs.'}
           </Text>
-          <Pressable style={styles.primary} onPress={capturePhoto}>
-            <Text style={styles.primaryText}>Capture inspection photo</Text>
+          <Text style={styles.syncChip}>
+            {syncing ? 'Syncing' : !online ? 'Offline · saved on the phone' : pendingUploads > 0 ? `${pendingUploads} photo${pendingUploads === 1 ? '' : 's'} waiting` : draft?.remoteId ? 'Synced' : 'Not uploaded yet'}
+          </Text>
+          {agenda[0]?.location ? (
+            <Pressable
+              style={[styles.secondary, { marginBottom: 10 }]}
+              onPress={() => {
+                const location = agenda[0].location as string
+                setAddress(location)
+                saveDraft(location, photos, point, selectedLeadId)
+                setNotice('Today’s job is on this inspection. Confirm the address, then shoot.')
+              }}
+            >
+              <Text style={styles.secondaryText}>Use this address</Text>
+            </Pressable>
+          ) : null}
+          <Pressable style={styles.cameraButton} onPress={capturePhoto}>
+            <Text style={styles.primaryText}>Take photo</Text>
           </Pressable>
           <Pressable style={[styles.secondary, { marginTop: 10 }]} onPress={() => setShowRadar(true)}>
             <Text style={styles.secondaryText}>Radar cinema · watch storms</Text>
@@ -720,6 +756,24 @@ export default function App() {
               <Text style={styles.secondaryText}>Alert · {stormHeadline}. Open radar</Text>
             </Pressable>
           ) : null}
+        </View>
+
+        <Text style={styles.sectionTitle}>Photo queue</Text>
+        <View style={styles.card}>
+          {photoQueue.length ? photoQueue.map((photo) => (
+            <View key={photo.id} style={styles.queueRow}>
+              <Image source={{ uri: photo.local_uri }} style={styles.thumb} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.leadName}>{photo.caption || photo.album}</Text>
+                <Text style={styles.helper}>
+                  {photo.sync_status === 'synced' ? 'Synced' : photo.sync_status === 'retrying' ? 'Retrying' : 'Waiting'}
+                  {photo.last_error ? ` · ${photo.last_error}` : ''}
+                </Text>
+              </View>
+            </View>
+          )) : (
+            <Text style={styles.helper}>No photos on this inspection yet.</Text>
+          )}
         </View>
 
         <View style={styles.metrics}>
@@ -1244,6 +1298,10 @@ const styles = StyleSheet.create({
   heroLabel: { color: '#9dc4ff', fontWeight: '800', fontSize: 11, letterSpacing: 1.4 },
   heroTitle: { color: colors.white, fontSize: 24, fontWeight: '800', marginTop: 8 },
   heroText: { color: '#cad7e8', lineHeight: 21, marginTop: 8, marginBottom: 18 },
+  syncChip: { color: '#d7e6ff', fontSize: 13, fontWeight: '700', marginBottom: 12 },
+  cameraButton: { backgroundColor: colors.blue, borderRadius: 16, minHeight: 64, alignItems: 'center', justifyContent: 'center' },
+  queueRow: { flexDirection: 'row', gap: 10, alignItems: 'center', paddingVertical: 8 },
+  thumb: { width: 56, height: 56, borderRadius: 8, backgroundColor: '#dbe4ef' },
   primary: {
     backgroundColor: '#3e8cff',
     paddingVertical: 14,

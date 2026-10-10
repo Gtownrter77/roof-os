@@ -23,6 +23,8 @@ assert.ok(app.includes('draftNeedsSync'), 'sync loop must skip drafts with nothi
 assert.ok(app.includes('reverseGeocodeAsync'), 'GPS capture should fill a missing address')
 assert.ok(app.includes('arrayBuffer'), 'photo upload should read bytes without an extra blob copy when possible')
 assert.ok(app.includes('KeyboardAvoidingView'), 'field inputs should stay above the keyboard')
+assert.ok(app.includes('Take photo'), 'the home screen leads with the camera')
+assert.ok(app.includes('Photo queue'), 'queued photos must be visible')
 
 const { fieldCoach, draftNeedsSync, suggestAlbum, formatGeocodedAddress, measurementNotes, suggestCaption } = await import(
   '../apps/field/src/fieldCoach.ts'
