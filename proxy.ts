@@ -7,7 +7,7 @@ function isCronPath(pathname: string) {
 }
 
 function isPublicPath(pathname: string) {
-  return pathname === '/about' || pathname === '/pricing' || pathname.startsWith('/auth')
+  return pathname === '/about' || pathname === '/pricing' || pathname === '/admin' || pathname.startsWith('/auth')
 }
 
 function isMfaPath(pathname: string) {
