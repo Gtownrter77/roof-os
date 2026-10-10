@@ -16,13 +16,15 @@
 - The latest observed main CI run completed with conclusion `success`.
 - The main branch build and typecheck completed successfully in the observed CI run.
 - The current CI workflow includes web, mobile, preview build, and migration-safety jobs, along with static and regression checks.
+- GitHub also reported a Vercel success status context for the audited main SHA; live application workflows were not exercised in this audit.
 
 These results apply to the recorded commit and automated checks only; they do not establish that every business workflow is correct in production.
 
 ## Confirmed problems
 
 1. **Unsafe legacy prototype on a non-main branch.** The Jules branch's `app/api/photo-estimate/pipeline/route.ts` called a prototype engine that returns hard-coded example addresses, roof quantities, prices, storm history, and fallback customer contact details. The route also accepted raw `request.json()` without an authentication check. This is not evidence that the endpoint exists on current main or is exposed in production.
-2. **Fabricated sample data in current main.** The canvassing page displayed Homer Simpson at Evergreen Terrace, a fabricated inspector name/contact/license, and a fixed storm date. The customer portal displayed four fictional customers, and notifications displayed six invented alerts as if recent. The canvassing mentor also made unsupported claims about hail damage and insurance-rate effects. These UI values were removed on the audit branch; canvassing now labels unconverted pins as session-only, the portal directs users to real leads, notifications show an honest unconnected empty state, and the script guide avoids unsupported insurance guarantees.\n3. **Duplicate migration SQL.** Current main has identical contents in these pairs:
+2. **Fabricated sample data in current main.** The canvassing page displayed Homer Simpson at Evergreen Terrace, a fabricated inspector name/contact/license, and a fixed storm date. The customer portal displayed four fictional customers, and notifications displayed six invented alerts as if recent. The canvassing mentor also made unsupported claims about hail damage and insurance-rate effects. These UI values were removed on the audit branch; canvassing now labels unconverted pins as session-only, the portal directs users to real leads, notifications show an honest unconnected empty state, and the script guide avoids unsupported insurance guarantees.
+3. **Duplicate migration SQL.** Current main has identical contents in these pairs:
    - `021_photo_estimate_workflows.sql` / `022_photo_estimate_workflows.sql`
    - `022_soffit_measurement_fields.sql` / `023_soffit_measurement_fields.sql`
    - `023_photo_refresh_decisions.sql` / `024_photo_refresh_decisions.sql`
@@ -35,7 +37,10 @@ These results apply to the recorded commit and automated checks only; they do no
 - On `audit/fix-verified-findings-20261009`:
   - Restricted the lockfile-writing CI job to non-main push events.
   - Corrected migration-order documentation to the current repository migration head and documented duplicate SQL without rewriting history.
-  - Added this status report and marked older README/CURRENT-STATE checkpoints as historical.\n  - Removed fabricated canvassing pins, fake inspector credentials, fake portal customers, and invented notification records.\n  - Replaced unsupported canvassing/insurance claims with cautious, non-authoritative wording.\n  - Added regression assertions preventing those fake records from returning.
+  - Added this status report and marked older README/CURRENT-STATE checkpoints as historical.
+  - Removed fabricated canvassing pins, fake inspector credentials, fake portal customers, and invented notification records.
+  - Replaced unsupported canvassing/insurance claims with cautious, non-authoritative wording.
+  - Added regression assertions preventing those fake records from returning.
 - On `jules-8591243431038068273-0357cdff`:
   - Replaced the unauthenticated prototype endpoint with a fail-closed handler requiring an authenticated user, an active workspace, and workspace-admin authorization.
   - Added the bounded JSON reader.
@@ -44,7 +49,7 @@ These results apply to the recorded commit and automated checks only; they do no
 
 ## Not verified in this audit
 
-- Live Vercel deployment corresponds to current main.
+- Live Vercel application behavior and end-to-end workflows (the commit had a Vercel success status context, but no live workflow was exercised).
 - Production Supabase migration ledger and RLS behavior.
 - Real login, lead, inspection, photo upload, measurement, estimate approval, and customer-delivery workflows using production credentials.
 - Physical Pixel 8 APK installation, sign-in, camera capture, offline sync, and upload.
