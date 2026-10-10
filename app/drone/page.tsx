@@ -41,17 +41,17 @@ export default function DronePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
-      <header className="bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg sticky top-0 z-10">
+    <div className="space-y-4 pb-4">
+      <header className="glass sticky top-0 z-10 rounded-xl mb-4">
         <div className="px-4 py-3 flex items-center">
-          <button type="button" onClick={() => router.push('/')} className="text-white mr-3 text-xl" aria-label="Go to dashboard">←</button>
+          <button type="button" onClick={() => router.push('/')} className="mr-3 text-xl text-cyan-300" aria-label="Go to dashboard">←</button>
           <h1 className="text-xl font-bold">🚁 Drone Intelligence</h1>
-          <span className="ml-2 bg-amber-500 text-white text-xs px-2 py-0.5 rounded-full">PILOT / SIMULATED</span>
+          <span className="ml-2 bg-amber-400/100 text-white text-xs px-2 py-0.5 rounded-full">PILOT / SIMULATED</span>
         </div>
       </header>
 
       <main className="p-4">
-        <div className="bg-gradient-to-br from-blue-50 to-purple-50 border border-blue-200 rounded-lg shadow p-4 mb-4">
+        <div className="bg-gradient-to-br from-blue-50 to-purple-50 border border-cyan-400/30 rounded-lg shadow p-4 mb-4">
           <div className="flex items-center justify-between">
             <div>
               <div className="flex items-center">
@@ -61,49 +61,49 @@ export default function DronePage() {
               <p className="text-sm text-amber-700">Status: {droneStatus}</p>
             </div>
             <div className="flex items-center space-x-2">
-              <span className="text-xs bg-gray-500 text-white px-2 py-1 rounded">⚪ Not connected</span>
-              <span className="text-xs bg-gray-500 text-white px-2 py-1 rounded">📶 RTK unknown</span>
+              <span className="text-xs bg-white/50 text-white px-2 py-1 rounded">⚪ Not connected</span>
+              <span className="text-xs bg-white/50 text-white px-2 py-1 rounded">📶 RTK unknown</span>
             </div>
           </div>
 
           <div className="grid grid-cols-4 gap-2 mt-3">
             <div className="text-center">
-              <p className="text-xs text-gray-500">Battery</p>
-              <p className="font-bold text-gray-600">Unknown</p>
+              <p className="text-xs text-slate-400">Battery</p>
+              <p className="font-bold text-slate-300">Unknown</p>
             </div>
             <div className="text-center">
-              <p className="text-xs text-gray-500">Signal</p>
-              <p className="font-bold text-gray-600">Unknown</p>
+              <p className="text-xs text-slate-400">Signal</p>
+              <p className="font-bold text-slate-300">Unknown</p>
             </div>
             <div className="text-center">
-              <p className="text-xs text-gray-500">Altitude</p>
-              <p className="font-bold text-gray-600">Unknown</p>
+              <p className="text-xs text-slate-400">Altitude</p>
+              <p className="font-bold text-slate-300">Unknown</p>
             </div>
             <div className="text-center">
-              <p className="text-xs text-gray-500">Frames</p>
-              <p className="font-bold text-gray-600">Unknown</p>
+              <p className="text-xs text-slate-400">Frames</p>
+              <p className="font-bold text-slate-300">Unknown</p>
             </div>
           </div>
         </div>
 
         {captureNotice && (
-          <div className="bg-blue-50 border border-blue-200 text-blue-900 p-3 rounded-lg mb-4 text-sm" role="status">
+          <div className="bg-cyan-400/10 border border-cyan-400/30 text-blue-900 p-3 rounded-lg mb-4 text-sm" role="status">
             {captureNotice}
           </div>
         )}
 
         <div className="grid grid-cols-3 gap-2 mb-4">
-          <button type="button" onClick={handleTakeoff} className="bg-gray-500 text-white p-3 rounded-lg font-semibold">
+          <button type="button" onClick={handleTakeoff} className="bg-white/50 text-white p-3 rounded-lg font-semibold">
             🛫 Takeoff unavailable
           </button>
-          <button type="button" onClick={handleReturnHome} className="bg-gray-500 text-white p-3 rounded-lg font-semibold">
+          <button type="button" onClick={handleReturnHome} className="bg-white/50 text-white p-3 rounded-lg font-semibold">
             📍 Return Home unavailable
           </button>
           <button
             type="button"
             onClick={startDroneScan}
             disabled={scanning}
-            className="bg-gray-500 text-white p-3 rounded-lg font-semibold disabled:opacity-60"
+            className="bg-white/50 text-white p-3 rounded-lg font-semibold disabled:opacity-60"
           >
             🔍 Scan unavailable
           </button>
@@ -114,7 +114,7 @@ export default function DronePage() {
             <div className="text-center">
               <span className="text-4xl block mb-2">🛸</span>
               <p className="text-white text-sm">Aerial feed not connected</p>
-              <p className="text-gray-400 text-xs">No live camera or telemetry source is configured.</p>
+              <p className="text-slate-400 text-xs">No live camera or telemetry source is configured.</p>
               <div className="flex justify-center space-x-2 mt-2">
                 <span className="text-xs text-amber-300">● SIMULATED / NOT LIVE</span>
                 <span className="text-xs text-white">ALT Unknown</span>
@@ -124,7 +124,7 @@ export default function DronePage() {
         </div>
 
         {scanResults && (
-          <div className="bg-white rounded-lg shadow p-4 mb-4 border border-amber-300">
+          <div className="glass rounded-xl p-4 mb-4 border border-amber-300">
             <h3 className="font-semibold text-sm mb-3">Simulated scan result</h3>
             <p className="text-sm text-amber-800">
               This result is intentionally unavailable until a real drone data source is connected.
@@ -135,7 +135,7 @@ export default function DronePage() {
         <button
           type="button"
           onClick={() => void recordAerialCapture()}
-          className="w-full bg-gray-500 text-white text-sm px-4 py-3 rounded font-semibold"
+          className="w-full bg-white/50 text-white text-sm px-4 py-3 rounded font-semibold"
         >
           Record aerial capture unavailable
         </button>

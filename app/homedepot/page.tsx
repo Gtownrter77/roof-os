@@ -162,24 +162,24 @@ export default function HomeDepotPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
-      <header className="bg-gradient-to-r from-orange-600 to-orange-500 text-white shadow-lg sticky top-0 z-10">
+    <div className="space-y-4 pb-4">
+      <header className="glass sticky top-0 z-10 rounded-xl mb-4">
         <div className="px-4 py-3 flex items-center">
-          <button type="button" onClick={() => router.back()} className="text-white mr-3 text-xl" aria-label="Go back">←</button>
+          <button type="button" onClick={() => router.back()} className="mr-3 text-xl text-cyan-300" aria-label="Go back">←</button>
           <h1 className="text-xl font-bold">🏪 Home Depot Reference</h1>
           <span className="ml-2 bg-white/20 text-white text-xs px-2 py-0.5 rounded-full">SOURCE DATA</span>
         </div>
       </header>
 
       <main className="p-4">
-        <div className="bg-white rounded-lg shadow p-4 mb-4">
+        <div className="glass rounded-xl p-4 mb-4">
           <p className="text-sm font-semibold">Retailer reference only</p>
-          <p className="text-xs text-gray-600 mt-1">
+          <p className="text-xs text-slate-300 mt-1">
             Results come from the configured Home Depot provider and workspace cache. ROOF/OS does not fabricate prices, stock, orders, or retailer quotes.
           </p>
         </div>
 
-        <div className="bg-white rounded-lg shadow-lg p-4 mb-4 border border-orange-200">
+        <div className="glass rounded-xl p-4 mb-4 border border-orange-200">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
             <input
               type="text"
@@ -223,7 +223,7 @@ export default function HomeDepotPage() {
                   void searchProducts(category)
                 }}
                 className={`text-xs px-3 py-1 rounded-full ${
-                  search === category ? 'bg-orange-600 text-white' : 'bg-gray-200 text-gray-700'
+                  search === category ? 'bg-orange-600 text-white' : 'bg-white/10 text-slate-200'
                 }`}
               >
                 {category}
@@ -232,13 +232,13 @@ export default function HomeDepotPage() {
           </div>
         </div>
 
-        {status && <p className="bg-blue-50 text-blue-900 rounded-lg p-3 text-sm mb-4" role="status">{status}</p>}
-        {error && <p className="bg-red-50 text-red-800 rounded-lg p-3 text-sm mb-4" role="alert">{error}</p>}
+        {status && <p className="bg-cyan-400/10 text-blue-900 rounded-lg p-3 text-sm mb-4" role="status">{status}</p>}
+        {error && <p className="bg-red-400/10 text-red-800 rounded-lg p-3 text-sm mb-4" role="alert">{error}</p>}
 
         {results.length > 0 && (
           <div className="space-y-3">
             {results.map((product) => (
-              <div key={product.id} className="bg-white rounded-lg shadow p-4 border border-gray-200">
+              <div key={product.id} className="glass rounded-xl p-4 border border-white/10">
                 <div className="flex gap-3">
                   {product.imageUrl ? (
                     <img src={product.imageUrl} alt="" className="w-16 h-16 object-contain rounded border" />
@@ -247,20 +247,20 @@ export default function HomeDepotPage() {
                   )}
                   <div className="min-w-0 flex-1">
                     <p className="font-semibold text-sm">{product.name}</p>
-                    <p className="text-xs text-gray-500">{product.brand}</p>
-                    <p className="text-xs text-gray-400">SKU: {product.sku} · Unit: {product.unit}</p>
+                    <p className="text-xs text-slate-400">{product.brand}</p>
+                    <p className="text-xs text-slate-400">SKU: {product.sku} · Unit: {product.unit}</p>
                   </div>
                   <div className="text-right">
                     <p className="text-lg font-bold text-orange-600">{product.price === null ? 'Unknown' : `$${product.price.toFixed(2)}`}</p>
-                    <p className="text-xs text-gray-400">provider reference</p>
+                    <p className="text-xs text-slate-400">provider reference</p>
                   </div>
                 </div>
                 <div className="mt-2 flex gap-2 text-xs">
-                  <span className={`px-2 py-1 rounded ${product.inStock === true ? 'bg-green-100 text-green-800' : product.inStock === false ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-700'}`}>
+                  <span className={`px-2 py-1 rounded ${product.inStock === true ? 'bg-green-100 text-green-800' : product.inStock === false ? 'bg-red-100 text-red-800' : 'bg-white/10 text-slate-200'}`}>
                     {product.inStock === true ? 'In stock' : product.inStock === false ? 'Out of stock' : product.availability}
                   </span>
                   {product.url && (
-                    <a href={product.url} target="_blank" rel="noreferrer" className="text-blue-600 underline">
+                    <a href={product.url} target="_blank" rel="noreferrer" className="text-cyan-300 underline">
                       Provider product
                     </a>
                   )}
@@ -271,15 +271,15 @@ export default function HomeDepotPage() {
         )}
 
         {rawResponse && (
-          <details className="mt-4 bg-white rounded-lg shadow p-4">
+          <details className="mt-4 glass rounded-xl p-4">
             <summary className="cursor-pointer text-sm font-semibold">Raw provider response</summary>
             <pre className="mt-3 max-h-96 overflow-auto text-xs whitespace-pre-wrap break-words">{JSON.stringify(rawResponse, null, 2)}</pre>
           </details>
         )}
       </main>
 
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around py-2 px-4">
-        <button type="button" onClick={() => router.push('/')} className="flex flex-col items-center text-gray-400">
+      <nav className="fixed bottom-0 left-0 right-0 z-30 flex justify-around border-t border-white/10 bg-[#070b14]/95 py-2 px-4 backdrop-blur lg:hidden">
+        <button type="button" onClick={() => router.push('/')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">🏠</span>
           <span className="text-xs">Home</span>
         </button>
@@ -287,16 +287,16 @@ export default function HomeDepotPage() {
           <span className="text-xl">🏪</span>
           <span className="text-xs">HD</span>
         </button>
-        <button type="button" onClick={() => router.push('/templates')} className="flex flex-col items-center text-gray-400">
+        <button type="button" onClick={() => router.push('/templates')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">📄</span>
           <span className="text-xs">Templates</span>
         </button>
-        <button type="button" onClick={() => router.push('/upsell')} className="flex flex-col items-center text-gray-400">
+        <button type="button" onClick={() => router.push('/upsell')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">💰</span>
           <span className="text-xs">Upsell</span>
         </button>
-        <button type="button" onClick={() => router.push('/settings')} className="flex flex-col items-center text-gray-400">
-          <span className="text-gray-400 text-xl">⚙️</span>
+        <button type="button" onClick={() => router.push('/settings')} className="flex flex-col items-center text-slate-400">
+          <span className="text-slate-400 text-xl">⚙️</span>
           <span className="text-xs">Settings</span>
         </button>
       </nav>

@@ -18,49 +18,49 @@ export default function HelpPage() {
   const [faqs] = useState(FAQS)
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
-      <header className="bg-blue-600 text-white shadow-lg sticky top-0 z-10">
+    <div className="space-y-4 pb-4">
+      <header className="glass sticky top-0 z-10 rounded-xl mb-4">
         <div className="px-4 py-3 flex items-center">
-          <button type="button" onClick={() => router.back()} className="text-white mr-3 text-xl" aria-label="Go back">←</button>
+          <button type="button" onClick={() => router.back()} className="mr-3 text-xl text-cyan-300" aria-label="Go back">←</button>
           <h1 className="text-xl font-bold">❓ Help & Support</h1>
         </div>
       </header>
 
       <main className="p-4">
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+        <div className="bg-cyan-400/10 border border-cyan-400/30 rounded-lg p-4 mb-4">
           <h2 className="font-semibold text-sm">Support channels</h2>
           <p className="text-sm text-blue-900 mt-1">
             No customer support email, live-chat endpoint, or phone number is configured in this build. ROOF/OS will not display or invent a support contact that has not been provisioned.
           </p>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-4 mb-4">
+        <div className="glass rounded-xl p-4 mb-4">
           <h2 className="font-semibold text-sm mb-3">📞 Contact Support</h2>
-          <div className="border border-gray-200 rounded-lg p-3">
+          <div className="border border-white/10 rounded-lg p-3">
             <p className="text-sm font-medium">Support contact not configured</p>
-            <p className="text-xs text-gray-500 mt-1">Provision an approved support address, phone number, or chat integration before exposing a live contact action.</p>
+            <p className="text-xs text-slate-400 mt-1">Provision an approved support address, phone number, or chat integration before exposing a live contact action.</p>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-4">
+        <div className="glass rounded-xl p-4">
           <h2 className="font-semibold text-sm mb-3">📖 Frequently Asked Questions</h2>
           <div className="space-y-3">
             {faqs.map((faq) => (
               <div key={faq.q} className="border-b border-gray-100 pb-3 last:border-b-0">
                 <p className="font-medium text-sm">{faq.q}</p>
-                <p className="text-sm text-gray-500 mt-1">{faq.a}</p>
+                <p className="text-sm text-slate-400 mt-1">{faq.a}</p>
               </div>
             ))}
           </div>
         </div>
       </main>
 
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around py-2 px-4">
-        <button type="button" onClick={() => router.push('/')} className="flex flex-col items-center text-gray-400"><span className="text-xl">🏠</span><span className="text-xs">Home</span></button>
-        <button type="button" onClick={() => router.push('/leads')} className="flex flex-col items-center text-gray-400"><span className="text-xl">👤</span><span className="text-xs">Leads</span></button>
-        <button type="button" onClick={() => router.push('/export')} className="flex flex-col items-center text-gray-400"><span className="text-xl">📤</span><span className="text-xs">Export</span></button>
-        <button type="button" onClick={() => router.push('/help')} className="flex flex-col items-center text-blue-600"><span className="text-xl">❓</span><span className="text-xs">Help</span></button>
-        <button type="button" onClick={() => router.push('/settings')} className="flex flex-col items-center text-gray-400"><span className="text-xl">⚙️</span><span className="text-xs">Settings</span></button>
+      <nav className="fixed bottom-0 left-0 right-0 z-30 flex justify-around border-t border-white/10 bg-[#070b14]/95 py-2 px-4 backdrop-blur lg:hidden">
+        <button type="button" onClick={() => router.push('/')} className="flex flex-col items-center text-slate-400"><span className="text-xl">🏠</span><span className="text-xs">Home</span></button>
+        <button type="button" onClick={() => router.push('/leads')} className="flex flex-col items-center text-slate-400"><span className="text-xl">👤</span><span className="text-xs">Leads</span></button>
+        <button type="button" onClick={() => router.push('/export')} className="flex flex-col items-center text-slate-400"><span className="text-xl">📤</span><span className="text-xs">Export</span></button>
+        <button type="button" onClick={() => router.push('/help')} className="flex flex-col items-center text-cyan-300"><span className="text-xl">❓</span><span className="text-xs">Help</span></button>
+        <button type="button" onClick={() => router.push('/settings')} className="flex flex-col items-center text-slate-400"><span className="text-xl">⚙️</span><span className="text-xs">Settings</span></button>
       </nav>
     </div>
   )

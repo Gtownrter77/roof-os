@@ -55,22 +55,22 @@ export default function ExteriorPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
-      <header className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-lg sticky top-0 z-10">
+    <div className="space-y-4 pb-4">
+      <header className="glass sticky top-0 z-10 rounded-xl mb-4">
         <div className="px-4 py-3 flex items-center">
-          <button onClick={() => router.back()} className="text-white mr-3 text-xl">←</button>
+          <button onClick={() => router.back()} className="mr-3 text-xl text-cyan-300">←</button>
           <h1 className="text-xl font-bold">🏠 Exterior Estimating</h1>
-          <span className="ml-2 bg-green-500 text-white text-xs px-2 py-0.5 rounded-full ">REVIEW-GATED</span>
+          <span className="ml-2 bg-emerald-400/100 text-white text-xs px-2 py-0.5 rounded-full ">REVIEW-GATED</span>
         </div>
       </header>
 
       <main className="p-4">
         {/* Measurements Input */}
-        <div className="bg-white rounded-lg shadow-lg p-4 mb-4">
+        <div className="glass rounded-xl p-4 mb-4">
           <h3 className="font-semibold text-sm mb-3">📐 Measurements</h3>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-gray-500">Linear Feet</label>
+              <label className="text-xs text-slate-400">Linear Feet</label>
               <input
                 type="number"
                 value={measurements.linearFeet || ''}
@@ -80,7 +80,7 @@ export default function ExteriorPage() {
               />
             </div>
             <div>
-              <label className="text-xs text-gray-500">Stories</label>
+              <label className="text-xs text-slate-400">Stories</label>
               <select
                 value={measurements.stories}
                 onChange={(e) => setMeasurements({...measurements, stories: Number(e.target.value)})}
@@ -92,7 +92,7 @@ export default function ExteriorPage() {
               </select>
             </div>
             <div>
-              <label className="text-xs text-gray-500">Gutter Type</label>
+              <label className="text-xs text-slate-400">Gutter Type</label>
               <select
                 value={measurements.gutterType}
                 onChange={(e) => setMeasurements({...measurements, gutterType: e.target.value})}
@@ -104,7 +104,7 @@ export default function ExteriorPage() {
               </select>
             </div>
             <div>
-              <label className="text-xs text-gray-500">Downspouts (auto-calc)</label>
+              <label className="text-xs text-slate-400">Downspouts (auto-calc)</label>
               <input
                 type="number"
                 value={measurements.downspouts || ''}
@@ -117,7 +117,7 @@ export default function ExteriorPage() {
         </div>
 
         {/* Options */}
-        <div className="bg-white rounded-lg shadow-lg p-4 mb-4">
+        <div className="glass rounded-xl p-4 mb-4">
           <h3 className="font-semibold text-sm mb-3">🔄 Additional Components</h3>
           <div className="grid grid-cols-2 gap-2">
             <label className="flex items-center text-sm">
@@ -178,7 +178,7 @@ export default function ExteriorPage() {
           {measurements.hasChimney && (
             <div className="grid grid-cols-2 gap-3 mt-3">
               <div>
-                <label className="text-xs text-gray-500">Number of Chimneys</label>
+                <label className="text-xs text-slate-400">Number of Chimneys</label>
                 <input
                   type="number"
                   value={measurements.chimneyCount}
@@ -187,7 +187,7 @@ export default function ExteriorPage() {
                 />
               </div>
               <div>
-                <label className="text-xs text-gray-500">Chimney Height (ft)</label>
+                <label className="text-xs text-slate-400">Chimney Height (ft)</label>
                 <input
                   type="number"
                   value={measurements.chimneyHeight}
@@ -199,7 +199,7 @@ export default function ExteriorPage() {
           )}
         </div>
 
-        {saveMessage && <p className="text-sm text-blue-700 mb-3" role="status">{saveMessage}</p>}
+        {saveMessage && <p className="text-sm text-cyan-300 mb-3" role="status">{saveMessage}</p>}
         <button
           onClick={calculateEstimate}
           disabled={loading}
@@ -207,39 +207,39 @@ export default function ExteriorPage() {
         >
           {loading ? '⏳ Calculating...' : '📊 Auto Estimate Exterior'}
         </button>
-        <button onClick={() => void saveMeasurement()} className="w-full mt-2 border border-blue-600 text-blue-700 py-3 rounded-lg font-semibold">
+        <button onClick={() => void saveMeasurement()} className="w-full mt-2 border border-blue-600 text-cyan-300 py-3 rounded-lg font-semibold">
           Save Measurement for Review
         </button>
 
         {estimate && (
           <div className="mt-4 space-y-4 animate-fadeIn">
             {/* Summary */}
-            <div className="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg shadow-lg p-4 border border-blue-200">
+            <div className="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg shadow-lg p-4 border border-cyan-400/30">
               <div className="grid grid-cols-3 gap-2">
                 <div className="text-center">
-                  <p className="text-xs text-gray-500">Total Estimate</p>
-                  <p className="text-xl font-bold text-blue-600">{formatCurrency(estimate.grandTotal)}</p>
+                  <p className="text-xs text-slate-400">Total Estimate</p>
+                  <p className="text-xl font-bold text-cyan-300">{formatCurrency(estimate.grandTotal)}</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-xs text-gray-500">Per Linear Ft</p>
+                  <p className="text-xs text-slate-400">Per Linear Ft</p>
                   <p className="text-xl font-bold text-cyan-600">{formatCurrency(estimate.perLinearFoot)}</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-xs text-gray-500">Total Sq Ft</p>
+                  <p className="text-xs text-slate-400">Total Sq Ft</p>
                   <p className="text-xl font-bold text-green-600">{estimate.squareFootage.toFixed(0)}</p>
                 </div>
               </div>
             </div>
 
             {/* Breakdown */}
-            <div className="bg-white rounded-lg shadow-lg p-4">
+            <div className="glass rounded-xl p-4">
               <h3 className="font-semibold text-sm mb-3">📋 Cost Breakdown</h3>
               <div className="space-y-2">
                 {estimate.breakdown.map((item: any, i: number) => (
                   <div key={i} className="flex justify-between items-center border-b py-2 last:border-0">
                     <div>
                       <p className="text-sm font-medium">{item.item}</p>
-                      <p className="text-xs text-gray-400">
+                      <p className="text-xs text-slate-400">
                         {item.quantity} {item.unit} @ {formatCurrency(item.price)}
                       </p>
                     </div>
@@ -250,7 +250,7 @@ export default function ExteriorPage() {
             </div>
 
             {/* Totals */}
-            <div className="bg-white rounded-lg shadow-lg p-4 border-2 border-blue-300">
+            <div className="glass rounded-xl p-4 border-2 border-blue-300">
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <span className="text-sm">Total Materials</span>
@@ -270,7 +270,7 @@ export default function ExteriorPage() {
                 </div>
                 <div className="border-t pt-2 flex justify-between font-bold text-lg">
                   <span>Grand Total</span>
-                  <span className="text-blue-600">{formatCurrency(estimate.grandTotal)}</span>
+                  <span className="text-cyan-300">{formatCurrency(estimate.grandTotal)}</span>
                 </div>
               </div>
             </div>
@@ -288,24 +288,24 @@ export default function ExteriorPage() {
         )}
       </main>
 
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around py-2 px-4">
-        <button onClick={() => router.push('/')} className="flex flex-col items-center text-gray-400">
+      <nav className="fixed bottom-0 left-0 right-0 z-30 flex justify-around border-t border-white/10 bg-[#070b14]/95 py-2 px-4 backdrop-blur lg:hidden">
+        <button onClick={() => router.push('/')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">🏠</span>
           <span className="text-xs">Home</span>
         </button>
-        <button onClick={() => router.push('/exterior')} className="flex flex-col items-center text-blue-600">
+        <button onClick={() => router.push('/exterior')} className="flex flex-col items-center text-cyan-300">
           <span className="text-xl">🏠</span>
           <span className="text-xs">Exterior</span>
         </button>
-        <button onClick={() => router.push('/pricing')} className="flex flex-col items-center text-gray-400">
+        <button onClick={() => router.push('/pricing')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">💰</span>
           <span className="text-xs">Pricing</span>
         </button>
-        <button onClick={() => router.push('/ai')} className="flex flex-col items-center text-gray-400">
+        <button onClick={() => router.push('/ai')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">🤖</span>
           <span className="text-xs">AI</span>
         </button>
-        <button onClick={() => router.push('/settings')} className="flex flex-col items-center text-gray-400">
+        <button onClick={() => router.push('/settings')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">⚙️</span>
           <span className="text-xs">Settings</span>
         </button>

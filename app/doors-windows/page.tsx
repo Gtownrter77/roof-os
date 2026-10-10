@@ -197,24 +197,24 @@ export default function DoorsWindowsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
-      <header className="bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg sticky top-0 z-10">
+    <div className="space-y-4 pb-4">
+      <header className="glass sticky top-0 z-10 rounded-xl mb-4">
         <div className="px-4 py-3 flex items-center">
-          <button onClick={() => router.back()} className="text-white mr-3 text-xl">←</button>
+          <button onClick={() => router.back()} className="mr-3 text-xl text-cyan-300">←</button>
           <h1 className="text-xl font-bold">🚪 Doors & Windows</h1>
-          <span className="ml-2 bg-green-500 text-white text-xs px-2 py-0.5 rounded-full animate-pulse">AUTO</span>
+          <span className="ml-2 bg-emerald-400/100 text-white text-xs px-2 py-0.5 rounded-full animate-pulse">AUTO</span>
         </div>
       </header>
 
-      <main className="p-4"><p className="text-sm bg-white rounded-lg shadow p-4 mb-4">Price is Unknown. This screen does not write a dollar figure. A human approves every price.</p>
+      <main className="p-4"><p className="text-sm glass rounded-xl p-4 mb-4">Price is Unknown. This screen does not write a dollar figure. A human approves every price.</p>
         {/* Windows Section */}
-        <div className="bg-white rounded-lg shadow-lg p-4 mb-4 border border-blue-200">
+        <div className="glass rounded-xl p-4 mb-4 border border-cyan-400/30">
           <h3 className="font-semibold text-sm mb-3 flex items-center">
             <span className="text-xl mr-2">🪟</span> Windows
           </h3>
           <div className="grid grid-cols-3 gap-2">
             <div>
-              <label className="text-xs text-gray-500">Count</label>
+              <label className="text-xs text-slate-400">Count</label>
               <input
                 type="number"
                 value={form.windows.count || ''}
@@ -224,7 +224,7 @@ export default function DoorsWindowsPage() {
               />
             </div>
             <div>
-              <label className="text-xs text-gray-500">Type</label>
+              <label className="text-xs text-slate-400">Type</label>
               <select
                 value={form.windows.type}
                 onChange={(e) => setForm({...form, windows: {...form.windows, type: e.target.value}})}
@@ -234,7 +234,7 @@ export default function DoorsWindowsPage() {
               </select>
             </div>
             <div>
-              <label className="text-xs text-gray-500">Material</label>
+              <label className="text-xs text-slate-400">Material</label>
               <select
                 value={form.windows.material}
                 onChange={(e) => setForm({...form, windows: {...form.windows, material: e.target.value}})}
@@ -244,7 +244,7 @@ export default function DoorsWindowsPage() {
               </select>
             </div>
             <div>
-              <label className="text-xs text-gray-500">Size</label>
+              <label className="text-xs text-slate-400">Size</label>
               <select
                 value={form.windows.size}
                 onChange={(e) => setForm({...form, windows: {...form.windows, size: e.target.value}})}
@@ -291,13 +291,13 @@ export default function DoorsWindowsPage() {
         </div>
 
         {/* Doors Section */}
-        <div className="bg-white rounded-lg shadow-lg p-4 mb-4 border border-green-200">
+        <div className="glass rounded-xl p-4 mb-4 border border-emerald-400/30">
           <h3 className="font-semibold text-sm mb-3 flex items-center">
             <span className="text-xl mr-2">🚪</span> Doors
           </h3>
           <div className="grid grid-cols-3 gap-2">
             <div>
-              <label className="text-xs text-gray-500">Count</label>
+              <label className="text-xs text-slate-400">Count</label>
               <input
                 type="number"
                 value={form.doors.count || ''}
@@ -307,7 +307,7 @@ export default function DoorsWindowsPage() {
               />
             </div>
             <div>
-              <label className="text-xs text-gray-500">Type</label>
+              <label className="text-xs text-slate-400">Type</label>
               <select
                 value={form.doors.type}
                 onChange={(e) => setForm({...form, doors: {...form.doors, type: e.target.value}})}
@@ -317,7 +317,7 @@ export default function DoorsWindowsPage() {
               </select>
             </div>
             <div>
-              <label className="text-xs text-gray-500">Material</label>
+              <label className="text-xs text-slate-400">Material</label>
               <select
                 value={form.doors.material}
                 onChange={(e) => setForm({...form, doors: {...form.doors, material: e.target.value}})}
@@ -327,7 +327,7 @@ export default function DoorsWindowsPage() {
               </select>
             </div>
             <div>
-              <label className="text-xs text-gray-500">Size</label>
+              <label className="text-xs text-slate-400">Size</label>
               <select
                 value={form.doors.size}
                 onChange={(e) => setForm({...form, doors: {...form.doors, size: e.target.value}})}
@@ -382,13 +382,13 @@ export default function DoorsWindowsPage() {
         </div>
 
         {/* Garage Doors Section */}
-        <div className="bg-white rounded-lg shadow-lg p-4 mb-4 border border-yellow-200">
+        <div className="glass rounded-xl p-4 mb-4 border border-yellow-200">
           <h3 className="font-semibold text-sm mb-3 flex items-center">
             <span className="text-xl mr-2">🏗️</span> Garage Doors
           </h3>
           <div className="grid grid-cols-3 gap-2">
             <div>
-              <label className="text-xs text-gray-500">Count</label>
+              <label className="text-xs text-slate-400">Count</label>
               <input
                 type="number"
                 value={form.garage.count || ''}
@@ -398,7 +398,7 @@ export default function DoorsWindowsPage() {
               />
             </div>
             <div>
-              <label className="text-xs text-gray-500">Type</label>
+              <label className="text-xs text-slate-400">Type</label>
               <select
                 value={form.garage.type}
                 onChange={(e) => setForm({...form, garage: {...form.garage, type: e.target.value}})}
@@ -408,7 +408,7 @@ export default function DoorsWindowsPage() {
               </select>
             </div>
             <div>
-              <label className="text-xs text-gray-500">Material</label>
+              <label className="text-xs text-slate-400">Material</label>
               <select
                 value={form.garage.material}
                 onChange={(e) => setForm({...form, garage: {...form.garage, material: e.target.value}})}
@@ -418,7 +418,7 @@ export default function DoorsWindowsPage() {
               </select>
             </div>
             <div>
-              <label className="text-xs text-gray-500">Size</label>
+              <label className="text-xs text-slate-400">Size</label>
               <select
                 value={form.garage.size}
                 onChange={(e) => setForm({...form, garage: {...form.garage, size: e.target.value}})}
@@ -467,18 +467,18 @@ export default function DoorsWindowsPage() {
         {estimate && (
           <div className="mt-4 space-y-4 animate-fadeIn">
             {/* Summary */}
-            <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg shadow-lg p-4 border border-blue-200">
+            <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg shadow-lg p-4 border border-cyan-400/30">
               <div className="grid grid-cols-3 gap-2">
                 <div className="text-center">
-                  <p className="text-xs text-gray-500">Grand Total</p>
-                  <p className="text-2xl font-bold text-blue-600">{formatCurrency(estimate.grandTotal)}</p>
+                  <p className="text-xs text-slate-400">Grand Total</p>
+                  <p className="text-2xl font-bold text-cyan-300">{formatCurrency(estimate.grandTotal)}</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-xs text-gray-500">Materials</p>
+                  <p className="text-xs text-slate-400">Materials</p>
                   <p className="text-xl font-bold text-purple-600">{formatCurrency(estimate.totalMaterials)}</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-xs text-gray-500">Labor</p>
+                  <p className="text-xs text-slate-400">Labor</p>
                   <p className="text-xl font-bold text-green-600">{formatCurrency(estimate.totalLabor)}</p>
                 </div>
               </div>
@@ -486,72 +486,72 @@ export default function DoorsWindowsPage() {
 
             {/* Windows Detail */}
             {estimate.windows.count > 0 && (
-              <div className="bg-white rounded-lg shadow-lg p-4 border-l-4 border-blue-500">
+              <div className="glass rounded-xl p-4 border-l-4 border-blue-500">
                 <h4 className="font-semibold text-sm flex items-center">
                   <span className="text-xl mr-2">🪟</span> Windows ({estimate.windows.count})
                 </h4>
                 <div className="grid grid-cols-2 gap-2 mt-2 text-sm">
-                  <div><span className="text-gray-500">Type:</span> {estimate.windows.type}</div>
-                  <div><span className="text-gray-500">Material:</span> {estimate.windows.material}</div>
-                  <div><span className="text-gray-500">Size:</span> {estimate.windows.size}</div>
-                  <div><span className="text-gray-500">Options:</span> {
+                  <div><span className="text-slate-400">Type:</span> {estimate.windows.type}</div>
+                  <div><span className="text-slate-400">Material:</span> {estimate.windows.material}</div>
+                  <div><span className="text-slate-400">Size:</span> {estimate.windows.size}</div>
+                  <div><span className="text-slate-400">Options:</span> {
                     Object.entries(estimate.windows.options)
                       .filter(([, v]) => v)
                       .map(([k]) => k)
                       .join(', ') || 'None'
                   }</div>
-                  <div><span className="text-gray-500">Materials:</span> {formatCurrency(estimate.windows.cost)}</div>
-                  <div><span className="text-gray-500">Labor:</span> {formatCurrency(estimate.windows.labor)}</div>
+                  <div><span className="text-slate-400">Materials:</span> {formatCurrency(estimate.windows.cost)}</div>
+                  <div><span className="text-slate-400">Labor:</span> {formatCurrency(estimate.windows.labor)}</div>
                 </div>
               </div>
             )}
 
             {/* Doors Detail */}
             {estimate.doors.count > 0 && (
-              <div className="bg-white rounded-lg shadow-lg p-4 border-l-4 border-green-500">
+              <div className="glass rounded-xl p-4 border-l-4 border-green-500">
                 <h4 className="font-semibold text-sm flex items-center">
                   <span className="text-xl mr-2">🚪</span> Doors ({estimate.doors.count})
                 </h4>
                 <div className="grid grid-cols-2 gap-2 mt-2 text-sm">
-                  <div><span className="text-gray-500">Type:</span> {estimate.doors.type}</div>
-                  <div><span className="text-gray-500">Material:</span> {estimate.doors.material}</div>
-                  <div><span className="text-gray-500">Size:</span> {estimate.doors.size}</div>
-                  <div><span className="text-gray-500">Options:</span> {
+                  <div><span className="text-slate-400">Type:</span> {estimate.doors.type}</div>
+                  <div><span className="text-slate-400">Material:</span> {estimate.doors.material}</div>
+                  <div><span className="text-slate-400">Size:</span> {estimate.doors.size}</div>
+                  <div><span className="text-slate-400">Options:</span> {
                     Object.entries(estimate.doors.options)
                       .filter(([, v]) => v)
                       .map(([k]) => k)
                       .join(', ') || 'None'
                   }</div>
-                  <div><span className="text-gray-500">Materials:</span> {formatCurrency(estimate.doors.cost)}</div>
-                  <div><span className="text-gray-500">Labor:</span> {formatCurrency(estimate.doors.labor)}</div>
+                  <div><span className="text-slate-400">Materials:</span> {formatCurrency(estimate.doors.cost)}</div>
+                  <div><span className="text-slate-400">Labor:</span> {formatCurrency(estimate.doors.labor)}</div>
                 </div>
               </div>
             )}
 
             {/* Garage Detail */}
             {estimate.garage.count > 0 && (
-              <div className="bg-white rounded-lg shadow-lg p-4 border-l-4 border-yellow-500">
+              <div className="glass rounded-xl p-4 border-l-4 border-yellow-500">
                 <h4 className="font-semibold text-sm flex items-center">
                   <span className="text-xl mr-2">🏗️</span> Garage Doors ({estimate.garage.count})
                 </h4>
                 <div className="grid grid-cols-2 gap-2 mt-2 text-sm">
-                  <div><span className="text-gray-500">Type:</span> {estimate.garage.type}</div>
-                  <div><span className="text-gray-500">Material:</span> {estimate.garage.material}</div>
-                  <div><span className="text-gray-500">Size:</span> {estimate.garage.size}</div>
-                  <div><span className="text-gray-500">Options:</span> {
+                  <div><span className="text-slate-400">Type:</span> {estimate.garage.type}</div>
+                  <div><span className="text-slate-400">Material:</span> {estimate.garage.material}</div>
+                  <div><span className="text-slate-400">Size:</span> {estimate.garage.size}</div>
+                  <div><span className="text-slate-400">Options:</span> {
                     Object.entries(estimate.garage.options)
                       .filter(([, v]) => v)
                       .map(([k]) => k)
                       .join(', ') || 'None'
                   }</div>
-                  <div><span className="text-gray-500">Materials:</span> {formatCurrency(estimate.garage.cost)}</div>
-                  <div><span className="text-gray-500">Labor:</span> {formatCurrency(estimate.garage.labor)}</div>
+                  <div><span className="text-slate-400">Materials:</span> {formatCurrency(estimate.garage.cost)}</div>
+                  <div><span className="text-slate-400">Labor:</span> {formatCurrency(estimate.garage.labor)}</div>
                 </div>
               </div>
             )}
 
             {/* Totals */}
-            <div className="bg-white rounded-lg shadow-lg p-4 border-2 border-blue-300">
+            <div className="glass rounded-xl p-4 border-2 border-blue-300">
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <span className="text-sm">Total Materials</span>
@@ -571,7 +571,7 @@ export default function DoorsWindowsPage() {
                 </div>
                 <div className="border-t pt-2 flex justify-between font-bold text-lg">
                   <span>Grand Total</span>
-                  <span className="text-blue-600">{formatCurrency(estimate.grandTotal)}</span>
+                  <span className="text-cyan-300">{formatCurrency(estimate.grandTotal)}</span>
                 </div>
               </div>
             </div>
@@ -589,24 +589,24 @@ export default function DoorsWindowsPage() {
         )}
       </main>
 
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around py-2 px-4">
-        <button onClick={() => router.push('/')} className="flex flex-col items-center text-gray-400">
+      <nav className="fixed bottom-0 left-0 right-0 z-30 flex justify-around border-t border-white/10 bg-[#070b14]/95 py-2 px-4 backdrop-blur lg:hidden">
+        <button onClick={() => router.push('/')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">🏠</span>
           <span className="text-xs">Home</span>
         </button>
-        <button onClick={() => router.push('/doors-windows')} className="flex flex-col items-center text-blue-600">
+        <button onClick={() => router.push('/doors-windows')} className="flex flex-col items-center text-cyan-300">
           <span className="text-xl">🚪</span>
           <span className="text-xs">Doors</span>
         </button>
-        <button onClick={() => router.push('/exterior')} className="flex flex-col items-center text-gray-400">
+        <button onClick={() => router.push('/exterior')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">🏠</span>
           <span className="text-xs">Exterior</span>
         </button>
-        <button onClick={() => router.push('/pricing')} className="flex flex-col items-center text-gray-400">
+        <button onClick={() => router.push('/pricing')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">💰</span>
           <span className="text-xs">Pricing</span>
         </button>
-        <button onClick={() => router.push('/settings')} className="flex flex-col items-center text-gray-400">
+        <button onClick={() => router.push('/settings')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">⚙️</span>
           <span className="text-xs">Settings</span>
         </button>

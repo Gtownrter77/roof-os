@@ -9,6 +9,51 @@ body { margin: 0; color: #f7f9ff; background: var(--bg); font-family: Arial, Hel
 button, input, select { font: inherit; }
 button { cursor: pointer; }
 button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+
+/* Shared command-center surface used across inner pages */
+.ops-bg {
+  background:
+    radial-gradient(circle at 55% 12%, rgba(34, 78, 140, .22), transparent 33%),
+    linear-gradient(135deg, #060916 0%, #07101f 56%, #160d19 100%);
+  color: #f7f9ff;
+}
+.ops-label {
+  color: #55caff;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.glass {
+  border: 1px solid rgba(103, 136, 184, .36);
+  background: linear-gradient(145deg, rgba(9, 19, 39, .92), rgba(4, 11, 24, .84));
+  box-shadow: 0 8px 26px rgba(0, 0, 0, .18);
+}
+.ops-input {
+  width: 100%;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, .15);
+  background: rgba(0, 0, 0, .28);
+  color: #fff;
+  padding: 0.625rem 0.75rem;
+}
+.ops-input::placeholder { color: #94a3b8; }
+.ops-card { border-radius: 0.75rem; padding: 1rem; }
+.ops-btn-primary {
+  border-radius: 0.75rem;
+  background: linear-gradient(90deg, #df101d, #f32c33);
+  color: #fff;
+  font-weight: 700;
+  padding: 0.625rem 1rem;
+}
+.ops-btn-secondary {
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, .2);
+  background: rgba(255, 255, 255, .05);
+  color: #e2e8f0;
+  font-weight: 600;
+  padding: 0.625rem 1rem;
+}
 .text-red { color: #ff4455; }.text-green { color: #18f27b; }.text-blue { color: #25adff; }.text-amber { color: #ffb51c; }.text-purple { color: #bf65ff; }.text-teal { color: #18e2cd; }.text-sky { color: #4bc6ff; }
 .roof-shell { min-height: 100vh; display: flex; overflow: hidden; background: radial-gradient(circle at 55% 12%, rgba(34, 78, 140, .22), transparent 33%), linear-gradient(135deg, #060916 0%, #07101f 56%, #160d19 100%); position: relative; }
 .roof-shell:before { content: ''; position: fixed; inset: 0; pointer-events: none; opacity: .6; background: radial-gradient(ellipse at 70% 17%, rgba(37, 91, 143, .36), transparent 23%), radial-gradient(ellipse at 45% 74%, rgba(221, 38, 60, .23), transparent 26%), linear-gradient(115deg, transparent 38%, rgba(255, 255, 255, .025) 38.2%, transparent 38.6%); }
