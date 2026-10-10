@@ -2,6 +2,8 @@
 
 **Do not rename or renumber an already-released SQL migration without checking the applied production ledger first.** The production Supabase ledger uses timestamp versions; the repo SQL files use shorter numeric prefixes. The project was restored during this release and is now `ACTIVE_HEALTHY`.
 
+> **Evidence freshness:** The production ledger/schema statements in this document are historical notes from a previous checkpoint. They were not independently re-queried during the 2026-10-09 audit. Do not treat them as current production verification; inspect the live Supabase migration ledger and schema before applying, repairing, renaming, or deleting migrations.
+
 ## Production reconciliation
 
 Production lists `035_retailer_quota_hardening` as applied (ledger version `20260919043845`). Its SQL existed on the orphaned branch `fix/retailer-quota-hardening-20260918` at commit `843bf3c`, but not on `main`. This release restores that exact migration source as `supabase/migrations/035_retailer_quota_hardening.sql`; **do not apply it again**. The live schema already contains its retailer quota functions.
