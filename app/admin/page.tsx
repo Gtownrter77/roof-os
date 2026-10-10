@@ -2,7 +2,7 @@ export default function AdminPage() {
   const tools = [
     { title: 'Main dashboard', path: '/', detail: 'Open the ROOF/OS app' },
     { title: 'Leads', path: '/leads', detail: 'Lead workflow · app sign-in may be required' },
-    { title: 'Canvassing', path: '/canvass', detail: 'Map and canvassing workflow · app sign-in may be required' },
+    { title: 'Field canvass', path: '/canvass', detail: 'Door-knock field mode for Leads · saves into CRM' },
     { title: 'Photo estimates', path: '/photo-estimate', detail: 'Photo estimate workflow · app sign-in may be required' },
     { title: 'Reports', path: '/reports', detail: 'Reports · app sign-in may be required' },
     { title: 'Settings', path: '/settings', detail: 'Workspace settings · app sign-in may be required' },
