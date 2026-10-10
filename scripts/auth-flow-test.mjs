@@ -46,22 +46,29 @@ assert.ok(callback.includes("enter.searchParams.set('next', next)"), 'safe next 
 
 assert.ok(proxy.includes("pathname === '/admin'"), 'developer console route stays public without login')
 assert.ok(proxy.includes("pathname === '/api/status'"), 'status health stays reachable without a session')
-assert.ok(proxy.includes("/auth/enter"), 'unauthenticated HTML navigations enter via owner auto-session')
-assert.ok(proxy.includes("pathname === '/auth/login'"), 'login route is bounced into enter')
-assert.ok(proxy.includes('roof_os_skip_enter'), 'proxy stops enter loops after a failed mint')
-assert.ok(!proxy.includes("NextResponse.redirect(login)"), 'proxy must not send users to the login wall')
+assert.ok(proxy.includes("/auth/login"), 'unauthenticated HTML navigations go to break-glass login')
+assert.ok(!proxy.includes("enter.searchParams.set('next', pathname"), 'proxy must not auto-bounce every visitor into owner enter')
 assert.ok(enter.includes('roof_os_skip_enter'), 'enter sets a skip cookie when minting fails')
+assert.ok(enter.includes('assertOwnerEnterAuthorized'), 'enter requires break-glass authorization')
+assert.ok(enter.includes("searchParams.get('key')"), 'enter accepts key query param')
+assert.ok(enter.includes("headers.get('x-roof-os-enter')"), 'enter accepts enter header')
 
 assert.ok(enter.includes('establishOwnerSession'), 'enter route mints an owner session')
 assert.ok(enter.includes('safeNextPath'), 'enter route keeps redirects on-site')
 assert.ok(ownerEnter.includes('generateLink'), 'owner enter uses admin magic-link minting')
 assert.ok(ownerEnter.includes("type: 'magiclink'"), 'owner enter verifies a magiclink token hash')
 assert.ok(ownerEnter.includes('SUPABASE_SERVICE_ROLE_KEY'), 'owner enter requires the service role')
+assert.ok(ownerEnter.includes('assertOwnerEnterAuthorized'), 'owner enter re-exports break-glass gate')
+assert.ok(!ownerEnter.includes('listUsers'), 'owner enter must not fall back to oldest Auth user')
 
-assert.ok(login.includes('/auth/enter'), 'login page forwards into enter')
+const ownerEnterGate = readFileSync(new URL('../lib/auth/owner-enter-gate.ts', import.meta.url), 'utf8')
+assert.ok(ownerEnterGate.includes('OWNER_ENTER_SECRET'), 'break-glass requires OWNER_ENTER_SECRET')
+assert.ok(ownerEnterGate.includes('timingSafeEqual'), 'secret compare is timing-safe')
+
+assert.ok(login.includes('/auth/enter'), 'login page can forward into enter with key')
 assert.ok(login.includes('safeNextPath'), 'login forward keeps next path safe')
-assert.ok(login.includes('router.replace'), 'login page replaces into enter')
-assert.ok(login.includes('router.refresh()'), 'login forward refreshes server auth state')
+assert.ok(login.includes('Owner enter key'), 'login collects break-glass key')
+assert.ok(login.includes("enter.searchParams.set('key', trimmed)"), 'login passes key into enter')
 
 const developerConsole = readFileSync(new URL('../app/admin/page.tsx', import.meta.url), 'utf8')
 assert.ok(developerConsole.includes('Developer Console'), 'public admin route is the developer console')
@@ -71,6 +78,17 @@ assert.ok(serverAuth.includes('cookieStore.set(name, value, options)'), 'server 
 const reset = readFileSync(new URL('../app/auth/reset/page.tsx', import.meta.url), 'utf8')
 assert.ok(reset.includes('Reset link needed'), 'reset route explains missing or expired links')
 assert.ok(reset.includes('supabase.auth.updateUser({ password })'), 'reset route updates the password')
-assert.ok(reset.includes("/auth/enter"), 'reset route returns into enter after success')
+assert.ok(reset.includes("/auth/login"), 'reset route returns into break-glass login after success')
 
-console.log('auth-flow-test: PASS (owner enter unlock, callback types, cooldowns, and safe redirects)')
+// Runtime gate checks (gate module has no Supabase deps)
+const { assertOwnerEnterAuthorized } = await importTypeScript('../lib/auth/owner-enter-gate.ts')
+const prev = process.env.OWNER_ENTER_SECRET
+delete process.env.OWNER_ENTER_SECRET
+assert.equal(assertOwnerEnterAuthorized({ providedKey: 'anything-long-enough' }).ok, false)
+process.env.OWNER_ENTER_SECRET = 'sixteen-chars-min'
+assert.equal(assertOwnerEnterAuthorized({ providedKey: 'wrong-key-value!!!!' }).ok, false)
+assert.equal(assertOwnerEnterAuthorized({ providedKey: 'sixteen-chars-min' }).ok, true)
+if (prev === undefined) delete process.env.OWNER_ENTER_SECRET
+else process.env.OWNER_ENTER_SECRET = prev
+
+console.log('auth-flow-test: PASS (private break-glass enter, callback types, cooldowns, safe redirects)')

@@ -2,8 +2,6 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { getSupabaseEnv } from './lib/supabase/env'
 
-const SKIP_ENTER_COOKIE = 'roof_os_skip_enter'
-
 function isCronPath(pathname: string) {
   return pathname.startsWith('/api/cron/')
 }
@@ -70,31 +68,21 @@ export async function proxy(request: NextRequest) {
   })
 
   const { data: { user } } = await supabase.auth.getUser()
-  const skipEnter = request.cookies.get(SKIP_ENTER_COOKIE)?.value === '1'
-    || request.nextUrl.searchParams.has('enter_error')
 
-  // Leave the login page out of the flow: bounce it straight into owner enter.
-  if ((pathname === '/auth/login' || pathname === '/auth/signup') && !skipEnter) {
-    const enter = new URL('/auth/enter', request.url)
-    const next = request.nextUrl.searchParams.get('next')
-    if (next) enter.searchParams.set('next', next)
-    return applySecurityPolicy(NextResponse.redirect(enter), nonce)
-  }
-
+  // Private break-glass: unauthenticated HTML goes to login (key form).
+  // Owner mint only happens at /auth/enter?key=OWNER_ENTER_SECRET — never for every visitor.
   if (
     !user
-    && !skipEnter
     && !isAuthUtilityPath(pathname)
     && wantsHtml(request)
     && !pathname.startsWith('/api/')
   ) {
-    const enter = new URL('/auth/enter', request.url)
-    enter.searchParams.set('next', pathname + request.nextUrl.search)
-    return applySecurityPolicy(NextResponse.redirect(enter), nonce)
+    const login = new URL('/auth/login', request.url)
+    login.searchParams.set('next', pathname + request.nextUrl.search)
+    return applySecurityPolicy(NextResponse.redirect(login), nonce)
   }
 
-  // App routes stay reachable without a prior login page. Owner session is
-  // established by /auth/enter. MFA remains optional at /auth/mfa.
+  // MFA remains optional at /auth/mfa.
   return applySecurityPolicy(response, nonce)
 }
 
