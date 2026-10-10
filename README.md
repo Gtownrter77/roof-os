@@ -1,3 +1,13 @@
+# Current repository audit — 2026-10-09
+
+**Current main baseline:** `a308459182e9a6867fb736240c6dc2af9f3aa6e9`  
+**Main CI evidence:** [run 37974227416](https://github.com/Gtownrter77/roof-os/actions/runs/37974227416) passed for that commit.  
+**Current audit record:** [AUDIT-STATUS-2026-10-09.md](AUDIT-STATUS-2026-10-09.md).
+
+The dated checkpoints below are historical snapshots, not proof that the current main commit is deployed or that live Supabase, provider integrations, or a physical Pixel 8 workflow currently work. The current audit has not independently verified those external systems. The migration guide was corrected to reflect repository files through migration `052`; legacy collisions and duplicate SQL remain intentionally unreconciled until the production ledger is checked.
+
+---
+
 ## 2026-10-08 production release checkpoint
 
 **Runtime source baseline:** `ccfbf8d03309376691d7e10e2f4251ff05ecedc0`
