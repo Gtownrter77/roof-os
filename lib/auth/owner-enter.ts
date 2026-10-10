@@ -1,6 +1,8 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { getSupabaseEnv } from '../supabase/env'
 
+export { assertOwnerEnterAuthorized } from './owner-enter-gate'
+
 type CookieClient = {
   auth: {
     verifyOtp: (args: { token_hash: string; type: 'magiclink' }) => Promise<{ error: { message: string } | null }>
@@ -10,12 +12,12 @@ type CookieClient = {
 
 /**
  * Mint a real Supabase session for the workspace owner using the service role.
- * Used to reopen the app when the creator is locked out of login/MFA.
+ * Break-glass only — caller must pass assertOwnerEnterAuthorized first.
  */
 export async function establishOwnerSession(cookieClient: CookieClient): Promise<{ ok: true } | { ok: false; reason: string }> {
   const { url } = getSupabaseEnv()
   if (!url || url.includes('placeholder') || url.includes('validation.supabase')) {
-    return { ok: false, reason: 'Supabase URL is not configured' }
+    return { ok: false, reason: 'enter_misconfigured' }
   }
 
   const passwordEmail = process.env.OWNER_ENTER_EMAIL?.trim()
@@ -27,7 +29,7 @@ export async function establishOwnerSession(cookieClient: CookieClient): Promise
 
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()
   if (!serviceRoleKey) {
-    return { ok: false, reason: 'SUPABASE_SERVICE_ROLE_KEY is not configured' }
+    return { ok: false, reason: 'enter_misconfigured' }
   }
 
   const admin = createClient(url, serviceRoleKey, {
@@ -36,7 +38,7 @@ export async function establishOwnerSession(cookieClient: CookieClient): Promise
 
   const email = await resolveOwnerEmail(admin)
   if (!email) {
-    return { ok: false, reason: 'No owner user found to enter as' }
+    return { ok: false, reason: 'enter_no_owner' }
   }
 
   const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
@@ -44,7 +46,7 @@ export async function establishOwnerSession(cookieClient: CookieClient): Promise
     email,
   })
   if (linkError || !linkData?.properties?.hashed_token) {
-    return { ok: false, reason: linkError?.message || 'Could not generate owner enter link' }
+    return { ok: false, reason: 'enter_mint_failed' }
   }
 
   const { error: otpError } = await cookieClient.auth.verifyOtp({
@@ -52,7 +54,7 @@ export async function establishOwnerSession(cookieClient: CookieClient): Promise
     type: 'magiclink',
   })
   if (otpError) {
-    return { ok: false, reason: otpError.message }
+    return { ok: false, reason: 'enter_mint_failed' }
   }
 
   return { ok: true }
@@ -86,13 +88,6 @@ async function resolveOwnerEmail(admin: SupabaseClient): Promise<string | null> 
     if (data.user?.email) return data.user.email
   }
 
-  const { data: listed, error } = await admin.auth.admin.listUsers({ page: 1, perPage: 50 })
-  if (error || !listed?.users?.length) return null
-
-  const sorted = [...listed.users].sort((a, b) => {
-    const aTime = a.created_at ? Date.parse(a.created_at) : 0
-    const bTime = b.created_at ? Date.parse(b.created_at) : 0
-    return aTime - bTime
-  })
-  return sorted[0]?.email ?? null
+  // Fail closed — never impersonate "oldest Auth user".
+  return null
 }

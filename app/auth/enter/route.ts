@@ -1,6 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
-import { establishOwnerSession } from '../../../lib/auth/owner-enter'
+import { assertOwnerEnterAuthorized, establishOwnerSession } from '../../../lib/auth/owner-enter'
 import { safeNextPath } from '../../../lib/safe-next'
 import { getSupabaseEnv } from '../../../lib/supabase/env'
 
@@ -34,12 +34,34 @@ export async function GET(request: NextRequest) {
     return response
   }
 
+  const providedKey =
+    url.searchParams.get('key')
+    || request.headers.get('x-roof-os-enter')
+
+  const gate = assertOwnerEnterAuthorized({ providedKey })
+  if (gate.ok === false) {
+    const login = new URL('/auth/login', url.origin)
+    login.searchParams.set('next', next)
+    login.searchParams.set('enter_error', gate.reason)
+    response = NextResponse.redirect(login)
+    response.headers.set('Cache-Control', 'no-store, max-age=0')
+    response.cookies.set(SKIP_ENTER_COOKIE, '1', {
+      path: '/',
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: true,
+      maxAge: 60 * 30,
+    })
+    return response
+  }
+
   const result = await establishOwnerSession(supabase)
   if (result.ok === false) {
-    destination.searchParams.set('enter_error', result.reason.slice(0, 120))
-    response = NextResponse.redirect(destination)
+    const login = new URL('/auth/login', url.origin)
+    login.searchParams.set('next', next)
+    login.searchParams.set('enter_error', result.reason)
+    response = NextResponse.redirect(login)
     response.headers.set('Cache-Control', 'no-store, max-age=0')
-    // Prevent proxy <-> enter redirect loops when minting fails.
     response.cookies.set(SKIP_ENTER_COOKIE, '1', {
       path: '/',
       httpOnly: true,
