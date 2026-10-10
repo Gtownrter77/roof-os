@@ -37,6 +37,7 @@
     "test:mobile-auth": "node scripts/mobile-auth-test.mjs",
     "test:llama-agent": "node scripts/llama-agent-test.mjs",
     "test:ai-chat-bar": "node --experimental-strip-types scripts/ai-chat-bar-test.mjs",
+    "test:owner-labor": "node scripts/owner-labor-catalog-test.mjs",
     "test:camera-audio": "node scripts/inspection-camera-audio-test.mjs",
     "test:radar-source": "node scripts/radar-source-test.mjs",
     "test:dashboard-weather": "node scripts/dashboard-weather-test.mjs"

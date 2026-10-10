@@ -54,6 +54,7 @@ jobs:
       - run: npm run test:invoices-live-data
       - run: npm run test:radar-source
       - run: npm run test:dashboard-weather
+      - run: npm run test:owner-labor
       - run: npm run test:photo-full-report-flow
       - run: npm run test:measurement-estimate-authority
       - run: npm run test:ai-vision-contract
