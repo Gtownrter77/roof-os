@@ -2,7 +2,7 @@
 
 **Do not rename or renumber an already-released SQL migration without checking the applied production ledger first.** The production Supabase ledger uses timestamp versions; the repo SQL files use shorter numeric prefixes. The project was restored during this release and is now `ACTIVE_HEALTHY`.
 
-> **Evidence freshness:** The production ledger/schema statements in this document are historical notes from a previous checkpoint. They were not independently re-queried during the 2026-10-09 audit. Do not treat them as current production verification; inspect the live Supabase migration ledger and schema before applying, repairing, renaming, or deleting migrations.
+> **Evidence freshness:** The live Supabase ledger and schema were queried during the 2026-10-09 audit. The audit found source drift and that repository migrations `051_supplier_account_addons.sql` and `052_mobile_field_measurement_inputs.sql` are not reflected in the live ledger/schema. See [AUDIT-STATUS-2026-10-09.md](AUDIT-STATUS-2026-10-09.md). Do not replay applied migrations; test unapplied changes on staging before production.
 
 ## Production reconciliation
 
