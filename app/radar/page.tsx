@@ -181,6 +181,18 @@ export default function RadarCinemaPage() {
         event.preventDefault()
         setRefreshTick((n) => n + 1)
       }
+      if (event.key === '-' || event.key === '_') {
+        event.preventDefault()
+        window.dispatchEvent(new CustomEvent('roofos-radar-view', { detail: 'expand' }))
+      }
+      if (event.key === '=' || event.key === '+') {
+        event.preventDefault()
+        window.dispatchEvent(new CustomEvent('roofos-radar-view', { detail: 'localize' }))
+      }
+      if (event.key === '0') {
+        event.preventDefault()
+        window.dispatchEvent(new CustomEvent('roofos-radar-view', { detail: 'expand-max' }))
+      }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -291,6 +303,9 @@ export default function RadarCinemaPage() {
               <button type="button" onClick={() => setRefreshTick((n) => n + 1)} className="rounded-lg border border-white/20 bg-black/50 px-3 py-1.5 text-xs font-semibold hover:bg-white/10">Refresh</button>
               <button type="button" onClick={() => void useDeviceLocation()} disabled={locating} className={`rounded-lg border px-3 py-1.5 text-xs font-semibold disabled:opacity-50 ${locationMode === 'device' ? 'border-cyan-400/50 bg-cyan-400/20 text-cyan-100' : 'border-white/20 bg-black/50 hover:bg-white/10'}`}>{locating ? 'Locating…' : 'My location'}</button>
               <button type="button" onClick={useWorkspaceLocation} className={`rounded-lg border px-3 py-1.5 text-xs font-semibold ${locationMode === 'workspace' ? 'border-cyan-400/50 bg-cyan-400/20 text-cyan-100' : 'border-white/20 bg-black/50 hover:bg-white/10'}`}>Workspace ZIP</button>
+              <button type="button" onClick={() => window.dispatchEvent(new CustomEvent('roofos-radar-view', { detail: 'expand' }))} className="rounded-lg border border-white/20 bg-black/50 px-3 py-1.5 text-xs font-semibold hover:bg-white/10">Expand</button>
+              <button type="button" onClick={() => window.dispatchEvent(new CustomEvent('roofos-radar-view', { detail: 'expand-max' }))} className="rounded-lg border border-white/20 bg-black/50 px-3 py-1.5 text-xs font-semibold hover:bg-white/10">Expand max</button>
+              <button type="button" onClick={() => window.dispatchEvent(new CustomEvent('roofos-radar-view', { detail: 'localize' }))} className="rounded-lg border border-white/20 bg-black/50 px-3 py-1.5 text-xs font-semibold hover:bg-white/10">Local</button>
               <button type="button" onClick={() => setLayersOpen((v) => !v)} className="rounded-lg border border-cyan-400/40 bg-cyan-400/15 px-3 py-1.5 text-xs font-semibold text-cyan-100">Layers (L)</button>
               <button
                 type="button"
@@ -408,7 +423,7 @@ export default function RadarCinemaPage() {
                 )}
               </div>
               <p className="text-[10px] text-slate-500">
-                Keys: L layers · H HUD · F fullscreen · R refresh · Esc exit · NOAA/NWS · not a damage assessment
+                Keys: L layers · H HUD · F fullscreen · R refresh · − expand · + local · 0 expand max · Esc exit · pinch/scroll zooms 0–18 · NOAA/NWS · not a damage assessment
               </p>
             </div>
             <div className="rounded-xl border border-white/10 bg-black/50 px-3 py-2 text-[10px] text-slate-300">
