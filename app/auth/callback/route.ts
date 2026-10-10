@@ -19,10 +19,10 @@ function redirectNoStore(url: URL, destination: URL) {
 }
 
 function callbackFailure(url: URL, next: string) {
-  const login = new URL('/auth/login', url.origin)
-  login.searchParams.set('error', 'auth_callback_failed')
-  login.searchParams.set('next', next)
-  return redirectNoStore(url, login)
+  const enter = new URL('/auth/enter', url.origin)
+  enter.searchParams.set('error', 'auth_callback_failed')
+  enter.searchParams.set('next', next)
+  return redirectNoStore(url, enter)
 }
 
 export async function GET(request: Request) {

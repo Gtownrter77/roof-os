@@ -55,7 +55,7 @@ export default function LeadDetailPage() {
 
   async function load() {
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { router.replace('/auth/login'); return }
+    if (!user) { router.replace('/auth/enter'); return }
     const [{ data: leadRow, error: leadError }, activityRes] = await Promise.all([
       supabase.from('leads').select('id,name,address,status,phone,email,source,next_action,next_action_due,next_action_owner_id,lead_score,lead_score_reasons,lost_reason,lost_reason_detail,lost_at,last_activity_at').eq('id', leadId).maybeSingle(),
       supabase.from('lead_activity').select('id,kind,body,created_at').eq('lead_id', leadId).order('created_at', { ascending: false }).limit(50),

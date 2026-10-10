@@ -7,7 +7,7 @@ import { createClient } from '../lib/supabase/client'
 type Workspace = { id: string; name: string }
 type MembershipRow = { workspace_id: string; workspaces: Workspace | Workspace[] | null }
 
-const HIDDEN_ON = ['/auth/login', '/auth/signup', '/onboarding']
+const HIDDEN_ON = ['/auth/login', '/auth/signup', '/auth/enter', '/onboarding']
 
 function workspaceFromMembership(membership: MembershipRow): Workspace | null {
   if (Array.isArray(membership.workspaces)) return membership.workspaces[0] ?? null

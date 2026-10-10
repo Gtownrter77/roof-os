@@ -35,7 +35,7 @@ function MfaForm() {
       setError('')
       const { data: userData, error: userError } = await supabase.auth.getUser()
       if (userError || !userData.user) {
-        router.replace('/auth/login')
+        router.replace('/auth/enter')
         return
       }
 

@@ -26,7 +26,7 @@ export default function ProfilePage() {
       const { data: { user }, error: userError } = await supabase.auth.getUser()
       if (cancelled) return
       if (userError || !user) {
-        router.replace('/auth/login')
+        router.replace('/auth/enter')
         return
       }
 
@@ -71,7 +71,7 @@ export default function ProfilePage() {
       setLoggingOut(false)
       return
     }
-    router.replace('/auth/login')
+    router.replace('/auth/enter')
     router.refresh()
   }
 

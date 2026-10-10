@@ -11,7 +11,7 @@ const NAV_ITEMS = [
   { icon: 'Measure', path: '/measure' },
 ]
 
-const HIDDEN_ON = ['/auth/login', '/auth/signup', '/onboarding']
+const HIDDEN_ON = ['/auth/login', '/auth/signup', '/auth/enter', '/onboarding']
 
 export default function Navigation() {
   const pathname = usePathname()
