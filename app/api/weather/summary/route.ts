@@ -1,7 +1,7 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '../../../../lib/supabase/server'
 import { fetchWithTimeout, isUuid, requireWorkspaceMember } from '../../../../lib/api-security'
-import { getAlertsAtPoint, getForecast } from '../../../../lib/services/weather'
+import { getAlertsAtPoint, getForecast, getNwsRelativeLocation } from '../../../../lib/services/weather'
 import { getRadarServiceForPoint } from '../../../../lib/services/radar-source.mjs'
 
 const NOMINATIM = 'https://nominatim.openstreetmap.org/search'
@@ -15,7 +15,14 @@ const GEOCODE_CACHE = new Map<string, { expiresAt: number; value: GeocodedLocati
 const GEOCODE_IN_FLIGHT = new Map<string, Promise<GeocodedLocation>>()
 let lastNominatimRequest = 0
 
-type GeocodedLocation = { latitude: number; longitude: number; address: Record<string, unknown>; label: string }
+type GeocodedLocation = {
+  latitude: number
+  longitude: number
+  address: Record<string, unknown>
+  label: string
+  postalCode?: string
+  source: string
+}
 
 function response(payload: unknown, status = 200) {
   return NextResponse.json(payload, { status, headers: NO_STORE })
@@ -31,6 +38,15 @@ function labelFromAddress(address: Record<string, unknown>, fallbackZip: string)
   return [place, stateCode ?? state].filter(Boolean).join(', ') || fallbackZip
 }
 
+function parsePoint(rawLat: string | null, rawLon: string | null) {
+  if (rawLat == null || rawLon == null) return null
+  const latitude = Number(rawLat)
+  const longitude = Number(rawLon)
+  if (!Number.isFinite(latitude) || latitude < -90 || latitude > 90) return null
+  if (!Number.isFinite(longitude) || longitude < -180 || longitude > 180) return null
+  return { latitude, longitude }
+}
+
 async function geocodeZip(zip: string): Promise<GeocodedLocation> {
   const cached = GEOCODE_CACHE.get(zip)
   if (cached && cached.expiresAt > Date.now()) return cached.value
@@ -38,7 +54,6 @@ async function geocodeZip(zip: string): Promise<GeocodedLocation> {
   if (inFlight) return inFlight
 
   const lookup = (async () => {
-    // Nominatim asks clients to identify themselves and avoid burst traffic.
     const now = Date.now()
     const scheduledAt = Math.max(now, lastNominatimRequest + 1_100)
     lastNominatimRequest = scheduledAt
@@ -60,7 +75,14 @@ async function geocodeZip(zip: string): Promise<GeocodedLocation> {
       throw new Error('The saved service ZIP could not be resolved to a valid location.')
     }
     const address = result?.address ?? {}
-    const location = { latitude, longitude, address, label: labelFromAddress(address, zip) }
+    const location: GeocodedLocation = {
+      latitude,
+      longitude,
+      address,
+      label: labelFromAddress(address, zip),
+      postalCode: zip,
+      source: 'OpenStreetMap Nominatim postal-code geocoding',
+    }
     GEOCODE_CACHE.set(zip, { expiresAt: Date.now() + GEOCODE_TTL_MS, value: location })
     return location
   })()
@@ -73,7 +95,21 @@ async function geocodeZip(zip: string): Promise<GeocodedLocation> {
   }
 }
 
-export async function GET() {
+async function locationFromPoint(latitude: number, longitude: number, postalCode?: string): Promise<GeocodedLocation> {
+  const nwsLabel = await getNwsRelativeLocation(latitude, longitude)
+  return {
+    latitude,
+    longitude,
+    address: {},
+    label: nwsLabel || postalCode || `${latitude.toFixed(3)}, ${longitude.toFixed(3)}`,
+    postalCode,
+    source: postalCode
+      ? 'Browser/device coordinates with optional ZIP override'
+      : 'Browser/device coordinates',
+  }
+}
+
+export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -91,14 +127,26 @@ export async function GET() {
       .maybeSingle()
     if (settingsError) return response({ error: 'Workspace weather settings could not be loaded.' }, 503)
 
-    const zip = typeof settings?.default_zipcode === 'string' ? settings.default_zipcode.trim() : ''
-    if (!/^\d{5}$/.test(zip)) return response({ status: 'location_missing', message: 'Set a five-digit service-area ZIP in Settings to load local weather.' })
+    const query = request.nextUrl.searchParams
+    const queryZip = (query.get('zip') || '').trim()
+    const settingsZip = typeof settings?.default_zipcode === 'string' ? settings.default_zipcode.trim() : ''
+    const zip = /^\d{5}$/.test(settingsZip) ? settingsZip : (/^\d{5}$/.test(queryZip) ? queryZip : '')
+    const point = parsePoint(query.get('latitude'), query.get('longitude'))
 
-    let location: GeocodedLocation
-    try {
-      location = await geocodeZip(zip)
-    } catch {
-      return response({ error: 'OpenStreetMap could not resolve the saved service ZIP. Weather is not shown.' }, 502)
+    let location: GeocodedLocation | null = null
+    if (zip) {
+      try {
+        location = await geocodeZip(zip)
+      } catch {
+        return response({ error: 'OpenStreetMap could not resolve the service ZIP. Weather is not shown.' }, 502)
+      }
+    } else if (point) {
+      location = await locationFromPoint(point.latitude, point.longitude)
+    } else {
+      return response({
+        status: 'location_missing',
+        message: 'Set a five-digit service-area ZIP in Settings, or share this device location, to load local NOAA/NWS weather.',
+      })
     }
 
     const [alertsResult, forecast] = await Promise.allSettled([
@@ -112,16 +160,16 @@ export async function GET() {
       status: 'ready',
       checkedAt: new Date().toISOString(),
       location: {
-        postalCode: zip,
+        postalCode: location.postalCode || zip || '',
         label: location.label,
         latitude: location.latitude,
         longitude: location.longitude,
-        source: 'OpenStreetMap Nominatim postal-code geocoding',
+        source: location.source,
       },
       forecast: forecast.status === 'fulfilled' ? forecast.value : null,
       forecastStatus: forecast.status === 'fulfilled' && forecast.value ? 'available' : 'unknown',
       alerts: alertsResult.value,
-      alertSource: 'National Weather Service active alerts at the workspace service-ZIP point',
+      alertSource: 'National Weather Service active alerts at the workspace service location',
       radar,
       radarStatus: radar ? 'available' : 'outside_supported_noaa_mrms_coverage',
       sources: {
