@@ -6,12 +6,19 @@ function isCronPath(pathname: string) {
   return pathname.startsWith('/api/cron/')
 }
 
-function isPublicPath(pathname: string) {
-  return pathname === '/about' || pathname === '/pricing' || pathname === '/admin' || pathname.startsWith('/auth')
+function isAuthUtilityPath(pathname: string) {
+  return (
+    pathname.startsWith('/auth')
+    || pathname === '/about'
+    || pathname === '/pricing'
+    || pathname === '/admin'
+    || pathname === '/api/status'
+  )
 }
 
-function isMfaPath(pathname: string) {
-  return pathname === '/auth/mfa'
+function wantsHtml(request: NextRequest) {
+  const accept = request.headers.get('accept') || ''
+  return accept.includes('text/html')
 }
 
 function createCspNonce() {
@@ -61,26 +68,23 @@ export async function proxy(request: NextRequest) {
   })
 
   const { data: { user } } = await supabase.auth.getUser()
-  const isAuthPage = pathname.startsWith('/auth')
 
-  if (!user && !isPublicPath(pathname)) {
-    const login = new URL('/auth/login', request.url)
-    login.searchParams.set('next', pathname)
-    return applySecurityPolicy(NextResponse.redirect(login), nonce)
+  // Leave the login page out of the flow: bounce it straight into owner enter.
+  if (pathname === '/auth/login' || pathname === '/auth/signup') {
+    const enter = new URL('/auth/enter', request.url)
+    const next = request.nextUrl.searchParams.get('next')
+    if (next) enter.searchParams.set('next', next)
+    return applySecurityPolicy(NextResponse.redirect(enter), nonce)
   }
 
-  if (!user) return applySecurityPolicy(response, nonce)
-
-  if (isMfaPath(pathname)) return applySecurityPolicy(response, nonce)
-
-  if (isAuthPage && pathname !== '/auth/callback' && pathname !== '/auth/reset') {
-    return applySecurityPolicy(NextResponse.redirect(new URL('/', request.url)), nonce)
+  if (!user && !isAuthUtilityPath(pathname) && wantsHtml(request) && !pathname.startsWith('/api/')) {
+    const enter = new URL('/auth/enter', request.url)
+    enter.searchParams.set('next', pathname + request.nextUrl.search)
+    return applySecurityPolicy(NextResponse.redirect(enter), nonce)
   }
 
-  // Owner/admin MFA is optional. Forcing aal2 here locked the creator out of their
-  // own workspace when enrollment failed or the authenticator was unavailable.
-  // /auth/mfa remains available for voluntary setup.
-
+  // App routes stay reachable without a prior login page. Owner session is
+  // established by /auth/enter. MFA remains optional at /auth/mfa.
   return applySecurityPolicy(response, nonce)
 }
 
