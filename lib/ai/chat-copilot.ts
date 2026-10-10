@@ -1,4 +1,4 @@
-import { askLlm } from './llm.ts'
+import { askOllama } from './ollama.ts'
 
 export type ChatMessage = {
   role: 'user' | 'assistant'
@@ -128,7 +128,7 @@ export async function processChatCopilot(input: {
     .map((item) => `${item.role}: ${item.content}`)
     .join('\n')
 
-  const llmReply = await askLlm(
+  const llmReply = await askOllama(
     [
       'You are the ROOF/OS operations copilot for a roofing company.',
       'Answer in at most two short sentences.',
@@ -141,7 +141,7 @@ export async function processChatCopilot(input: {
     ]
       .filter(Boolean)
       .join('\n'),
-    { timeoutMs: 20_000 },
+    { timeoutMs: 8_000 },
   )
 
   if (llmReply) {
@@ -162,7 +162,7 @@ export async function processChatCopilot(input: {
 
   return {
     reply:
-      'AI text is not configured on this server yet. I can still open storms, leads, measurements, estimates, reports, or invoices from here.',
+      'Local Ollama is not reachable. I can still open storms, leads, measurements, estimates, reports, or invoices from here.',
     suggestedAction: { label: 'Go to Command Center', href: '/' },
     quickReplies: ['Track Active Storms', 'Aerial Measurement', 'New Estimate', 'Golden Report'],
   }
