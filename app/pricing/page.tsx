@@ -122,7 +122,7 @@ export default function PricingPage() {
   }
 
   return (
-    <div className="ops-bg min-h-screen lg:pl-[232px] pb-16">
+    <div className="space-y-4 pb-4">
       <header className="glass sticky top-0 z-10 border-x-0 border-t-0">
         <div className="mx-auto flex max-w-[1240px] items-center px-4 py-3">
           <button onClick={() => router.back()} className="mr-3 text-xl text-cyan-300">←</button>
@@ -139,7 +139,7 @@ export default function PricingPage() {
             <input
               type="number"
               placeholder="Roof Area (sq ft)"
-              className="flex-1 p-2 border rounded-lg"
+              className="ops-input flex-1"
               onChange={(e) => updateQuantities(Number(e.target.value))}
             />
             <button className="rounded-lg bg-gradient-to-r from-blue-600 to-cyan-500 px-4 py-2 text-white">
@@ -263,7 +263,7 @@ export default function PricingPage() {
                 <span>Total Estimate</span>
                 <span className="text-cyan-300">${totals.total.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between text-sm text-gray-500">
+              <div className="flex justify-between text-sm text-slate-400">
                 <span>Per Square</span>
                 <span>${totals.perSquare.toFixed(2)}</span>
               </div>
@@ -281,33 +281,33 @@ export default function PricingPage() {
         </div>
 
         <div className="glass rounded-xl p-3 text-center">
-          <p className="text-xs text-gray-600">
+          <p className="text-xs text-slate-300">
             Live Home Depot and Lowe&apos;s retailer reference pricing • Updated weekly by default • Refresh on demand • Xactimate-friendly workflow formatting
           </p>
-          <p className="text-[11px] text-gray-500 mt-1">
+          <p className="text-[11px] text-slate-400 mt-1">
             Prices retain retailer, market/ZIP, retrieval time, effective date, and owner-review status. They are not licensed Xactimate or carrier rates.
           </p>
         </div>
       </main>
 
-      <nav className="fixed inset-x-0 bottom-0 z-30 hidden border-t border-white/15 bg-[#050914]/95 py-3 px-4 backdrop-blur-xl lg:pl-[252px]">
-        <button onClick={() => router.push('/')} className="flex flex-col items-center text-gray-400">
+      <nav className="hidden">
+        <button onClick={() => router.push('/')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">🏠</span>
           <span className="text-xs">Home</span>
         </button>
-        <button onClick={() => router.push('/pricing')} className="flex flex-col items-center text-blue-600">
+        <button onClick={() => router.push('/pricing')} className="flex flex-col items-center text-cyan-300">
           <span className="text-xl">💰</span>
           <span className="text-xs">Pricing</span>
         </button>
-        <button onClick={() => router.push('/ai')} className="flex flex-col items-center text-gray-400">
+        <button onClick={() => router.push('/ai')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">🤖</span>
           <span className="text-xs">AI</span>
         </button>
-        <button onClick={() => router.push('/invoices')} className="flex flex-col items-center text-gray-400">
+        <button onClick={() => router.push('/invoices')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">📊</span>
           <span className="text-xs">Invoices</span>
         </button>
-        <button onClick={() => router.push('/settings')} className="flex flex-col items-center text-gray-400">
+        <button onClick={() => router.push('/settings')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">⚙️</span>
           <span className="text-xs">Settings</span>
         </button>

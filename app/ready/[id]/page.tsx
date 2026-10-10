@@ -38,24 +38,24 @@ export default function ReadyPage() {
   const intel = payload?.intelligence
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 pb-24">
-      <button onClick={() => router.push(`/leads/${params.id}`)} className="text-blue-600 text-sm mb-3">← Lead</button>
+    <div className="space-y-4 p-1 pb-4">
+      <button onClick={() => router.push(`/leads/${params.id}`)} className="text-cyan-300 text-sm mb-3">← Lead</button>
       <h1 className="text-2xl font-bold">Job ready?</h1>
-      <p className="text-sm text-gray-600 mb-4">Checks the record. Does not look at pixels. Does not replace a superintendent.</p>
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      <p className="text-sm text-slate-300 mb-4">Checks the record. Does not look at pixels. Does not replace a superintendent.</p>
+      {error && <p className="text-sm text-red-300">{error}</p>}
       {intel && (
         <>
-          <div className="bg-white rounded-lg shadow p-4 mb-4">
+          <div className="glass rounded-xl p-4 mb-4">
             <p className="text-4xl font-bold">{intel.score}</p>
             <p className="text-sm">{intel.productionReady ? 'Ready for human production review' : 'Not ready'}</p>
-            <p className="text-xs text-gray-500 mt-2">{intel.counts.photos} photos · {intel.counts.inspections} inspections · {intel.counts.warrantiesOpen} warranties open</p>
+            <p className="text-xs text-slate-400 mt-2">{intel.counts.photos} photos · {intel.counts.inspections} inspections · {intel.counts.warrantiesOpen} warranties open</p>
           </div>
           {intel.gaps.map((gap) => (
-            <div key={gap.code} className={`rounded-lg p-3 mb-2 text-sm ${gap.severity === 'block' ? 'bg-red-50 text-red-800' : 'bg-amber-50 text-amber-900'}`}>
+            <div key={gap.code} className={`rounded-lg p-3 mb-2 text-sm ${gap.severity === 'block' ? 'bg-red-400/10 text-red-800' : 'bg-amber-400/10 text-amber-100'}`}>
               {gap.label}
             </div>
           ))}
-          <button onClick={() => router.push(`/passport/${params.id}`)} className="mt-3 w-full bg-blue-600 text-white py-2 rounded font-semibold">Open Roof Passport</button>
+          <button onClick={() => router.push(`/passport/${params.id}`)} className="mt-3 ops-btn-primary w-full">Open Roof Passport</button>
         </>
       )}
     </div>
