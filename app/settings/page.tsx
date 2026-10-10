@@ -38,7 +38,7 @@ type TaxRates = { state: number; county: number; city: number; specialDistrict: 
 const initialSettings: Settings = {
   price_refresh_frequency: 'weekly',
   default_language: 'en-US',
-  default_zipcode: '30123',
+  default_zipcode: '',
   preferred_brands: { shingles: 'GAF' },
   material_search_mode: 'catalog_and_retailer',
   enable_ai_receptionist: true,

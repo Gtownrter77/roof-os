@@ -60,14 +60,22 @@ export default function WorkspaceWeather({ variant = 'full', tickerMetrics = [] 
   const [error, setError] = useState<string | null>(null)
   const [refresh, setRefresh] = useState(0)
   const [tickerPaused, setTickerPaused] = useState(false)
+  const [zipDraft, setZipDraft] = useState('')
+  const [savingZip, setSavingZip] = useState(false)
+  const [locating, setLocating] = useState(false)
+
+  const fetchSummary = useCallback(async (query = '') => {
+    const response = await fetch(`/api/weather/summary${query}`, { cache: 'no-store' })
+    const payload = await response.json() as Summary
+    if (!response.ok) throw new Error(payload.error ?? 'Weather could not be verified.')
+    return payload
+  }, [])
 
   const load = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
-      const response = await fetch('/api/weather/summary', { cache: 'no-store' })
-      const payload = await response.json() as Summary
-      if (!response.ok) throw new Error(payload.error ?? 'Weather could not be verified.')
+      const payload = await fetchSummary()
       setSummary(payload)
     } catch (cause) {
       setSummary(null)
@@ -75,7 +83,64 @@ export default function WorkspaceWeather({ variant = 'full', tickerMetrics = [] 
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [fetchSummary])
+
+  const shareLocation = useCallback(async () => {
+    if (!navigator.geolocation) {
+      setError('This browser cannot share a location for NOAA weather.')
+      return
+    }
+    setLocating(true)
+    setError(null)
+    try {
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: false,
+          timeout: 12_000,
+          maximumAge: 60_000,
+        })
+      })
+      const { latitude, longitude } = position.coords
+      const query = `?latitude=${encodeURIComponent(String(latitude))}&longitude=${encodeURIComponent(String(longitude))}`
+      const payload = await fetchSummary(query)
+      setSummary(payload)
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Device location could not be used for NOAA weather.')
+    } finally {
+      setLocating(false)
+    }
+  }, [fetchSummary])
+
+  const saveServiceZip = useCallback(async () => {
+    const zip = zipDraft.trim()
+    if (!/^\d{5}$/.test(zip)) {
+      setError('Enter a five-digit U.S. service ZIP.')
+      return
+    }
+    setSavingZip(true)
+    setError(null)
+    try {
+      const settingsResponse = await fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          price_refresh_frequency: 'weekly',
+          default_language: 'en-US',
+          default_zipcode: zip,
+          preferred_brands: {},
+          material_search_mode: 'catalog_and_retailer',
+        }),
+      })
+      const settingsPayload = await settingsResponse.json() as { error?: string }
+      if (!settingsResponse.ok) throw new Error(settingsPayload.error ?? 'Could not save the service ZIP.')
+      const payload = await fetchSummary(`?zip=${encodeURIComponent(zip)}`)
+      setSummary(payload)
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Could not save the service ZIP.')
+    } finally {
+      setSavingZip(false)
+    }
+  }, [fetchSummary, zipDraft])
 
   useEffect(() => {
     void load()
@@ -120,9 +185,38 @@ export default function WorkspaceWeather({ variant = 'full', tickerMetrics = [] 
 
         {summary?.status === 'location_missing' && (
           <div className="max-w-2xl rounded-xl border border-cyan-300/20 bg-slate-950/80 p-5 text-sm text-slate-200 backdrop-blur">
-            <p className="font-semibold text-white">Local radar is not configured yet.</p>
+            <p className="font-semibold text-white">Local NOAA/NWS weather needs a service area.</p>
             <p className="mt-1">{summary.message ?? 'Set the workspace service-area ZIP before showing weather.'}</p>
-            <Link href="/settings" className="mt-4 inline-flex rounded-lg bg-cyan-400 px-4 py-2 font-bold text-slate-950 hover:bg-cyan-300">Set service ZIP in Settings</Link>
+            <div className="mt-4 flex flex-wrap items-end gap-2">
+              <label className="block text-xs text-slate-300">
+                Service ZIP
+                <input
+                  value={zipDraft}
+                  onChange={(e) => setZipDraft(e.target.value.replace(/\D/g, '').slice(0, 5))}
+                  inputMode="numeric"
+                  maxLength={5}
+                  placeholder="30123"
+                  className="mt-1 w-32 rounded-lg border border-white/20 bg-black/40 px-3 py-2 text-sm text-white"
+                />
+              </label>
+              <button
+                type="button"
+                onClick={() => void saveServiceZip()}
+                disabled={savingZip || zipDraft.trim().length !== 5}
+                className="rounded-lg bg-cyan-400 px-4 py-2 font-bold text-slate-950 hover:bg-cyan-300 disabled:opacity-50"
+              >
+                {savingZip ? 'Saving…' : 'Save ZIP & load NOAA'}
+              </button>
+              <button
+                type="button"
+                onClick={() => void shareLocation()}
+                disabled={locating}
+                className="rounded-lg border border-white/20 bg-slate-950/50 px-4 py-2 font-semibold text-white hover:bg-white/10 disabled:opacity-50"
+              >
+                {locating ? 'Locating…' : 'Use device location'}
+              </button>
+              <Link href="/settings" className="rounded-lg border border-white/20 px-4 py-2 font-semibold text-slate-200 hover:bg-white/10">Open Settings</Link>
+            </div>
           </div>
         )}
 
