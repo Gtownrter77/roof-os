@@ -5,16 +5,12 @@ import { usePathname, useRouter } from 'next/navigation'
 import {
   ArrowRight,
   Bot,
-  ChevronDown,
-  ChevronUp,
   CloudLightning,
   FileText,
   Loader2,
-  Maximize2,
   Minimize2,
   Ruler,
   Send,
-  Sparkles,
   Users,
   X,
   Zap,
@@ -54,14 +50,21 @@ export default function AiChatBar() {
   const inputRef = useRef<HTMLInputElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  // Global keyboard shortcut: Cmd+K / Ctrl+K opens chat
+  // Sit above the mobile bottom nav on pages that show it (home has no bottom nav).
+  const aboveMobileNav = pathname !== '/'
+  const dockClass = aboveMobileNav ? 'bottom-20 right-4 md:bottom-4 md:right-4' : 'bottom-4 right-4'
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault()
-        setIsOpen((prev) => !prev)
-        inputRef.current?.focus()
+        setIsOpen((prev) => {
+          const next = !prev
+          if (next) queueMicrotask(() => inputRef.current?.focus())
+          return next
+        })
       }
+      if (e.key === 'Escape') setIsOpen(false)
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
@@ -70,6 +73,7 @@ export default function AiChatBar() {
   useEffect(() => {
     if (isOpen) {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+      inputRef.current?.focus()
     }
   }, [messages, isOpen])
 
@@ -112,7 +116,6 @@ export default function AiChatBar() {
       }
       setMessages((prev) => [...prev, assistantMessage])
     } catch {
-      // Graceful offline fallback
       setMessages((prev) => [
         ...prev,
         {
@@ -135,193 +138,152 @@ export default function AiChatBar() {
 
   return (
     <div
-      className="pointer-events-none fixed bottom-4 left-0 right-0 z-50 flex justify-center px-3 lg:left-[232px]"
+      className={`pointer-events-none fixed z-50 flex flex-col items-end gap-2 ${dockClass}`}
       role="region"
       aria-label="AI Command Bar"
     >
-      <div className="pointer-events-auto w-full max-w-2xl flex flex-col">
-        {/* Expanded Chat Dialogue */}
-        {isOpen && (
-          <div className="mb-2 flex max-h-[460px] flex-col rounded-2xl border border-cyan-500/40 bg-[#080d1a]/95 shadow-[0_12px_40px_rgba(0,0,0,0.8)] backdrop-blur-2xl">
-            {/* Header */}
-            <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
-              <div className="flex items-center gap-2">
-                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-cyan-500/20 text-cyan-400">
-                  <Bot className="h-4 w-4" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-black tracking-wide text-white">ROOF/OS AI COPILOT</h3>
-                  <p className="text-[11px] text-cyan-300">What would you like to do now?</p>
-                </div>
+      {isOpen && (
+        <div className="pointer-events-auto flex w-[min(100vw-2rem,22rem)] max-h-[min(70vh,28rem)] flex-col overflow-hidden rounded-2xl border border-cyan-500/40 bg-[#080d1a]/95 shadow-[0_12px_40px_rgba(0,0,0,0.8)] backdrop-blur-2xl sm:w-[22rem]">
+          <div className="flex shrink-0 items-center justify-between border-b border-white/10 px-3 py-2.5">
+            <div className="flex min-w-0 items-center gap-2">
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-cyan-500/20 text-cyan-400">
+                <Bot className="h-4 w-4" />
               </div>
-              <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  onClick={() =>
-                    setMessages([
-                      {
-                        id: 'reset',
-                        role: 'assistant',
-                        content:
-                          'Chat reset. What would you like to do now? Ask me anything or select a command.',
-                      },
-                    ])
-                  }
-                  className="rounded-lg px-2 py-1 text-[11px] text-slate-400 hover:bg-white/10 hover:text-white"
-                >
-                  Clear
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIsOpen(false)}
-                  className="rounded-lg p-1.5 text-slate-400 hover:bg-white/10 hover:text-white"
-                  aria-label="Minimize AI Chat"
-                >
-                  <Minimize2 className="h-4 w-4" />
-                </button>
+              <div className="min-w-0">
+                <h3 className="truncate text-xs font-black tracking-wide text-white">ROOF/OS AI</h3>
+                <p className="truncate text-[10px] text-cyan-300">Ask or pick a command</p>
               </div>
             </div>
-
-            {/* Message Stream */}
-            <div className="ops-scrollbar flex-1 space-y-3 overflow-y-auto p-4 text-sm">
-              {messages.map((msg) => (
-                <div
-                  key={msg.id}
-                  className={`flex flex-col ${
-                    msg.role === 'user' ? 'items-end' : 'items-start'
-                  }`}
-                >
-                  <div
-                    className={`max-w-[85%] rounded-2xl px-4 py-2.5 ${
-                      msg.role === 'user'
-                        ? 'bg-blue-600 text-white shadow-md'
-                        : 'border border-cyan-500/20 bg-slate-900/90 text-slate-200 shadow-md'
-                    }`}
-                  >
-                    <p className="leading-relaxed">{msg.content}</p>
-
-                    {/* Action button if suggested by AI */}
-                    {msg.action && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          router.push(msg.action!.href)
-                          setIsOpen(false)
-                        }}
-                        className="mt-3 flex items-center gap-2 rounded-xl border border-cyan-400/50 bg-cyan-500/15 px-3 py-1.5 text-xs font-bold text-cyan-300 transition hover:bg-cyan-500/30"
-                      >
-                        <span>{msg.action.label}</span>
-                        <ArrowRight className="h-3.5 w-3.5" />
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
-              {loading && (
-                <div className="flex items-center gap-2 text-xs text-cyan-300">
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  <span>Thinking…</span>
-                </div>
-              )}
-              <div ref={messagesEndRef} />
-            </div>
-
-            {/* Quick Prompts Carousel in dialogue */}
-            <div className="border-t border-white/5 bg-black/20 p-2.5">
-              <div className="flex flex-wrap gap-1.5">
-                {QUICK_ACTIONS.map(({ label, href, icon: Icon }) => (
-                  <button
-                    key={label}
-                    type="button"
-                    onClick={() => {
-                      void handleSend(`How do I use ${label}?`)
-                    }}
-                    className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-slate-300 transition hover:border-cyan-400/40 hover:bg-cyan-500/10 hover:text-cyan-200"
-                  >
-                    <Icon className="h-3 w-3 text-cyan-400" />
-                    <span>{label}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Floating AI Command Bar */}
-        <div className="rounded-2xl border border-cyan-500/40 bg-[#090e1a]/95 p-2.5 shadow-[0_10px_35px_rgba(0,0,0,0.8)] backdrop-blur-2xl transition hover:border-cyan-400">
-          {/* Top prompt bar label */}
-          <div className="mb-2 flex items-center justify-between px-2">
-            <div className="flex items-center gap-2">
-              <span className="flex h-2 w-2 relative">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-              </span>
-              <span className="text-[11px] font-extrabold uppercase tracking-wider text-cyan-400">
-                AI Copilot
-              </span>
-              <span className="text-xs font-semibold text-slate-300">
-                What would you like to do now?
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="hidden text-[10px] text-slate-400 sm:inline">Press Cmd+K</span>
+            <div className="flex shrink-0 items-center gap-0.5">
               <button
                 type="button"
-                onClick={() => setIsOpen((prev) => !prev)}
-                className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs text-slate-400 hover:bg-white/10 hover:text-white"
-                aria-label={isOpen ? 'Collapse AI Chat' : 'Expand AI Chat'}
+                onClick={() =>
+                  setMessages([
+                    {
+                      id: 'reset',
+                      role: 'assistant',
+                      content:
+                        'Chat reset. What would you like to do now? Ask me anything or select a command.',
+                    },
+                  ])
+                }
+                className="rounded-lg px-2 py-1 text-[11px] text-slate-400 hover:bg-white/10 hover:text-white"
               >
-                {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
+                Clear
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsOpen(false)}
+                className="rounded-lg p-1.5 text-slate-400 hover:bg-white/10 hover:text-white"
+                aria-label="Minimize AI Chat"
+              >
+                <Minimize2 className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsOpen(false)}
+                className="rounded-lg p-1.5 text-slate-400 hover:bg-white/10 hover:text-white"
+                aria-label="Close AI Chat"
+              >
+                <X className="h-4 w-4" />
               </button>
             </div>
           </div>
 
-          {/* Input and submit */}
-          <form onSubmit={onSubmit} className="flex items-center gap-2">
-            <div className="relative flex-1">
-              <input
-                ref={inputRef}
-                type="text"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onFocus={() => {
-                  if (!isOpen && messages.length > 1) setIsOpen(true)
-                }}
-                placeholder="What would you like to do now? Ask or describe a task..."
-                className="w-full rounded-xl border border-white/15 bg-black/40 px-3.5 py-2.5 text-sm text-white placeholder-slate-400 focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400"
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={loading || !input.trim()}
-              className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 font-bold text-white shadow-md transition hover:from-cyan-500 hover:to-blue-500 disabled:opacity-40"
-              aria-label="Send message to AI"
-            >
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-            </button>
-          </form>
+          <div className="ops-scrollbar min-h-0 flex-1 space-y-3 overflow-y-auto p-3 text-sm">
+            {messages.map((msg) => (
+              <div
+                key={msg.id}
+                className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}
+              >
+                <div
+                  className={`max-w-[90%] rounded-2xl px-3 py-2 ${
+                    msg.role === 'user'
+                      ? 'bg-blue-600 text-white shadow-md'
+                      : 'border border-cyan-500/20 bg-slate-900/90 text-slate-200 shadow-md'
+                  }`}
+                >
+                  <p className="leading-relaxed">{msg.content}</p>
+                  {msg.action && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        router.push(msg.action!.href)
+                        setIsOpen(false)
+                      }}
+                      className="mt-2 flex items-center gap-2 rounded-xl border border-cyan-400/50 bg-cyan-500/15 px-3 py-1.5 text-xs font-bold text-cyan-300 transition hover:bg-cyan-500/30"
+                    >
+                      <span>{msg.action.label}</span>
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+            {loading && (
+              <div className="flex items-center gap-2 text-xs text-cyan-300">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                <span>Thinking…</span>
+              </div>
+            )}
+            <div ref={messagesEndRef} />
+          </div>
 
-          {/* Quick Action Chips when collapsed */}
-          {!isOpen && (
-            <div className="mt-2 flex items-center gap-1.5 overflow-x-auto px-1 pt-1 text-xs">
-              <span className="text-[10px] uppercase tracking-wider text-slate-400 whitespace-nowrap">
-                Suggestions:
-              </span>
+          <div className="shrink-0 border-t border-white/5 bg-black/20 p-2">
+            <div className="mb-2 flex gap-1.5 overflow-x-auto pb-0.5">
               {QUICK_ACTIONS.map(({ label, href, icon: Icon }) => (
                 <button
                   key={label}
                   type="button"
-                  onClick={() => router.push(href)}
-                  className="flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-slate-300 transition hover:border-cyan-400/50 hover:bg-cyan-500/10 hover:text-cyan-200 whitespace-nowrap"
+                  onClick={() => {
+                    void handleSend(`How do I use ${label}?`)
+                  }}
+                  className="flex shrink-0 items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-slate-300 transition hover:border-cyan-400/40 hover:bg-cyan-500/10 hover:text-cyan-200"
                 >
                   <Icon className="h-3 w-3 text-cyan-400" />
                   <span>{label}</span>
                 </button>
               ))}
             </div>
-          )}
+            <form onSubmit={onSubmit} className="flex items-center gap-2">
+              <input
+                ref={inputRef}
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="Ask ROOF/OS…"
+                className="w-full rounded-xl border border-white/15 bg-black/40 px-3 py-2 text-sm text-white placeholder-slate-400 focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400"
+              />
+              <button
+                type="submit"
+                disabled={loading || !input.trim()}
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 font-bold text-white shadow-md transition hover:from-cyan-500 hover:to-blue-500 disabled:opacity-40"
+                aria-label="Send message to AI"
+              >
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              </button>
+            </form>
+            <p className="mt-1.5 text-center text-[10px] text-slate-500">Esc to close · Cmd+K</p>
+          </div>
         </div>
-      </div>
+      )}
+
+      {!isOpen && (
+        <button
+          type="button"
+          onClick={() => setIsOpen(true)}
+          className="pointer-events-auto flex items-center gap-2 rounded-full border border-cyan-500/50 bg-[#090e1a]/95 px-3.5 py-2.5 text-sm font-semibold text-cyan-100 shadow-[0_10px_35px_rgba(0,0,0,0.75)] backdrop-blur-2xl transition hover:border-cyan-300 hover:bg-cyan-500/15"
+          aria-label="Open AI Chat"
+        >
+          <span className="relative flex h-2 w-2">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+          </span>
+          <Bot className="h-4 w-4 text-cyan-300" />
+          <span>AI Copilot</span>
+          <span className="hidden text-[10px] font-normal text-slate-400 sm:inline">⌘K</span>
+        </button>
+      )}
     </div>
   )
 }
