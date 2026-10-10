@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { smartBack } from '../../lib/smart-back'
 
 export default function PricingPage() {
   const router = useRouter()
@@ -123,9 +124,9 @@ export default function PricingPage() {
 
   return (
     <div className="space-y-4 pb-4">
-      <header className="glass sticky top-0 z-10 border-x-0 border-t-0">
+      <header className="glass rounded-xl mb-4 border-x-0 border-t-0">
         <div className="mx-auto flex max-w-[1240px] items-center px-4 py-3">
-          <button onClick={() => router.back()} className="mr-3 text-xl text-cyan-300">←</button>
+          <button onClick={() => smartBack(router)} className="mr-3 text-xl text-cyan-300">←</button>
           <h1 className="text-xl font-black">💰 Live Retailer Pricing</h1>
           <span className="ml-2 rounded bg-emerald-500 px-2 py-1 text-xs font-bold text-black">LIVE REFERENCE</span>
         </div>
