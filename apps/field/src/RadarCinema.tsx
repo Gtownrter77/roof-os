@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   Linking,
@@ -112,11 +112,16 @@ function buildRadarHtml(coords: Coords, prefs: LayerPrefs, refreshKey: number) {
       style: 'https://tiles.openfreemap.org/styles/dark',
       center: [${longitude}, ${latitude}],
       zoom: 7.2,
-      minZoom: 3,
-      maxZoom: 14
+      minZoom: 0,
+      maxZoom: 18
     });
     map.addControl(new maplibregl.NavigationControl({ visualizePitch: false }), 'top-right');
     map.addControl(new maplibregl.ScaleControl({ maxWidth: 120 }), 'bottom-left');
+    window.__roofosRadar = {
+      expand: function () { map.easeTo({ zoom: 3.2, center: [${longitude}, ${latitude}], duration: 700 }); },
+      expandMax: function () { map.easeTo({ zoom: 1.4, center: [${longitude}, ${latitude}], duration: 800 }); },
+      localize: function () { map.easeTo({ zoom: 7.2, center: [${longitude}, ${latitude}], duration: 700 }); }
+    };
     map.on('load', () => {
       const layers = map.getStyle().layers || [];
       for (const layer of layers) {
@@ -169,6 +174,7 @@ function buildRadarHtml(coords: Coords, prefs: LayerPrefs, refreshKey: number) {
 }
 
 export default function RadarCinema({ visible, onClose, webAppUrl }: Props) {
+  const webRef = useRef<WebView>(null)
   const [coords, setCoords] = useState<Coords | null>(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -234,6 +240,7 @@ export default function RadarCinema({ visible, onClose, webAppUrl }: Props) {
             </View>
           ) : (
             <WebView
+              ref={webRef}
               originWhitelist={['*']}
               source={{ html }}
               style={styles.map}
@@ -272,6 +279,15 @@ export default function RadarCinema({ visible, onClose, webAppUrl }: Props) {
             <View style={styles.hudActions}>
               <Pressable style={styles.chip} onPress={() => setRefreshKey((n) => n + 1)}>
                 <Text style={styles.chipText}>Refresh</Text>
+              </Pressable>
+              <Pressable style={styles.chip} onPress={() => webRef.current?.injectJavaScript('window.__roofosRadar&&window.__roofosRadar.expand();true;')}>
+                <Text style={styles.chipText}>Expand</Text>
+              </Pressable>
+              <Pressable style={styles.chip} onPress={() => webRef.current?.injectJavaScript('window.__roofosRadar&&window.__roofosRadar.expandMax();true;')}>
+                <Text style={styles.chipText}>Max</Text>
+              </Pressable>
+              <Pressable style={styles.chip} onPress={() => webRef.current?.injectJavaScript('window.__roofosRadar&&window.__roofosRadar.localize();true;')}>
+                <Text style={styles.chipText}>Local</Text>
               </Pressable>
               <Pressable style={styles.chip} onPress={() => setLayersOpen((v) => !v)}>
                 <Text style={styles.chipText}>Layers</Text>
