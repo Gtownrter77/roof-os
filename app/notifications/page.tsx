@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { smartBack } from '../../lib/smart-back'
+import { createClient } from '../../lib/supabase/client'
 
 type NotificationItem = {
   id: number
@@ -16,7 +17,38 @@ type NotificationItem = {
 export default function NotificationsPage() {
   const router = useRouter()
   const [notifications, setNotifications] = useState<NotificationItem[]>([])
+  const [status, setStatus] = useState('Loading open tasks.')
   const unreadCount = notifications.filter((notification) => !notification.read).length
+
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      const supabase = createClient()
+      const { data, error } = await supabase
+        .from('tasks')
+        .select('id,title,due_at,status')
+        .eq('status', 'open')
+        .order('due_at', { ascending: true })
+        .limit(20)
+      if (cancelled) return
+      if (error) {
+        setStatus(error.message)
+        return
+      }
+      const rows = data ?? []
+      setNotifications(rows.map((task, index) => ({
+        id: index + 1,
+        title: task.title || 'Open task',
+        message: task.due_at ? `Due ${new Date(task.due_at).toLocaleString()}` : 'No due date',
+        time: 'Workspace task',
+        type: 'info' as const,
+        read: false,
+      })))
+      setStatus(rows.length ? `${rows.length} open task${rows.length === 1 ? '' : 's'}.` : 'No open tasks.')
+    }
+    void load()
+    return () => { cancelled = true }
+  }, [])
 
   const markAsRead = (id: number) => {
     setNotifications((current) => current.map((notification) =>
@@ -68,10 +100,10 @@ export default function NotificationsPage() {
 
       <main className="p-4">
         <p className="text-sm glass rounded-xl p-4 mb-4">
-          This screen is not connected to a persisted notification inbox. Sample alerts were removed so they cannot be mistaken for real events.
+          Open workspace tasks. Marking one read only hides it in this browser. It does not close the task.
         </p>
         <div className="flex justify-between items-center mb-4">
-          <p className="text-sm text-slate-400">{unreadCount} unread · {notifications.length} total</p>
+          <p className="text-sm text-slate-400">{status} {unreadCount} still showing.</p>
           {unreadCount > 0 && (
             <button onClick={markAllAsRead} className="text-cyan-300 text-sm font-medium">
               Mark all read

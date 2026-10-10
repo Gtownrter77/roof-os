@@ -13,19 +13,19 @@ export default function AIWizardPage() {
 
   const constructionKnowledge: Record<string, any> = {
     'roof': {
-      answer: 'Your roof should be inspected annually. Common issues include: missing shingles, leaks around flashing, and gutter blockages. Average roof replacement costs $8,000-$15,000 depending on materials and size.',
+      answer: 'Inspect the roof at least once a year. Common issues include missing shingles, leaks around flashing, and blocked gutters. Replacement cost stays Unknown until a human prices the job.',
       code: 'Check local building codes for minimum pitch requirements (typically 3:12 for asphalt shingles).',
       materials: ['Asphalt', 'Metal', 'Tile', 'Slate'],
       lifespan: '15-50 years depending on material'
     },
     'siding': {
-      answer: 'Siding protects your home from weather. Vinyl is most affordable, HardiePlank offers durability, and wood gives classic look. Average installation costs $6-$12 per square foot.',
+      answer: 'Siding protects the house from weather. Vinyl, fiber cement, and wood are common. Installed price stays Unknown until a human prices the job.',
       code: 'Weather-resistant barrier required behind all siding. Minimum lap spacing varies by material.',
       materials: ['Vinyl', 'HardiePlank', 'Wood', 'Fiber Cement'],
       lifespan: '20-50 years'
     },
     'windows': {
-      answer: 'Energy-efficient windows save money. Look for ENERGY STAR certified, Low-E glass, and argon gas fill. Average cost: $600-$1,200 per window installed.',
+      answer: 'Look for Low-E glass and argon fill when the spec calls for them. Installed price stays Unknown until a human prices the job.',
       code: 'Egress requirements: minimum 5.7 sq ft opening for bedrooms. Tempered glass required near doors.',
       materials: ['Vinyl', 'Wood', 'Aluminum', 'Fiberglass'],
       lifespan: '20-30 years'
@@ -43,7 +43,7 @@ export default function AIWizardPage() {
       lifespan: '20-50 years'
     },
     'permit': {
-      answer: 'Most exterior work requires permits. Costs vary by county. Always verify before starting work.',
+      answer: 'Most exterior work needs a permit. The fee stays Unknown until the county quote is in hand. Verify before starting work.',
       code: 'Permits typically required for: new roofs (over 100 sq ft), siding replacement, window replacement, decks over 30" high.',
       timeline: '1-4 weeks for permit approval'
     },
@@ -59,44 +59,52 @@ export default function AIWizardPage() {
       inspection: 'Professional engineer inspection recommended for structural concerns.'
     },
     'energy': {
-      answer: 'Energy efficiency improves with proper insulation, windows, and HVAC. Average savings: 15-30% on utility bills.',
-      code: 'Minimum insulation: R-38 in attics, R-13 in walls. Energy Star certification available.',
-      savings: '$200-$500 annually'
+      answer: 'Insulation, windows, and HVAC change energy use. Dollar savings stay Unknown until a bill comparison exists.',
+      code: 'Attic and wall insulation targets depend on the local code. Confirm them before you specify a product.',
+      savings: 'Unknown'
     }
   }
 
-  const askQuestion = () => {
+  const askQuestion = async () => {
     if (!query.trim()) return
     setLoading(true)
-    
-    setTimeout(() => {
-      const lowerQuery = query.toLowerCase()
-      let foundAnswer = null
-      
-      for (const [key, value] of Object.entries(constructionKnowledge)) {
-        if (lowerQuery.includes(key)) {
-          foundAnswer = {
-            topic: key,
-            ...value,
-            confidence: null
+    const asked = query.trim()
+    try {
+      const response = await fetch('/api/ai/chat', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ message: asked, currentPath: '/ai-wizard' }),
+      })
+      const payload = await response.json()
+      const reply = typeof payload.reply === 'string' ? payload.reply : ''
+      const lowerQuery = asked.toLowerCase()
+      let foundAnswer: { topic: string; answer: string; code?: string; confidence: null } | null = null
+      if (reply) {
+        foundAnswer = { topic: 'copilot', answer: reply, code: 'Local text assistant. It does not set a price.', confidence: null }
+      }
+      if (!foundAnswer) {
+        for (const [key, value] of Object.entries(constructionKnowledge)) {
+          if (lowerQuery.includes(key)) {
+            foundAnswer = { topic: key, answer: value.answer, code: value.code, confidence: null }
+            break
           }
-          break
         }
       }
-      
       if (!foundAnswer) {
         foundAnswer = {
           topic: 'general',
-          answer: `I understand you're asking about "${query}". This is a complex construction topic. I recommend consulting with a licensed professional contractor or building inspector for specific guidance.`,
-          code: 'Local building codes may apply. Check with your municipality.',
-          confidence: 65
+          answer: `No local note matched "${asked}". Check the code book and a licensed inspector before you treat this as guidance.`,
+          code: 'Local building codes may apply.',
+          confidence: null,
         }
       }
-      
       setResponse(foundAnswer)
-      setHistory([{ query, response: foundAnswer, time: new Date().toLocaleTimeString() }, ...history])
+      setHistory([{ query: asked, response: foundAnswer, time: new Date().toLocaleTimeString() }, ...history])
+    } catch {
+      setResponse({ topic: 'general', answer: 'The assistant could not be reached. The glossary is still on this page.', confidence: null })
+    } finally {
       setLoading(false)
-    }, 1500)
+    }
   }
 
   return (

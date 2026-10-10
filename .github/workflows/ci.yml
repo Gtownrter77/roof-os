@@ -41,6 +41,7 @@ jobs:
       - run: npm run test:auth-flow
       - run: npm run test:mobile-offline-sync
       - run: npm run test:field-coach
+      - run: npm run test:stale-screens
       - run: npm run test:agent-runtime
       - run: npm run test:inspection-quality-agent
       - run: npm run test:prototype-guardrails
