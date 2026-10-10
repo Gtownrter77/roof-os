@@ -44,6 +44,7 @@ const supabaseAnonKey =
 const webAppUrl = process.env.EXPO_PUBLIC_WEB_APP_URL ?? 'https://roof-os-lemon.vercel.app'
 
 import { db } from './src/localDb'
+import RadarCinema from './src/RadarCinema'
 
 const supabase =
   supabaseUrl && supabaseAnonKey
@@ -115,6 +116,7 @@ export default function App() {
   const [otpSent, setOtpSent] = useState(false)
   const [cooldown, setCooldown] = useState(0)
   const [showPassword, setShowPassword] = useState(false)
+  const [showRadar, setShowRadar] = useState(false)
 
   const [address, setAddress] = useState('')
   const [photos, setPhotos] = useState(0)
@@ -601,6 +603,7 @@ export default function App() {
   return (
     <SafeAreaView style={styles.safe}>
       <StatusBar style="dark" />
+      <RadarCinema visible={showRadar} onClose={() => setShowRadar(false)} webAppUrl={webAppUrl} />
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.header}>
           <View>
@@ -621,6 +624,9 @@ export default function App() {
           </Text>
           <Pressable style={styles.primary} onPress={capturePhoto}>
             <Text style={styles.primaryText}>Capture inspection photo</Text>
+          </Pressable>
+          <Pressable style={[styles.secondary, { marginTop: 10 }]} onPress={() => setShowRadar(true)}>
+            <Text style={styles.secondaryText}>Radar cinema · watch storms</Text>
           </Pressable>
         </View>
 
