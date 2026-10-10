@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
   }
 
   const result = await establishOwnerSession(supabase)
-  if (!result.ok) {
+  if (result.ok === false) {
     destination.searchParams.set('enter_error', result.reason.slice(0, 120))
     response = NextResponse.redirect(destination)
     response.headers.set('Cache-Control', 'no-store, max-age=0')
