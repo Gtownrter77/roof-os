@@ -27,18 +27,18 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
-      <header className="bg-blue-600 text-white shadow-lg sticky top-0 z-10">
+    <div className="space-y-4 pb-4">
+      <header className="glass sticky top-0 z-10 rounded-xl mb-4">
         <div className="px-4 py-3 flex items-center">
-          <button onClick={() => router.back()} className="text-white mr-3 text-xl">←</button>
+          <button onClick={() => router.back()} className="mr-3 text-xl text-cyan-300">←</button>
           <h1 className="text-xl font-bold">💬 Chat</h1>
           
         </div>
       </header>
 
-      <main className="p-4"><p className="text-sm bg-white rounded-lg shadow p-4 mb-4">Messages stay in this browser. They are not saved and are not a team chat.</p>
+      <main className="p-4"><p className="text-sm glass rounded-xl p-4 mb-4">Messages stay in this browser. They are not saved and are not a team chat.</p>
         {/* Chat List */}
-        <div className="bg-white rounded-lg shadow mb-4">
+        <div className="glass rounded-xl mb-4">
           <div className="p-3 border-b">
             <p className="text-sm font-medium">Chats</p>
           </div>
@@ -47,14 +47,14 @@ export default function ChatPage() {
               key={chat.id}
               onClick={() => setActiveChat(chat.id)}
               className={`w-full p-3 flex items-center justify-between border-b last:border-0 ${
-                activeChat === chat.id ? 'bg-blue-50' : ''
+                activeChat === chat.id ? 'bg-cyan-400/10' : ''
               }`}
             >
               <div className="flex items-center space-x-3">
                 <span className="text-2xl">{chat.icon}</span>
                 <div className="text-left">
                   <p className="font-medium">{chat.name}</p>
-                  <p className="text-xs text-gray-500">Click to chat</p>
+                  <p className="text-xs text-slate-400">Click to chat</p>
                 </div>
               </div>
               {chat.unread > 0 && (
@@ -67,8 +67,8 @@ export default function ChatPage() {
         </div>
 
         {/* Messages */}
-        <div className="bg-white rounded-lg shadow p-4 mb-4">
-          <p className="text-xs text-gray-400 text-center mb-3">
+        <div className="glass rounded-xl p-4 mb-4">
+          <p className="text-xs text-slate-400 text-center mb-3">
             {activeChat === 'team' ? 'Team Chat' : `Chat with ${activeChat}`}
           </p>
           <div className="space-y-2 max-h-60 overflow-y-auto">
@@ -78,9 +78,9 @@ export default function ChatPage() {
                 <div className="flex-1">
                   <div className="flex justify-between items-center">
                     <p className="font-medium text-sm">{msg.user}</p>
-                    <p className="text-xs text-gray-400">{msg.time}</p>
+                    <p className="text-xs text-slate-400">{msg.time}</p>
                   </div>
-                  <p className="text-sm text-gray-600">{msg.message}</p>
+                  <p className="text-sm text-slate-300">{msg.message}</p>
                 </div>
               </div>
             ))}
@@ -105,24 +105,24 @@ export default function ChatPage() {
         </form>
       </main>
 
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around py-2 px-4">
-        <button onClick={() => router.push('/')} className="flex flex-col items-center text-gray-400">
+      <nav className="fixed bottom-0 left-0 right-0 z-30 flex justify-around border-t border-white/10 bg-[#070b14]/95 py-2 px-4 backdrop-blur lg:hidden">
+        <button onClick={() => router.push('/')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">🏠</span>
           <span className="text-xs">Home</span>
         </button>
-        <button onClick={() => router.push('/chat')} className="flex flex-col items-center text-blue-600">
+        <button onClick={() => router.push('/chat')} className="flex flex-col items-center text-cyan-300">
           <span className="text-xl">💬</span>
           <span className="text-xs">Chat</span>
         </button>
-        <button onClick={() => router.push('/activity')} className="flex flex-col items-center text-gray-400">
+        <button onClick={() => router.push('/activity')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">📊</span>
           <span className="text-xs">Activity</span>
         </button>
-        <button onClick={() => router.push('/notifications')} className="flex flex-col items-center text-gray-400">
+        <button onClick={() => router.push('/notifications')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">🔔</span>
           <span className="text-xs">Alerts</span>
         </button>
-        <button onClick={() => router.push('/settings')} className="flex flex-col items-center text-gray-400">
+        <button onClick={() => router.push('/settings')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">⚙️</span>
           <span className="text-xs">Settings</span>
         </button>

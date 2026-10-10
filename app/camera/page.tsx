@@ -255,11 +255,11 @@ function CameraInner() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
-      <header className="bg-blue-600 text-white shadow-lg sticky top-0 z-10">
+    <div className="space-y-4 pb-4">
+      <header className="glass sticky top-0 z-10 rounded-xl mb-4">
         <div className="px-4 py-3 flex items-center justify-between">
           <div className="flex items-center">
-            <button onClick={() => router.back()} className="text-white mr-3 text-xl">
+            <button onClick={() => router.back()} className="mr-3 text-xl text-cyan-300">
               ←
             </button>
             <h1 className="text-xl font-bold">Inspection Camera</h1>
@@ -271,26 +271,26 @@ function CameraInner() {
       </header>
 
       <main className="p-4 max-w-2xl mx-auto space-y-4">
-        <p className="text-xs text-gray-500">
+        <p className="text-xs text-slate-400">
           {inspectionId ? `Inspection ${inspectionId.slice(0, 8)}` : 'A new inspection session will be created on upload.'}
           {leadId ? ' · linked lead' : ''}
         </p>
 
         {/* Audio Recording & Speech-to-Text Module */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 space-y-3">
+        <div className="glass rounded-xl-sm border border-slate-200 p-4 space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-lg bg-cyan-400/10 text-cyan-300 flex items-center justify-center">
                 <Mic className="w-4 h-4" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-gray-900">Site Audio Notes &amp; Dictation</h3>
-                <p className="text-[11px] text-gray-500">Record voice memos with automated speech-to-text</p>
+                <h3 className="text-sm font-bold text-white">Site Audio Notes &amp; Dictation</h3>
+                <p className="text-[11px] text-slate-400">Record voice memos with automated speech-to-text</p>
               </div>
             </div>
 
             {isRecording && (
-              <span className="flex items-center gap-1 font-mono text-xs font-bold text-red-600 animate-pulse">
+              <span className="flex items-center gap-1 font-mono text-xs font-bold text-red-300 animate-pulse">
                 <Radio className="w-3.5 h-3.5" />
                 <span>REC {String(Math.floor(recordSeconds / 60)).padStart(2, '0')}:{String(recordSeconds % 60).padStart(2, '0')}</span>
               </span>
@@ -298,7 +298,7 @@ function CameraInner() {
           </div>
 
           {micError && (
-            <div className="rounded-lg bg-amber-50 border border-amber-200 p-2.5 text-xs text-amber-800 flex items-center gap-2">
+            <div className="rounded-lg bg-amber-400/10 border border-amber-400/30 p-2.5 text-xs text-amber-800 flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
               <span>{micError}</span>
             </div>
@@ -330,9 +330,9 @@ function CameraInner() {
                 <button
                   type="button"
                   onClick={handleTogglePlayAudio}
-                  className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 px-3 py-2 rounded-lg text-xs font-semibold"
+                  className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-100 px-3 py-2 rounded-lg text-xs font-semibold"
                 >
-                  {isPlayingAudio ? <Pause className="w-3.5 h-3.5 text-blue-600" /> : <Play className="w-3.5 h-3.5 text-blue-600" />}
+                  {isPlayingAudio ? <Pause className="w-3.5 h-3.5 text-cyan-300" /> : <Play className="w-3.5 h-3.5 text-cyan-300" />}
                   <span>{isPlayingAudio ? 'Pause' : 'Play Memo'}</span>
                 </button>
                 <button
@@ -341,7 +341,7 @@ function CameraInner() {
                     setAudioUrl(null)
                     setTranscript('')
                   }}
-                  className="p-2 text-slate-400 hover:text-slate-600"
+                  className="p-2 text-slate-400 hover:text-slate-300"
                   title="Discard audio"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
@@ -351,8 +351,8 @@ function CameraInner() {
           </div>
 
           {transcript && (
-            <div className="rounded-lg bg-slate-50 border border-slate-200 p-3 space-y-2">
-              <div className="flex items-center justify-between text-xs font-semibold text-blue-600">
+            <div className="rounded-lg border border-white/10 bg-white/5 p-3 space-y-2">
+              <div className="flex items-center justify-between text-xs font-semibold text-cyan-300">
                 <span className="flex items-center gap-1">
                   <Sparkles className="w-3.5 h-3.5" />
                   <span>Speech-to-Text Transcript:</span>
@@ -360,17 +360,17 @@ function CameraInner() {
                 <button
                   type="button"
                   onClick={handleAppendTranscript}
-                  className="text-xs text-blue-600 hover:underline font-bold"
+                  className="text-xs text-cyan-300 hover:underline font-bold"
                 >
                   + Add to Notes
                 </button>
               </div>
-              <p className="text-xs text-gray-700 italic">"{transcript}"</p>
+              <p className="text-xs text-slate-200 italic">"{transcript}"</p>
             </div>
           )}
 
           <div>
-            <label className="block text-xs font-semibold text-gray-700 mb-1">
+            <label className="block text-xs font-semibold text-slate-200 mb-1">
               Field Observation Notes:
             </label>
             <textarea
@@ -378,7 +378,7 @@ function CameraInner() {
               onChange={(e) => setSiteNotes(e.target.value)}
               placeholder="Dictate with microphone above or type notes here..."
               rows={2}
-              className="w-full border border-gray-300 rounded-lg p-2.5 text-xs text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full border border-white/15 rounded-lg p-2.5 text-xs text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
         </div>
@@ -401,18 +401,18 @@ function CameraInner() {
           <span>Capture Inspection Photo</span>
         </button>
 
-        {error && <p className="text-sm text-red-600 mt-2">{error}</p>}
+        {error && <p className="text-sm text-red-300 mt-2">{error}</p>}
         {message && (
-          <p className="text-sm text-green-700 mt-2 flex items-center gap-1.5 font-medium">
+          <p className="text-sm text-emerald-300 mt-2 flex items-center gap-1.5 font-medium">
             <CheckCircle className="w-4 h-4 text-green-600" />
             <span>{message}</span>
           </p>
         )}
 
         {photos.length > 0 && (
-          <div className="mt-4 bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+          <div className="mt-4 glass rounded-xl-sm border border-white/10 p-4">
             <div className="flex justify-between items-center mb-3">
-              <h2 className="font-semibold text-sm text-gray-800">
+              <h2 className="font-semibold text-sm text-slate-100">
                 Pending Photos ({photos.length})
               </h2>
               <button
@@ -425,7 +425,7 @@ function CameraInner() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               {photos.map((photo, index) => (
-                <div key={photo.preview} className="relative rounded-lg overflow-hidden border border-gray-200 aspect-video bg-gray-100">
+                <div key={photo.preview} className="relative rounded-lg overflow-hidden border border-white/10 aspect-video bg-white/10">
                   <img src={photo.preview} alt={`Photo ${index + 1}`} className="w-full h-full object-cover" />
                 </div>
               ))}
@@ -439,7 +439,7 @@ function CameraInner() {
 
 export default function CameraPage() {
   return (
-    <Suspense fallback={<p className="p-4 text-sm text-gray-500">Loading camera…</p>}>
+    <Suspense fallback={<p className="p-4 text-sm text-slate-400">Loading camera…</p>}>
       <CameraInner />
     </Suspense>
   )

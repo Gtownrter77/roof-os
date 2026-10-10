@@ -42,7 +42,7 @@ export default function CanvassPage() {
 
   const statusColors: Record<PinStatus, string> = {
     INTERESTED: 'bg-emerald-100 text-emerald-800 border-emerald-300',
-    INSPECTED: 'bg-blue-100 text-blue-800 border-blue-300',
+    INSPECTED: 'bg-blue-100 text-cyan-200 border-blue-300',
     NOT_HOME: 'bg-amber-100 text-amber-800 border-amber-300',
     DO_NOT_KNOCK: 'bg-red-100 text-red-800 border-red-300',
     LEAD_CONVERTED: 'bg-purple-100 text-purple-800 border-purple-300',
@@ -109,11 +109,11 @@ export default function CanvassPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
-      <header className="bg-gradient-to-r from-blue-700 to-indigo-700 text-white shadow-lg sticky top-0 z-10">
+    <div className="space-y-4 pb-4">
+      <header className="glass sticky top-0 z-10 rounded-xl mb-4">
         <div className="px-4 py-3 flex items-center justify-between">
           <div className="flex items-center">
-            <button onClick={() => router.back()} className="text-white mr-3 text-xl">←</button>
+            <button onClick={() => router.back()} className="mr-3 text-xl text-cyan-300">←</button>
             <h1 className="text-xl font-bold">🚶 Canvasser & Sales Script Guide</h1>
           </div>
           <button
@@ -127,36 +127,36 @@ export default function CanvassPage() {
 
       <main className="p-4 max-w-3xl mx-auto space-y-4">
         {notice && <div className="bg-emerald-50 border border-emerald-200 text-emerald-900 p-3 rounded-lg text-xs font-bold">{notice}</div>}
-        {error && <div className="bg-red-50 border border-red-200 text-red-800 p-3 rounded-lg text-xs font-bold">{error}</div>}
+        {error && <div className="bg-red-400/10 border border-red-200 text-red-800 p-3 rounded-lg text-xs font-bold">{error}</div>}
 
         {/* Digital Business Card Modal */}
         {showVCard && (
-          <div className="bg-white rounded-lg shadow-lg p-4 border-2 border-emerald-500 space-y-3 animate-fadeIn">
+          <div className="glass rounded-xl p-4 border-2 border-emerald-500 space-y-3 animate-fadeIn">
             <div className="flex justify-between items-start border-b pb-2">
               <div>
-                <p className="font-bold text-base text-gray-900">Business card not configured</p>
-                <p className="text-xs text-gray-600">Verified company contact details have not been connected to this preview.</p>
+                <p className="font-bold text-base text-white">Business card not configured</p>
+                <p className="text-xs text-slate-300">Verified company contact details have not been connected to this preview.</p>
               </div>
               <span className="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-mono font-bold">
                 Not configured
               </span>
             </div>
-            <div className="text-xs text-gray-700 space-y-1">
+            <div className="text-xs text-slate-200 space-y-1">
               <p>Phone: <strong>Not configured</strong></p>
               <p>Email: <strong>Not configured</strong></p>
             </div>
-            <div className="p-3 bg-gray-50 border rounded text-center">
+            <div className="p-3 bg-white/5 border rounded text-center">
               <div className="text-4xl mb-1">📱</div>
-              <p className="text-[11px] font-bold text-gray-800">Scan or Text Digital Business Card</p>
-              <p className="text-[10px] text-gray-500">Add verified business details before sharing this card.</p>
+              <p className="text-[11px] font-bold text-slate-100">Scan or Text Digital Business Card</p>
+              <p className="text-[10px] text-slate-400">Add verified business details before sharing this card.</p>
             </div>
           </div>
         )}
 
         {/* AI Sales Mentor Panel */}
-        <div className="bg-white rounded-lg shadow p-4 border-l-4 border-indigo-600 space-y-3">
+        <div className="glass rounded-xl p-4 border-l-4 border-indigo-600 space-y-3">
           <div className="flex justify-between items-center">
-            <h2 className="font-bold text-sm text-gray-900 flex items-center">
+            <h2 className="font-bold text-sm text-white flex items-center">
               <span className="text-lg mr-1.5">🤖</span> Doorstep Opener & Objection Guide
             </h2>
             <span className="text-[10px] bg-indigo-100 text-indigo-900 font-bold px-2 py-0.5 rounded uppercase">
@@ -170,7 +170,7 @@ export default function CanvassPage() {
           </div>
 
           <div className="space-y-1 text-xs">
-            <label className="font-bold text-gray-800 block">Select Homeowner Objection:</label>
+            <label className="font-bold text-slate-100 block">Select Homeowner Objection:</label>
             <select
               value={selectedObjection}
               onChange={(e) => setSelectedObjection(e.target.value as ObjectionType)}
@@ -185,27 +185,27 @@ export default function CanvassPage() {
               <option value="RATES_GO_UP">"Won't my insurance rates go up if I file a claim?"</option>
             </select>
             {advice.objectionResponse && (
-              <div className="p-3 bg-amber-50 border border-amber-200 text-amber-900 rounded mt-2 font-medium">
+              <div className="p-3 bg-amber-400/10 border border-amber-400/30 text-amber-100 rounded mt-2 font-medium">
                 <p className="font-bold text-[11px] uppercase text-amber-800 mb-0.5">Recommended Counter:</p>
                 <p>"{advice.objectionResponse}"</p>
               </div>
             )}
           </div>
 
-          <div className="text-[10px] text-gray-500 border-t pt-2 space-y-1">
-            <p className="font-bold text-gray-700">Soft-Metal Inspection Evidence Checklist:</p>
+          <div className="text-[10px] text-slate-400 border-t pt-2 space-y-1">
+            <p className="font-bold text-slate-200">Soft-Metal Inspection Evidence Checklist:</p>
             <div className="flex flex-wrap gap-1">
               {advice.collateralChecklist.map((item) => (
-                <span key={item} className="bg-gray-100 text-gray-800 px-2 py-0.5 rounded border">{item}</span>
+                <span key={item} className="bg-white/10 text-slate-100 px-2 py-0.5 rounded border">{item}</span>
               ))}
             </div>
-            <p className="text-blue-800 font-semibold pt-1">{advice.goldenReportRuleNote}</p>
+            <p className="text-cyan-200 font-semibold pt-1">{advice.goldenReportRuleNote}</p>
           </div>
         </div>
 
         {/* Pin Entry Form */}
-        <form onSubmit={addPin} className="bg-white rounded-lg shadow p-4 space-y-3 border">
-          <h2 className="font-bold text-sm text-gray-800">🚪 Log Door Knocking Activity</h2>
+        <form onSubmit={addPin} className="glass rounded-xl p-4 space-y-3 border">
+          <h2 className="font-bold text-sm text-slate-100">🚪 Log Door Knocking Activity</h2>
           <input
             type="text"
             required
@@ -255,25 +255,25 @@ export default function CanvassPage() {
         </form>
 
         {/* Territory Pins List */}
-        <div className="bg-white rounded-lg shadow p-4 space-y-3">
-          <h2 className="font-bold text-sm text-gray-800 flex justify-between items-center">
+        <div className="glass rounded-xl p-4 space-y-3">
+          <h2 className="font-bold text-sm text-slate-100 flex justify-between items-center">
             <span>🗺️ Active Territory Pins ({pins.length})</span>
-            <span className="text-xs text-gray-500 font-normal">Session-only drafts · not synced</span>
+            <span className="text-xs text-slate-400 font-normal">Session-only drafts · not synced</span>
           </h2>
           <div className="space-y-2">
-            {pins.length === 0 && <p className="rounded border border-dashed p-4 text-xs text-gray-500">No draft pins yet. Add an address to create a session-only draft, then convert it to a lead to save it to the workspace.</p>}
+            {pins.length === 0 && <p className="rounded border border-dashed p-4 text-xs text-slate-400">No draft pins yet. Add an address to create a session-only draft, then convert it to a lead to save it to the workspace.</p>}
             {pins.map((pin) => (
-              <div key={pin.id} className="p-3 border rounded-lg bg-gray-50 flex justify-between items-start text-xs border-l-4 border-blue-600">
+              <div key={pin.id} className="p-3 border rounded-lg bg-white/5 flex justify-between items-start text-xs border-l-4 border-blue-600">
                 <div className="space-y-1">
                   <div className="flex items-center space-x-2">
-                    <span className="font-bold text-sm text-gray-900">{pin.address}</span>
+                    <span className="font-bold text-sm text-white">{pin.address}</span>
                     <span className={`px-2 py-0.5 rounded font-bold uppercase text-[10px] border ${statusColors[pin.status]}`}>
                       {pin.status.replace('_', ' ')}
                     </span>
                   </div>
-                  {pin.homeownerName && <p className="text-gray-700">Homeowner: <strong>{pin.homeownerName}</strong> {pin.phone ? `· ${pin.phone}` : ''}</p>}
-                  {pin.notes && <p className="text-gray-500 italic">"{pin.notes}"</p>}
-                  <p className="text-[10px] text-gray-400">Logged: {pin.updatedAt}</p>
+                  {pin.homeownerName && <p className="text-slate-200">Homeowner: <strong>{pin.homeownerName}</strong> {pin.phone ? `· ${pin.phone}` : ''}</p>}
+                  {pin.notes && <p className="text-slate-400 italic">"{pin.notes}"</p>}
+                  <p className="text-[10px] text-slate-400">Logged: {pin.updatedAt}</p>
                 </div>
 
                 {pin.status !== 'LEAD_CONVERTED' && pin.status !== 'DO_NOT_KNOCK' && (

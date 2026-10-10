@@ -154,21 +154,21 @@ export default function DeckPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
-      <header className="bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-lg sticky top-0 z-10">
+    <div className="space-y-4 pb-4">
+      <header className="glass sticky top-0 z-10 rounded-xl mb-4">
         <div className="px-4 py-3 flex items-center">
-          <button onClick={() => router.back()} className="text-white mr-3 text-xl">←</button>
+          <button onClick={() => router.back()} className="mr-3 text-xl text-cyan-300">←</button>
           <h1 className="text-xl font-bold">🪵 Deck Estimator</h1>
-          <span className="ml-2 bg-green-500 text-white text-xs px-2 py-0.5 rounded-full animate-pulse">PRO</span>
+          <span className="ml-2 bg-emerald-400/100 text-white text-xs px-2 py-0.5 rounded-full animate-pulse">PRO</span>
         </div>
       </header>
 
-      <main className="p-4"><p className="text-sm bg-white rounded-lg shadow p-4 mb-4">Price is Unknown. This screen does not write a dollar figure. A human approves every price.</p>
+      <main className="p-4"><p className="text-sm glass rounded-xl p-4 mb-4">Price is Unknown. This screen does not write a dollar figure. A human approves every price.</p>
         {/* Inputs */}
-        <div className="bg-white rounded-lg shadow-lg p-4 mb-4 border border-amber-200">
+        <div className="glass rounded-xl p-4 mb-4 border border-amber-400/30">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-gray-500">Deck Size (sq ft)</label>
+              <label className="text-xs text-slate-400">Deck Size (sq ft)</label>
               <input
                 type="number"
                 value={form.deckSize || ''}
@@ -178,7 +178,7 @@ export default function DeckPage() {
               />
             </div>
             <div>
-              <label className="text-xs text-gray-500">Height (ft)</label>
+              <label className="text-xs text-slate-400">Height (ft)</label>
               <input
                 type="number"
                 value={form.height || ''}
@@ -188,7 +188,7 @@ export default function DeckPage() {
               />
             </div>
             <div>
-              <label className="text-xs text-gray-500">Material</label>
+              <label className="text-xs text-slate-400">Material</label>
               <select
                 value={form.material}
                 onChange={(e) => setForm({...form, material: e.target.value})}
@@ -198,7 +198,7 @@ export default function DeckPage() {
               </select>
             </div>
             <div>
-              <label className="text-xs text-gray-500">Complexity</label>
+              <label className="text-xs text-slate-400">Complexity</label>
               <select
                 value={form.complexity}
                 onChange={(e) => setForm({...form, complexity: e.target.value})}
@@ -211,7 +211,7 @@ export default function DeckPage() {
         </div>
 
         {/* Features */}
-        <div className="bg-white rounded-lg shadow-lg p-4 mb-4 border border-amber-200">
+        <div className="glass rounded-xl p-4 mb-4 border border-amber-400/30">
           <h3 className="font-semibold text-sm mb-2">🛠️ Features</h3>
           <div className="grid grid-cols-2 gap-1">
             <label className="flex items-center text-xs"><input type="checkbox" checked={form.includesRails} onChange={(e) => setForm({...form, includesRails: e.target.checked})} className="mr-1" /> Railing</label>
@@ -235,25 +235,25 @@ export default function DeckPage() {
 
         {estimate && (
           <div className="mt-4 space-y-4 animate-fadeIn">
-            <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-lg shadow-lg p-4 border border-amber-200">
+            <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-lg shadow-lg p-4 border border-amber-400/30">
               <div className="grid grid-cols-3 gap-2">
                 <div className="text-center">
-                  <p className="text-xs text-gray-500">Grand Total</p>
+                  <p className="text-xs text-slate-400">Grand Total</p>
                   <p className="text-2xl font-bold text-amber-600">Unknown</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-xs text-gray-500">Per Sq Ft</p>
+                  <p className="text-xs text-slate-400">Per Sq Ft</p>
                   <p className="text-xl font-bold text-orange-600">Unknown</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-xs text-gray-500">Total Sq Ft</p>
+                  <p className="text-xs text-slate-400">Total Sq Ft</p>
                   <p className="text-xl font-bold text-green-600">{estimate.summary.sqFt}</p>
                 </div>
               </div>
             </div>
 
             {/* Breakdown */}
-            <div className="bg-white rounded-lg shadow-lg p-4 border border-amber-200">
+            <div className="glass rounded-xl p-4 border border-amber-400/30">
               <h3 className="font-semibold text-sm mb-2">📊 Breakdown</h3>
               <div className="space-y-1">
                 <div className="flex justify-between text-sm border-b py-1">
@@ -334,8 +334,8 @@ export default function DeckPage() {
         )}
       </main>
 
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around py-2 px-4">
-        <button onClick={() => router.push('/')} className="flex flex-col items-center text-gray-400">
+      <nav className="fixed bottom-0 left-0 right-0 z-30 flex justify-around border-t border-white/10 bg-[#070b14]/95 py-2 px-4 backdrop-blur lg:hidden">
+        <button onClick={() => router.push('/')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">🏠</span>
           <span className="text-xs">Home</span>
         </button>
@@ -343,15 +343,15 @@ export default function DeckPage() {
           <span className="text-xl">🪵</span>
           <span className="text-xs">Deck</span>
         </button>
-        <button onClick={() => router.push('/repair')} className="flex flex-col items-center text-gray-400">
+        <button onClick={() => router.push('/repair')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">🔧</span>
           <span className="text-xs">Repair</span>
         </button>
-        <button onClick={() => router.push('/exterior')} className="flex flex-col items-center text-gray-400">
+        <button onClick={() => router.push('/exterior')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">🏠</span>
           <span className="text-xs">Exterior</span>
         </button>
-        <button onClick={() => router.push('/settings')} className="flex flex-col items-center text-gray-400">
+        <button onClick={() => router.push('/settings')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">⚙️</span>
           <span className="text-xs">Settings</span>
         </button>
