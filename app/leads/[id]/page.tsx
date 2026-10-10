@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '../../../lib/supabase/client'
+import { isCanvassSource } from '../../../lib/canvass'
 
 const STATUSES = ['new', 'assigned', 'qualified', 'inspection_scheduled', 'inspected', 'report_pending', 'report_approved', 'won', 'lost']
 const LOST_REASONS = [
@@ -193,6 +194,14 @@ export default function LeadDetailPage() {
               <div className="text-right"><div className="text-lg font-black">{lead.lead_score}/100</div><div className="text-xs text-slate-500">{scoreLabel}</div></div>
             </div>
             <p className="mt-1 text-sm text-slate-400">{lead.phone || 'No phone'} · {lead.email || 'No email'}</p>
+            <p className="mt-2 text-xs text-slate-400">
+              Source:{' '}
+              {isCanvassSource(lead.source) ? (
+                <span className="rounded bg-amber-400/15 px-2 py-0.5 font-semibold text-amber-200">canvass</span>
+              ) : (
+                <span className="text-slate-300">{lead.source || 'manual'}</span>
+              )}
+            </p>
             <select aria-label="Lead status" value={lead.status} disabled={saving} onChange={(e) => void updateStatus(e.target.value)} className="mt-3 rounded-lg border border-white/15 bg-[#0a1427] px-3 py-2 text-sm text-white">
               {STATUSES.map((status) => <option key={status} value={status}>{status.replaceAll('_', ' ')}</option>)}
             </select>
@@ -200,6 +209,9 @@ export default function LeadDetailPage() {
             <div className="flex gap-2 mt-3 flex-wrap">
               <a className="rounded bg-cyan-400/15 px-2 py-1 text-xs text-cyan-300" href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(lead.address)}`} target="_blank" rel="noreferrer">Navigate</a>
               {lead.phone && <a className="rounded bg-emerald-400/15 px-2 py-1 text-xs text-emerald-300" href={`tel:${lead.phone}`}>Call</a>}
+              {isCanvassSource(lead.source) && (
+                <button type="button" onClick={() => router.push('/canvass')} className="rounded bg-amber-400/15 px-2 py-1 text-xs text-amber-200">Field canvass</button>
+              )}
               <button onClick={() => router.push(`/ready/${lead.id}`)} className="rounded bg-slate-700 px-2 py-1 text-xs text-white">Job ready?</button>
               <button onClick={() => router.push(`/passport/${lead.id}`)} className="rounded bg-violet-400/15 px-2 py-1 text-xs text-violet-300">Roof Passport</button>
             </div>
