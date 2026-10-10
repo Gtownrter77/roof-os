@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { smartBack } from '../../../lib/smart-back'
 import { createClient } from '../../../lib/supabase/client'
 
 export default function NewLeadPage() {
@@ -40,7 +41,7 @@ export default function NewLeadPage() {
 
   return (
     <div className="space-y-4 p-1 pb-4">
-      <button onClick={() => router.back()} className="text-cyan-300 mb-4">← Back</button>
+      <button onClick={() => smartBack(router)} className="text-cyan-300 mb-4">← Back</button>
       <h1 className="text-2xl font-bold mb-4">New Lead</h1>
       <form onSubmit={handleSubmit} className="space-y-4">
         <input type="text" placeholder="Name *" required className="ops-input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />

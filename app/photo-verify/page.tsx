@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import { smartBack } from '../../lib/smart-back'
 
 export default function PhotoVerifyPage() {
   const router = useRouter()
@@ -125,9 +126,9 @@ export default function PhotoVerifyPage() {
 
   return (
     <div className="space-y-4 pb-4">
-      <header className="glass sticky top-0 z-10 rounded-xl mb-4">
+      <header className="glass rounded-xl mb-4">
         <div className="px-4 py-3 flex items-center">
-          <button onClick={() => router.back()} className="mr-3 text-xl text-cyan-300">←</button>
+          <button onClick={() => smartBack(router)} className="mr-3 text-xl text-cyan-300">←</button>
           <h1 className="text-xl font-bold">📸 AI Photo Verification</h1>
           <span className="ml-2 bg-emerald-400/100 text-white text-xs px-2 py-0.5 rounded-full animate-pulse">REVIEW-GATED</span>
         </div>

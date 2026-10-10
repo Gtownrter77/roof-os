@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import { smartBack } from '../../lib/smart-back'
 import { createClient } from '../../lib/supabase/client'
 import { createWorker } from 'tesseract.js'
 import { GoldenReport } from '../../components/GoldenReport'
@@ -332,7 +333,7 @@ export default function PhotoEstimatePage() {
   ].map((photo) => [photo.id, photo.url]))
 
   return <div className="space-y-4 p-1 pb-4">
-    <button onClick={() => router.back()} className="text-cyan-300 mb-4">← Back</button>
+    <button onClick={() => smartBack(router)} className="text-cyan-300 mb-4">← Back</button>
     <h1 className="text-2xl font-bold">Photo → Estimate Review</h1>
     <p className="text-sm text-slate-300 mt-1 mb-4">Upload evidence first. The system assembles address, property, storm, measurement, pricing, and report candidates. A technician must verify the packet before it can be sent.</p>
     <div className="bg-amber-400/10 border border-amber-400/30 rounded-lg p-3 text-sm text-amber-100 mb-4"><b>Important:</b> OCR can read visible address text; it cannot prove a roof photo’s location. Confirm the property and quantities before approval.</div>
