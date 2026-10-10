@@ -9,7 +9,10 @@ const copilot = readFileSync('lib/ai/chat-copilot.ts', 'utf8')
 const env = readFileSync('.env.example', 'utf8')
 const policy = readFileSync('NO-PAID-AI.md', 'utf8')
 
-assert.equal(existsSync('lib/ai/llm.ts'), false, 'Hosted chat adapter must not ship')
+const hostedClient = existsSync('lib/ai/llm.ts') ? readFileSync('lib/ai/llm.ts', 'utf8') : ''
+assert.ok(!hostedClient.includes('api.x.ai'), 'lib/ai/llm.ts must not call a hosted chat API')
+assert.ok(!hostedClient.includes('XAI_API_KEY'), 'lib/ai/llm.ts must not read a hosted chat key')
+assert.ok(hostedClient.length < 400, 'lib/ai/llm.ts must stay a removal stub, not a client')
 for (const marker of ['OLLAMA_HOST', 'OLLAMA_MODEL', 'AbortController', 'stream: false', 'JSON.parse', "format: 'json'"]) {
   assert.ok(ollama.includes(marker), `Ollama adapter marker missing: ${marker}`)
 }
