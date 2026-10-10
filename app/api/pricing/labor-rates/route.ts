@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '../../../../lib/supabase/server'
 import { readJson, requireWorkspaceMember } from '../../../../lib/api-security'
 
-const DEFAULT_RATES = { roofing: 65, siding: 55, windows: 75, doors: 85, gutters: 45, decking: 60, drywall: 40, painting: 35, electrical: 95, plumbing: 90, hvac: 100, demo: 50, cleanup: 35, inspection: 75, consulting: 120 }
+import { DEFAULT_OWNER_LABOR_RATES, OWNER_LABOR_BY_KEY, ownerLaborUnitCode } from '../../../../lib/pricing/owner-labor'
+
+const DEFAULT_RATES = DEFAULT_OWNER_LABOR_RATES
 type RateKey = keyof typeof DEFAULT_RATES
 type TaxRates = { state: number; county: number; city: number; specialDistrict: number }
 
@@ -45,7 +47,10 @@ export async function PUT(request: NextRequest) {
   if (Object.values(taxRates).some(value => !Number.isFinite(value) || value < 0) || combinedTaxRate > 100) return NextResponse.json({ error: 'Each tax rate must be non-negative and the combined rate must be 100 or less.' }, { status: 400 })
   const taxSource = typeof body.taxSource === 'string' ? body.taxSource.trim() : ''
   if (taxSource.length > 200) return NextResponse.json({ error: 'The tax jurisdiction or source must be 200 characters or fewer.' }, { status: 400 })
-  const items = Object.entries(rates).map(([key, value]) => ({ sku: `LABOR-${key}`, description: `${key} labor`, unit: key === 'gutters' ? 'LF' : key === 'roofing' || key === 'siding' || key === 'decking' || key === 'drywall' || key === 'painting' ? 'SQ' : 'HR', unit_price: Number(value) }))
+  const items = Object.entries(rates).map(([key, value]) => {
+    const service = OWNER_LABOR_BY_KEY[key]
+    return { sku: `LABOR-${key}`, description: service?.description ?? `${key} labor`, unit: ownerLaborUnitCode(service?.unit ?? 'hr'), unit_price: Number(value) }
+  })
   const { data: priceBookId, error } = await supabase.rpc('save_owner_price_book_with_tax', { p_workspace_id: workspaceId, p_name: 'ROOF/OS Owner Labor Rates and Jurisdiction Tax', p_market: body.market ?? 'owner-defined market', p_effective_at: body.effectiveAt ?? new Date().toISOString(), p_state_tax_rate: taxRates.state, p_county_tax_rate: taxRates.county, p_city_tax_rate: taxRates.city, p_special_district_tax_rate: taxRates.specialDistrict, p_tax_source: taxSource || 'owner-entered jurisdiction rates', p_created_by: user.id, p_items: items })
   if (error) return NextResponse.json({ error: 'Price-book save blocked. Apply migration 019 and confirm Ryan is the system owner.', detail: error.message }, { status: 403 })
   return NextResponse.json({ saved: true, priceBookId, status: 'draft', taxRates, localTaxRate: combinedTaxRate, taxSource: taxSource || 'owner-entered jurisdiction rates', warning: 'This owner-managed price book remains draft until reviewed and activated.' })
