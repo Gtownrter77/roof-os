@@ -56,21 +56,21 @@ export default function LogisticsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
-      <header className="bg-gradient-to-r from-blue-700 to-blue-600 text-white shadow-lg sticky top-0 z-10">
+    <div className="space-y-4 pb-4">
+      <header className="glass sticky top-0 z-10 rounded-xl mb-4">
         <div className="px-4 py-3 flex items-center">
-          <button type="button" onClick={() => router.back()} className="text-white mr-3 text-xl" aria-label="Go back">←</button>
+          <button type="button" onClick={() => router.back()} className="mr-3 text-xl text-cyan-300" aria-label="Go back">←</button>
           <h1 className="text-xl font-bold">🚛 Job Site Logistics</h1>
           <span className="ml-2 bg-white/20 text-white text-xs px-2 py-0.5 rounded-full">REFERENCE</span>
         </div>
       </header>
 
       <main className="p-4 space-y-4">
-        {notice && <div className="bg-blue-50 border border-blue-200 text-blue-900 p-3 rounded-lg text-sm" role="status">{notice}</div>}
+        {notice && <div className="bg-cyan-400/10 border border-cyan-400/30 text-blue-900 p-3 rounded-lg text-sm" role="status">{notice}</div>}
 
-        <section className="bg-white rounded-lg shadow-lg p-4 border border-blue-200">
+        <section className="glass rounded-xl p-4 border border-cyan-400/30">
           <h2 className="font-semibold">Logistics planning</h2>
-          <p className="text-xs text-gray-600 mt-1">
+          <p className="text-xs text-slate-300 mt-1">
             This screen provides planning guidance and verified provider links. It does not invent live pricing, availability, distance, ratings, or completed orders.
           </p>
 
@@ -97,17 +97,17 @@ export default function LogisticsPage() {
         </section>
 
         {planned && (
-          <section className="bg-white rounded-lg shadow-lg p-4 border border-green-200">
+          <section className="glass rounded-xl p-4 border border-emerald-400/30">
             <h2 className="font-semibold">Planning recommendation</h2>
-            <p className="text-2xl font-bold text-blue-700 mt-2">{planningGuidance[jobSize].dumpster}</p>
-            <p className="text-sm text-gray-600 mt-1">{planningGuidance[jobSize].reason}.</p>
-            <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded p-3 mt-3">
+            <p className="text-2xl font-bold text-cyan-300 mt-2">{planningGuidance[jobSize].dumpster}</p>
+            <p className="text-sm text-slate-300 mt-1">{planningGuidance[jobSize].reason}.</p>
+            <p className="text-xs text-amber-700 bg-amber-400/10 border border-amber-400/30 rounded p-3 mt-3">
               Planning range only. Final container size, allowable materials, weight limits, delivery space, rental period, availability, and price must be confirmed with the provider.
             </p>
           </section>
         )}
 
-        <section className="bg-white rounded-lg shadow-lg p-4">
+        <section className="glass rounded-xl p-4">
           <h2 className="font-semibold mb-3">Verified provider links</h2>
           <div className="space-y-3">
             {providers.map((provider) => (
@@ -115,44 +115,44 @@ export default function LogisticsPage() {
                 <div className="flex justify-between items-start gap-3">
                   <div>
                     <p className="font-semibold">{provider.name}</p>
-                    <p className="text-xs text-gray-500">{provider.kind}</p>
+                    <p className="text-xs text-slate-400">{provider.kind}</p>
                   </div>
                   <a
                     href={provider.url}
                     target="_blank"
                     rel="noreferrer"
-                    className="text-sm text-blue-600 underline whitespace-nowrap"
+                    className="text-sm text-cyan-300 underline whitespace-nowrap"
                   >
                     Open provider
                   </a>
                 </div>
-                <p className="text-sm text-gray-600 mt-2">{provider.note}</p>
+                <p className="text-sm text-slate-300 mt-2">{provider.note}</p>
               </div>
             ))}
           </div>
         </section>
 
-        <section className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+        <section className="bg-amber-400/10 border border-yellow-200 rounded-lg p-3">
           <p className="text-xs text-yellow-900">
             <strong>Not an order:</strong> selecting a planning range does not reserve a dumpster or restroom. A future live integration must create a persisted request and receive a provider confirmation before ROOF/OS can call it ordered.
           </p>
         </section>
       </main>
 
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around py-2 px-4">
-        <button type="button" onClick={() => router.push('/')} className="flex flex-col items-center text-gray-400">
+      <nav className="fixed bottom-0 left-0 right-0 z-30 flex justify-around border-t border-white/10 bg-[#070b14]/95 py-2 px-4 backdrop-blur lg:hidden">
+        <button type="button" onClick={() => router.push('/')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">🏠</span><span className="text-xs">Home</span>
         </button>
-        <button type="button" onClick={() => router.push('/logistics')} className="flex flex-col items-center text-blue-600">
+        <button type="button" onClick={() => router.push('/logistics')} className="flex flex-col items-center text-cyan-300">
           <span className="text-xl">🚛</span><span className="text-xs">Logistics</span>
         </button>
-        <button type="button" onClick={() => router.push('/templates')} className="flex flex-col items-center text-gray-400">
+        <button type="button" onClick={() => router.push('/templates')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">📄</span><span className="text-xs">Templates</span>
         </button>
-        <button type="button" onClick={() => router.push('/upsell')} className="flex flex-col items-center text-gray-400">
+        <button type="button" onClick={() => router.push('/upsell')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">💰</span><span className="text-xs">Upsell</span>
         </button>
-        <button type="button" onClick={() => router.push('/settings')} className="flex flex-col items-center text-gray-400">
+        <button type="button" onClick={() => router.push('/settings')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">⚙️</span><span className="text-xs">Settings</span>
         </button>
       </nav>
