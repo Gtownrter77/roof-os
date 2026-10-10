@@ -41,7 +41,9 @@ export default function RadarCinemaPage() {
   const [prefs, setPrefs] = useState<RadarLayerPrefs>(DEFAULT_RADAR_LAYER_PREFS)
   const [refreshTick, setRefreshTick] = useState(0)
   const [locating, setLocating] = useState(false)
+  const [locationMode, setLocationMode] = useState<'device' | 'workspace'>('device')
   const [coordsOverride, setCoordsOverride] = useState<{ latitude: number; longitude: number } | null>(null)
+  const [geoReady, setGeoReady] = useState(false)
   const [alertGeoJson, setAlertGeoJson] = useState<{
     type: 'FeatureCollection'
     features: Array<{ type: 'Feature'; geometry: unknown; properties?: Record<string, unknown> | null }>
@@ -71,12 +73,55 @@ export default function RadarCinemaPage() {
     }
   }, [])
 
+  const applyDevicePosition = useCallback((position: GeolocationPosition) => {
+    setLocationMode('device')
+    setCoordsOverride({
+      latitude: position.coords.latitude,
+      longitude: position.coords.longitude,
+    })
+  }, [])
+
+  // Localize to the user first — GPS before workspace ZIP.
   useEffect(() => {
+    let cancelled = false
+    if (!navigator.geolocation) {
+      setLocationMode('workspace')
+      setGeoReady(true)
+      return
+    }
+    setLocating(true)
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        if (cancelled) return
+        applyDevicePosition(position)
+        setLocating(false)
+        setGeoReady(true)
+      },
+      () => {
+        if (cancelled) return
+        // Permission denied / unavailable → fall back to workspace ZIP.
+        setLocationMode('workspace')
+        setCoordsOverride(null)
+        setLocating(false)
+        setGeoReady(true)
+        setError('Device location unavailable — using workspace service ZIP when set.')
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 12_000,
+        maximumAge: 30_000,
+      },
+    )
+    return () => { cancelled = true }
+  }, [applyDevicePosition])
+
+  useEffect(() => {
+    if (!geoReady) return
     const query = coordsOverride
       ? `?latitude=${encodeURIComponent(String(coordsOverride.latitude))}&longitude=${encodeURIComponent(String(coordsOverride.longitude))}`
       : ''
     void load(query)
-  }, [load, coordsOverride, refreshTick])
+  }, [load, coordsOverride, refreshTick, geoReady])
 
   // Active alert polygons for the point (NWS public API)
   useEffect(() => {
@@ -151,20 +196,25 @@ export default function RadarCinemaPage() {
     try {
       const position = await new Promise<GeolocationPosition>((resolve, reject) => {
         navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: false,
+          enableHighAccuracy: true,
           timeout: 12_000,
-          maximumAge: 60_000,
+          maximumAge: 15_000,
         })
       })
-      setCoordsOverride({
-        latitude: position.coords.latitude,
-        longitude: position.coords.longitude,
-      })
+      applyDevicePosition(position)
+      setRefreshTick((n) => n + 1)
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Device location could not be used.')
     } finally {
       setLocating(false)
     }
+  }
+
+  function useWorkspaceLocation() {
+    setLocationMode('workspace')
+    setCoordsOverride(null)
+    setError(null)
+    setRefreshTick((n) => n + 1)
   }
 
   function toggleLayer(id: RadarLayerId) {
@@ -192,11 +242,13 @@ export default function RadarCinemaPage() {
         <div className="flex h-full w-full items-center justify-center bg-[#050914] p-6">
           <div className="max-w-md space-y-4 rounded-2xl border border-white/10 bg-slate-950/90 p-6 text-center">
             <h1 className="text-2xl font-black">Radar cinema</h1>
-            {loading && <p className="text-sm text-slate-400">Loading NOAA / workspace location…</p>}
+            {loading || locating || !geoReady ? (
+              <p className="text-sm text-slate-400">Localizing radar to your location…</p>
+            ) : null}
             {error && <p className="text-sm text-amber-200" role="alert">{error}</p>}
             {summary?.status === 'location_missing' && (
               <p className="text-sm text-slate-300">
-                Set the workspace service ZIP in Settings, or share device location to center the radar.
+                Allow location access, or set a workspace service ZIP in Settings.
               </p>
             )}
             <div className="flex flex-wrap justify-center gap-2">
@@ -225,15 +277,20 @@ export default function RadarCinemaPage() {
             <div>
               <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-cyan-300">ROOF/OS · radar cinema</p>
               <h1 className="text-xl font-black md:text-2xl">
-                {location ? `${location.label} · ${location.postalCode}` : 'NOAA MRMS'}
+                {location ? `${location.label}${location.postalCode ? ` · ${location.postalCode}` : ''}` : 'NOAA MRMS'}
               </h1>
               <p className="mt-1 text-xs text-slate-300">
-                {activeRadarCount} radar product{activeRadarCount === 1 ? '' : 's'} · refreshed {checkedLabel(summary?.checkedAt)} · auto 3 min
+                {locationMode === 'device' ? 'Localized to you' : 'Workspace service ZIP'}
+                {' · '}
+                {activeRadarCount} radar product{activeRadarCount === 1 ? '' : 's'}
+                {' · '}
+                refreshed {checkedLabel(summary?.checkedAt)} · auto 3 min
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
               <button type="button" onClick={() => setRefreshTick((n) => n + 1)} className="rounded-lg border border-white/20 bg-black/50 px-3 py-1.5 text-xs font-semibold hover:bg-white/10">Refresh</button>
-              <button type="button" onClick={() => void useDeviceLocation()} disabled={locating} className="rounded-lg border border-white/20 bg-black/50 px-3 py-1.5 text-xs font-semibold hover:bg-white/10 disabled:opacity-50">{locating ? 'Locating…' : 'My location'}</button>
+              <button type="button" onClick={() => void useDeviceLocation()} disabled={locating} className={`rounded-lg border px-3 py-1.5 text-xs font-semibold disabled:opacity-50 ${locationMode === 'device' ? 'border-cyan-400/50 bg-cyan-400/20 text-cyan-100' : 'border-white/20 bg-black/50 hover:bg-white/10'}`}>{locating ? 'Locating…' : 'My location'}</button>
+              <button type="button" onClick={useWorkspaceLocation} className={`rounded-lg border px-3 py-1.5 text-xs font-semibold ${locationMode === 'workspace' ? 'border-cyan-400/50 bg-cyan-400/20 text-cyan-100' : 'border-white/20 bg-black/50 hover:bg-white/10'}`}>Workspace ZIP</button>
               <button type="button" onClick={() => setLayersOpen((v) => !v)} className="rounded-lg border border-cyan-400/40 bg-cyan-400/15 px-3 py-1.5 text-xs font-semibold text-cyan-100">Layers (L)</button>
               <button
                 type="button"
