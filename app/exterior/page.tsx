@@ -41,8 +41,8 @@ export default function ExteriorPage() {
     await saveMeasurement()
   }
 
-  const formatCurrency = (num: number) => {
-    return '$' + num.toFixed(2)
+  const formatCurrency = (_num: number) => {
+    return 'Unknown'
   }
 
   const saveMeasurement = async () => {
