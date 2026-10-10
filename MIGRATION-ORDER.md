@@ -8,7 +8,7 @@ Production lists `035_retailer_quota_hardening` as applied (ledger version `2026
 
 ## Known legacy local-prefix collisions
 
-The current repository has three duplicate numeric prefixes. Migrations 036, 037, and 038 are already present on main; the next new migration slot is 039.
+The current repository has three duplicate numeric prefixes. Migrations 036, 037, and 038 are already present on main; the next new local migration prefix is `053`.
 
 | Prefix | Files |
 | --- | --- |
@@ -32,7 +32,7 @@ Treat this as a repository-history reconciliation task, not permission to delete
 
 1. Before using `supabase migration repair`, renaming a historical file, or changing a production ledger, inspect the recorded production migration versions.
 2. Keep released migration files immutable until the remote history is reconciled.
-3. Give every new local migration a unique prefix greater than the highest released prefix. The current next slot is `039`.
+3. Give every new local migration a unique prefix greater than the highest released prefix. The next new local migration prefix is `053`.
 4. Run the migration in a staging database first, then run the app/release checks against the migrated schema.
 5. Record the migration name and its production apply status in the release/owner manual.
 
