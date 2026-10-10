@@ -66,6 +66,7 @@ assert.doesNotMatch(`${weatherPage}\n${stormsPage}`, /Atlanta|Storm score|72°|S
 assert.doesNotMatch(dashboard, /\$284K|312 jobs|47 opportunities|Revenue At Risk/i)
 assert.match(csp, /tiles\.openfreemap\.org/)
 assert.match(csp, /opengeo\.ncep\.noaa\.gov/)
+assert.match(csp, /mesonet\.agron\.iastate\.edu/)
 assert.match(csp, /worker-src 'self' blob:/)
 
 for (const route of ['weather', 'radar', 'storms', 'leads', 'inspections', 'measure', 'photo-estimate', 'reports', 'pricing-config', 'tasks', 'calendar', 'warranty', 'settings']) {
@@ -75,6 +76,10 @@ assert.match(read('app/radar/page.tsx'), /radar cinema/i)
 assert.match(read('app/radar/page.tsx'), /RadarCinemaMap/)
 assert.match(read('app/radar/page.tsx'), /Layers \(L\)/)
 assert.match(read('lib/radar/cinema-layers.ts'), /bref_qcd/)
+assert.match(read('lib/radar/cinema-layers.ts'), /buildIemReflectivityTileUrl/)
+assert.match(read('lib/radar/cinema-layers.ts'), /STORM_LOOP_MINUTES/)
+assert.match(read('app/radar/page.tsx'), /Storm desk/)
+assert.match(read('apps/field/src/RadarCinema.tsx'), /iem-loop/)
 assert.match(read('lib/radar/cinema-layers.ts'), /RADAR_PREFS_KEY/)
 assert.match(read('app/settings/page.tsx'), /Radar cinema layers/)
 assert.match(read('lib/nav.ts'), /\/radar/)
