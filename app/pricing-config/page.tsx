@@ -133,25 +133,25 @@ export default function PricingConfigPage() {
   }
 
   const getTrendColor = (change: string) => {
-    return parseFloat(change) > 0 ? 'text-green-600' : 'text-red-600'
+    return parseFloat(change) > 0 ? 'text-green-600' : 'text-red-300'
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
-      <header className="bg-gradient-to-r from-blue-600 to-teal-600 text-white shadow-lg sticky top-0 z-10">
+    <div className="space-y-4 pb-4">
+      <header className="glass sticky top-0 z-10 rounded-xl mb-4">
         <div className="px-4 py-3 flex items-center">
-          <button onClick={() => router.back()} className="text-white mr-3 text-xl">←</button>
+          <button onClick={() => router.back()} className="mr-3 text-xl text-cyan-300">←</button>
           <h1 className="text-xl font-bold">💰 Pricing Configuration</h1>
-          <span className="ml-2 bg-amber-500 text-white text-xs px-2 py-0.5 rounded-full">PROTOTYPE</span>
+          <span className="ml-2 bg-amber-400/100 text-white text-xs px-2 py-0.5 rounded-full">PROTOTYPE</span>
         </div>
       </header>
 
       <main className="p-4">
         {/* Last Update */}
-        <div className="bg-gradient-to-r from-blue-50 to-teal-50 rounded-lg shadow-lg p-3 mb-4 border border-blue-200">
+        <div className="bg-gradient-to-r from-blue-50 to-teal-50 rounded-lg shadow-lg p-3 mb-4 border border-cyan-400/30">
           <div className="flex justify-between items-center">
             <div>
-              <p className="text-xs text-gray-500">Last Price Update</p>
+              <p className="text-xs text-slate-400">Last Price Update</p>
               <p className="font-bold text-sm">{lastUpdate ? lastUpdate.toLocaleString() : 'No saved price-book update yet'}</p>
             </div>
             <button
@@ -164,21 +164,21 @@ export default function PricingConfigPage() {
           </div>
         </div>
 
-        <div className="bg-amber-50 rounded-lg shadow-sm p-4 mb-4 border border-amber-200">
+        <div className="bg-amber-400/10 rounded-lg shadow-sm p-4 mb-4 border border-amber-400/30">
           <h3 className="font-semibold text-sm mb-2">Current claims pricing is not connected</h3>
-          <p className="text-xs text-amber-900 leading-5">
+          <p className="text-xs text-amber-100 leading-5">
             No fabricated prices are shown here. Connect an authorized CapOut/ESX import, licensed provider, verified supplier feed, or owner-managed price book before using this screen for an insurance estimate. Imported values must retain source, market, effective date, and review status.
           </p>
         </div>
 
         {/* Local Tax */}
-        <div className="bg-white rounded-lg shadow-lg p-4 mb-4 border border-purple-200">
+        <div className="glass rounded-xl p-4 mb-4 border border-purple-200">
           <h3 className="font-semibold text-sm mb-3 flex items-center">
             <span className="text-xl mr-2">🧾</span> Local Tax Configuration
           </h3>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-gray-500">State reference</label>
+              <label className="text-xs text-slate-400">State reference</label>
               <select
                 value={selectedState}
                 onChange={(e) => {
@@ -196,14 +196,14 @@ export default function PricingConfigPage() {
               </select>
             </div>
             <div>
-              <label className="text-xs text-gray-500">State tax rate</label>
+              <label className="text-xs text-slate-400">State tax rate</label>
               <input type="number" value={taxRates.state} onChange={e => setTaxRates({ ...taxRates, state: parseFloat(e.target.value) || 0 })} className="w-full p-2 border rounded-lg text-sm" step="0.0001" min="0" max="100" />
             </div>
           </div>
           <div className="grid grid-cols-3 gap-2 mt-3">
-            {([['county','County'],['city','City / municipality'],['specialDistrict','Special district']] as const).map(([key, label]) => <label key={key} className="text-xs text-gray-500">{label}<input type="number" value={taxRates[key]} onChange={e => setTaxRates({ ...taxRates, [key]: parseFloat(e.target.value) || 0 })} className="w-full mt-1 p-2 border rounded-lg text-sm" step="0.0001" min="0" max="100" /></label>)}
+            {([['county','County'],['city','City / municipality'],['specialDistrict','Special district']] as const).map(([key, label]) => <label key={key} className="text-xs text-slate-400">{label}<input type="number" value={taxRates[key]} onChange={e => setTaxRates({ ...taxRates, [key]: parseFloat(e.target.value) || 0 })} className="w-full mt-1 p-2 border rounded-lg text-sm" step="0.0001" min="0" max="100" /></label>)}
           </div>
-          <label className="block mt-3 text-xs text-gray-500">Tax jurisdiction / source
+          <label className="block mt-3 text-xs text-slate-400">Tax jurisdiction / source
             <input
               value={taxSource}
               onChange={(e) => setTaxSource(e.target.value)}
@@ -212,36 +212,36 @@ export default function PricingConfigPage() {
               placeholder="Example: Cobb County, GA — owner-verified combined rate"
             />
           </label>
-          <div className="mt-2 p-2 bg-purple-50 rounded">
+          <div className="mt-2 p-2 bg-purple-400/10 rounded">
             <p className="text-xs text-purple-800">
               Current combined tax: <strong>{Object.values(taxRates).reduce((sum, rate) => sum + rate, 0).toFixed(4)}%</strong> • Saved as separate jurisdiction rates
             </p>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-lg p-4 mb-4 border border-green-200">
+        <div className="glass rounded-xl p-4 mb-4 border border-emerald-400/30">
           <h3 className="font-semibold text-sm mb-2">Expanded material catalog</h3>
-          <p className="text-xs text-gray-500 mb-3">Search GAF, VELUX, fasteners, ventilation, decking, gutters, disposal, and other catalog metadata. Prices remain source-verified reference data.</p>
+          <p className="text-xs text-slate-400 mb-3">Search GAF, VELUX, fasteners, ventilation, decking, gutters, disposal, and other catalog metadata. Prices remain source-verified reference data.</p>
           <input value={materialQuery} onChange={e => setMaterialQuery(e.target.value)} className="w-full p-2 border rounded-lg text-sm" placeholder="Search materials, brands, colors, or sizes" />
-          <div className="mt-3 max-h-64 overflow-y-auto space-y-2">{materials.slice(0, 30).map(material => <div key={material.id} className="border rounded p-2"><div className="flex justify-between gap-2"><span className="text-sm font-medium">{[material.brand, material.product_name, material.variant].filter(Boolean).join(' — ')}</span><span className="text-xs text-gray-500">{material.unit}</span></div><p className="text-xs text-gray-500">{material.category} / {material.subcategory ?? 'general'}{material.color_options?.length ? ` • ${material.color_options.join(', ')}` : ''}</p></div>)}</div>
+          <div className="mt-3 max-h-64 overflow-y-auto space-y-2">{materials.slice(0, 30).map(material => <div key={material.id} className="border rounded p-2"><div className="flex justify-between gap-2"><span className="text-sm font-medium">{[material.brand, material.product_name, material.variant].filter(Boolean).join(' — ')}</span><span className="text-xs text-slate-400">{material.unit}</span></div><p className="text-xs text-slate-400">{material.category} / {material.subcategory ?? 'general'}{material.color_options?.length ? ` • ${material.color_options.join(', ')}` : ''}</p></div>)}</div>
         </div>
 
         {/* Labor Rates */}
-        <div className="bg-white rounded-lg shadow-lg p-4 mb-4 border border-orange-200">
+        <div className="glass rounded-xl p-4 mb-4 border border-orange-200">
           <h3 className="font-semibold text-sm mb-3 flex items-center">
             <span className="text-xl mr-2">👷</span> Labor Rate Configuration
           </h3>
-          <p className="text-xs text-gray-400 mb-3">Set custom labor rates for each job type</p>
+          <p className="text-xs text-slate-400 mb-3">Set custom labor rates for each job type</p>
           
           <div className="grid grid-cols-2 gap-2 max-h-96 overflow-y-auto">
             {Object.entries(laborRates).map(([key, value]: [string, any]) => (
-              <div key={key} className="bg-gray-50 rounded-lg p-2 border border-gray-200">
+              <div key={key} className="bg-white/5 rounded-lg p-2 border border-white/10">
                 <div className="flex items-center gap-1">
                   <span>{getJobTypeIcon(key)}</span>
                   <span className="text-xs font-medium">{getJobTypeLabel(key)}</span>
                 </div>
                 <div className="flex items-center gap-2 mt-1">
-                  <span className="text-xs text-gray-400">$</span>
+                  <span className="text-xs text-slate-400">$</span>
                   <input
                     type="number"
                     value={value.rate}
@@ -249,23 +249,23 @@ export default function PricingConfigPage() {
                     className="w-20 p-1 border rounded text-sm"
                     step="0.5"
                   />
-                  <span className="text-xs text-gray-400">/ {value.unit}</span>
+                  <span className="text-xs text-slate-400">/ {value.unit}</span>
                 </div>
-                <p className="text-[10px] text-gray-400 truncate">{value.description}</p>
+                <p className="text-[10px] text-slate-400 truncate">{value.description}</p>
               </div>
             ))}
           </div>
-          {saveMessage && <p className="mt-3 text-xs text-blue-800 bg-blue-50 rounded p-2">{saveMessage}</p>}
+          {saveMessage && <p className="mt-3 text-xs text-cyan-200 bg-cyan-400/10 rounded p-2">{saveMessage}</p>}
         </div>
 
         {/* Markup & Summary */}
-        <div className="bg-white rounded-lg shadow-lg p-4 mb-4 border border-blue-200">
+        <div className="glass rounded-xl p-4 mb-4 border border-cyan-400/30">
           <h3 className="font-semibold text-sm mb-3 flex items-center">
             <span className="text-xl mr-2">📊</span> Markup Configuration
           </h3>
           <div className="flex items-center gap-4">
             <div className="flex-1">
-              <label className="text-xs text-gray-500">Material Markup %</label>
+              <label className="text-xs text-slate-400">Material Markup %</label>
               <input
                 type="number"
                 value={materialMarkup}
@@ -275,7 +275,7 @@ export default function PricingConfigPage() {
               />
             </div>
             <div className="flex-1 text-center">
-              <p className="text-xs text-gray-500">Current Margin</p>
+              <p className="text-xs text-slate-400">Current Margin</p>
               <p className="text-xl font-bold text-green-600">{materialMarkup}%</p>
             </div>
           </div>
@@ -292,24 +292,24 @@ export default function PricingConfigPage() {
         </div>
       </main>
 
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around py-2 px-4">
-        <button onClick={() => router.push('/')} className="flex flex-col items-center text-gray-400">
+      <nav className="fixed bottom-0 left-0 right-0 z-30 flex justify-around border-t border-white/10 bg-[#070b14]/95 py-2 px-4 backdrop-blur lg:hidden">
+        <button onClick={() => router.push('/')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">🏠</span>
           <span className="text-xs">Home</span>
         </button>
-        <button onClick={() => router.push('/pricing-config')} className="flex flex-col items-center text-blue-600">
+        <button onClick={() => router.push('/pricing-config')} className="flex flex-col items-center text-cyan-300">
           <span className="text-xl">💰</span>
           <span className="text-xs">Pricing</span>
         </button>
-        <button onClick={() => router.push('/pricing')} className="flex flex-col items-center text-gray-400">
+        <button onClick={() => router.push('/pricing')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">📊</span>
           <span className="text-xs">Estimate</span>
         </button>
-        <button onClick={() => router.push('/insurance-intel')} className="flex flex-col items-center text-gray-400">
+        <button onClick={() => router.push('/insurance-intel')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">📋</span>
           <span className="text-xs">Intel</span>
         </button>
-        <button onClick={() => router.push('/settings')} className="flex flex-col items-center text-gray-400">
+        <button onClick={() => router.push('/settings')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">⚙️</span>
           <span className="text-xs">Settings</span>
         </button>
