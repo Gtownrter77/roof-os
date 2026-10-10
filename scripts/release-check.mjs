@@ -52,6 +52,17 @@ for (const guard of ['auth.uid() is null', 'is_workspace_admin(p_workspace_id)',
   if (!retailerQuota.includes(guard)) throw new Error(`Retailer pricing quota migration is missing guard: ${guard}`)
 }
 
+const retailerAddons = readFileSync(join(root, 'supabase', 'migrations', '051_supplier_account_addons.sql'), 'utf8')
+for (const provider of ['home_depot', 'lowes', 'abc', 'srs', 'beacon']) {
+  if (!retailerAddons.includes(provider)) throw new Error(`Retailer add-on migration is missing provider: ${provider}`)
+}
+if (!retailerAddons.includes('create or replace function public.reserve_retailer_price_query')
+  || !retailerAddons.includes("p_provider is null or p_provider not in ('home_depot', 'lowes', 'abc', 'srs', 'beacon')")
+  || !retailerAddons.includes("p_monthly_limit is distinct from effective_limit")
+  || !retailerAddons.includes("p_query_month is distinct from effective_month")) {
+  throw new Error('Retailer add-on migration does not keep provider support aligned with quota authorization and limit checks')
+}
+
 const proxy = readFileSync(join(root, 'proxy.ts'), 'utf8')
 if (!proxy.includes("supabase.auth.mfa.getAuthenticatorAssuranceLevel()") || !proxy.includes("role', ['owner', 'admin']")) {
   throw new Error('Privileged-user MFA enforcement is missing from proxy.ts')

@@ -1,3 +1,5 @@
+> **Historical checkpoint warning (updated 2026-10-09):** The checkpoint below was written against baseline `bfdc565` on 2026-10-08 and is not the current repository baseline. Current main is `a308459182e9a6867fb736240c6dc2af9f3aa6e9`. See [AUDIT-STATUS-2026-10-09.md](AUDIT-STATUS-2026-10-09.md) for current GitHub evidence and items that remain unverified. Do not treat older deployment or test claims in this file as verification of the current main commit or live production services.
+
 ## 2026-10-08 Main Branch Three-Level Audit Checkpoint
 
 **Current main baseline before this audit:** `bfdc565` (Golden Report approval migration guard)

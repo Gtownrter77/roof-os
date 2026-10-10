@@ -20,11 +20,7 @@ type CanvassPin = {
 export default function CanvassPage() {
   const router = useRouter()
   const supabase = createClient()
-  const [pins, setPins] = useState<CanvassPin[]>([
-    { id: 'pin-1', address: '742 Evergreen Terrace', status: 'INTERESTED', homeownerName: 'Homer Simpson', notes: 'Hail impacts visible on eave shingles', updatedAt: '2026-10-08 14:20' },
-    { id: 'pin-2', address: '744 Evergreen Terrace', status: 'NOT_HOME', notes: 'Left flyer at front door', updatedAt: '2026-10-08 14:25' },
-    { id: 'pin-3', address: '746 Evergreen Terrace', status: 'DO_NOT_KNOCK', notes: 'Posted No Soliciting sign', updatedAt: '2026-10-08 14:30' },
-  ])
+  const [pins, setPins] = useState<CanvassPin[]>([])
 
   const [form, setForm] = useState({
     address: '',
@@ -39,18 +35,8 @@ export default function CanvassPage() {
   const [selectedObjection, setSelectedObjection] = useState<ObjectionType>('NO_DAMAGE')
   const [showVCard, setShowVCard] = useState(false)
 
-  const repProfile = {
-    name: 'Alex Rivera',
-    title: 'Certified Field Inspector',
-    company: 'ROOF/OS Contracting',
-    phone: '(404) 555-0199',
-    email: 'arivera@roofos.com',
-    license: 'GA-RCN-2026-88',
-  }
-
   const advice = getCanvassAdvice({
-    address: form.address || '742 Evergreen Terrace',
-    stormDate: 'August 2026',
+    address: form.address.trim(),
     objection: selectedObjection,
   })
 
@@ -76,7 +62,7 @@ export default function CanvassPage() {
     }
     setPins([newPin, ...pins])
     setForm({ address: '', homeownerName: '', phone: '', status: 'INTERESTED', notes: '' })
-    setNotice('✓ Door knocking pin saved to local territory map.')
+    setNotice('Draft pin added for this session only. Convert it to a lead to save it to the workspace.')
   }
 
   const convertToLead = async (pin: CanvassPin) => {
@@ -128,7 +114,7 @@ export default function CanvassPage() {
         <div className="px-4 py-3 flex items-center justify-between">
           <div className="flex items-center">
             <button onClick={() => router.back()} className="text-white mr-3 text-xl">←</button>
-            <h1 className="text-xl font-bold">🚶 Canvasser & AI Sales Mentor</h1>
+            <h1 className="text-xl font-bold">🚶 Canvasser & Sales Script Guide</h1>
           </div>
           <button
             onClick={() => setShowVCard(!showVCard)}
@@ -148,21 +134,21 @@ export default function CanvassPage() {
           <div className="bg-white rounded-lg shadow-lg p-4 border-2 border-emerald-500 space-y-3 animate-fadeIn">
             <div className="flex justify-between items-start border-b pb-2">
               <div>
-                <p className="font-bold text-base text-gray-900">{repProfile.name}</p>
-                <p className="text-xs text-gray-600">{repProfile.title} · {repProfile.company}</p>
+                <p className="font-bold text-base text-gray-900">Business card not configured</p>
+                <p className="text-xs text-gray-600">Verified company contact details have not been connected to this preview.</p>
               </div>
               <span className="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-mono font-bold">
-                {repProfile.license}
+                Not configured
               </span>
             </div>
             <div className="text-xs text-gray-700 space-y-1">
-              <p>📞 Direct: <strong>{repProfile.phone}</strong></p>
-              <p>✉️ Email: <strong>{repProfile.email}</strong></p>
+              <p>Phone: <strong>Not configured</strong></p>
+              <p>Email: <strong>Not configured</strong></p>
             </div>
             <div className="p-3 bg-gray-50 border rounded text-center">
               <div className="text-4xl mb-1">📱</div>
               <p className="text-[11px] font-bold text-gray-800">Scan or Text Digital Business Card</p>
-              <p className="text-[10px] text-gray-500">Includes state contractor license verification & company credentials.</p>
+              <p className="text-[10px] text-gray-500">Add verified business details before sharing this card.</p>
             </div>
           </div>
         )}
@@ -171,7 +157,7 @@ export default function CanvassPage() {
         <div className="bg-white rounded-lg shadow p-4 border-l-4 border-indigo-600 space-y-3">
           <div className="flex justify-between items-center">
             <h2 className="font-bold text-sm text-gray-900 flex items-center">
-              <span className="text-lg mr-1.5">🤖</span> AI Doorstep Opener & Objection Coach
+              <span className="text-lg mr-1.5">🤖</span> Doorstep Opener & Objection Guide
             </h2>
             <span className="text-[10px] bg-indigo-100 text-indigo-900 font-bold px-2 py-0.5 rounded uppercase">
               GOLDEN RULE ALIGNED
@@ -223,7 +209,7 @@ export default function CanvassPage() {
           <input
             type="text"
             required
-            placeholder="Property Address (e.g. 742 Evergreen Terrace)"
+            placeholder="Property address"
             value={form.address}
             onChange={(e) => setForm({ ...form, address: e.target.value })}
             className="w-full p-2.5 border rounded-lg text-sm"
@@ -272,9 +258,10 @@ export default function CanvassPage() {
         <div className="bg-white rounded-lg shadow p-4 space-y-3">
           <h2 className="font-bold text-sm text-gray-800 flex justify-between items-center">
             <span>🗺️ Active Territory Pins ({pins.length})</span>
-            <span className="text-xs text-gray-500 font-normal">Storm Swath Corroborated</span>
+            <span className="text-xs text-gray-500 font-normal">Session-only drafts · not synced</span>
           </h2>
           <div className="space-y-2">
+            {pins.length === 0 && <p className="rounded border border-dashed p-4 text-xs text-gray-500">No draft pins yet. Add an address to create a session-only draft, then convert it to a lead to save it to the workspace.</p>}
             {pins.map((pin) => (
               <div key={pin.id} className="p-3 border rounded-lg bg-gray-50 flex justify-between items-start text-xs border-l-4 border-blue-600">
                 <div className="space-y-1">

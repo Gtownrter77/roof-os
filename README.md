@@ -1,3 +1,13 @@
+# Current repository audit — 2026-10-09
+
+**Current main baseline:** `a308459182e9a6867fb736240c6dc2af9f3aa6e9`  
+**Main CI evidence:** [run 37974227416](https://github.com/Gtownrter77/roof-os/actions/runs/37974227416) passed for that commit.  
+**Current audit record:** [AUDIT-STATUS-2026-10-09.md](AUDIT-STATUS-2026-10-09.md).
+
+The dated checkpoints below are historical snapshots, not proof that the current main commit is deployed or that every production workflow works. This audit inspected the connected Supabase schema and migration ledger and found migration drift plus missing supplier/mobile schema changes documented in [AUDIT-STATUS-2026-10-09.md](AUDIT-STATUS-2026-10-09.md). No production DDL was applied. Direct Vercel project/log inspection was unavailable, and a physical Pixel 8 workflow was not tested. The migration guide reflects repository files through migration `052`; legacy collisions, duplicate SQL, and recovered-but-not-restored production migration sources remain unreconciled.
+
+---
+
 ## 2026-10-08 production release checkpoint
 
 **Runtime source baseline:** `ccfbf8d03309376691d7e10e2f4251ff05ecedc0`

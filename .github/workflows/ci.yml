@@ -94,7 +94,10 @@ jobs:
         run: npm run build
       - run: npx tsc --noEmit
 
+  # This job pushes a refreshed lockfile, so never run it on pull_request events.
+  # Fork PR branch names must not be resolved against and written to the base repository.
   refresh-field-lock:
+    if: github.event_name == 'push' && github.ref != 'refs/heads/main'
     permissions:
       contents: write
     runs-on: ubuntu-latest
