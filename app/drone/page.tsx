@@ -42,7 +42,7 @@ export default function DronePage() {
 
   return (
     <div className="space-y-4 pb-4">
-      <header className="glass sticky top-0 z-10 rounded-xl mb-4">
+      <header className="glass rounded-xl mb-4">
         <div className="px-4 py-3 flex items-center">
           <button type="button" onClick={() => router.push('/')} className="mr-3 text-xl text-cyan-300" aria-label="Go to dashboard">←</button>
           <h1 className="text-xl font-bold">🚁 Drone Intelligence</h1>
