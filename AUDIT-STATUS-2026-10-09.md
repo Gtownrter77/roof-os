@@ -16,7 +16,8 @@
 - The latest observed main CI run completed with conclusion `success`.
 - The main branch build and typecheck completed successfully in the observed CI run.
 - The current CI workflow includes web, mobile, preview build, and migration-safety jobs, along with static and regression checks.
-- GitHub also reported a Vercel success status context for the audited main SHA; live application workflows were not exercised in this audit.
+- GitHub reported a Vercel success status context for the audited main SHA; the current PR preview also reported deployment completion, but I could not inspect runtime logs through the Vercel connector.
+- Connected production Supabase project reports `ACTIVE_HEALTHY`, has 53 public tables with RLS enabled, no public views, and 56 applied timestamped migrations. Read-only SQL checks confirmed no unconditional public read policies and no missing `WITH CHECK` clauses in the checked insert/update policies.
 
 These results apply to the recorded commit and automated checks only; they do not establish that every business workflow is correct in production.
 
@@ -30,12 +31,17 @@ These results apply to the recorded commit and automated checks only; they do no
    - `023_photo_refresh_decisions.sql` / `024_photo_refresh_decisions.sql`
 4. **Stale migration guidance.** The prior guide said the next prefix was `039`, but repository files extend through `052`. The guide now says `053` is the next new local prefix and documents the duplicate-content finding. The old migrations were not renamed or deleted.
 5. **Stale status snapshots.** README and CURRENT-STATE contained old baseline SHAs and historical deployment/test statements that could be mistaken for current verification. They now identify the current baseline and link this report.
-6. **CI write-job scope.** The `refresh-field-lock` job has `contents: write` and pushes to a branch. It was not gated away from pull-request events. The workflow now limits this writer job to non-main push events, avoiding branch-name resolution and writes during PR runs.
+6. **Production migration source drift.** The live ledger includes applied entries `044_inspection_activity_atomicity`, `045_lead_next_action_owner_integrity`, `046_lead_workspace_audit_integrity`, `047_photo_estimate_workspace_integrity`, and `048_lead_owner_workspace_integrity`, but no matching SQL files or path-history commits were found in the current repository. These changes may already exist in the live schema; do not replay them. Recover or reconstruct their source separately.
+7. **Supplier add-on pricing is not enabled in production.** Live provider constraints and `reserve_retailer_price_query` only allow `home_depot` and `lowes`, although routes for `abc`, `srs`, and `beacon` exist. The migration `051_supplier_account_addons.sql` was not applied according to the ledger and did not update the function allowlist. The audit branch now updates both constraints and the quota function, with a release-check regression assertion.
+8. **Mobile field measurement schema is missing in production.** `inspection_measurements` lacks `rafter_lf`, `soffit_lf`, `fascia_lf`, and `roof_type`; migration `052_mobile_field_measurement_inputs.sql` is not recorded in the live ledger. Mobile sync writes for these fields can fail until the migration is safely applied.
+9. **Supabase advisor warnings.** Security advisor: leaked-password protection disabled; six authenticated-executable `SECURITY DEFINER` functions flagged for review. Their current definitions were inspected and contain relevant authorization checks and search-path settings. Performance advisor: 87 unindexed foreign keys, 46 RLS initialization-plan warnings, 105 multiple-permissive-policy warnings, and 48 unused indexes. These require staged, table-specific changes rather than a bulk production rewrite.
+10. **CI write-job scope.** The `refresh-field-lock` job has `contents: write` and pushes to a branch. It was not gated away from pull-request events. The workflow now limits this writer job to non-main push events, avoiding branch-name resolution and writes during PR runs.
 
 ## Fixes made on branches
 
 - On `audit/fix-verified-findings-20261009`:
   - Restricted the lockfile-writing CI job to non-main push events.
+  - Updated the un-applied supplier add-on migration so the server-side quota function accepts the same provider set as the table constraints; added a release-check guard for this contract.
   - Corrected migration-order documentation to the current repository migration head and documented duplicate SQL without rewriting history.
   - Added this status report and marked older README/CURRENT-STATE checkpoints as historical.
   - Removed fabricated canvassing pins, fake inspector credentials, fake portal customers, and invented notification records.
@@ -50,10 +56,11 @@ These results apply to the recorded commit and automated checks only; they do no
 ## Not verified in this audit
 
 - Live Vercel application behavior and end-to-end workflows (the commit had a Vercel success status context, but no live workflow was exercised).
-- Production Supabase migration ledger and RLS behavior.
-- Real login, lead, inspection, photo upload, measurement, estimate approval, and customer-delivery workflows using production credentials.
+- Full end-to-end RLS isolation tests across real authenticated users and separate workspaces; only metadata and read-only policy checks were run.
+- Applying migrations 051 and 052 to a staging database and then production; no staging branch exists, and no production DDL was applied.
 - Physical Pixel 8 APK installation, sign-in, camera capture, offline sync, and upload.
 - Current GitHub dependency/security-alert inventory and a fresh local dependency audit.
+- Full recovery of the source files for production ledger migrations 044–048.
 
 ## Verification rule
 
