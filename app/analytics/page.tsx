@@ -52,28 +52,28 @@ export default function AnalyticsPage() {
   ]
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
-      <header className="bg-blue-600 text-white shadow-lg sticky top-0 z-10">
+    <div className="space-y-4 pb-4">
+      <header className="glass sticky top-0 z-10 rounded-xl mb-4">
         <div className="px-4 py-3 flex items-center">
-          <button onClick={() => router.back()} className="text-white mr-3 text-xl">Back</button>
+          <button onClick={() => router.back()} className="mr-3 text-xl text-cyan-300">Back</button>
           <h1 className="text-xl font-bold">Analytics</h1>
         </div>
       </header>
       <main className="p-4 space-y-4">
-        <p className="text-sm bg-white rounded-lg shadow p-4">{status}</p>
+        <p className="text-sm glass rounded-xl p-4">{status}</p>
         <div className="grid grid-cols-2 gap-3">
           {rows.map((row) => (
-            <div key={row.label} className="bg-white rounded-lg shadow p-4">
-              <p className="text-xs text-gray-500">{row.label}</p>
-              <p className="text-xl font-bold text-blue-600">{row.value}</p>
+            <div key={row.label} className="glass rounded-xl p-4">
+              <p className="text-xs text-slate-400">{row.label}</p>
+              <p className="text-xl font-bold text-cyan-300">{row.value}</p>
             </div>
           ))}
         </div>
       </main>
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around py-2 px-4">
-        <button onClick={() => router.push('/')} className="text-gray-500">Home</button>
-        <button onClick={() => router.push('/leads')} className="text-gray-500">Leads</button>
-        <button onClick={() => router.push('/settings')} className="text-gray-500">Settings</button>
+      <nav className="fixed bottom-0 left-0 right-0 z-30 flex justify-around border-t border-white/10 bg-[#070b14]/95 py-2 px-4 backdrop-blur lg:hidden">
+        <button onClick={() => router.push('/')} className="text-slate-400">Home</button>
+        <button onClick={() => router.push('/leads')} className="text-slate-400">Leads</button>
+        <button onClick={() => router.push('/settings')} className="text-slate-400">Settings</button>
       </nav>
     </div>
   )

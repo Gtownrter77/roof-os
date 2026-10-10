@@ -99,12 +99,12 @@ export default function AIWizardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
-      <header className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg sticky top-0 z-10">
+    <div className="space-y-4 pb-4">
+      <header className="glass sticky top-0 z-10 rounded-xl mb-4">
         <div className="px-4 py-3 flex items-center">
-          <button onClick={() => router.back()} className="text-white mr-3 text-xl">←</button>
+          <button onClick={() => router.back()} className="mr-3 text-xl text-cyan-300">←</button>
           <h1 className="text-xl font-bold">🧙 AI Construction Wizard</h1>
-          <span className="ml-2 bg-green-500 text-white text-xs px-2 py-0.5 rounded-full animate-pulse">REFERENCE AI</span>
+          <span className="ml-2 bg-emerald-400/100 text-white text-xs px-2 py-0.5 rounded-full animate-pulse">REFERENCE AI</span>
         </div>
       </header>
 
@@ -114,7 +114,7 @@ export default function AIWizardPage() {
             <span className="text-3xl mr-3">🧙</span>
             <div>
               <h3 className="font-semibold">Ask Anything About Construction</h3>
-              <p className="text-xs text-gray-500">AI-powered construction expert with building code knowledge</p>
+              <p className="text-xs text-slate-400">AI-powered construction expert with building code knowledge</p>
             </div>
           </div>
         </div>
@@ -139,11 +139,11 @@ export default function AIWizardPage() {
 
         {response && (
           <div className="mt-4 space-y-4 animate-fadeIn">
-            <div className="bg-white rounded-lg shadow-lg p-4 border-2 border-indigo-500">
+            <div className="glass rounded-xl p-4 border-2 border-indigo-500">
               <div className="flex justify-between items-start">
                 <div>
-                  <p className="text-xs text-gray-500">AI Response</p>
-                  <p className="text-sm text-gray-700 mt-1">{response.answer}</p>
+                  <p className="text-xs text-slate-400">AI Response</p>
+                  <p className="text-sm text-slate-200 mt-1">{response.answer}</p>
                 </div>
                 {response.confidence !== null && (
                   <span className="bg-green-100 text-green-800 text-xs px-2 py-0.5 rounded">{response.confidence}% confidence</span>
@@ -151,7 +151,7 @@ export default function AIWizardPage() {
               </div>
               
               {response.code && (
-                <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded">
+                <div className="mt-3 p-3 bg-amber-400/10 border border-yellow-200 rounded">
                   <p className="text-xs font-semibold text-yellow-800">📋 Building Code:</p>
                   <p className="text-xs text-yellow-700">{response.code}</p>
                 </div>
@@ -165,7 +165,7 @@ export default function AIWizardPage() {
                     </span>
                   ))}
                   {response.lifespan && (
-                    <span className="bg-gray-50 text-gray-600 text-xs px-2 py-1 rounded">
+                    <span className="bg-white/5 text-slate-300 text-xs px-2 py-1 rounded">
                       Lifespan: {response.lifespan}
                     </span>
                   )}
@@ -182,8 +182,8 @@ export default function AIWizardPage() {
               </div>
             </div>
 
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-              <p className="text-xs text-blue-800">
+            <div className="bg-cyan-400/10 border border-cyan-400/30 rounded-lg p-3">
+              <p className="text-xs text-cyan-200">
                 ⚠️ This is AI-generated advice. Always verify with local building codes and licensed professionals.
               </p>
             </div>
@@ -191,23 +191,23 @@ export default function AIWizardPage() {
         )}
 
         {history.length > 0 && (
-          <div className="mt-4 bg-white rounded-lg shadow-lg p-4">
+          <div className="mt-4 glass rounded-xl p-4">
             <h3 className="font-semibold text-sm mb-3">📜 History</h3>
             {history.map((item, i) => (
               <div key={i} className="border-b last:border-0 py-2">
                 <div className="flex justify-between">
                   <p className="text-sm font-medium">{item.query}</p>
-                  <p className="text-xs text-gray-400">{item.time}</p>
+                  <p className="text-xs text-slate-400">{item.time}</p>
                 </div>
-                <p className="text-xs text-gray-500">{item.response.answer.substring(0, 100)}...</p>
+                <p className="text-xs text-slate-400">{item.response.answer.substring(0, 100)}...</p>
               </div>
             ))}
           </div>
         )}
       </main>
 
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around py-2 px-4">
-        <button onClick={() => router.push('/')} className="flex flex-col items-center text-gray-400">
+      <nav className="fixed bottom-0 left-0 right-0 z-30 flex justify-around border-t border-white/10 bg-[#070b14]/95 py-2 px-4 backdrop-blur lg:hidden">
+        <button onClick={() => router.push('/')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">🏠</span>
           <span className="text-xs">Home</span>
         </button>
@@ -215,15 +215,15 @@ export default function AIWizardPage() {
           <span className="text-xl">🧙</span>
           <span className="text-xs">Wizard</span>
         </button>
-        <button onClick={() => router.push('/photo-estimate')} className="flex flex-col items-center text-gray-400">
+        <button onClick={() => router.push('/photo-estimate')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">📸</span>
           <span className="text-xs">Photo AI</span>
         </button>
-        <button onClick={() => router.push('/voice-ai')} className="flex flex-col items-center text-gray-400">
+        <button onClick={() => router.push('/voice-ai')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">🎤</span>
           <span className="text-xs">Voice</span>
         </button>
-        <button onClick={() => router.push('/settings')} className="flex flex-col items-center text-gray-400">
+        <button onClick={() => router.push('/settings')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">⚙️</span>
           <span className="text-xs">Settings</span>
         </button>
