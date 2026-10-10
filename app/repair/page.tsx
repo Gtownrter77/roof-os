@@ -260,11 +260,11 @@ export default function RepairPage() {
               <h3 className="font-semibold text-sm mb-2">📊 Estimate Details</h3>
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <div><span className="text-slate-400">Base Estimate:</span> Unknown</div>
-                <div><span className="text-slate-400">Damage Multiplier:</span> {estimate.summary.damageMultiplier.toFixed(2)}x</div>
+                <div><span className="text-slate-400">Damage Multiplier:</span> Unknown</div>
                 <div><span className="text-slate-400">Materials:</span> Unknown</div>
                 <div><span className="text-slate-400">Labor:</span> Unknown</div>
                 <div><span className="text-slate-400">Labor Rate:</span> Unknown</div>
-                <div><span className="text-slate-400">Labor Hours:</span> {estimate.summary.laborHours.toFixed(0)} hrs</div>
+                <div><span className="text-slate-400">Labor Hours:</span> Unknown</div>
               </div>
             </div>
 

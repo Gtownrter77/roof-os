@@ -8,22 +8,6 @@ export default function ARPage() {
   const router = useRouter()
   const [arMode, setArMode] = useState('scan')
   const [detectedIssues, setDetectedIssues] = useState<any[]>([])
-  const [scanning, setScanning] = useState(false)
-
-  const arIssues = [
-    { id: 1, type: '🌊', label: 'Water Damage', severity: 'High', confidence: '94%' },
-    { id: 2, type: '🔨', label: 'Structural Weakness', severity: 'Critical', confidence: '89%' },
-    { id: 3, type: '💨', label: 'Wind Damage', severity: 'Medium', confidence: '78%' },
-    { id: 4, type: '🔥', label: 'Heat Signature', severity: 'Low', confidence: '82%' },
-  ]
-
-  const startARScan = () => {
-    setScanning(true)
-    setTimeout(() => {
-      setDetectedIssues([])
-      setScanning(false)
-    }, 3000)
-  }
 
   return (
     <div className="min-h-screen bg-black text-white pb-20">
@@ -57,7 +41,7 @@ export default function ARPage() {
                 </div>
               ))}
               <div className="absolute bottom-0 left-0 right-0 text-center text-xs text-cyan-300">
-                {scanning ? '🔍 Scanning with LiDAR...' : 'Concept preview only — no inspection findings are generated.'}
+                No camera model is connected. This screen does not detect damage.
               </div>
             </div>
           </div>
@@ -70,7 +54,7 @@ export default function ARPage() {
             disabled={false}
             className="bg-gradient-to-r from-cyan-500 to-blue-600 text-white p-3 rounded-lg font-semibold disabled:opacity-50"
           >
-            {scanning ? '⏳ Scanning' : '🔍 AR Scan'}
+            Open measure
           </button>
           <button className="bg-purple-600 text-white p-3 rounded-lg font-semibold">
             📸 Capture

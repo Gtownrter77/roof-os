@@ -36,7 +36,7 @@ export default function PhotoVerifyPage() {
 
   const verifyPhotos = () => {
     setLoading(true)
-    setTimeout(() => {
+    {
       const covered = photos.map(p => p.type)
       const missing = requiredPhotos
         .filter(req => req.required && !covered.includes(req.id))
@@ -67,7 +67,7 @@ export default function PhotoVerifyPage() {
       setMissingAngles(missing)
       setRecommendations(recommendations)
       setLoading(false)
-    }, 2000)
+    }
   }
 
   const takePhoto = () => {

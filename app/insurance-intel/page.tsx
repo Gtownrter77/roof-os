@@ -19,7 +19,7 @@ export default function InsuranceIntelPage() {
       law: 'O.C.G.A. § 33-24-59',
       description: 'Georgia requires insurance companies to provide a copy of the appraisal report within 30 days.',
       timeframe: '30 days',
-      penalties: 'Up to $5,000 fine for non-compliance',
+      penalties: 'Unknown until you read the statute',
       appraisalRights: 'Policyholders can request a second appraisal at their own expense',
       matchingLaw: 'Georgia does not have a specific matching law, but courts have ruled in favor of matching for continuous roofing',
       caseLaw: 'State Farm v. Miller (2018) - Established precedent for matching',
@@ -69,7 +69,7 @@ export default function InsuranceIntelPage() {
       law: 'N.C. Gen. Stat. § 58-63-15',
       description: 'North Carolina requires insurers to acknowledge claims within 15 days.',
       timeframe: '15 days acknowledgment, 30 days decision',
-      penalties: 'Up to $5,000 per violation',
+      penalties: 'Unknown until you read the statute',
       appraisalRights: 'Appraisal rights are standard in policies',
       matchingLaw: 'North Carolina has moderate matching protections',
       caseLaw: 'Hargrove v. Allstate (2020) - Matching case',
@@ -79,7 +79,7 @@ export default function InsuranceIntelPage() {
       law: 'S.C. Code Ann. § 38-75-10',
       description: 'South Carolina has strong consumer protection laws for insurance.',
       timeframe: '15 days for acknowledgment, 30 days for decision',
-      penalties: 'Up to $10,000 per violation',
+      penalties: 'Unknown until you read the statute',
       appraisalRights: 'Policyholders have appraisal rights',
       matchingLaw: 'South Carolina courts have recognized matching for roofs',
       caseLaw: 'Jones v. State Farm (2021)',
@@ -116,7 +116,7 @@ export default function InsuranceIntelPage() {
       website: 'atlantaga.gov/building',
       hours: 'Monday-Friday 8:00 AM - 5:00 PM',
       permitTypes: ['Roof', 'Siding', 'Windows', 'Doors', 'Decks', 'Additions'],
-      permitFees: 'Roof: $150 + $0.05 per sq ft',
+      permitFees: 'Unknown until the building department quotes it',
       processingTime: '2-5 business days',
       inspectionDays: 'Monday-Friday'
     },
@@ -127,7 +127,7 @@ export default function InsuranceIntelPage() {
       website: 'mariettaga.gov/building',
       hours: 'Monday-Friday 8:00 AM - 5:00 PM',
       permitTypes: ['Roof', 'Siding', 'Windows', 'Doors', 'Decks'],
-      permitFees: 'Roof: $100 + $0.04 per sq ft',
+      permitFees: 'Unknown until the building department quotes it',
       processingTime: '1-3 business days',
       inspectionDays: 'Monday-Friday'
     },
@@ -138,7 +138,7 @@ export default function InsuranceIntelPage() {
       website: 'decaturga.com/building',
       hours: 'Monday-Friday 8:00 AM - 5:00 PM',
       permitTypes: ['Roof', 'Siding', 'Windows', 'Doors', 'Decks'],
-      permitFees: 'Roof: $120 + $0.04 per sq ft',
+      permitFees: 'Unknown until the building department quotes it',
       processingTime: '2-4 business days',
       inspectionDays: 'Monday-Friday'
     },
@@ -149,7 +149,7 @@ export default function InsuranceIntelPage() {
       website: 'savannahga.gov/building',
       hours: 'Monday-Friday 8:30 AM - 5:00 PM',
       permitTypes: ['Roof', 'Siding', 'Windows', 'Doors'],
-      permitFees: 'Roof: $75 + $0.03 per sq ft',
+      permitFees: 'Unknown until the building department quotes it',
       processingTime: '3-5 business days',
       inspectionDays: 'Monday-Friday'
     },
@@ -160,7 +160,7 @@ export default function InsuranceIntelPage() {
       website: 'augustaga.gov/building',
       hours: 'Monday-Friday 8:00 AM - 5:00 PM',
       permitTypes: ['Roof', 'Siding', 'Windows', 'Doors', 'Decks'],
-      permitFees: 'Roof: $90 + $0.04 per sq ft',
+      permitFees: 'Unknown until the building department quotes it',
       processingTime: '2-4 business days',
       inspectionDays: 'Monday-Friday'
     },
@@ -171,7 +171,7 @@ export default function InsuranceIntelPage() {
       website: 'columbusga.gov/building',
       hours: 'Monday-Friday 8:00 AM - 5:00 PM',
       permitTypes: ['Roof', 'Siding', 'Windows', 'Doors'],
-      permitFees: 'Roof: $80 + $0.03 per sq ft',
+      permitFees: 'Unknown until the building department quotes it',
       processingTime: '2-3 business days',
       inspectionDays: 'Monday-Friday'
     },
@@ -182,7 +182,7 @@ export default function InsuranceIntelPage() {
       website: 'maconbibb.us/building',
       hours: 'Monday-Friday 8:00 AM - 5:00 PM',
       permitTypes: ['Roof', 'Siding', 'Windows', 'Doors'],
-      permitFees: 'Roof: $75 + $0.03 per sq ft',
+      permitFees: 'Unknown until the building department quotes it',
       processingTime: '2-4 business days',
       inspectionDays: 'Monday-Friday'
     }

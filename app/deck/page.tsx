@@ -312,7 +312,7 @@ export default function DeckPage() {
                   <span>Unknown</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span>Labor ({estimate.labor.hours.toFixed(0)} hrs rate Unknown)</span>
+                  <span>Labor (hours Unknown, rate Unknown)</span>
                   <span>Unknown</span>
                 </div>
                 <div className="flex justify-between text-sm border-t pt-2 font-bold text-lg">
