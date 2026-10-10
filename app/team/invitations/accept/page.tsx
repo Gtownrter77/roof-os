@@ -33,12 +33,12 @@ function AcceptInvitationContent() {
 
   return (
     <main className="mx-auto flex min-h-screen max-w-xl items-center px-6 py-12">
-      <section className="w-full rounded-xl border border-gray-200 bg-white p-8 shadow-sm">
+      <section className="w-full glass rounded-xl p-8 shadow-sm">
         <h1 className="text-2xl font-semibold">Workspace invitation</h1>
         {error ? (
           <p className="mt-4 text-red-700">{error}</p>
         ) : (
-          <p className="mt-4 text-gray-700">{message}</p>
+          <p className="mt-4 text-slate-200">{message}</p>
         )}
         <a className="mt-6 inline-block rounded-lg bg-black px-4 py-2 text-white" href="/">
           Continue to ROOF/OS
@@ -50,7 +50,7 @@ function AcceptInvitationContent() {
 
 export default function AcceptInvitationPage() {
   return (
-    <Suspense fallback={<main className="mx-auto flex min-h-screen max-w-xl items-center px-6 py-12"><section className="w-full rounded-xl border border-gray-200 bg-white p-8 shadow-sm"><h1 className="text-2xl font-semibold">Workspace invitation</h1><p className="mt-4 text-gray-700">Loading invitation…</p></section></main>}>
+    <Suspense fallback={<main className="mx-auto flex min-h-screen max-w-xl items-center px-6 py-12"><section className="w-full glass rounded-xl p-8 shadow-sm"><h1 className="text-2xl font-semibold">Workspace invitation</h1><p className="mt-4 text-slate-200">Loading invitation…</p></section></main>}>
       <AcceptInvitationContent />
     </Suspense>
   )

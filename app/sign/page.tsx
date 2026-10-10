@@ -36,35 +36,35 @@ export default function SignPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
-      <header className="bg-blue-600 text-white shadow-lg sticky top-0 z-10">
+    <div className="space-y-4 pb-4">
+      <header className="glass sticky top-0 z-10 rounded-xl mb-4">
         <div className="px-4 py-3 flex items-center">
-          <button onClick={() => router.back()} className="text-white mr-3 text-xl">←</button>
+          <button onClick={() => router.back()} className="mr-3 text-xl text-cyan-300">←</button>
           <h1 className="text-xl font-bold">✍️ Document &amp; Contract Signing</h1>
         </div>
       </header>
 
       <main className="p-4 max-w-3xl mx-auto space-y-4">
         {errorMessage && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded-lg text-sm">
+          <div className="bg-red-400/10 border border-red-200 text-red-700 px-4 py-2 rounded-lg text-sm">
             {errorMessage}
           </div>
         )}
 
         {successMessage && (
-          <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg text-sm font-semibold">
+          <div className="bg-emerald-400/10 border border-emerald-400/30 text-green-800 px-4 py-3 rounded-lg text-sm font-semibold">
             {successMessage}
           </div>
         )}
 
-        <div className="bg-white rounded-lg shadow p-4">
+        <div className="glass rounded-xl p-4">
           <h3 className="font-semibold text-sm mb-3">📄 Pending Authorization Documents</h3>
           <div className="divide-y">
             {documents.map((doc) => (
               <div key={doc.id} className="flex justify-between items-center py-2.5">
                 <div>
-                  <p className="font-medium text-sm text-gray-900">{doc.name}</p>
-                  <p className="text-xs text-gray-400">{doc.date}</p>
+                  <p className="font-medium text-sm text-white">{doc.name}</p>
+                  <p className="text-xs text-slate-400">{doc.date}</p>
                 </div>
                 <span
                   className={`text-xs px-2.5 py-1 rounded font-semibold ${
@@ -78,13 +78,13 @@ export default function SignPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-4 space-y-3">
+        <div className="glass rounded-xl p-4 space-y-3">
           <h3 className="font-semibold text-sm">✍️ E-Sign Roofing Contract</h3>
-          <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center bg-gray-50">
+          <div className="border-2 border-dashed border-white/15 rounded-lg p-6 text-center bg-white/5">
             <span className="text-3xl block mb-1">📝</span>
-            <p className="text-xs text-gray-500">Sign below with legal name for binding contractor authorization</p>
+            <p className="text-xs text-slate-400">Sign below with legal name for binding contractor authorization</p>
             {signature && (
-              <p className="text-xl font-serif italic text-blue-700 mt-2 font-bold">{signature}</p>
+              <p className="text-xl font-serif italic text-cyan-300 mt-2 font-bold">{signature}</p>
             )}
           </div>
 
@@ -101,14 +101,14 @@ export default function SignPage() {
             onClick={handleSign}
             disabled={signed}
             className={`w-full py-2.5 rounded-lg font-semibold text-sm transition-colors ${
-              signed ? 'bg-green-600 text-white cursor-default' : 'bg-blue-600 hover:bg-blue-500 text-white'
+              signed ? 'bg-green-600 text-white cursor-default' : 'bg-blue-600 hover:bg-cyan-400/100 text-white'
             }`}
           >
             {signed ? '✅ Contract Legally Executed' : '✍️ Execute Legal Signature'}
           </button>
         </div>
 
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs text-blue-800">
+        <div className="bg-cyan-400/10 border border-cyan-400/30 rounded-lg p-3 text-xs text-cyan-200">
           🔒 ESIGN &amp; UETA Compliant • IP, Browser User Agent &amp; UTC Timestamp permanently recorded with Roof Passport.
         </div>
       </main>

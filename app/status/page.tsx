@@ -48,10 +48,10 @@ export default function StatusPage() {
 
   const getStatusColor = (status: ServiceStatus) => {
     switch (status) {
-      case 'online': return 'bg-green-500'
-      case 'offline': return 'bg-red-500'
-      case 'checking': return 'bg-yellow-500'
-      default: return 'bg-gray-500'
+      case 'online': return 'bg-emerald-400/100'
+      case 'offline': return 'bg-red-400/100'
+      case 'checking': return 'bg-amber-400/100'
+      default: return 'bg-white/50'
     }
   }
 
@@ -72,33 +72,33 @@ export default function StatusPage() {
   ]
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
-      <header className="bg-blue-600 text-white shadow-lg sticky top-0 z-10">
+    <div className="space-y-4 pb-4">
+      <header className="glass sticky top-0 z-10 rounded-xl mb-4">
         <div className="px-4 py-3 flex items-center">
-          <button onClick={() => router.back()} className="text-white mr-3 text-xl">←</button>
+          <button onClick={() => router.back()} className="mr-3 text-xl text-cyan-300">←</button>
           <h1 className="text-xl font-bold">System Status</h1>
         </div>
       </header>
 
       <main className="p-4">
-        <div className="bg-white rounded-lg shadow p-6 text-center mb-4">
+        <div className="glass rounded-xl p-6 text-center mb-4">
           <div className="text-4xl mb-2">{health?.overall === 'operational' ? '🟢' : '🟡'}</div>
           <h2 className="text-xl font-bold">
             {health ? (health.overall === 'operational' ? 'All Checked Systems Operational' : 'System Degraded') : 'Checking Systems'}
           </h2>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-slate-400">
             Uptime: {health?.uptime === 'not_measured' ? 'Not measured' : 'Checking'}
           </p>
-          {health && <p className="text-xs text-gray-400 mt-1">Checked {new Date(health.checkedAt).toLocaleString()} in {health.responseMs}ms</p>}
+          {health && <p className="text-xs text-slate-400 mt-1">Checked {new Date(health.checkedAt).toLocaleString()} in {health.responseMs}ms</p>}
           {error && <p className="text-sm text-red-700 mt-2" role="alert">{error}</p>}
         </div>
 
         <div className="space-y-2">
           {serviceRows.map((service) => (
-            <div key={service.key} className="bg-white rounded-lg shadow p-4 flex justify-between items-center">
+            <div key={service.key} className="glass rounded-xl p-4 flex justify-between items-center">
               <div>
                 <p className="font-medium">{service.name}</p>
-                <p className="text-sm text-gray-600">{getStatusText(services[service.key])}</p>
+                <p className="text-sm text-slate-300">{getStatusText(services[service.key])}</p>
               </div>
               <div className={`w-3 h-3 rounded-full ${getStatusColor(services[service.key])}`} />
             </div>
@@ -106,12 +106,12 @@ export default function StatusPage() {
         </div>
       </main>
 
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around py-2 px-4">
-        <button onClick={() => router.push('/')} className="flex flex-col items-center text-gray-400"><span className="text-xl">🏠</span><span className="text-xs">Home</span></button>
-        <button onClick={() => router.push('/status')} className="flex flex-col items-center text-blue-600"><span className="text-xl">📊</span><span className="text-xs">Status</span></button>
-        <button onClick={() => router.push('/settings')} className="flex flex-col items-center text-gray-400"><span className="text-xl">⚙️</span><span className="text-xs">Settings</span></button>
-        <button onClick={() => router.push('/profile')} className="flex flex-col items-center text-gray-400"><span className="text-xl">👤</span><span className="text-xs">Profile</span></button>
-        <button onClick={() => router.push('/plans')} className="flex flex-col items-center text-gray-400"><span className="text-xl">💰</span><span className="text-xs">Plans</span></button>
+      <nav className="fixed bottom-0 left-0 right-0 z-30 flex justify-around border-t border-white/10 bg-[#070b14]/95 py-2 px-4 backdrop-blur lg:hidden">
+        <button onClick={() => router.push('/')} className="flex flex-col items-center text-slate-400"><span className="text-xl">🏠</span><span className="text-xs">Home</span></button>
+        <button onClick={() => router.push('/status')} className="flex flex-col items-center text-cyan-300"><span className="text-xl">📊</span><span className="text-xs">Status</span></button>
+        <button onClick={() => router.push('/settings')} className="flex flex-col items-center text-slate-400"><span className="text-xl">⚙️</span><span className="text-xs">Settings</span></button>
+        <button onClick={() => router.push('/profile')} className="flex flex-col items-center text-slate-400"><span className="text-xl">👤</span><span className="text-xs">Profile</span></button>
+        <button onClick={() => router.push('/plans')} className="flex flex-col items-center text-slate-400"><span className="text-xl">💰</span><span className="text-xs">Plans</span></button>
       </nav>
     </div>
   )
