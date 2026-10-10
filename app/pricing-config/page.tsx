@@ -1,9 +1,105 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ComponentType } from 'react'
 import { useRouter } from 'next/navigation'
+import {
+  AlignStartHorizontal,
+  AppWindow,
+  ArrowDown,
+  BrickWall,
+  Building2,
+  CircleDot,
+  CloudRain,
+  Construction,
+  DoorOpen,
+  Droplets,
+  Fan,
+  Fence,
+  FileCheck,
+  Grid3x3,
+  Hammer,
+  HardHat,
+  House,
+  Layers,
+  LayoutGrid,
+  Leaf,
+  Lightbulb,
+  Magnet,
+  Mountain,
+  Paintbrush,
+  PanelTop,
+  PanelsTopLeft,
+  Play,
+  Ruler,
+  Satellite,
+  ScanSearch,
+  Shield,
+  Snowflake,
+  Sofa,
+  Sparkles,
+  Spline,
+  SquareStack,
+  Sun,
+  SunMedium,
+  Trash2,
+  Triangle,
+  Truck,
+  Warehouse,
+  Waves,
+  Wind,
+  Wrench,
+  Zap,
+} from 'lucide-react'
 import { smartBack } from '../../lib/smart-back'
-import { OWNER_LABOR_SERVICES } from '../../lib/pricing/owner-labor'
+import { OWNER_LABOR_SERVICES, type OwnerLaborIcon } from '../../lib/pricing/owner-labor'
+
+const LABOR_ICONS: Record<OwnerLaborIcon, ComponentType<{ className?: string; strokeWidth?: number }>> = {
+  House,
+  Fence,
+  AppWindow,
+  DoorOpen,
+  CloudRain,
+  Layers,
+  SquareStack,
+  Paintbrush,
+  Zap,
+  Droplets,
+  Fan,
+  Hammer,
+  Sparkles,
+  ScanSearch,
+  Lightbulb,
+  Trash2,
+  Mountain,
+  Building2,
+  Wrench,
+  PanelsTopLeft,
+  LayoutGrid,
+  BrickWall,
+  Grid3x3,
+  Shield,
+  Ruler,
+  Warehouse,
+  Spline,
+  Waves,
+  CircleDot,
+  Sun,
+  AlignStartHorizontal,
+  Snowflake,
+  Play,
+  Triangle,
+  Wind,
+  Leaf,
+  ArrowDown,
+  PanelTop,
+  Satellite,
+  SunMedium,
+  Construction,
+  Sofa,
+  Magnet,
+  Truck,
+  FileCheck,
+}
 
 export default function PricingConfigPage() {
   const router = useRouter()
@@ -190,18 +286,25 @@ export default function PricingConfigPage() {
 
         {/* Labor Rates */}
         <div className="glass rounded-xl p-4 mb-4 border border-orange-200">
-          <h3 className="font-semibold text-sm mb-3 flex items-center">
-            <span className="text-xl mr-2">👷</span> Labor Rate Configuration
+          <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-cyan-400/30 bg-cyan-400/10 text-cyan-200">
+              <HardHat className="h-4 w-4" strokeWidth={1.75} />
+            </span>
+            Labor Rate Configuration
           </h3>
           <p className="text-xs text-slate-400 mb-3">
             {Object.keys(laborRates).length} owner labor services. Rates stay reference-only until you save and activate the price book.
           </p>
           
           <div className="grid grid-cols-2 gap-2 max-h-[70vh] overflow-y-auto sm:grid-cols-3">
-            {Object.entries(laborRates).map(([key, value]: [string, any]) => (
+            {Object.entries(laborRates).map(([key, value]: [string, any]) => {
+              const Icon = LABOR_ICONS[value.icon as OwnerLaborIcon] ?? Wrench
+              return (
               <div key={key} className="bg-white/5 rounded-lg p-2 border border-white/10">
-                <div className="flex items-center gap-1">
-                  <span>{value.icon}</span>
+                <div className="flex items-center gap-2">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-cyan-400/25 bg-gradient-to-br from-cyan-400/15 to-slate-950 text-cyan-200">
+                    <Icon className="h-3.5 w-3.5" strokeWidth={1.75} />
+                  </span>
                   <span className="text-xs font-medium">{value.label}</span>
                 </div>
                 <div className="flex items-center gap-2 mt-1">
@@ -217,7 +320,8 @@ export default function PricingConfigPage() {
                 </div>
                 <p className="text-[10px] text-slate-400 truncate">{value.description}</p>
               </div>
-            ))}
+              )
+            })}
           </div>
           {saveMessage && <p className="mt-3 text-xs text-cyan-200 bg-cyan-400/10 rounded p-2">{saveMessage}</p>}
         </div>
