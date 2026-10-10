@@ -72,7 +72,7 @@ export default function CanvassPage() {
     setNotice('')
     try {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { router.push('/auth/enter'); return }
+      if (!user) { router.push('/auth/login'); return }
       const { data: workspaceId, error: workspaceError } = await supabase.rpc('current_workspace_id')
       if (workspaceError || !workspaceId) {
         setError('Active workspace is required to convert leads.')

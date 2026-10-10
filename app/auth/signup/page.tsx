@@ -42,7 +42,7 @@ export default function SignupPage() {
         {message && <p className="text-sm text-emerald-300 mb-3" role="status">{message}</p>}
         {error && <p className="text-sm text-red-300 mb-3" role="alert">{error}</p>}
         <button type="submit" disabled={loading} className="ops-btn-primary w-full py-3 disabled:opacity-60">{loading ? 'Creating workspace…' : 'Create workspace'}</button>
-        <button type="button" onClick={() => router.push('/auth/enter')} className="mt-4 w-full text-sm text-cyan-300">Already have an account?</button>
+        <button type="button" onClick={() => router.push('/auth/login')} className="mt-4 w-full text-sm text-cyan-300">Already have an account?</button>
       </form>
     </div>
   )

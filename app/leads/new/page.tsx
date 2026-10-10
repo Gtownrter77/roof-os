@@ -16,7 +16,7 @@ export default function NewLeadPage() {
     e.preventDefault()
     setSaving(true); setError('')
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { router.replace('/auth/enter'); return }
+    if (!user) { router.replace('/auth/login'); return }
     const { data: workspaceId, error: workspaceError } = await supabase.rpc('current_workspace_id')
     if (workspaceError || !workspaceId) { setError(workspaceError?.message ?? 'No workspace is available.'); setSaving(false); return }
     const nextDue = form.nextActionDue ? new Date(form.nextActionDue).toISOString() : null

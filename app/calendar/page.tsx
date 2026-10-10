@@ -30,7 +30,7 @@ export default function CalendarPage() {
 
   async function loadAppointments() {
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { router.replace('/auth/enter'); return }
+    if (!user) { router.replace('/auth/login'); return }
     const { data, error: queryError } = await supabase.from('appointments').select('id,title,appointment_type,starts_at,ends_at,location,notes,status').gte('starts_at', new Date().toISOString()).order('starts_at', { ascending: true })
     if (queryError) setError(queryError.message)
     else setAppointments(data ?? [])
