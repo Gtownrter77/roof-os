@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { smartBack } from '../../lib/smart-back'
 
 type Settings = {
   price_refresh_frequency: string
@@ -143,10 +144,10 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-4 pb-4">
-      <header className="glass sticky top-0 z-10 rounded-xl mb-4">
+      <header className="glass rounded-xl mb-4">
         <div className="px-4 py-3 flex items-center justify-between">
           <div className="flex items-center">
-            <button onClick={() => router.back()} className="mr-3 text-xl text-cyan-300">←</button>
+            <button onClick={() => smartBack(router)} className="mr-3 text-xl text-cyan-300">←</button>
             <h1 className="text-xl font-bold">⚙️ Workspace Settings & System Toggles</h1>
           </div>
           <span className="bg-emerald-400 text-black text-xs font-bold px-2.5 py-0.5 rounded uppercase">

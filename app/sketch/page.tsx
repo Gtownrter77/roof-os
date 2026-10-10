@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { smartBack } from '../../lib/smart-back'
 
 type Measurement = { text: string; id: number }
 type Tool = 'pencil' | 'line' | 'rectangle' | 'circle'
@@ -157,9 +158,9 @@ export default function SketchPage() {
 
   return (
     <div className="space-y-4 pb-4">
-      <header className="glass sticky top-0 z-10 rounded-xl mb-4">
+      <header className="glass rounded-xl mb-4">
         <div className="px-4 py-3 flex items-center">
-          <button type="button" onClick={() => router.back()} className="mr-3 text-xl text-cyan-300" aria-label="Go back">←</button>
+          <button type="button" onClick={() => smartBack(router)} className="mr-3 text-xl text-cyan-300" aria-label="Go back">←</button>
           <h1 className="text-xl font-bold">✏️ Sketch Pad</h1>
         </div>
       </header>

@@ -3,6 +3,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { smartBack } from '../../lib/smart-back'
 import { createClient } from '../../lib/supabase/client'
 
 type Appointment = { id: string; title: string; appointment_type: string; starts_at: string; status: string }
@@ -42,9 +43,9 @@ export default function SchedulePage() {
 
   return (
     <div className="space-y-4 pb-4">
-      <header className="glass sticky top-0 z-10 rounded-xl mb-4">
+      <header className="glass rounded-xl mb-4">
         <div className="px-4 py-3 flex items-center">
-          <button onClick={() => router.back()} className="mr-3 text-xl text-cyan-300">Back</button>
+          <button onClick={() => smartBack(router)} className="mr-3 text-xl text-cyan-300">Back</button>
           <h1 className="text-xl font-bold">Schedule</h1>
         </div>
       </header>
