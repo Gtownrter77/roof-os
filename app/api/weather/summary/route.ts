@@ -134,14 +134,15 @@ export async function GET(request: NextRequest) {
     const point = parsePoint(query.get('latitude'), query.get('longitude'))
 
     let location: GeocodedLocation | null = null
-    if (zip) {
+    // Device/user coordinates win when provided — radar cinema is localized to the person watching.
+    if (point) {
+      location = await locationFromPoint(point.latitude, point.longitude, zip || undefined)
+    } else if (zip) {
       try {
         location = await geocodeZip(zip)
       } catch {
         return response({ error: 'OpenStreetMap could not resolve the service ZIP. Weather is not shown.' }, 502)
       }
-    } else if (point) {
-      location = await locationFromPoint(point.latitude, point.longitude)
     } else {
       return response({
         status: 'location_missing',
@@ -169,7 +170,9 @@ export async function GET(request: NextRequest) {
       forecast: forecast.status === 'fulfilled' ? forecast.value : null,
       forecastStatus: forecast.status === 'fulfilled' && forecast.value ? 'available' : 'unknown',
       alerts: alertsResult.value,
-      alertSource: 'National Weather Service active alerts at the workspace service location',
+      alertSource: point
+        ? 'National Weather Service active alerts at the device location'
+        : 'National Weather Service active alerts at the workspace service location',
       radar,
       radarStatus: radar ? 'available' : 'outside_supported_noaa_mrms_coverage',
       sources: {
