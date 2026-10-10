@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { smartBack } from '../../lib/smart-back'
 
 export default function GeneticPage() {
   const router = useRouter()
@@ -39,9 +40,9 @@ export default function GeneticPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-950 to-teal-950 text-white pb-20">
-      <header className="bg-gradient-to-r from-green-600 to-teal-600 text-white shadow-lg sticky top-0 z-10">
+      <header className="glass rounded-xl mb-4">
         <div className="px-4 py-3 flex items-center">
-          <button onClick={() => router.back()} className="text-white mr-3 text-xl">←</button>
+          <button onClick={() => smartBack(router)} className="mr-3 text-xl text-cyan-300">←</button>
           <h1 className="text-xl font-bold">🧬 Genetic AI Optimizer</h1>
           <span className="ml-2 bg-teal-500 text-white text-xs px-2 py-0.5 rounded-full animate-pulse">SIMULATION</span>
         </div>
@@ -81,11 +82,11 @@ export default function GeneticPage() {
                 <div className="flex justify-between items-center">
                   <div>
                     <p className="font-medium">Gen {sol.generation}</p>
-                    <p className="text-xs text-gray-400">Material: {sol.materials}</p>
+                    <p className="text-xs text-slate-400">Material: {sol.materials}</p>
                   </div>
                   <div className="text-right">
                     <p className="font-bold text-yellow-400">{sol.score}%</p>
-                    <p className="text-xs text-gray-400">{sol.cost} • {sol.lifespan}</p>
+                    <p className="text-xs text-slate-400">{sol.cost} • {sol.lifespan}</p>
                   </div>
                 </div>
               </div>
@@ -95,7 +96,7 @@ export default function GeneticPage() {
       </main>
 
       <nav className="fixed bottom-0 left-0 right-0 bg-gray-900 border-t border-teal-500 flex justify-around py-2 px-4">
-        <button onClick={() => router.push('/')} className="flex flex-col items-center text-gray-400">
+        <button onClick={() => router.push('/')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">🏠</span>
           <span className="text-xs">Home</span>
         </button>
@@ -103,15 +104,15 @@ export default function GeneticPage() {
           <span className="text-xl">🧬</span>
           <span className="text-xs">Genetic</span>
         </button>
-        <button onClick={() => router.push('/quantum')} className="flex flex-col items-center text-gray-400">
+        <button onClick={() => router.push('/quantum')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">⚛️</span>
           <span className="text-xs">Quantum</span>
         </button>
-        <button onClick={() => router.push('/ar')} className="flex flex-col items-center text-gray-400">
+        <button onClick={() => router.push('/ar')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">🛸</span>
           <span className="text-xs">AR</span>
         </button>
-        <button onClick={() => router.push('/settings')} className="flex flex-col items-center text-gray-400">
+        <button onClick={() => router.push('/settings')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">⚙️</span>
           <span className="text-xs">Settings</span>
         </button>

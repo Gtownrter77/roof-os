@@ -3,6 +3,7 @@
 
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { smartBack } from '../../lib/smart-back'
 import { createClient } from '../../lib/supabase/client'
 
 type Lead = { id: string; name: string | null; address: string | null; status: string | null }
@@ -45,10 +46,10 @@ export default function SearchPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
-      <header className="bg-blue-600 text-white shadow-lg sticky top-0 z-10">
+    <div className="space-y-4 pb-4">
+      <header className="glass rounded-xl mb-4">
         <div className="px-4 py-3 flex items-center">
-          <button onClick={() => router.back()} className="text-white mr-3 text-xl">Back</button>
+          <button onClick={() => smartBack(router)} className="mr-3 text-xl text-cyan-300">Back</button>
           <h1 className="text-xl font-bold">Search</h1>
         </div>
       </header>
@@ -57,11 +58,11 @@ export default function SearchPage() {
           <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search lead name or address" className="flex-1 p-3 border rounded-lg" />
           <button type="submit" className="bg-blue-600 text-white px-4 py-3 rounded-lg font-semibold">Search</button>
         </form>
-        <p className="text-sm bg-white rounded-lg shadow p-4">{status}</p>
+        <p className="text-sm glass rounded-xl p-4">{status}</p>
         {results.map((lead) => (
-          <button key={lead.id} onClick={() => router.push(`/leads/${lead.id}`)} className="w-full text-left bg-white rounded-lg shadow p-4">
+          <button key={lead.id} onClick={() => router.push(`/leads/${lead.id}`)} className="w-full text-left glass rounded-xl p-4">
             <p className="font-semibold text-sm">{lead.name || 'Unknown'}</p>
-            <p className="text-xs text-gray-500">{lead.address || 'Unknown'} · {lead.status || 'Unknown'}</p>
+            <p className="text-xs text-slate-400">{lead.address || 'Unknown'} · {lead.status || 'Unknown'}</p>
           </button>
         ))}
       </main>

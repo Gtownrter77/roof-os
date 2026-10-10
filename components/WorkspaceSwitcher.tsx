@@ -83,16 +83,16 @@ export default function WorkspaceSwitcher() {
   }
 
   return (
-    <div className="mx-auto flex max-w-6xl flex-col items-end px-4 pt-3">
-      {error && <p className="mb-2 text-xs text-red-600" role="alert">{error}</p>}
-      <label className="text-xs text-gray-500" htmlFor="active-workspace">
+    <div className="mx-auto flex max-w-[1600px] flex-col items-end px-4 pt-3 md:px-6">
+      {error && <p className="mb-2 text-xs text-red-300" role="alert">{error}</p>}
+      <label className="text-xs text-slate-400" htmlFor="active-workspace">
         Workspace
         <select
           id="active-workspace"
           value={activeWorkspaceId}
           disabled={saving}
           onChange={(event) => void chooseWorkspace(event.target.value)}
-          className="ml-2 rounded border border-gray-300 bg-white px-2 py-1 text-sm text-gray-800 disabled:opacity-60"
+          className="ml-2 rounded border border-white/15 bg-[#0a1427] px-2 py-1 text-sm text-white disabled:opacity-60"
         >
           {workspaces.map((workspace) => <option key={workspace.id} value={workspace.id}>{workspace.name}</option>)}
         </select>

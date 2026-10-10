@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { smartBack } from '../../lib/smart-back'
 
 export default function PlansPage() {
   const router = useRouter()
@@ -57,25 +58,25 @@ export default function PlansPage() {
   ]
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
-      <header className="bg-blue-600 text-white shadow-lg sticky top-0 z-10">
+    <div className="space-y-4 pb-4">
+      <header className="glass rounded-xl mb-4">
         <div className="px-4 py-3 flex items-center">
-          <button onClick={() => router.back()} className="text-white mr-3 text-xl">←</button>
+          <button onClick={() => smartBack(router)} className="mr-3 text-xl text-cyan-300">←</button>
           <h1 className="text-xl font-bold">💰 Pricing Plans</h1>
         </div>
       </header>
 
-      <main className="p-4"><p className="text-sm bg-white rounded-lg shadow p-4 mb-4">This plan screen does not write a price.</p>
+      <main className="p-4"><p className="text-sm glass rounded-xl p-4 mb-4">This plan screen does not write a price.</p>
         <div className="text-center mb-6">
           <h2 className="text-2xl font-bold">Choose Your Plan</h2>
-          <p className="text-sm text-gray-500">Start free, upgrade anytime</p>
+          <p className="text-sm text-slate-400">Start free, upgrade anytime</p>
         </div>
 
         <div className="space-y-4">
           {plans.map((plan) => (
             <div 
               key={plan.id}
-              className={`bg-white rounded-lg shadow p-6 border-2 transition-all Unknown`}
+              className={`glass rounded-xl p-6 border-2 transition-all Unknown`}
             >
               {plan.popular && (
                 <span className="bg-blue-600 text-white text-xs px-3 py-1 rounded-full inline-block mb-2">
@@ -87,7 +88,7 @@ export default function PlansPage() {
                   <h3 className="text-xl font-bold">{plan.name}</h3>
                   <div className="mt-1">
                     <span className="text-3xl font-bold">Unknown</span>
-                    <span className="text-gray-500 text-sm">{plan.period}</span>
+                    <span className="text-slate-400 text-sm">{plan.period}</span>
                   </div>
                 </div>
                 <button 
@@ -108,31 +109,31 @@ export default function PlansPage() {
           ))}
         </div>
 
-        <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <p className="text-sm text-blue-800 text-center">
+        <div className="mt-6 bg-cyan-400/10 border border-cyan-400/30 rounded-lg p-4">
+          <p className="text-sm text-cyan-200 text-center">
             🔒 All plans include 14-day free trial • No credit card required
           </p>
         </div>
       </main>
 
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around py-2 px-4">
-        <button onClick={() => router.push('/')} className="flex flex-col items-center text-gray-400">
+      <nav className="fixed bottom-0 left-0 right-0 z-30 flex justify-around border-t border-white/10 bg-[#070b14]/95 py-2 px-4 backdrop-blur lg:hidden">
+        <button onClick={() => router.push('/')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">🏠</span>
           <span className="text-xs">Home</span>
         </button>
-        <button onClick={() => router.push('/plans')} className="flex flex-col items-center text-blue-600">
+        <button onClick={() => router.push('/plans')} className="flex flex-col items-center text-cyan-300">
           <span className="text-xl">💰</span>
           <span className="text-xs">Plans</span>
         </button>
-        <button onClick={() => router.push('/portal')} className="flex flex-col items-center text-gray-400">
+        <button onClick={() => router.push('/portal')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">👥</span>
           <span className="text-xs">Customers</span>
         </button>
-        <button onClick={() => router.push('/ai')} className="flex flex-col items-center text-gray-400">
+        <button onClick={() => router.push('/ai')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">🤖</span>
           <span className="text-xs">AI</span>
         </button>
-        <button onClick={() => router.push('/settings')} className="flex flex-col items-center text-gray-400">
+        <button onClick={() => router.push('/settings')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">⚙️</span>
           <span className="text-xs">Settings</span>
         </button>

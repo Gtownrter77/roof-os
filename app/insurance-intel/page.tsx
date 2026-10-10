@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { smartBack } from '../../lib/smart-back'
 
 export default function InsuranceIntelPage() {
   const router = useRouter()
@@ -245,18 +246,18 @@ export default function InsuranceIntelPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
-      <header className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg sticky top-0 z-10">
+    <div className="space-y-4 pb-4">
+      <header className="glass rounded-xl mb-4">
         <div className="px-4 py-3 flex items-center">
-          <button onClick={() => router.back()} className="text-white mr-3 text-xl">←</button>
+          <button onClick={() => smartBack(router)} className="mr-3 text-xl text-cyan-300">←</button>
           <h1 className="text-xl font-bold">📋 Insurance & Permit Intelligence</h1>
-          <span className="ml-2 bg-green-500 text-white text-xs px-2 py-0.5 rounded-full animate-pulse">AI</span>
+          <span className="ml-2 bg-emerald-400/100 text-white text-xs px-2 py-0.5 rounded-full animate-pulse">AI</span>
         </div>
       </header>
 
       <main className="p-4">
         {/* Address Input */}
-        <div className="bg-white rounded-lg shadow-lg p-4 mb-4 border border-blue-200">
+        <div className="glass rounded-xl p-4 mb-4 border border-cyan-400/30">
           <h3 className="font-semibold text-sm mb-3 flex items-center">
             <span className="text-xl mr-2">📍</span> Enter Property Address
           </h3>
@@ -277,7 +278,7 @@ export default function InsuranceIntelPage() {
               {loading ? '⏳' : '🔍 Check'}
             </button>
           </div>
-          <p className="text-xs text-gray-400 mt-1">💡 Enter address to check permit requirements and insurance laws</p>
+          <p className="text-xs text-slate-400 mt-1">💡 Enter address to check permit requirements and insurance laws</p>
         </div>
 
         {results && (
@@ -285,8 +286,8 @@ export default function InsuranceIntelPage() {
             {/* Permit Alert */}
             <div className={`rounded-lg shadow-lg p-4 border-2 ${
               results.permitRequired
-                ? 'bg-yellow-50 border-yellow-500'
-                : 'bg-green-50 border-green-500'
+                ? 'bg-amber-400/10 border-yellow-500'
+                : 'bg-emerald-400/10 border-green-500'
             }`}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
@@ -296,7 +297,7 @@ export default function InsuranceIntelPage() {
                       {results.permitRequired ? 'Permit Required!' : 'No Permit Required'}
                     </p>
                     {results.city && (
-                      <p className="text-sm text-gray-600">📍 {results.city}, {results.state} • ZIP: {results.zip}</p>
+                      <p className="text-sm text-slate-300">📍 {results.city}, {results.state} • ZIP: {results.zip}</p>
                     )}
                   </div>
                 </div>
@@ -313,42 +314,42 @@ export default function InsuranceIntelPage() {
 
             {/* Building Department Info */}
             {results.permitInfo && (
-              <div className="bg-white rounded-lg shadow-lg p-4 border border-blue-200">
+              <div className="glass rounded-xl p-4 border border-cyan-400/30">
                 <h3 className="font-semibold text-sm mb-3 flex items-center">
                   <span className="text-xl mr-2">🏛️</span> Building Department
                 </h3>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-gray-500">Department</span>
+                    <span className="text-slate-400">Department</span>
                     <span className="font-medium">{results.permitInfo.name}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-500">Address</span>
+                    <span className="text-slate-400">Address</span>
                     <span className="font-medium text-right">{results.permitInfo.address}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-500">Phone</span>
-                    <span className="font-medium text-blue-600">{results.permitInfo.phone}</span>
+                    <span className="text-slate-400">Phone</span>
+                    <span className="font-medium text-cyan-300">{results.permitInfo.phone}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-500">Hours</span>
+                    <span className="text-slate-400">Hours</span>
                     <span className="font-medium">{results.permitInfo.hours}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-500">Processing Time</span>
+                    <span className="text-slate-400">Processing Time</span>
                     <span className="font-medium">{results.permitInfo.processingTime}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-500">Permit Fees</span>
+                    <span className="text-slate-400">Permit Fees</span>
                     <span className="font-medium">{results.permitInfo.permitFees}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-500">Inspection Days</span>
+                    <span className="text-slate-400">Inspection Days</span>
                     <span className="font-medium">{results.permitInfo.inspectionDays}</span>
                   </div>
                   <div className="flex flex-wrap gap-1 mt-2">
                     {results.permitInfo.permitTypes.map((type: string) => (
-                      <span key={type} className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
+                      <span key={type} className="bg-blue-100 text-cyan-200 text-xs px-2 py-1 rounded">
                         {type}
                       </span>
                     ))}
@@ -358,45 +359,45 @@ export default function InsuranceIntelPage() {
             )}
 
             {/* Appraisal Law */}
-            <div className="bg-white rounded-lg shadow-lg p-4 border border-purple-200">
+            <div className="glass rounded-xl p-4 border border-purple-200">
               <h3 className="font-semibold text-sm mb-3 flex items-center">
                 <span className="text-xl mr-2">⚖️</span> State Appraisal Law - {results.state}
               </h3>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Law Reference</span>
+                  <span className="text-slate-400">Law Reference</span>
                   <span className="font-medium">{results.appraisal.law}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Timeframe</span>
+                  <span className="text-slate-400">Timeframe</span>
                   <span className="font-medium">{results.appraisal.timeframe}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Penalties</span>
-                  <span className="font-medium text-red-600">{results.appraisal.penalties}</span>
+                  <span className="text-slate-400">Penalties</span>
+                  <span className="font-medium text-red-300">{results.appraisal.penalties}</span>
                 </div>
-                <div className="p-3 bg-gray-50 rounded">
-                  <p className="text-xs text-gray-600">{results.appraisal.description}</p>
+                <div className="p-3 bg-white/5 rounded">
+                  <p className="text-xs text-slate-300">{results.appraisal.description}</p>
                 </div>
               </div>
             </div>
 
             {/* Matching Law */}
-            <div className="bg-white rounded-lg shadow-lg p-4 border border-orange-200">
+            <div className="glass rounded-xl p-4 border border-orange-200">
               <h3 className="font-semibold text-sm mb-3 flex items-center">
                 <span className="text-xl mr-2">🔍</span> Matching Law - {results.state}
               </h3>
               <div className="space-y-2 text-sm">
-                <div className="p-3 bg-orange-50 rounded">
-                  <p className="text-xs text-gray-700">{results.appraisal.matchingLaw}</p>
+                <div className="p-3 bg-orange-400/10 rounded">
+                  <p className="text-xs text-slate-200">{results.appraisal.matchingLaw}</p>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Case Law</span>
+                  <span className="text-slate-400">Case Law</span>
                   <span className="font-medium">{results.appraisal.caseLaw}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Contact</span>
-                  <span className="font-medium text-blue-600">{results.appraisal.contact}</span>
+                  <span className="text-slate-400">Contact</span>
+                  <span className="font-medium text-cyan-300">{results.appraisal.contact}</span>
                 </div>
               </div>
             </div>

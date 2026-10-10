@@ -182,7 +182,7 @@ export default function LeadDetailPage() {
 
   if (!lead && !error) return <p className="ops-shell min-h-screen p-6 text-sm text-slate-400">Loading lead…</p>
   return (
-    <div className="ops-bg min-h-screen lg:pl-[232px] p-4 pb-16">
+    <div className="space-y-4 p-1 pb-4">
       <button onClick={() => router.push('/leads')} className="mb-3 text-xs text-cyan-300">← All leads</button>
       {error && <p className="mb-3 rounded-lg border border-red-400/30 bg-red-400/10 p-3 text-sm text-red-300">{error}</p>}
       {lead && (
@@ -196,7 +196,7 @@ export default function LeadDetailPage() {
             <select aria-label="Lead status" value={lead.status} disabled={saving} onChange={(e) => void updateStatus(e.target.value)} className="mt-3 rounded-lg border border-white/15 bg-[#0a1427] px-3 py-2 text-sm text-white">
               {STATUSES.map((status) => <option key={status} value={status}>{status.replaceAll('_', ' ')}</option>)}
             </select>
-            <p className="text-xs text-gray-500 mt-2">Score is deterministic and explainable: {lead.lead_score_reasons?.join(' · ') || 'No score factors yet.'}</p>
+            <p className="text-xs text-slate-400 mt-2">Score is deterministic and explainable: {lead.lead_score_reasons?.join(' · ') || 'No score factors yet.'}</p>
             <div className="flex gap-2 mt-3 flex-wrap">
               <a className="rounded bg-cyan-400/15 px-2 py-1 text-xs text-cyan-300" href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(lead.address)}`} target="_blank" rel="noreferrer">Navigate</a>
               {lead.phone && <a className="rounded bg-emerald-400/15 px-2 py-1 text-xs text-emerald-300" href={`tel:${lead.phone}`}>Call</a>}
@@ -227,7 +227,7 @@ export default function LeadDetailPage() {
           <div className="glass mb-4 space-y-2 rounded-xl p-4">
             <h2 className="font-semibold">Schedule inspection</h2>
             <input type="datetime-local" value={apptAt} onChange={(e) => setApptAt(e.target.value)} className="w-full rounded-lg border border-white/15 bg-black/25 p-3 text-sm text-white placeholder:text-slate-500" />
-            <button disabled={saving || !apptAt} onClick={() => void scheduleInspection()} className="w-full bg-blue-600 text-white py-2 rounded font-semibold disabled:opacity-60">Save on calendar</button>
+            <button disabled={saving || !apptAt} onClick={() => void scheduleInspection()} className="ops-btn-primary w-full disabled:opacity-60">Save on calendar</button>
             <button disabled={saving} onClick={() => void startInspection()} className="w-full bg-gray-900 text-white py-2 rounded font-semibold disabled:opacity-60">Start inspection now</button>
           </div>
           <div className="glass rounded-xl p-4">

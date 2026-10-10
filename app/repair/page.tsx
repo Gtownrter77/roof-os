@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { smartBack } from '../../lib/smart-back'
 
 export default function RepairPage() {
   const router = useRouter()
@@ -170,18 +171,18 @@ export default function RepairPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
-      <header className="bg-gradient-to-r from-red-600 to-orange-600 text-white shadow-lg sticky top-0 z-10">
+    <div className="space-y-4 pb-4">
+      <header className="glass rounded-xl mb-4">
         <div className="px-4 py-3 flex items-center">
-          <button onClick={() => router.back()} className="text-white mr-3 text-xl">←</button>
+          <button onClick={() => smartBack(router)} className="mr-3 text-xl text-cyan-300">←</button>
           <h1 className="text-xl font-bold">🔧 Repair Estimate Engine</h1>
-          <span className="ml-2 bg-yellow-500 text-white text-xs px-2 py-0.5 rounded-full animate-pulse">PRO</span>
+          <span className="ml-2 bg-amber-400/100 text-white text-xs px-2 py-0.5 rounded-full animate-pulse">PRO</span>
         </div>
       </header>
 
-      <main className="p-4"><p className="text-sm bg-white rounded-lg shadow p-4 mb-4">Price is Unknown. This screen does not write a dollar figure.</p>
+      <main className="p-4"><p className="text-sm glass rounded-xl p-4 mb-4">Price is Unknown. This screen does not write a dollar figure.</p>
         {/* Damage Types */}
-        <div className="bg-white rounded-lg shadow-lg p-4 mb-4 border border-red-200">
+        <div className="glass rounded-xl p-4 mb-4 border border-red-200">
           <h3 className="font-semibold text-sm mb-2 flex items-center">
             <span className="text-xl mr-2">💥</span> Damage Types
           </h3>
@@ -199,7 +200,7 @@ export default function RepairPage() {
         </div>
 
         {/* Repair Types */}
-        <div className="bg-white rounded-lg shadow-lg p-4 mb-4 border border-orange-200">
+        <div className="glass rounded-xl p-4 mb-4 border border-orange-200">
           <h3 className="font-semibold text-sm mb-2 flex items-center">
             <span className="text-xl mr-2">🔧</span> Repair Types
           </h3>
@@ -220,7 +221,7 @@ export default function RepairPage() {
         </div>
 
         {/* Services */}
-        <div className="bg-white rounded-lg shadow-lg p-4 mb-4 border border-yellow-200">
+        <div className="glass rounded-xl p-4 mb-4 border border-yellow-200">
           <h3 className="font-semibold text-sm mb-2 flex items-center">
             <span className="text-xl mr-2">⚡</span> Services
           </h3>
@@ -242,28 +243,28 @@ export default function RepairPage() {
 
         {estimate && (
           <div className="mt-4 space-y-4 animate-fadeIn">
-            <div className="bg-white rounded-lg shadow-lg p-4 border-2 border-red-500">
+            <div className="glass rounded-xl p-4 border-2 border-red-500">
               <div className="flex justify-between items-center">
                 <div>
-                  <p className="text-xs text-gray-500">Damage Severity</p>
-                  <p className="text-xl font-bold text-red-600">{estimate.summary.severity.toUpperCase()}</p>
+                  <p className="text-xs text-slate-400">Damage Severity</p>
+                  <p className="text-xl font-bold text-red-300">{estimate.summary.severity.toUpperCase()}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-xs text-gray-500">Total Estimate</p>
-                  <p className="text-2xl font-bold text-red-600">Unknown</p>
+                  <p className="text-xs text-slate-400">Total Estimate</p>
+                  <p className="text-2xl font-bold text-red-300">Unknown</p>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white rounded-lg shadow-lg p-4 border border-gray-200">
+            <div className="glass rounded-xl p-4 border border-white/10">
               <h3 className="font-semibold text-sm mb-2">📊 Estimate Details</h3>
               <div className="grid grid-cols-2 gap-2 text-sm">
-                <div><span className="text-gray-500">Base Estimate:</span> Unknown</div>
-                <div><span className="text-gray-500">Damage Multiplier:</span> {estimate.summary.damageMultiplier.toFixed(2)}x</div>
-                <div><span className="text-gray-500">Materials:</span> Unknown</div>
-                <div><span className="text-gray-500">Labor:</span> Unknown</div>
-                <div><span className="text-gray-500">Labor Rate:</span> Unknown</div>
-                <div><span className="text-gray-500">Labor Hours:</span> {estimate.summary.laborHours.toFixed(0)} hrs</div>
+                <div><span className="text-slate-400">Base Estimate:</span> Unknown</div>
+                <div><span className="text-slate-400">Damage Multiplier:</span> {estimate.summary.damageMultiplier.toFixed(2)}x</div>
+                <div><span className="text-slate-400">Materials:</span> Unknown</div>
+                <div><span className="text-slate-400">Labor:</span> Unknown</div>
+                <div><span className="text-slate-400">Labor Rate:</span> Unknown</div>
+                <div><span className="text-slate-400">Labor Hours:</span> {estimate.summary.laborHours.toFixed(0)} hrs</div>
               </div>
             </div>
 
@@ -279,24 +280,24 @@ export default function RepairPage() {
         )}
       </main>
 
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around py-2 px-4">
-        <button onClick={() => router.push('/')} className="flex flex-col items-center text-gray-400">
+      <nav className="fixed bottom-0 left-0 right-0 z-30 flex justify-around border-t border-white/10 bg-[#070b14]/95 py-2 px-4 backdrop-blur lg:hidden">
+        <button onClick={() => router.push('/')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">🏠</span>
           <span className="text-xs">Home</span>
         </button>
-        <button onClick={() => router.push('/repair')} className="flex flex-col items-center text-red-600">
+        <button onClick={() => router.push('/repair')} className="flex flex-col items-center text-red-300">
           <span className="text-xl">🔧</span>
           <span className="text-xs">Repair</span>
         </button>
-        <button onClick={() => router.push('/deck')} className="flex flex-col items-center text-gray-400">
+        <button onClick={() => router.push('/deck')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">🪵</span>
           <span className="text-xs">Deck</span>
         </button>
-        <button onClick={() => router.push('/exterior')} className="flex flex-col items-center text-gray-400">
+        <button onClick={() => router.push('/exterior')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">🏠</span>
           <span className="text-xs">Exterior</span>
         </button>
-        <button onClick={() => router.push('/settings')} className="flex flex-col items-center text-gray-400">
+        <button onClick={() => router.push('/settings')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">⚙️</span>
           <span className="text-xs">Settings</span>
         </button>

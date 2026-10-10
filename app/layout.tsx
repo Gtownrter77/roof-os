@@ -5,6 +5,7 @@ import Navigation from '../components/Navigation'
 import WorkspaceSwitcher from '../components/WorkspaceSwitcher'
 import PrototypeNotice from '../components/PrototypeNotice'
 import ConditionalAiChatBar from '../components/ConditionalAiChatBar'
+import AppShell from '../components/AppShell'
 
 export const metadata: Metadata = {
   title: 'ROOF/OS — Storm Command Center',
@@ -14,11 +15,11 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className="bg-[#050914]">
+      <body className="bg-[#050914] text-slate-100">
         <PrototypeNotice />
         <WorkspaceSwitcher />
+        <AppShell>{children}</AppShell>
         <Navigation />
-        {children}
         <ConditionalAiChatBar />
       </body>
     </html>

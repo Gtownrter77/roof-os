@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { smartBack } from '../../lib/smart-back'
 
 export default function QuantumPage() {
   const router = useRouter()
@@ -38,15 +39,15 @@ export default function QuantumPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-950 to-purple-950 text-white pb-20">
-      <header className="bg-gradient-to-r from-cyan-500 to-purple-600 text-white shadow-lg sticky top-0 z-10">
+      <header className="glass rounded-xl mb-4">
         <div className="px-4 py-3 flex items-center">
-          <button onClick={() => router.back()} className="text-white mr-3 text-xl">←</button>
+          <button onClick={() => smartBack(router)} className="mr-3 text-xl text-cyan-300">←</button>
           <h1 className="text-xl font-bold">⚛️ Quantum AI Calculator</h1>
-          <span className="ml-2 bg-purple-500 text-white text-xs px-2 py-0.5 rounded-full animate-pulse">QUANTUM</span>
+          <span className="ml-2 bg-purple-400/100 text-white text-xs px-2 py-0.5 rounded-full animate-pulse">QUANTUM</span>
         </div>
       </header>
 
-      <main className="p-4"><p className="text-sm bg-white rounded-lg shadow p-4 mb-4">This is not a measurement. A number without a source stays Unknown.</p>
+      <main className="p-4"><p className="text-sm glass rounded-xl p-4 mb-4">This is not a measurement. A number without a source stays Unknown.</p>
         <div className="bg-gradient-to-br from-indigo-900/50 to-purple-900/50 rounded-lg p-4 mb-4 border border-cyan-500">
           <div className="flex items-center mb-3">
             <span className="text-2xl mr-2">⚛️</span>
@@ -155,7 +156,7 @@ export default function QuantumPage() {
                 <div key={i} className="flex justify-between items-center border-b border-indigo-700 py-2 last:border-0">
                   <div>
                     <p className="text-sm font-medium">{reality.scenario}</p>
-                    <p className="text-xs text-gray-400">{reality.outcome}</p>
+                    <p className="text-xs text-slate-400">{reality.outcome}</p>
                   </div>
                   <span className="text-xs px-2 py-1 rounded bg-purple-800">{reality.probability}</span>
                 </div>
@@ -170,15 +171,15 @@ export default function QuantumPage() {
       </main>
 
       <nav className="fixed bottom-0 left-0 right-0 bg-gray-900 border-t border-purple-500 flex justify-around py-2 px-4">
-        <button onClick={() => router.push('/')} className="flex flex-col items-center text-gray-400">
+        <button onClick={() => router.push('/')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">🏠</span>
           <span className="text-xs">Home</span>
         </button>
-        <button onClick={() => router.push('/ar')} className="flex flex-col items-center text-gray-400">
+        <button onClick={() => router.push('/ar')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">🛸</span>
           <span className="text-xs">AR</span>
         </button>
-        <button onClick={() => router.push('/vr')} className="flex flex-col items-center text-gray-400">
+        <button onClick={() => router.push('/vr')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">🥽</span>
           <span className="text-xs">VR</span>
         </button>
@@ -186,7 +187,7 @@ export default function QuantumPage() {
           <span className="text-xl">⚛️</span>
           <span className="text-xs">Quantum</span>
         </button>
-        <button onClick={() => router.push('/settings')} className="flex flex-col items-center text-gray-400">
+        <button onClick={() => router.push('/settings')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">⚙️</span>
           <span className="text-xs">Settings</span>
         </button>

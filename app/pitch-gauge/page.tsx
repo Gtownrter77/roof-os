@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { smartBack } from '../../lib/smart-back'
 
 export default function PitchGaugePage() {
   const router = useRouter()
@@ -50,11 +51,11 @@ export default function PitchGaugePage() {
 
   return (
     <div className="min-h-screen bg-gray-900 text-white pb-20">
-      <header className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-lg sticky top-0 z-10">
+      <header className="glass rounded-xl mb-4">
         <div className="px-4 py-3 flex items-center">
-          <button onClick={() => router.back()} className="text-white mr-3 text-xl">←</button>
+          <button onClick={() => smartBack(router)} className="mr-3 text-xl text-cyan-300">←</button>
           <h1 className="text-xl font-bold">📐 AR Pitch Gauge</h1>
-          <span className="ml-2 bg-green-500 text-white text-xs px-2 py-0.5 rounded-full animate-pulse">REVIEW-GATED</span>
+          <span className="ml-2 bg-emerald-400/100 text-white text-xs px-2 py-0.5 rounded-full animate-pulse">REVIEW-GATED</span>
         </div>
       </header>
 
@@ -74,10 +75,10 @@ export default function PitchGaugePage() {
           {/* AR Overlay - Pitch Lines */}
           {cameraActive && (
             <div className="absolute inset-0 pointer-events-none">
-              <div className="absolute left-1/2 bottom-0 w-0.5 h-32 bg-green-500/50 -translate-x-1/2" />
-              <div className="absolute left-1/2 bottom-0 w-16 h-0.5 bg-green-500/50 -translate-x-1/2" />
-              <div className="absolute left-1/2 bottom-0 w-0.5 h-16 bg-yellow-500/50 -translate-x-1/2 -translate-y-16" />
-              <div className="absolute left-1/2 bottom-0 w-8 h-0.5 bg-yellow-500/50 -translate-x-1/2 -translate-y-16" />
+              <div className="absolute left-1/2 bottom-0 w-0.5 h-32 bg-emerald-400/100/50 -translate-x-1/2" />
+              <div className="absolute left-1/2 bottom-0 w-16 h-0.5 bg-emerald-400/100/50 -translate-x-1/2" />
+              <div className="absolute left-1/2 bottom-0 w-0.5 h-16 bg-amber-400/100/50 -translate-x-1/2 -translate-y-16" />
+              <div className="absolute left-1/2 bottom-0 w-8 h-0.5 bg-amber-400/100/50 -translate-x-1/2 -translate-y-16" />
             </div>
           )}
           
@@ -106,7 +107,7 @@ export default function PitchGaugePage() {
             onClick={measurePitch}
             disabled={!cameraActive || isMeasuring}
             className={`py-3 rounded-lg font-semibold ${
-              isMeasuring || !cameraActive ? 'bg-gray-600 text-gray-400' : 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white'
+              isMeasuring || !cameraActive ? 'bg-gray-600 text-slate-400' : 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white'
             }`}
           >
             {isMeasuring ? '⏳ Measuring...' : '📐 Measure Pitch'}
@@ -118,7 +119,7 @@ export default function PitchGaugePage() {
           <div className="bg-gradient-to-r from-blue-900/50 to-cyan-900/50 rounded-lg p-4 mb-4 border border-blue-500 animate-fadeIn">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-gray-400">Current Measurement</p>
+                <p className="text-xs text-slate-400">Current Measurement</p>
                 <p className="text-3xl font-bold text-white">{pitch}/12</p>
                 <p className="text-sm text-blue-300">{angle}° angle</p>
               </div>
@@ -141,11 +142,11 @@ export default function PitchGaugePage() {
                 <div key={m.id} className="flex justify-between items-center bg-gray-700/50 p-2 rounded">
                   <div>
                     <span className="font-bold text-white">{m.pitch}/12</span>
-                    <span className="text-xs text-gray-400 ml-2">{m.angle}°</span>
+                    <span className="text-xs text-slate-400 ml-2">{m.angle}°</span>
                   </div>
                   <div>
-                    <span className="text-xs text-gray-400">{m.type}</span>
-                    <span className="text-xs text-gray-500 ml-2">{m.time}</span>
+                    <span className="text-xs text-slate-400">{m.type}</span>
+                    <span className="text-xs text-slate-400 ml-2">{m.time}</span>
                   </div>
                 </div>
               ))}
@@ -162,7 +163,7 @@ export default function PitchGaugePage() {
       </main>
 
       <nav className="fixed bottom-0 left-0 right-0 bg-gray-800 border-t border-gray-700 flex justify-around py-2 px-4">
-        <button onClick={() => router.push('/')} className="flex flex-col items-center text-gray-400">
+        <button onClick={() => router.push('/')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">🏠</span>
           <span className="text-xs">Home</span>
         </button>
@@ -170,15 +171,15 @@ export default function PitchGaugePage() {
           <span className="text-xl">📐</span>
           <span className="text-xs">Pitch</span>
         </button>
-        <button onClick={() => router.push('/ai-train')} className="flex flex-col items-center text-gray-400">
+        <button onClick={() => router.push('/ai-train')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">🎓</span>
           <span className="text-xs">Train</span>
         </button>
-        <button onClick={() => router.push('/photo-verify')} className="flex flex-col items-center text-gray-400">
+        <button onClick={() => router.push('/photo-verify')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">📸</span>
           <span className="text-xs">Verify</span>
         </button>
-        <button onClick={() => router.push('/settings')} className="flex flex-col items-center text-gray-400">
+        <button onClick={() => router.push('/settings')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">⚙️</span>
           <span className="text-xs">Settings</span>
         </button>

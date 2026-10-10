@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { smartBack } from '../../lib/smart-back'
 
 export default function CodesPage() {
   const router = useRouter()
@@ -212,21 +213,21 @@ export default function CodesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
-      <header className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg sticky top-0 z-10">
+    <div className="space-y-4 pb-4">
+      <header className="glass rounded-xl mb-4">
         <div className="px-4 py-3 flex items-center">
-          <button onClick={() => router.back()} className="text-white mr-3 text-xl">←</button>
+          <button onClick={() => smartBack(router)} className="mr-3 text-xl text-cyan-300">←</button>
           <h1 className="text-xl font-bold">📋 Building Codes</h1>
-          <span className="ml-2 bg-amber-500 text-white text-xs px-2 py-0.5 rounded-full">REFERENCE + ZIP</span>
+          <span className="ml-2 bg-amber-400/100 text-white text-xs px-2 py-0.5 rounded-full">REFERENCE + ZIP</span>
         </div>
       </header>
 
       <main className="p-4">
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
-          <p className="text-xs text-amber-900">Building-code content on this page is a reference snapshot, not legal or permit authority. ZIP results should be verified against the current local adoption and amendments.</p>
+        <div className="bg-amber-400/10 border border-amber-400/30 rounded-lg p-3 mb-4">
+          <p className="text-xs text-amber-100">Building-code content on this page is a reference snapshot, not legal or permit authority. ZIP results should be verified against the current local adoption and amendments.</p>
         </div>
         {/* Search */}
-        <div className="bg-white rounded-lg shadow-lg p-4 mb-4 border border-blue-200">
+        <div className="glass rounded-xl p-4 mb-4 border border-cyan-400/30">
           <h3 className="font-semibold text-sm mb-3">🔍 Search Codes</h3>
           <div className="flex gap-2">
             <input
@@ -247,16 +248,16 @@ export default function CodesPage() {
         </div>
 
         {/* State & Category Selector */}
-        <div className="bg-white rounded-lg shadow-lg p-4 mb-4 border border-blue-200">
+        <div className="glass rounded-xl p-4 mb-4 border border-cyan-400/30">
           <div className="grid grid-cols-1 gap-3">
             <div>
-              <label className="text-xs text-gray-500">ZIP code lookup</label>
+              <label className="text-xs text-slate-400">ZIP code lookup</label>
               <input value={zipCode} onChange={(e) => setZipCode(e.target.value)} placeholder="Enter ZIP to resolve locality" className="w-full p-2 border rounded-lg text-sm" />
-              <p className="text-xs text-gray-400 mt-1">ZIP lookup resolves the locality. Verify local amendments before use. Embedded snapshots are not used for production guidance.</p>
+              <p className="text-xs text-slate-400 mt-1">ZIP lookup resolves the locality. Verify local amendments before use. Embedded snapshots are not used for production guidance.</p>
             </div>
             <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-gray-500">State</label>
+              <label className="text-xs text-slate-400">State</label>
               <select
                 value={selectedState}
                 onChange={(e) => setSelectedState(e.target.value)}
@@ -266,7 +267,7 @@ export default function CodesPage() {
               </select>
             </div>
             <div>
-              <label className="text-xs text-gray-500">Category</label>
+              <label className="text-xs text-slate-400">Category</label>
               <select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
@@ -290,42 +291,42 @@ export default function CodesPage() {
         {results && (
           <div className="space-y-4 animate-fadeIn">
             {results.error ? (
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-center">
+              <div className="bg-amber-400/10 border border-yellow-200 rounded-lg p-4 text-center">
                 <p className="text-yellow-800">{results.error}</p>
               </div>
             ) : results.jurisdiction ? (
               <div className="space-y-3">
-                <div className="bg-white rounded-lg shadow-lg p-4 border-l-4 border-indigo-500">
-                  <p className="text-xs text-gray-500">Resolved jurisdiction</p>
+                <div className="glass rounded-xl p-4 border-l-4 border-indigo-500">
+                  <p className="text-xs text-slate-400">Resolved jurisdiction</p>
                   <p className="font-bold">{results.jurisdiction.city}, {results.jurisdiction.state} {results.jurisdiction.zip}</p>
-                  <p className="text-xs text-gray-500">Category: {results.jurisdiction.category}</p>
+                  <p className="text-xs text-slate-400">Category: {results.jurisdiction.category}</p>
                   <p className="text-xs text-amber-700 mt-2">{results.warning}</p>
                 </div>
-                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg shadow-lg p-4 border border-blue-200">
-                  <p className="text-xs text-gray-500">Code family</p>
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg shadow-lg p-4 border border-cyan-400/30">
+                  <p className="text-xs text-slate-400">Code family</p>
                   <p className="font-bold">{results.code.code}</p>
-                  <p className="text-xs text-gray-600">{results.code.edition}</p>
-                  <ul className="text-sm text-gray-700 list-disc pl-5 mt-2">{results.code.requirements.map((requirement: string) => <li key={requirement}>{requirement}</li>)}</ul>
+                  <p className="text-xs text-slate-300">{results.code.edition}</p>
+                  <ul className="text-sm text-slate-200 list-disc pl-5 mt-2">{results.code.requirements.map((requirement: string) => <li key={requirement}>{requirement}</li>)}</ul>
                 </div>
-                <div className="bg-white rounded-lg shadow p-4 text-xs text-gray-500">Locality source: {results.provenance.localitySource}. Code source: <a className="text-blue-600 underline" href={results.provenance.codeSource} target="_blank" rel="noreferrer">ICC adoption reference</a>. Retrieved {new Date(results.provenance.retrievedAt).toLocaleString()}.</div>
+                <div className="glass rounded-xl p-4 text-xs text-slate-400">Locality source: {results.provenance.localitySource}. Code source: <a className="text-cyan-300 underline" href={results.provenance.codeSource} target="_blank" rel="noreferrer">ICC adoption reference</a>. Retrieved {new Date(results.provenance.retrievedAt).toLocaleString()}.</div>
               </div>
             ) : results.searchResults ? (
               <div className="space-y-3">
-                <p className="text-sm text-gray-500">Found {results.searchResults.length} results</p>
+                <p className="text-sm text-slate-400">Found {results.searchResults.length} results</p>
                 {results.searchResults.map((item: any, i: number) => (
-                  <div key={i} className="bg-white rounded-lg shadow-lg p-4 border-l-4 border-blue-500">
+                  <div key={i} className="glass rounded-xl p-4 border-l-4 border-blue-500">
                     <div className="flex justify-between items-start">
                       <div>
                         <p className="font-bold text-sm">{item.state} - {item.category}</p>
-                        <p className="text-xs text-gray-500">{item.data.code}</p>
+                        <p className="text-xs text-slate-400">{item.data.code}</p>
                       </div>
                       <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded">
                         Updated {item.data.lastUpdated}
                       </span>
                     </div>
                     <div className="mt-2">
-                      <p className="text-xs font-semibold text-gray-500">Requirements:</p>
-                      <ul className="text-xs text-gray-600 list-disc pl-4 mt-1">
+                      <p className="text-xs font-semibold text-slate-400">Requirements:</p>
+                      <ul className="text-xs text-slate-300 list-disc pl-4 mt-1">
                         {item.data.requirements?.slice(0, 3).map((req: string, j: number) => (
                           <li key={j}>{req}</li>
                         ))}
@@ -337,10 +338,10 @@ export default function CodesPage() {
             ) : (
               <div className="space-y-4">
                 {/* Code Info */}
-                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg shadow-lg p-4 border border-blue-200">
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg shadow-lg p-4 border border-cyan-400/30">
                   <div className="flex justify-between items-start">
                     <div>
-                      <p className="text-xs text-gray-500">Code Reference</p>
+                      <p className="text-xs text-slate-400">Code Reference</p>
                       <p className="font-bold">{results.code}</p>
                     </div>
                     <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded">
@@ -349,22 +350,22 @@ export default function CodesPage() {
                   </div>
                   <div className="grid grid-cols-3 gap-2 mt-3">
                     <div className="text-center">
-                      <p className="text-xs text-gray-500">Wind Zone</p>
+                      <p className="text-xs text-slate-400">Wind Zone</p>
                       <p className="font-bold text-sm">{results.windZone}</p>
                     </div>
                     <div className="text-center">
-                      <p className="text-xs text-gray-500">Snow Load</p>
+                      <p className="text-xs text-slate-400">Snow Load</p>
                       <p className="font-bold text-sm">{results.snowLoad}</p>
                     </div>
                     <div className="text-center">
-                      <p className="text-xs text-gray-500">Seismic</p>
+                      <p className="text-xs text-slate-400">Seismic</p>
                       <p className="font-bold text-sm">{results.seismic}</p>
                     </div>
                   </div>
                 </div>
 
                 {/* Requirements */}
-                <div className="bg-white rounded-lg shadow-lg p-4">
+                <div className="glass rounded-xl p-4">
                   <h3 className="font-semibold text-sm mb-2">📋 Requirements</h3>
                   <ul className="space-y-1">
                     {results.requirements?.map((req: string, i: number) => (
@@ -377,11 +378,11 @@ export default function CodesPage() {
                 </div>
 
                 {/* Materials */}
-                <div className="bg-white rounded-lg shadow-lg p-4">
+                <div className="glass rounded-xl p-4">
                   <h3 className="font-semibold text-sm mb-2">🧱 Approved Materials</h3>
                   <div className="flex flex-wrap gap-2">
                     {results.materials?.map((mat: string, i: number) => (
-                      <span key={i} className="bg-blue-50 text-blue-800 text-xs px-3 py-1 rounded-full">
+                      <span key={i} className="bg-cyan-400/10 text-cyan-200 text-xs px-3 py-1 rounded-full">
                         {mat}
                       </span>
                     ))}
@@ -389,21 +390,21 @@ export default function CodesPage() {
                 </div>
 
                 {/* Permits & Inspections */}
-                <div className="bg-white rounded-lg shadow-lg p-4 border-l-4 border-yellow-500">
+                <div className="glass rounded-xl p-4 border-l-4 border-yellow-500">
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <p className="text-xs text-gray-500">Permits</p>
+                      <p className="text-xs text-slate-400">Permits</p>
                       <p className="text-sm font-medium">{results.permits}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500">Inspections</p>
+                      <p className="text-xs text-slate-400">Inspections</p>
                       <p className="text-sm font-medium">{results.inspections}</p>
                     </div>
                   </div>
                 </div>
 
                 {/* Energy Code */}
-                <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                <div className="bg-emerald-400/10 border border-emerald-400/30 rounded-lg p-3">
                   <p className="text-xs text-green-800">
                     ⚡ Energy Code: {results.energyCode}
                   </p>
@@ -412,31 +413,31 @@ export default function CodesPage() {
             )}
 
             {/* Export */}
-            <button type="button" onClick={exportCodeReport} className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold">
+            <button type="button" onClick={exportCodeReport} className="ops-btn-primary w-full py-3">
               📄 Export Reference
             </button>
           </div>
         )}
       </main>
 
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around py-2 px-4">
-        <button onClick={() => router.push('/')} className="flex flex-col items-center text-gray-400">
+      <nav className="fixed bottom-0 left-0 right-0 z-30 flex justify-around border-t border-white/10 bg-[#070b14]/95 py-2 px-4 backdrop-blur lg:hidden">
+        <button onClick={() => router.push('/')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">🏠</span>
           <span className="text-xs">Home</span>
         </button>
-        <button onClick={() => router.push('/codes')} className="flex flex-col items-center text-blue-600">
+        <button onClick={() => router.push('/codes')} className="flex flex-col items-center text-cyan-300">
           <span className="text-xl">📋</span>
           <span className="text-xs">Codes</span>
         </button>
-        <button onClick={() => router.push('/siding')} className="flex flex-col items-center text-gray-400">
+        <button onClick={() => router.push('/siding')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">🏠</span>
           <span className="text-xs">Siding</span>
         </button>
-        <button onClick={() => router.push('/pricing')} className="flex flex-col items-center text-gray-400">
+        <button onClick={() => router.push('/pricing')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">💰</span>
           <span className="text-xs">Pricing</span>
         </button>
-        <button onClick={() => router.push('/settings')} className="flex flex-col items-center text-gray-400">
+        <button onClick={() => router.push('/settings')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">⚙️</span>
           <span className="text-xs">Settings</span>
         </button>

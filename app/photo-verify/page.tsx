@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import { smartBack } from '../../lib/smart-back'
 
 export default function PhotoVerifyPage() {
   const router = useRouter()
@@ -113,7 +114,7 @@ export default function PhotoVerifyPage() {
   const getCoverageColor = (percentage: number) => {
     if (percentage >= 90) return 'text-green-600'
     if (percentage >= 70) return 'text-yellow-600'
-    return 'text-red-600'
+    return 'text-red-300'
   }
 
   const getPhotoStatus = (required: boolean, captured: boolean) => {
@@ -124,12 +125,12 @@ export default function PhotoVerifyPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
-      <header className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-lg sticky top-0 z-10">
+    <div className="space-y-4 pb-4">
+      <header className="glass rounded-xl mb-4">
         <div className="px-4 py-3 flex items-center">
-          <button onClick={() => router.back()} className="text-white mr-3 text-xl">←</button>
+          <button onClick={() => smartBack(router)} className="mr-3 text-xl text-cyan-300">←</button>
           <h1 className="text-xl font-bold">📸 AI Photo Verification</h1>
-          <span className="ml-2 bg-green-500 text-white text-xs px-2 py-0.5 rounded-full animate-pulse">REVIEW-GATED</span>
+          <span className="ml-2 bg-emerald-400/100 text-white text-xs px-2 py-0.5 rounded-full animate-pulse">REVIEW-GATED</span>
         </div>
       </header>
 
@@ -155,7 +156,7 @@ export default function PhotoVerifyPage() {
         {photos.length > 0 && (
           <div className="mt-4">
             <div className="flex justify-between items-center mb-2">
-              <p className="text-sm text-gray-500">{photos.length} photos captured</p>
+              <p className="text-sm text-slate-400">{photos.length} photos captured</p>
               <button
                 onClick={verifyPhotos}
                 disabled={loading}
@@ -167,7 +168,7 @@ export default function PhotoVerifyPage() {
             <div className="grid grid-cols-3 gap-2">
               {photos.map((photo) => (
                 <div key={photo.id} className="relative">
-                  <img src={photo.url} alt={photo.label} className="w-full h-24 object-cover rounded border-2 border-blue-200" />
+                  <img src={photo.url} alt={photo.label} className="w-full h-24 object-cover rounded border-2 border-cyan-400/30" />
                   <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white text-[8px] p-1">
                     <select value={photo.type} onChange={(event) => updatePhotoType(photo.id, event.target.value)} className="w-full bg-transparent text-white text-[8px]">
                       <option value="unclassified" className="text-black">Choose category</option>
@@ -175,7 +176,7 @@ export default function PhotoVerifyPage() {
                     </select>
                   </div>
                   {photo.aiVerified && (
-                    <span className="absolute top-1 right-1 text-xs bg-green-500 text-white rounded-full px-1">✓</span>
+                    <span className="absolute top-1 right-1 text-xs bg-emerald-400/100 text-white rounded-full px-1">✓</span>
                   )}
                 </div>
               ))}
@@ -188,17 +189,17 @@ export default function PhotoVerifyPage() {
             <div className="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg shadow-lg p-4 border-2 border-blue-500">
               <div className="grid grid-cols-3 gap-2">
                 <div className="text-center">
-                  <p className="text-xs text-gray-500">Coverage</p>
+                  <p className="text-xs text-slate-400">Coverage</p>
                   <p className={`text-2xl font-bold ${getCoverageColor(coverage.percentage)}`}>
                     {coverage.percentage}%
                   </p>
                 </div>
                 <div className="text-center">
-                  <p className="text-xs text-gray-500">Required</p>
+                  <p className="text-xs text-slate-400">Required</p>
                   <p className="text-2xl font-bold">{coverage.captured}/{coverage.totalRequired}</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-xs text-gray-500">Quality</p>
+                  <p className="text-xs text-slate-400">Quality</p>
                   <p className="text-2xl font-bold text-green-600">{coverage.quality}</p>
                 </div>
               </div>
@@ -217,7 +218,7 @@ export default function PhotoVerifyPage() {
               )}
             </div>
 
-            <div className="bg-white rounded-lg shadow-lg p-4 border border-blue-200">
+            <div className="glass rounded-xl p-4 border border-cyan-400/30">
               <h3 className="font-semibold text-sm mb-3 flex items-center">
                 <span className="text-xl mr-2">✅</span> Photo Checklist
               </h3>
@@ -225,13 +226,13 @@ export default function PhotoVerifyPage() {
                 {requiredPhotos.map((req) => {
                   const captured = photos.some(p => p.type === req.id)
                   return (
-                    <div key={req.id} className={`flex items-center p-2 rounded ${captured ? 'bg-green-50' : req.required ? 'bg-red-50' : 'bg-gray-50'}`}>
+                    <div key={req.id} className={`flex items-center p-2 rounded ${captured ? 'bg-emerald-400/10' : req.required ? 'bg-red-400/10' : 'bg-white/5'}`}>
                       <span className="text-xl mr-2">{req.icon}</span>
                       <div className="flex-1">
-                        <p className={`text-xs font-medium ${captured ? 'text-green-800' : req.required ? 'text-red-800' : 'text-gray-500'}`}>
+                        <p className={`text-xs font-medium ${captured ? 'text-green-800' : req.required ? 'text-red-800' : 'text-slate-400'}`}>
                           {req.label}
                         </p>
-                        <span className="text-xs text-gray-400">{captured ? '✓ Captured' : req.required ? '⚠️ Required' : 'Optional'}</span>
+                        <span className="text-xs text-slate-400">{captured ? '✓ Captured' : req.required ? '⚠️ Required' : 'Optional'}</span>
                       </div>
                       <span className="text-xl">{getPhotoStatus(req.required, captured)}</span>
                     </div>
@@ -241,7 +242,7 @@ export default function PhotoVerifyPage() {
             </div>
 
             {coverage.missing.length > 0 && (
-              <div className="bg-red-50 border-2 border-red-300 rounded-lg p-4">
+              <div className="bg-red-400/10 border-2 border-red-300 rounded-lg p-4">
                 <h3 className="font-semibold text-sm text-red-800 mb-2">📸 Missing Required Photos</h3>
                 <ul className="space-y-1">
                   {coverage.missing.map((m: string, i: number) => (
@@ -254,7 +255,7 @@ export default function PhotoVerifyPage() {
             )}
 
             {coverage.recommendations.length > 0 && (
-              <div className="bg-yellow-50 border-2 border-yellow-300 rounded-lg p-4">
+              <div className="bg-amber-400/10 border-2 border-yellow-300 rounded-lg p-4">
                 <h3 className="font-semibold text-sm text-yellow-800 mb-2">💡 AI Recommendations</h3>
                 <ul className="space-y-1">
                   {coverage.recommendations.map((rec: string, i: number) => (
@@ -264,7 +265,7 @@ export default function PhotoVerifyPage() {
               </div>
             )}
 
-            <div className="bg-white rounded-lg shadow-lg p-4 border border-blue-200">
+            <div className="glass rounded-xl p-4 border border-cyan-400/30">
               <h3 className="font-semibold text-sm mb-3">📋 Next Steps</h3>
               {coverage.nextSteps.map((step: string, i: number) => (
                 <div key={i} className="flex items-center p-2 border-b last:border-0">
@@ -286,24 +287,24 @@ export default function PhotoVerifyPage() {
         )}
       </main>
 
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around py-2 px-4">
-        <button onClick={() => router.push('/')} className="flex flex-col items-center text-gray-400">
+      <nav className="fixed bottom-0 left-0 right-0 z-30 flex justify-around border-t border-white/10 bg-[#070b14]/95 py-2 px-4 backdrop-blur lg:hidden">
+        <button onClick={() => router.push('/')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">🏠</span>
           <span className="text-xs">Home</span>
         </button>
-        <button onClick={() => router.push('/photo-verify')} className="flex flex-col items-center text-blue-600">
+        <button onClick={() => router.push('/photo-verify')} className="flex flex-col items-center text-cyan-300">
           <span className="text-xl">📸</span>
           <span className="text-xs">Verify</span>
         </button>
-        <button onClick={() => router.push('/photo-estimate')} className="flex flex-col items-center text-gray-400">
+        <button onClick={() => router.push('/photo-estimate')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">📸</span>
           <span className="text-xs">Photo AI</span>
         </button>
-        <button onClick={() => router.push('/upsell')} className="flex flex-col items-center text-gray-400">
+        <button onClick={() => router.push('/upsell')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">💰</span>
           <span className="text-xs">Upsell</span>
         </button>
-        <button onClick={() => router.push('/settings')} className="flex flex-col items-center text-gray-400">
+        <button onClick={() => router.push('/settings')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">⚙️</span>
           <span className="text-xs">Settings</span>
         </button>
