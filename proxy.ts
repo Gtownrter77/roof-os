@@ -77,22 +77,9 @@ export async function proxy(request: NextRequest) {
     return applySecurityPolicy(NextResponse.redirect(new URL('/', request.url)), nonce)
   }
 
-  const { data: privilegedMembership } = await supabase
-    .from('workspace_members')
-    .select('workspace_id, role')
-    .eq('user_id', user.id)
-    .in('role', ['owner', 'admin'])
-    .limit(1)
-    .maybeSingle()
-
-  if (privilegedMembership) {
-    const { data: assurance } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
-    if (assurance?.currentLevel !== 'aal2') {
-      const mfa = new URL('/auth/mfa', request.url)
-      mfa.searchParams.set('next', pathname)
-      return applySecurityPolicy(NextResponse.redirect(mfa), nonce)
-    }
-  }
+  // Owner/admin MFA is optional. Forcing aal2 here locked the creator out of their
+  // own workspace when enrollment failed or the authenticator was unavailable.
+  // /auth/mfa remains available for voluntary setup.
 
   return applySecurityPolicy(response, nonce)
 }

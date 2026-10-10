@@ -64,8 +64,8 @@ if (!retailerAddons.includes('create or replace function public.reserve_retailer
 }
 
 const proxy = readFileSync(join(root, 'proxy.ts'), 'utf8')
-if (!proxy.includes("supabase.auth.mfa.getAuthenticatorAssuranceLevel()") || !proxy.includes("role', ['owner', 'admin']")) {
-  throw new Error('Privileged-user MFA enforcement is missing from proxy.ts')
+if (proxy.includes("supabase.auth.mfa.getAuthenticatorAssuranceLevel()") && proxy.includes("role', ['owner', 'admin']")) {
+  throw new Error('proxy.ts must not force owner/admin MFA (aal2); that gate locked the creator out of the app')
 }
 const mfaPage = readFileSync(join(root, 'app', 'auth', 'mfa', 'page.tsx'), 'utf8')
 for (const required of ['mfa.listFactors', 'mfa.enroll', 'mfa.challenge', 'mfa.verify']) {
