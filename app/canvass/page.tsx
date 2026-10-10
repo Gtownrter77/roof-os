@@ -114,7 +114,7 @@ export default function CanvassPage() {
         <div className="px-4 py-3 flex items-center justify-between">
           <div className="flex items-center">
             <button onClick={() => router.back()} className="text-white mr-3 text-xl">←</button>
-            <h1 className="text-xl font-bold">🚶 Canvasser & AI Sales Mentor</h1>
+            <h1 className="text-xl font-bold">🚶 Canvasser & Sales Script Guide</h1>
           </div>
           <button
             onClick={() => setShowVCard(!showVCard)}
@@ -157,7 +157,7 @@ export default function CanvassPage() {
         <div className="bg-white rounded-lg shadow p-4 border-l-4 border-indigo-600 space-y-3">
           <div className="flex justify-between items-center">
             <h2 className="font-bold text-sm text-gray-900 flex items-center">
-              <span className="text-lg mr-1.5">🤖</span> AI Doorstep Opener & Objection Coach
+              <span className="text-lg mr-1.5">🤖</span> Doorstep Opener & Objection Guide
             </h2>
             <span className="text-[10px] bg-indigo-100 text-indigo-900 font-bold px-2 py-0.5 rounded uppercase">
               GOLDEN RULE ALIGNED
