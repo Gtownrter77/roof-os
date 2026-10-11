@@ -168,6 +168,8 @@ export default function App() {
   const [stormHeadline, setStormHeadline] = useState('')
   const [pendingUploads, setPendingUploads] = useState(0)
   const [photoQueue, setPhotoQueue] = useState<QueuedPhoto[]>([])
+  const [showTools, setShowTools] = useState(false)
+  const [leadQuery, setLeadQuery] = useState('')
   const draftRef = useRef<Draft | null>(null)
   const syncLock = useRef(false)
 
@@ -776,6 +778,10 @@ export default function App() {
           )}
         </View>
 
+        <Pressable style={[styles.secondary, { marginBottom: 14 }]} onPress={() => setShowTools((open) => !open)}>
+          <Text style={styles.secondaryText}>{showTools ? 'Hide measurements and leads' : 'Measurements, leads, and drafts'}</Text>
+        </Pressable>
+        {showTools ? <>
         <View style={styles.metrics}>
           <Metric value={String(photos)} label="Queued photos" />
           <Metric value={draft ? 'Saved' : 'Draft'} label="Local inspection" />
@@ -844,8 +850,24 @@ export default function App() {
         <Text style={styles.sectionTitle}>Choose a job</Text>
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Attach this inspection to a lead</Text>
-          {leads.length ? (
-            leads.map((lead) => (
+          <TextInput
+            value={leadQuery}
+            onChangeText={setLeadQuery}
+            placeholder="Search name or address"
+            placeholderTextColor="#8b99aa"
+            style={styles.input}
+            accessibilityLabel="Search leads"
+          />
+          {leads.filter((lead) => {
+            const query = leadQuery.trim().toLowerCase()
+            if (!query) return true
+            return `${lead.name} ${lead.address}`.toLowerCase().includes(query)
+          }).length ? (
+            leads.filter((lead) => {
+              const query = leadQuery.trim().toLowerCase()
+              if (!query) return true
+              return `${lead.name} ${lead.address}`.toLowerCase().includes(query)
+            }).map((lead) => (
               <Pressable
                 key={lead.id}
                 style={[styles.leadOption, selectedLeadId === lead.id && styles.leadOptionSelected]}
@@ -1007,6 +1029,7 @@ export default function App() {
           ))}
         </View>
 
+        </> : null}
         <Pressable style={styles.syncButton} onPress={() => void syncQueuedDrafts()} disabled={syncing}>
           <Text style={styles.syncText}>{syncing ? 'Syncing securely…' : 'Sync queued work now'}</Text>
         </Pressable>
