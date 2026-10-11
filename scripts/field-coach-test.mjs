@@ -25,6 +25,7 @@ assert.ok(app.includes('arrayBuffer'), 'photo upload should read bytes without a
 assert.ok(app.includes('KeyboardAvoidingView'), 'field inputs should stay above the keyboard')
 assert.ok(app.includes('Take photo'), 'the home screen leads with the camera')
 assert.ok(app.includes('Photo queue'), 'queued photos must be visible')
+assert.ok(app.includes('Measurements, leads, and drafts'), 'the job screen must hide the long tool list until asked')
 
 const { fieldCoach, draftNeedsSync, suggestAlbum, formatGeocodedAddress, measurementNotes, suggestCaption } = await import(
   '../apps/field/src/fieldCoach.ts'
