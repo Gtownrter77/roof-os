@@ -11,6 +11,7 @@ import {
   type RadarLayerId,
   type RadarLayerPrefs,
 } from '../../lib/radar/cinema-layers'
+import { applyCinemaTheme, cinemaThemeEnabled } from '../../lib/theme/cinema'
 
 type Settings = {
   price_refresh_frequency: string
@@ -77,6 +78,7 @@ export default function SettingsPage() {
   const [taxRates, setTaxRates] = useState<TaxRates>(initialTax)
   const [taxSource, setTaxSource] = useState('')
   const [radarPrefs, setRadarPrefs] = useState<RadarLayerPrefs>(DEFAULT_RADAR_LAYER_PREFS)
+  const [cinemaOn, setCinemaOn] = useState(true)
   const [loaded, setLoaded] = useState(false)
   const [message, setMessage] = useState('')
   const [refreshing, setRefreshing] = useState(false)
@@ -84,6 +86,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     setRadarPrefs(loadRadarLayerPrefs())
+    setCinemaOn(cinemaThemeEnabled())
     Promise.all([fetch('/api/settings'), fetch('/api/pricing/labor-rates')]).then(async ([settingsResponse, pricingResponse]) => {
       const settingsPayload = await settingsResponse.json()
       const pricingPayload = await pricingResponse.json()
@@ -245,6 +248,23 @@ export default function SettingsPage() {
               {refreshing ? 'Refreshing Retailers…' : '🔄 Refresh Retailer Prices Now'}
             </button>
           </div>
+        </section>
+
+        <section className="glass rounded-xl p-4 border-l-4 border-cyan-500 space-y-3">
+          <h2 className="font-bold text-sm text-white">Radar atmosphere</h2>
+          <p className="text-xs text-slate-400">
+            The login screen and page backgrounds use the radar glow. Turn it off for flat black. Saved on this device.
+          </p>
+          <ToggleRow
+            label="Radar atmosphere"
+            desc={cinemaOn ? 'On. Cyan and storm glow behind the pages.' : 'Off. Flat black backgrounds.'}
+            checked={cinemaOn}
+            onToggle={() => {
+              const next = !cinemaOn
+              setCinemaOn(next)
+              applyCinemaTheme(next)
+            }}
+          />
         </section>
 
         {/* Radar cinema layers */}

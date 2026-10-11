@@ -40,8 +40,8 @@ function BreakGlassLogin() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-950 flex items-center justify-center p-6 text-white">
-      <section className="w-full max-w-sm rounded-2xl border border-white/10 bg-slate-900 p-6 shadow-lg">
+    <main className="cinema-surface min-h-screen flex items-center justify-center p-6 text-white">
+      <section className="glass w-full max-w-sm rounded-2xl p-6 shadow-lg">
         <h1 className="text-xl font-bold text-center">ROOF/OS break-glass</h1>
         <p className="mt-2 text-sm text-slate-300 text-center">
           Private unlock. Paste your owner enter key. Strangers without it stay out.
@@ -86,7 +86,7 @@ export default function LoginPage() {
   return (
     <Suspense
       fallback={
-        <main className="min-h-screen bg-slate-950 text-white flex items-center justify-center">
+        <main className="cinema-surface min-h-screen text-white flex items-center justify-center">
           Loading…
         </main>
       }
