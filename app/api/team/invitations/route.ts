@@ -24,6 +24,8 @@ export async function POST(request: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Authentication required.' }, { status: 401 })
   const { data: workspaceId, error: workspaceError } = await supabase.rpc('current_workspace_id')
   if (workspaceError || !workspaceId) return NextResponse.json({ error: 'No workspace is configured.' }, { status: 400 })
+  const { data: isAdmin, error: roleError } = await supabase.rpc('is_workspace_admin', { target_workspace: workspaceId })
+  if (roleError || isAdmin !== true) return NextResponse.json({ error: 'Workspace administrator access is required to invite members.' }, { status: 403 })
 
   const parsedBody = await readJson(request)
   if ('error' in parsedBody) return NextResponse.json({ error: parsedBody.error }, { status: parsedBody.status })
@@ -37,7 +39,10 @@ export async function POST(request: NextRequest) {
   const { data, error } = await supabase.from('workspace_invitations').insert({ workspace_id: workspaceId, email, role, invited_by: user.id }).select('id,email,role,status,expires_at,created_at').single()
   if (error) return NextResponse.json({ error: 'Invitation could not be created.', detail: error.message }, { status: error.code === '23505' ? 409 : 403 })
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim() || process.env.NEXT_PUBLIC_SUPABASE_SITE_URL?.trim()
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim()
+    || process.env.NEXT_PUBLIC_SUPABASE_SITE_URL?.trim()
+    || process.env.NEXT_PUBLIC_APP_URL?.trim()
+    || process.env.RECEPTIONIST_PUBLIC_URL?.trim()
   if (!siteUrl) {
     await supabase.from('workspace_invitations').update({ status: 'revoked', updated_at: new Date().toISOString() }).eq('id', data.id)
     return NextResponse.json({ error: 'Invitation email delivery is not configured.' }, { status: 503 })

@@ -55,12 +55,12 @@ export default function PhotoVerifyPage() {
         totalOptional: optionalCount,
         capturedOptional: capturedOptional,
         percentage: Math.round((capturedRequired / requiredCount) * 100),
-        quality: 'High',
+        quality: 'Not assessed',
         missing: missing,
         recommendations: recommendations,
-        nextSteps: missing.length === 0 
-          ? ['✅ All required photos captured!', '📄 Generate complete report', '📤 Submit to insurance']
-          : ['📸 Capture missing photos', '🔄 Re-verify', '✅ Complete verification']
+        nextSteps: missing.length === 0
+          ? ['✅ All required categories are present.', '📄 Continue in Photo Estimate to create a saved review packet.', 'Insurance submission is not connected on this page.']
+          : ['📸 Capture and categorize the missing photos.', '🔄 Re-check photo coverage.', 'A technician must review the evidence before a report is released.']
       }
       
       setCoverage(coverageReport)
@@ -129,8 +129,8 @@ export default function PhotoVerifyPage() {
       <header className="glass rounded-xl mb-4">
         <div className="px-4 py-3 flex items-center">
           <button onClick={() => smartBack(router)} className="mr-3 text-xl text-cyan-300">←</button>
-          <h1 className="text-xl font-bold">📸 AI Photo Verification</h1>
-          <span className="ml-2 bg-emerald-400/100 text-white text-xs px-2 py-0.5 rounded-full animate-pulse">REVIEW-GATED</span>
+          <h1 className="text-xl font-bold">📸 Photo Coverage Checklist</h1>
+          <span className="ml-2 bg-slate-500 text-white text-xs px-2 py-0.5 rounded-full">LOCAL CHECKLIST</span>
         </div>
       </header>
 
@@ -199,8 +199,8 @@ export default function PhotoVerifyPage() {
                   <p className="text-2xl font-bold">{coverage.captured}/{coverage.totalRequired}</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-xs text-slate-400">Quality</p>
-                  <p className="text-2xl font-bold text-green-600">{coverage.quality}</p>
+                  <p className="text-xs text-slate-400">Image quality</p>
+                  <p className="text-sm font-bold text-slate-300">{coverage.quality}</p>
                 </div>
               </div>
               {coverage.percentage >= 90 ? (
@@ -256,7 +256,7 @@ export default function PhotoVerifyPage() {
 
             {coverage.recommendations.length > 0 && (
               <div className="bg-amber-400/10 border-2 border-yellow-300 rounded-lg p-4">
-                <h3 className="font-semibold text-sm text-yellow-800 mb-2">💡 AI Recommendations</h3>
+                <h3 className="font-semibold text-sm text-yellow-800 mb-2">💡 Checklist reminders</h3>
                 <ul className="space-y-1">
                   {coverage.recommendations.map((rec: string, i: number) => (
                     <li key={i} className="text-sm text-yellow-700">{rec}</li>
@@ -276,13 +276,14 @@ export default function PhotoVerifyPage() {
             </div>
 
             <div className="grid grid-cols-2 gap-2">
-              <button className="bg-blue-600 text-white py-2 rounded-lg text-sm font-semibold">
-                📄 Generate Report
+              <button type="button" onClick={() => router.push('/photo-estimate')} className="bg-blue-600 text-white py-2 rounded-lg text-sm font-semibold">
+                📄 Continue in Photo Estimate
               </button>
-              <button className="bg-green-600 text-white py-2 rounded-lg text-sm font-semibold">
-                📤 Submit to Insurance
+              <button type="button" disabled title="Insurance submission is not configured" className="bg-slate-700 text-slate-300 py-2 rounded-lg text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-70">
+                Insurance submission unavailable
               </button>
             </div>
+            <p className="text-xs text-slate-400">This page checks photo categories in your browser; it does not run AI or save photos to an inspection. To create a saved report, upload the photos again in Photo Estimate. No insurer-submission integration is connected here.</p>
           </div>
         )}
       </main>
