@@ -17,6 +17,22 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
     linear-gradient(135deg, #060916 0%, #07101f 56%, #160d19 100%);
   color: #f7f9ff;
 }
+
+/* Radar atmosphere on the shell, login, and page black. Off is flat black. */
+html[data-cinema='on'] body,
+html[data-cinema='on'] .ops-bg,
+html[data-cinema='on'] .cinema-surface {
+  background:
+    radial-gradient(ellipse at 74% 6%, rgba(22, 184, 255, .24), transparent 26%),
+    radial-gradient(ellipse at 16% 92%, rgba(255, 44, 63, .18), transparent 30%),
+    radial-gradient(circle at 48% 42%, rgba(34, 78, 140, .2), transparent 42%),
+    linear-gradient(160deg, #050812 0%, #07101f 50%, #140910 100%);
+}
+html[data-cinema='off'] body,
+html[data-cinema='off'] .ops-bg,
+html[data-cinema='off'] .cinema-surface {
+  background: #050914;
+}
 .ops-label {
   color: #55caff;
   font-size: 10px;
