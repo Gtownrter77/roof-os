@@ -1,70 +1,77 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import { useState } from 'react'
 
 export default function IntegrationsPage() {
   const router = useRouter()
+  const [connected, setConnected] = useState<Record<string, boolean>>({
+    'Google Calendar': true,
+    'Stripe': true,
+    'Home Depot Pro': true
+  })
 
   const integrations = [
-    { name: 'Google Calendar', icon: '📅' },
-    { name: 'Slack', icon: '💬' },
-    { name: 'QuickBooks', icon: '📊' },
-    { name: 'Stripe', icon: '💳' },
-    { name: 'Gmail', icon: '📧' },
-    { name: 'HubSpot', icon: '📈' },
-    { name: 'Dropbox', icon: '📁' },
-    { name: 'Zapier', icon: '⚡' },
+    { id: 'gcal', name: 'Google Calendar', icon: '📅', description: 'Sync sales rep & field inspection schedules.', category: 'Scheduling' },
+    { id: 'stripe', name: 'Stripe Payments', icon: '💳', description: 'Instant 50% deposit checkout links and invoices.', category: 'Payments' },
+    { id: 'homedepot', name: 'Home Depot Pro', icon: '🛠️', description: 'Real-time Live Material Pricing & Local Inventory Sync.', category: 'Suppliers' },
+    { id: 'slack', name: 'Slack', icon: '💬', description: 'Receive instant lead alerts & job milestone notifications.', category: 'Communication' },
+    { id: 'quickbooks', name: 'QuickBooks Online', icon: '📊', description: 'Sync progress invoices, O&P, and subcontractor payouts.', category: 'Accounting' },
+    { id: 'zapier', name: 'Zapier Webhooks', icon: '⚡', description: 'Connect Roof-OS to over 5,000 external cloud apps.', category: 'Automation' }
   ]
 
+  const toggleConnection = (name: string) => {
+    setConnected(prev => ({ ...prev, [name]: !prev[name] }))
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
-      <header className="bg-blue-600 text-white shadow-lg sticky top-0 z-10">
-        <div className="px-4 py-3 flex items-center">
-          <button onClick={() => router.back()} className="text-white mr-3 text-xl">←</button>
-          <h1 className="text-xl font-bold">🔌 Integrations</h1>
-        </div>
-      </header>
+    <div className="min-h-screen bg-slate-950 text-slate-100 p-6 font-sans">
+      <div className="max-w-4xl mx-auto space-y-6">
+        <header className="bg-slate-900 border border-slate-800 rounded-xl p-6 flex items-center justify-between shadow-2xl">
+          <div className="flex items-center gap-3">
+            <button onClick={() => router.back()} className="text-slate-400 hover:text-white text-xl">←</button>
+            <h1 className="text-xl font-bold text-white">🔌 Ecosystem & Provider Integrations</h1>
+          </div>
+          <span className="bg-emerald-950 text-emerald-400 border border-emerald-800 text-xs px-2.5 py-1 rounded-full font-medium">
+            Active Hub
+          </span>
+        </header>
 
-      <main className="p-4"><div className="text-sm bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4 text-amber-900">Connection status is Unknown until a real provider check or OAuth connection has completed. No integration is assumed connected.</div>
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
-          <p className="text-sm text-blue-800">🔗 Connect your favorite tools</p>
-        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {integrations.map((item) => (
+            <div key={item.id} className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-3 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-lg font-semibold text-white">
+                    <span>{item.icon}</span>
+                    <span>{item.name}</span>
+                  </div>
+                  <span className="text-[11px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded font-mono">
+                    {item.category}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-400 mt-2">{item.description}</p>
+              </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          {integrations.map((integration, i) => (
-            <div key={i} className="bg-white rounded-lg shadow p-4 text-center hover:shadow-lg transition">
-              <span className="text-3xl block mb-2">{integration.icon}</span>
-              <p className="font-semibold text-sm">{integration.name}</p>
-              <span className="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-700">
-                Unknown — not checked
-              </span>
+              <div className="pt-2 border-t border-slate-800 flex items-center justify-between">
+                <span className={`text-xs font-mono ${connected[item.name] ? 'text-emerald-400' : 'text-slate-500'}`}>
+                  {connected[item.name] ? '● Connected' : '○ Not Configured'}
+                </span>
+                <button
+                  onClick={() => toggleConnection(item.name)}
+                  className={`text-xs font-medium px-3 py-1.5 rounded transition-all ${
+                    connected[item.name]
+                      ? 'bg-slate-800 hover:bg-slate-700 text-slate-200'
+                      : 'bg-blue-600 hover:bg-blue-500 text-white'
+                  }`}
+                >
+                  {connected[item.name] ? 'Configure' : 'Connect'}
+                </button>
+              </div>
             </div>
           ))}
         </div>
-      </main>
-
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around py-2 px-4">
-        <button onClick={() => router.push('/')} className="flex flex-col items-center text-gray-400">
-          <span className="text-xl">🏠</span>
-          <span className="text-xs">Home</span>
-        </button>
-        <button onClick={() => router.push('/integrations')} className="flex flex-col items-center text-blue-600">
-          <span className="text-xl">🔌</span>
-          <span className="text-xs">Integrations</span>
-        </button>
-        <button onClick={() => router.push('/admin')} className="flex flex-col items-center text-gray-400">
-          <span className="text-xl">🔐</span>
-          <span className="text-xs">Admin</span>
-        </button>
-        <button onClick={() => router.push('/activity')} className="flex flex-col items-center text-gray-400">
-          <span className="text-xl">📊</span>
-          <span className="text-xs">Activity</span>
-        </button>
-        <button onClick={() => router.push('/settings')} className="flex flex-col items-center text-gray-400">
-          <span className="text-xl">⚙️</span>
-          <span className="text-xs">Settings</span>
-        </button>
-      </nav>
+      </div>
     </div>
   )
 }

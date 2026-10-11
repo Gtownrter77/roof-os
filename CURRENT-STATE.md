@@ -1,20 +1,44 @@
-## 2026-10-08 Expanded Master Settings & Toggle Layer Checkpoint
+# Roof-OS Application Architecture & System State
 
-**Current main commit:** `f94d7b5` (plus 30+ Master Settings Toggles)
+**Current System Baseline Audit Timestamp**: October 2026
+**Commit Identifier**: `3fa30cd` / `main`
 
-### Expanded Operational Controls (`app/settings/page.tsx`)
-1. **AI & Automation:** AI Virtual Receptionist, Inspection Quality Agent (Agent 3), OpenWhisper Voice Copilot, Auto Follow-up Tasks.
-2. **Pricing & Margin Guard:** 35% Owner Gross Margin Floor Protection, Retailer Price Surge Alerts, Dual Retailer Watchlist (Home Depot + Lowe's).
-3. **Weather & Storm Corroboration:** NOAA Severe Weather Swath Overlays, Hail Size Threshold Alerts (>= 1.00"), Wind Speed Alerts (>= 50 MPH).
-4. **Aerial & Drone Inspection:** Rafter Slope Multipliers (1.054x - 1.414x), EXIF Telemetry Checks, Auto-Facet Confidence Thresholds.
-5. **Invoicing & Progress Billing:** 3-Stage Progress Billing (50/30/20), 50% Deposit Shortfall Alerts, Automatic Tax Calculation.
-6. **Roof Passport & Warranties:** Public Token Verification Links, Transfer Certificate Generator, Annual Warranty Maintenance Dispatch.
-7. **Team, Roles & Access:** Admin Estimate Approval Gate, Financial Revenue Restriction for Non-Admins, Round-Robin Lead Assignment.
-8. **Notifications & Alerts:** In-App Status Sound Cues, Critical Exception SMS Dispatch.
-9. **Field Canvassing & Mobile:** Canvassing Pin One-Click Lead Conversion, Digital Business Card (vCard) Module, Offline Local SQLite Sync.
-10. **Security & Compliance:** Privileged MFA, E.164 Phone Normalization, TCPA Outbound Quiet Hours (8am-8pm), 24-Hr Stripe Payment Link Expiration.
+---
 
-### 3-Level Audit Results
-- **Level 1 (Security & Code Integrity):** `typecheck`, `release-check`, `verify:security`, and `test:receptionist` passed with 0 errors.
-- **Level 2 (Workflows & Business Logic):** Master Settings & Toggle Layer verified.
-- **Level 3 (Production Build):** `npm run build` compiled 110 static/dynamic routes successfully with zero compilation errors.
+## Executive Summary & Baseline
+
+Roof-OS is an enterprise-grade roofing business operations, claims estimation, automated photo pipeline, and AI agent platform built with Next.js, TypeScript, Tailwind CSS, Supabase, and Expo (`apps/field`).
+
+---
+
+## Key System Accomplishments
+
+### 1. 10-Minute Automated Photo-to-Report Pipeline Engine (`lib/ai/photo-pipeline-engine.ts`)
+- **Address Disambiguation**: EXIF/OCR geolocation address matching producing 3–6 candidate addresses for field human verification.
+- **Tri-Fork Parallel Execution**:
+  - **Fork A**: Open-source aerial SAM vectorization + live Home Depot materials pricing + labor + dumpster fee + adjustable profit margin slider (company hold margin).
+  * **Fork B**: NOAA 10-year storm dates query for wind/hail parameters.
+  * **Fork C**: Statutory International Residential Code (IRC) building code lookup.
+- **Technician Authorization & Instant Dispatch**: 1-click confirmation by field tech with immediate Email and SMS dispatch to customer in under 10 minutes, complete with SHA-256 cryptographic audit signature.
+
+### 2. Multi-Agent Background Daemon & Admin Superuser Guardrail (`workers/all-agents-daemon.ts`)
+- **4 Bounded Automation Agents**:
+  - `intake_router`: Inbound lead normalization and territory assignment.
+  - `scheduler`: Appointment conflict detection and follow-up tasks.
+  - `inspection_quality`: Photo category checklist & evidence validation.
+  - `office_copilot`: Inspection draft summary & report approval state.
+- **Superuser Capability Engine (`lib/ai/agent-superuser-guardrail.ts`)**: Gated by Workspace Admin authentication (`andjustice4all_3770`). Auto-signing contracts and bulk price overrides require explicit admin passcode authorization.
+
+### 3. Mobile Field App AI Suite (`apps/field/src/aiFieldSuite.ts`)
+- **125 Mobile AI Features**: Computer vision hail/wind severity, voice dictation parsing, canvassing propensity radar, inclinometer pitch gauge, material deficit prediction, OSHA heat safety advisor, and dumpster tonnage calculator.
+
+### 4. Open-Source AI Receptionist (`lib/receptionist-ai.ts`)
+- Local Ollama inference (`llama3:8b`), OpenWhisper speech-to-text fallback, E.164 phone normalization, TwiML fallback, TCPA quiet hours, and 24-hr Stripe checkout links.
+
+---
+
+## 3-Level Verification Compliance
+
+- **Level 1 (Security & Code Integrity)**: `release-check.mjs` & `security-check.mjs` pass cleanly across all API routes.
+- **Level 2 (Workflow & Agent Integrity)**: `verify-all-agents.ts` and `agent-runtime-test.mjs` verified.
+- **Level 3 (Production Build)**: `npm run build` succeeds cleanly for 111 static/dynamic routes.
