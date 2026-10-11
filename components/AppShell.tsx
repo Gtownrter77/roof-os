@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Settings } from 'lucide-react'
 import { APP_NAV_ITEMS, APP_SHELL_HIDDEN } from '../lib/nav'
+import NextPage from './NextPage'
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() || '/'
@@ -59,7 +60,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             })}
           </nav>
         </aside>
-        <div className="min-w-0">{children}</div>
+        <div className="min-w-0">
+          <NextPage pathname={pathname} />
+          {children}
+        </div>
       </div>
     </div>
   )

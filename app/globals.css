@@ -33,6 +33,31 @@ html[data-cinema='off'] .ops-bg,
 html[data-cinema='off'] .cinema-surface {
   background: #050914;
 }
+
+.next-page { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; border: 1px solid rgba(22,184,255,.35); border-radius: 14px; background: linear-gradient(90deg, rgba(22,184,255,.16), rgba(255,44,63,.12)); padding: 12px 16px; color: white; font-weight: 800; letter-spacing: .04em; }
+.next-page span { color: #7ee7ff; font-size: 11px; letter-spacing: .22em; text-transform: uppercase; }
+.trailer-root { position: fixed; inset: 0; z-index: 200; overflow: hidden; background: #000; color: #fff; }
+.trailer-plate { position: absolute; inset: -8%; background: radial-gradient(ellipse at 70% 18%, rgba(22,184,255,.45), transparent 32%), radial-gradient(ellipse at 20% 80%, rgba(255,44,63,.4), transparent 36%), linear-gradient(180deg, #02040a 0%, #0b1830 42%, #1a0a10 100%); opacity: 0; transform: scale(1.08); transition: opacity 1.4s ease, transform 12s ease; }
+.trailer-plate.is-lit { opacity: .88; transform: scale(1); }
+.trailer-rain { position: absolute; inset: -20%; background: repeating-linear-gradient(105deg, transparent 0 10px, rgba(255,255,255,.14) 11px, transparent 13px); opacity: .35; animation: trailer-rain 0.45s linear infinite; pointer-events: none; }
+.trailer-shade { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 40%, transparent 0%, rgba(0,0,0,.35) 46%, #000 100%); }
+.trailer-ring { position: absolute; left: 50%; top: 46%; width: 38vmax; height: 38vmax; margin: -19vmax 0 0 -19vmax; border: 1px solid rgba(22,184,255,.45); border-radius: 50%; box-shadow: 0 0 40px rgba(22,184,255,.25), inset 0 0 40px rgba(22,184,255,.12); animation: trailer-sweep 3.2s linear infinite; }
+.trailer-ring:before, .trailer-ring:after { content: ''; position: absolute; inset: 12%; border: 1px solid rgba(22,184,255,.28); border-radius: 50%; }
+.trailer-ring:after { inset: 28%; }
+.trailer-flash { position: absolute; inset: 0; background: rgba(255,255,255,.0); animation: trailer-strike 7s ease-in-out infinite; pointer-events: none; }
+.trailer-copy { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; padding: 12vh 8vw 14vh; text-align: center; }
+.trailer-kicker { margin: 0; font-weight: 900; letter-spacing: .28em; font-size: clamp(1.6rem, 6vw, 4.6rem); text-shadow: 0 0 28px rgba(22,184,255,.45); }
+.trailer-kicker.is-mark { letter-spacing: .08em; }
+.trailer-line { margin: .6rem 0 0; max-width: 18ch; font-size: clamp(1rem, 2.4vw, 1.5rem); color: #e8eef8; }
+.trailer-enter { margin-top: 1.4rem; border: 0; border-radius: .7rem; background: #16b8ff; color: #041018; font-weight: 800; padding: .8rem 1.4rem; }
+.trailer-skip { position: absolute; top: 1rem; right: 1rem; border: 1px solid rgba(255,255,255,.25); background: rgba(0,0,0,.45); color: #fff; border-radius: 999px; padding: .4rem .8rem; font-size: .75rem; font-weight: 700; }
+@keyframes trailer-rain { from { transform: translate3d(0, -8%, 0); } to { transform: translate3d(-4%, 12%, 0); } }
+@keyframes trailer-sweep { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@keyframes trailer-strike { 0%, 72%, 100% { background: transparent; } 74% { background: rgba(255,244,230,.28); } 76% { background: transparent; } }
+@media (prefers-reduced-motion: reduce) {
+  .trailer-plate { transition: none; opacity: .8; transform: none; }
+  .trailer-ring, .trailer-flash, .trailer-rain { animation: none; }
+}
 .ops-label {
   color: #55caff;
   font-size: 10px;
