@@ -16,6 +16,7 @@
     "test:field-coach": "node scripts/field-coach-test.mjs",
     "test:stale-screens": "node scripts/stale-screens-test.mjs",
     "test:cinema-theme": "node scripts/cinema-theme-test.mjs",
+    "test:entrance-trailer": "node scripts/entrance-trailer-test.mjs",
     "test:photo-estimate-flow": "node scripts/photo-estimate-flow-test.mjs",
     "test:photo-full-report-flow": "node scripts/photo-full-report-flow-test.mjs",
     "test:measurement-estimate-authority": "node scripts/measurement-estimate-authority-test.mjs",
