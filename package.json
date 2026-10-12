@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "mkdir -p .next/standalone/.next && cp -R .next/static .next/standalone/.next/static && node .next/standalone/server.js",
+    "start": "mkdir -p .next/standalone/.next && cp -R .next/static .next/standalone/.next/static && rm -rf .next/standalone/public && cp -R public .next/standalone/public && node .next/standalone/server.js",
+    "test:runtime-smoke": "node scripts/runtime-smoke-test.mjs",
     "typecheck": "tsc --noEmit",
     "release-check": "node scripts/release-check.mjs",
     "test:api-security": "node scripts/api-security-test.mjs",
