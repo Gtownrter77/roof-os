@@ -21,16 +21,21 @@ async function checkWeather(): Promise<ServiceStatus> {
 
 export async function GET() {
   const started = Date.now()
-  const admin = createAdminClient()
-
-  const [databaseResult, storageResult, weather] = await Promise.all([
-    admin.from('workspaces').select('id').limit(1),
-    admin.storage.from('inspection-photos').list('', { limit: 1 }),
-    checkWeather(),
-  ])
-
-  const database: ServiceStatus = databaseResult.error ? 'offline' : 'online'
-  const storage: ServiceStatus = storageResult.error ? 'offline' : 'online'
+  let database: ServiceStatus = 'unknown'
+  let storage: ServiceStatus = 'unknown'
+  try {
+    const admin = createAdminClient()
+    const [databaseResult, storageResult] = await Promise.all([
+      admin.from('workspaces').select('id').limit(1),
+      admin.storage.from('inspection-photos').list('', { limit: 1 }),
+    ])
+    database = databaseResult.error ? 'offline' : 'online'
+    storage = storageResult.error ? 'offline' : 'online'
+  } catch {
+    // Health reporting must remain available while deployment secrets are being configured.
+    // The missing server key is represented as unknown rather than a route-level 500.
+  }
+  const weather = await checkWeather()
   const api: ServiceStatus = 'online'
   const services = { database, api, weather, storage }
   const operational = Object.values(services).every((value) => value === 'online')
