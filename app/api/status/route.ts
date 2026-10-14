@@ -43,7 +43,7 @@ export async function GET() {
   // Booleans only — never echo secret values.
   const ai = {
     textProvider: process.env.OLLAMA_HOST?.trim() ? 'ollama' : 'keywords',
-    visionConfigured: Boolean(process.env.GEMINI_API_KEY?.trim()),
+    visionConfigured: Boolean(process.env.OLLAMA_VISION_API_BASE_URL?.trim()),
     cronConfigured: Boolean(process.env.CRON_SECRET?.trim()),
     capoutConfigured: Boolean(process.env.CAPOUT_API_KEY?.trim()),
     whisperConfigured: Boolean(

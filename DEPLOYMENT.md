@@ -8,7 +8,7 @@ The GitHub `main` branch is connected for automatic production deployments.
 
 ## Required production secrets
 
-Configure `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and the server-only `GEMINI_API_KEY`, `CAPOUT_API_KEY`, `RAPIDAPI_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, and `CRON_SECRET` in the deployment secret manager. `GEMINI_API_KEY` is required only for the explicitly triggered D.3 photo-analysis endpoint; without it, that endpoint must remain unavailable with a controlled `503` response. Never place a Supabase service-role key, Gemini key, CapOut key, RapidAPI key, or cron secret in `NEXT_PUBLIC_*` variables, the browser bundle, or the field app.
+Configure `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and the server-only `CAPOUT_API_KEY`, `RAPIDAPI_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, and `CRON_SECRET` in the deployment secret manager. Vision inference uses `OLLAMA_VISION_API_BASE_URL` (current local default `http://localhost:20128/v1`) and `OLLAMA_VISION_MODEL` (default `llava`); the endpoint must be reachable from the app runtime. In Vercel, `localhost` refers to the function runtime itself, so production inference requires a local listener there or a reachable endpoint configured for that deployment. No Gemini API key is used by the vision routes. Never place a Supabase service-role key, CapOut key, RapidAPI key, or cron secret in `NEXT_PUBLIC_*` variables, the browser bundle, or the field app.
 
 ## Migration order
 
