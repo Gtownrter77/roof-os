@@ -11,6 +11,7 @@ import {
   canvassOutcomeToLeadFields,
   normalizeAddress,
 } from '../../lib/canvass'
+import CanvassVideoRecorder, { CanvassRecordingStatus } from '../../components/CanvassVideoRecorder'
 
 type CanvassLead = {
   id: string
@@ -57,6 +58,16 @@ export default function CanvassPage() {
     outcome: 'INTERESTED' as CanvassOutcome,
     notes: '',
   })
+
+  const [videoRecording, setVideoRecording] = useState<Blob | null>(null)
+  const [recordingConsentAt, setRecordingConsentAt] = useState<string | null>(null)
+  const [recordingStatus, setRecordingStatus] = useState<CanvassRecordingStatus>('not_recorded')
+
+  function handleRecordingChange(blob: Blob | null, consentedAt: string | null, status: CanvassRecordingStatus) {
+    setVideoRecording(blob)
+    setRecordingConsentAt(consentedAt)
+    setRecordingStatus(status)
+  }
 
   const advice = getCanvassAdvice({
     address: form.address.trim(),
@@ -168,6 +179,47 @@ export default function CanvassPage() {
         leadId = inserted.id
       }
 
+      // Every canvass lead event gets an explicit recording status. Video is only uploaded after explicit consent.
+      let recordingRowStatus: 'uploaded' | 'not_recorded' | 'consent_not_obtained' | 'consented_not_recorded' | 'upload_failed' =
+        recordingStatus === 'consented_not_recorded' ? 'consented_not_recorded' : 'consent_not_obtained'
+      let recordingPath: string | null = null
+      let recordingBytes: number | null = null
+      if (videoRecording && recordingConsentAt) {
+        if (videoRecording.size > 100 * 1024 * 1024) {
+          recordingRowStatus = 'upload_failed'
+        } else {
+          const objectPath = `${workspaceId}/${user.id}/${leadId}/${crypto.randomUUID()}.webm`
+          const { error: videoUploadError } = await supabase.storage
+            .from('canvass-recordings')
+            .upload(objectPath, videoRecording, { contentType: 'video/webm', upsert: false })
+          if (videoUploadError) {
+            recordingRowStatus = 'upload_failed'
+          } else {
+            recordingRowStatus = 'uploaded'
+            recordingPath = objectPath
+            recordingBytes = videoRecording.size
+          }
+        }
+      } else if (recordingStatus === 'not_recorded') {
+        recordingRowStatus = 'consent_not_obtained'
+      }
+
+      const { error: recordingMetadataError } = await supabase.from('canvass_recordings').insert({
+        lead_id: leadId,
+        workspace_id: workspaceId,
+        user_id: user.id,
+        recording_status: recordingRowStatus,
+        consented_at: recordingRowStatus === 'uploaded' || recordingRowStatus === 'consented_not_recorded' ? recordingConsentAt : null,
+        object_path: recordingPath,
+        mime_type: recordingPath ? 'video/webm' : null,
+        file_size_bytes: recordingBytes,
+      })
+      if (recordingMetadataError) {
+        setNotice('Lead saved, but recording status could not be attached. Check workspace migration/RLS before relying on video evidence.')
+      } else if (recordingRowStatus === 'upload_failed') {
+        setNotice('Lead saved, but video upload failed. Recording status was logged for follow-up.')
+      }
+
       await supabase.from('lead_activity').insert({
         lead_id: leadId,
         workspace_id: workspaceId,
@@ -177,6 +229,9 @@ export default function CanvassPage() {
       })
 
       setForm({ address: '', homeownerName: '', phone: '', outcome: 'INTERESTED', notes: '' })
+      setVideoRecording(null)
+      setRecordingConsentAt(null)
+      setRecordingStatus('not_recorded')
       setNotice(existing ? 'Updated existing canvass lead.' : 'Saved to Leads (canvass source).')
       await loadCanvassLeads()
     } catch {
@@ -300,6 +355,7 @@ export default function CanvassPage() {
               className="p-2.5 border rounded-lg text-sm"
             />
           </div>
+          <CanvassVideoRecorder onRecordingChange={handleRecordingChange} />
           <div className="grid grid-cols-2 gap-2">
             <select
               value={form.outcome}
