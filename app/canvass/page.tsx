@@ -299,7 +299,19 @@ export default function CanvassPage() {
             <label className="font-bold text-slate-100 block">Homeowner objection</label>
             <select
               value={selectedObjection}
-              onChange={(e) => setSelectedObjection(e.target.value as ObjectionType)}
+              onChange={(e) => {
+                const nextObjection = e.target.value as ObjectionType
+                if (['NOT_INTERESTED', 'DONT_WANT_SALES', 'DO_NOT_SOLICIT'].includes(nextObjection)) {
+                  const reason = nextObjection === 'DO_NOT_SOLICIT'
+                    ? 'No-soliciting sign or request to leave'
+                    : nextObjection === 'DONT_WANT_SALES'
+                      ? 'Homeowner declined a sales pitch'
+                      : 'Homeowner said not interested'
+                  triggerHardStop(reason)
+                } else if (!hardStopActive) {
+                  setSelectedObjection(nextObjection)
+                }
+              }}
               className="w-full p-2 border rounded font-semibold text-xs"
             >
               {Array.from(new Set(CANVASS_OBJECTIONS.map((item) => item.category))).map((category) => (
@@ -310,9 +322,13 @@ export default function CanvassPage() {
                 </optgroup>
               ))}
             </select>
-            {advice.objectionResponse && (
+            {hardStopActive ? (
+              <div role="alert" className="p-3 bg-red-950 border-2 border-red-500 text-white rounded mt-2 font-bold">
+                Respect the refusal. Do not counter, persuade, or ask for another chance. End the interaction and leave.
+              </div>
+            ) : advice.objectionResponse && (
               <div className="p-3 bg-amber-400/10 border border-amber-400/30 text-amber-100 rounded mt-2 font-medium">
-                <p className="font-bold text-[11px] uppercase text-amber-800 mb-0.5">Recommended counter</p>
+                <p className="font-bold text-[11px] uppercase text-amber-800 mb-0.5">Suggested response — never override a refusal</p>
                 <p>&ldquo;{advice.objectionResponse}&rdquo;</p>
               </div>
             )}
