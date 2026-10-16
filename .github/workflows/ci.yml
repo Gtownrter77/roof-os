@@ -41,7 +41,7 @@ jobs:
       - run: npm run test:api-security
       - run: npm run test:auth-flow
       - run: npm run test:mobile-offline-sync
-      - run: npm run test:canvass-video-recording
+      - run: npm run test:canvass-hard-stop
       - run: npm run test:field-coach
       - run: npm run test:stale-screens
       - run: npm run test:cinema-theme
@@ -183,9 +183,9 @@ jobs:
           grep -q "drop policy if exists agent_runs_select" supabase/migrations/009_agent_runtime_claims_imports.sql
           test -f supabase/migrations/050_mobile_technician_verification.sql
           test -f supabase/migrations/052_mobile_field_measurement_inputs.sql
-          grep -q "public.canvass_recordings" supabase/migrations/053_canvass_video_recordings.sql
-          grep -q "public = false" supabase/migrations/053_canvass_video_recordings.sql
-          grep -q "public.is_workspace_member" supabase/migrations/053_canvass_video_recordings.sql
+          test -f scripts/canvass-hard-stop-test.mjs
+          grep -q "HARD STOP" app/canvass/page.tsx
+          grep -q "lead_activity" app/canvass/page.tsx
           grep -q "inspection_verifications" supabase/migrations/050_mobile_technician_verification.sql
           grep -q "rafter_lf" supabase/migrations/052_mobile_field_measurement_inputs.sql
           grep -q "soffit_lf" supabase/migrations/052_mobile_field_measurement_inputs.sql
