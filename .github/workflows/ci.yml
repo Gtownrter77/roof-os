@@ -74,6 +74,7 @@ jobs:
       - run: npm run test:heartbeat-probe
       - run: npm run test:field-device-evidence
       - run: npm run test:release-gate-summary
+      - run: npm run test:canvass-hard-stop
       - run: npm run test:field-coach
       - run: npm run test:stale-screens
       - run: npm run test:cinema-theme
@@ -227,6 +228,9 @@ jobs:
           grep -q "get diagnostics updated_count = row_count" supabase/migrations/053_agent_action_ledger.sql
           grep -q "revoke all on function public.approve_agent_action_batch" supabase/migrations/053_agent_action_ledger.sql
           grep -q "set search_path = public" supabase/migrations/053_agent_action_ledger.sql
+          test -f scripts/canvass-hard-stop-test.mjs
+          grep -q "HARD STOP" app/canvass/page.tsx
+          grep -q "lead_activity" app/canvass/page.tsx
           grep -q "inspection_verifications" supabase/migrations/050_mobile_technician_verification.sql
           grep -q "rafter_lf" supabase/migrations/052_mobile_field_measurement_inputs.sql
           grep -q "soffit_lf" supabase/migrations/052_mobile_field_measurement_inputs.sql
