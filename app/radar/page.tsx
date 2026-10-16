@@ -370,6 +370,7 @@ export default function RadarCinemaPage() {
               <button type="button" onClick={() => setChrome(false)} className="rounded-lg border border-white/20 bg-black/50 px-3 py-1.5 text-xs font-semibold hover:bg-white/10">Hide HUD (H)</button>
               <Link href="/settings" className="rounded-lg border border-white/20 bg-black/50 px-3 py-1.5 text-xs font-semibold hover:bg-white/10">Settings</Link>
               <Link href="/weather" className="rounded-lg border border-white/20 bg-black/50 px-3 py-1.5 text-xs font-semibold hover:bg-white/10">Exit</Link>
+              <Link href="/inspections" className="rounded-lg border border-cyan-400/40 bg-cyan-400/15 px-3 py-1.5 text-xs font-semibold text-cyan-100">Walk the roof</Link>
             </div>
           </div>
         </div>

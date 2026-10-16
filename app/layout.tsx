@@ -7,6 +7,7 @@ import PrototypeNotice from '../components/PrototypeNotice'
 import ConditionalAiChatBar from '../components/ConditionalAiChatBar'
 import AppShell from '../components/AppShell'
 import CinemaTheme from '../components/CinemaTheme'
+import EntranceTrailer from '../components/EntranceTrailer'
 
 export const metadata: Metadata = {
   title: 'ROOF/OS — Storm Command Center',
@@ -23,6 +24,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           }}
         />
         <CinemaTheme />
+        <EntranceTrailer />
         <PrototypeNotice />
         <WorkspaceSwitcher />
         <AppShell>{children}</AppShell>
