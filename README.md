@@ -56,6 +56,14 @@ A workspace for one shop.
 
 It is built for a small roofing company first. Not a call center. Not a fake Xactimate.
 
+## Free core rules
+
+- Free alternatives first. Always.
+- Use GitHub free, Supabase free, and local Ollama.
+- No Gemini.
+- Paid add-ons stay off until the owner says **go**.
+- Twilio is a paid add-on for the AI receptionist only.
+
 ## What works today
 
 - Sign in with a password, email link, or 6-digit email code
