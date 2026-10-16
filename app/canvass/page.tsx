@@ -11,7 +11,6 @@ import {
   canvassOutcomeToLeadFields,
   normalizeAddress,
 } from '../../lib/canvass'
-import CanvassVideoRecorder, { CanvassRecordingStatus } from '../../components/CanvassVideoRecorder'
 
 type CanvassLead = {
   id: string
@@ -49,6 +48,50 @@ export default function CanvassPage() {
   const [saving, setSaving] = useState(false)
   const [notice, setNotice] = useState('')
   const [error, setError] = useState('')
+  const [hardStopActive, setHardStopActive] = useState(false)
+  const [hardStopReason, setHardStopReason] = useState('')
+
+  function playHardStopAlarm() {
+    try {
+      const AudioContextConstructor = window.AudioContext
+      if (!AudioContextConstructor) return
+      const context = new AudioContextConstructor()
+      const duration = 0.9
+      const buffer = context.createBuffer(1, Math.floor(context.sampleRate * duration), context.sampleRate)
+      const samples = buffer.getChannelData(0)
+      for (let i = 0; i < samples.length; i += 1) samples[i] = (Math.random() * 2 - 1) * 0.8
+      const source = context.createBufferSource()
+      const filter = context.createBiquadFilter()
+      const gain = context.createGain()
+      source.buffer = buffer
+      filter.type = 'bandpass'
+      filter.frequency.setValueAtTime(2400, context.currentTime)
+      filter.frequency.exponentialRampToValueAtTime(450, context.currentTime + duration)
+      gain.gain.setValueAtTime(0.001, context.currentTime)
+      gain.gain.linearRampToValueAtTime(0.22, context.currentTime + 0.08)
+      gain.gain.exponentialRampToValueAtTime(0.001, context.currentTime + duration)
+      source.connect(filter)
+      filter.connect(gain)
+      gain.connect(context.destination)
+      source.onended = () => { void context.close() }
+      source.start()
+      source.stop(context.currentTime + duration)
+    } catch {
+      // The visual hard stop remains active if browser audio is unavailable.
+    }
+  }
+
+  function triggerHardStop(reason = 'Homeowner said no') {
+    setHardStopActive(true)
+    setHardStopReason(reason)
+    setSelectedObjection('NOT_INTERESTED')
+    setForm((current) => ({
+      ...current,
+      outcome: 'DO_NOT_KNOCK',
+      notes: [current.notes.trim(), 'HARD STOP: ' + reason + '. End the interaction immediately; do not continue pitching.'].filter(Boolean).join(' — '),
+    }))
+    playHardStopAlarm()
+  }
   const [selectedObjection, setSelectedObjection] = useState<ObjectionType>('NO_DAMAGE')
   const [showVCard, setShowVCard] = useState(false)
   const [form, setForm] = useState({
@@ -58,16 +101,6 @@ export default function CanvassPage() {
     outcome: 'INTERESTED' as CanvassOutcome,
     notes: '',
   })
-
-  const [videoRecording, setVideoRecording] = useState<Blob | null>(null)
-  const [recordingConsentAt, setRecordingConsentAt] = useState<string | null>(null)
-  const [recordingStatus, setRecordingStatus] = useState<CanvassRecordingStatus>('not_recorded')
-
-  function handleRecordingChange(blob: Blob | null, consentedAt: string | null, status: CanvassRecordingStatus) {
-    setVideoRecording(blob)
-    setRecordingConsentAt(consentedAt)
-    setRecordingStatus(status)
-  }
 
   const advice = getCanvassAdvice({
     address: form.address.trim(),
@@ -116,11 +149,12 @@ export default function CanvassPage() {
         return
       }
 
-      const fields = canvassOutcomeToLeadFields(form.outcome)
+      const recordedOutcome: CanvassOutcome = hardStopActive ? 'DO_NOT_KNOCK' : form.outcome
+      const fields = canvassOutcomeToLeadFields(recordedOutcome)
       const name = form.homeownerName.trim() || `Canvass: ${address}`
       const phone = form.phone.trim() || null
       const noteBody = [
-        `Door knock: ${form.outcome.replaceAll('_', ' ')}`,
+        `Door knock: ${recordedOutcome.replaceAll('_', ' ')}`,
         form.notes.trim() ? form.notes.trim() : null,
       ].filter(Boolean).join(' — ')
 
@@ -179,47 +213,6 @@ export default function CanvassPage() {
         leadId = inserted.id
       }
 
-      // Every canvass lead event gets an explicit recording status. Video is only uploaded after explicit consent.
-      let recordingRowStatus: 'uploaded' | 'not_recorded' | 'consent_not_obtained' | 'consented_not_recorded' | 'upload_failed' =
-        recordingStatus === 'consented_not_recorded' ? 'consented_not_recorded' : 'consent_not_obtained'
-      let recordingPath: string | null = null
-      let recordingBytes: number | null = null
-      if (videoRecording && recordingConsentAt) {
-        if (videoRecording.size > 100 * 1024 * 1024) {
-          recordingRowStatus = 'upload_failed'
-        } else {
-          const objectPath = `${workspaceId}/${user.id}/${leadId}/${crypto.randomUUID()}.webm`
-          const { error: videoUploadError } = await supabase.storage
-            .from('canvass-recordings')
-            .upload(objectPath, videoRecording, { contentType: 'video/webm', upsert: false })
-          if (videoUploadError) {
-            recordingRowStatus = 'upload_failed'
-          } else {
-            recordingRowStatus = 'uploaded'
-            recordingPath = objectPath
-            recordingBytes = videoRecording.size
-          }
-        }
-      } else if (recordingStatus === 'not_recorded') {
-        recordingRowStatus = 'consent_not_obtained'
-      }
-
-      const { error: recordingMetadataError } = await supabase.from('canvass_recordings').insert({
-        lead_id: leadId,
-        workspace_id: workspaceId,
-        user_id: user.id,
-        recording_status: recordingRowStatus,
-        consented_at: recordingRowStatus === 'uploaded' || recordingRowStatus === 'consented_not_recorded' ? recordingConsentAt : null,
-        object_path: recordingPath,
-        mime_type: recordingPath ? 'video/webm' : null,
-        file_size_bytes: recordingBytes,
-      })
-      if (recordingMetadataError) {
-        setNotice('Lead saved, but recording status could not be attached. Check workspace migration/RLS before relying on video evidence.')
-      } else if (recordingRowStatus === 'upload_failed') {
-        setNotice('Lead saved, but video upload failed. Recording status was logged for follow-up.')
-      }
-
       await supabase.from('lead_activity').insert({
         lead_id: leadId,
         workspace_id: workspaceId,
@@ -229,10 +222,9 @@ export default function CanvassPage() {
       })
 
       setForm({ address: '', homeownerName: '', phone: '', outcome: 'INTERESTED', notes: '' })
-      setVideoRecording(null)
-      setRecordingConsentAt(null)
-      setRecordingStatus('not_recorded')
-      setNotice(existing ? 'Updated existing canvass lead.' : 'Saved to Leads (canvass source).')
+      setHardStopActive(false)
+      setHardStopReason('')
+      setNotice(hardStopActive ? 'Hard stop logged. Interaction closed; do not continue canvassing this homeowner.' : (existing ? 'Updated existing canvass lead.' : 'Saved to Leads (canvass source).'))
       await loadCanvassLeads()
     } catch {
       setError('Failed to save canvass knock into Leads.')
@@ -273,6 +265,13 @@ export default function CanvassPage() {
 
       <main className="p-4 max-w-3xl mx-auto space-y-4">
         {notice && <div className="bg-emerald-50 border border-emerald-200 text-emerald-900 p-3 rounded-lg text-xs font-bold">{notice}</div>}
+        {hardStopActive && (
+          <section role="alert" aria-live="assertive" className="rounded-xl border-4 border-red-600 bg-red-950 p-4 text-white">
+            <h2 className="text-xl font-black uppercase">HARD STOP — DISENGAGE NOW</h2>
+            <p className="mt-1 font-bold">{hardStopReason}. Stop pitching, apologize if appropriate, and leave respectfully. Do not try to overcome this refusal.</p>
+            <p className="mt-2 text-xs">This event will be logged with the lead when you save. No camera or microphone is used.</p>
+          </section>
+        )}
         {error && <div className="bg-red-400/10 border border-red-200 text-red-800 p-3 rounded-lg text-xs font-bold" role="alert">{error}</div>}
 
         {showVCard && (
@@ -331,6 +330,9 @@ export default function CanvassPage() {
 
         <form onSubmit={(e) => void logKnock(e)} className="glass rounded-xl p-4 space-y-3 border">
           <h2 className="font-bold text-sm text-slate-100">Log door knock → Leads</h2>
+          <button type="button" onClick={() => triggerHardStop()} disabled={hardStopActive || saving} className="w-full rounded-lg border-2 border-red-500 bg-red-700 px-3 py-3 text-sm font-black uppercase tracking-wide text-white disabled:opacity-60">
+            {hardStopActive ? 'Hard stop active — save event' : 'Homeowner said no — HARD STOP'}
+          </button>
           <input
             type="text"
             required
@@ -355,11 +357,15 @@ export default function CanvassPage() {
               className="p-2.5 border rounded-lg text-sm"
             />
           </div>
-          <CanvassVideoRecorder onRecordingChange={handleRecordingChange} />
           <div className="grid grid-cols-2 gap-2">
             <select
               value={form.outcome}
-              onChange={(e) => setForm({ ...form, outcome: e.target.value as CanvassOutcome })}
+              disabled={hardStopActive}
+              onChange={(e) => {
+                const nextOutcome = e.target.value as CanvassOutcome
+                if (nextOutcome === 'DO_NOT_KNOCK') triggerHardStop('Do not knock / no soliciting request')
+                else if (!hardStopActive) setForm({ ...form, outcome: nextOutcome })
+              }}
               className="p-2.5 border rounded-lg text-sm font-semibold"
             >
               <option value="INTERESTED">Interested / inspection requested</option>
