@@ -310,17 +310,7 @@ export default function CanvassPage() {
               value={selectedObjection}
               disabled={hardStopActive}
               onChange={(e) => {
-                const nextObjection = e.target.value as ObjectionType
-                if (['NOT_INTERESTED', 'DONT_WANT_SALES', 'DO_NOT_SOLICIT'].includes(nextObjection)) {
-                  const reason = nextObjection === 'DO_NOT_SOLICIT'
-                    ? 'No-soliciting sign or request to leave'
-                    : nextObjection === 'DONT_WANT_SALES'
-                      ? 'Homeowner declined a sales pitch'
-                      : 'Homeowner said not interested'
-                  triggerHardStop(reason)
-                } else if (!hardStopActive) {
-                  setSelectedObjection(nextObjection)
-                }
+                if (!hardStopActive) setSelectedObjection(e.target.value as ObjectionType)
               }}
               className="w-full p-2 border rounded font-semibold text-xs"
             >
@@ -335,6 +325,10 @@ export default function CanvassPage() {
             {hardStopActive ? (
               <div role="alert" className="p-3 bg-red-950 border-2 border-red-500 text-white rounded mt-2 font-bold">
                 Respect the refusal. Do not counter, persuade, or ask for another chance. End the interaction and leave.
+              </div>
+            ) : ['NOT_INTERESTED', 'DONT_WANT_SALES', 'DO_NOT_SOLICIT'].includes(selectedObjection) ? (
+              <div className="p-3 bg-red-950/80 border-2 border-red-500 text-white rounded mt-2 font-bold">
+                If this is what the homeowner just said, press the red hard-stop button below. Do not counter, persuade, or ask for another chance. Selecting a training example alone does not log a real-world event.
               </div>
             ) : advice.objectionResponse && (
               <div className="p-3 bg-amber-400/10 border border-amber-400/30 text-amber-100 rounded mt-2 font-medium">
