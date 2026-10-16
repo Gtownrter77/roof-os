@@ -84,7 +84,6 @@ export default function CanvassPage() {
   function triggerHardStop(reason = 'Homeowner said no') {
     setHardStopActive(true)
     setHardStopReason(reason)
-    setSelectedObjection('NOT_INTERESTED')
     setForm((current) => ({
       ...current,
       outcome: 'DO_NOT_KNOCK',
@@ -154,6 +153,7 @@ export default function CanvassPage() {
       const name = form.homeownerName.trim() || `Canvass: ${address}`
       const phone = form.phone.trim() || null
       const noteBody = [
+        hardStopActive ? `CONDUCT EVENT: HARD STOP — ${hardStopReason}` : null,
         `Door knock: ${recordedOutcome.replaceAll('_', ' ')}`,
         form.notes.trim() ? form.notes.trim() : null,
       ].filter(Boolean).join(' — ')
@@ -213,7 +213,7 @@ export default function CanvassPage() {
         leadId = inserted.id
       }
 
-      await supabase.from('lead_activity').insert({
+      const { error: activityError } = await supabase.from('lead_activity').insert({
         lead_id: leadId,
         workspace_id: workspaceId,
         user_id: user.id,
@@ -224,7 +224,16 @@ export default function CanvassPage() {
       setForm({ address: '', homeownerName: '', phone: '', outcome: 'INTERESTED', notes: '' })
       setHardStopActive(false)
       setHardStopReason('')
-      setNotice(hardStopActive ? 'Hard stop logged. Interaction closed; do not continue canvassing this homeowner.' : (existing ? 'Updated existing canvass lead.' : 'Saved to Leads (canvass source).'))
+      if (activityError) {
+        setError(`Lead saved, but the CRM activity log failed: ${activityError.message}`)
+        setNotice(hardStopActive
+          ? 'Do not continue canvassing this homeowner. The lead status was saved, but the hard-stop event was not confirmed in activity history.'
+          : (existing ? 'Lead updated, but the activity note was not saved.' : 'Lead saved, but the activity note was not saved.'))
+      } else {
+        setNotice(hardStopActive
+          ? 'Hard stop recorded in CRM activity. Interaction closed; do not continue canvassing this homeowner.'
+          : (existing ? 'Updated existing canvass lead.' : 'Saved to Leads (canvass source).'))
+      }
       await loadCanvassLeads()
     } catch {
       setError('Failed to save canvass knock into Leads.')
@@ -299,6 +308,7 @@ export default function CanvassPage() {
             <label className="font-bold text-slate-100 block">Homeowner objection</label>
             <select
               value={selectedObjection}
+              disabled={hardStopActive}
               onChange={(e) => {
                 const nextObjection = e.target.value as ObjectionType
                 if (['NOT_INTERESTED', 'DONT_WANT_SALES', 'DO_NOT_SOLICIT'].includes(nextObjection)) {
