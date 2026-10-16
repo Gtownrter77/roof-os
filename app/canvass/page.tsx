@@ -4,7 +4,7 @@ import { FormEvent, useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { smartBack } from '../../lib/smart-back'
 import { createClient } from '../../lib/supabase/client'
-import { getCanvassAdvice, ObjectionType } from '../../lib/ai/canvass-mentor'
+import { CANVASS_OBJECTIONS, getCanvassAdvice, ObjectionType } from '../../lib/ai/canvass-mentor'
 import {
   CANVASS_LEAD_SOURCE,
   CanvassOutcome,
@@ -248,13 +248,13 @@ export default function CanvassPage() {
               onChange={(e) => setSelectedObjection(e.target.value as ObjectionType)}
               className="w-full p-2 border rounded font-semibold text-xs"
             >
-              <option value="NO_DAMAGE">&quot;I don&apos;t see any damage on my roof&quot;</option>
-              <option value="NEW_ROOF">&quot;My roof is relatively new&quot;</option>
-              <option value="HAVE_ADJUSTER">&quot;I already have an insurance adjuster coming out&quot;</option>
-              <option value="NO_TIME">&quot;I don&apos;t have time right now&quot;</option>
-              <option value="SEND_EMAIL">&quot;Just send me an email or leave a flyer&quot;</option>
-              <option value="SPOUSE">&quot;I need to talk to my spouse first&quot;</option>
-              <option value="RATES_GO_UP">&quot;Won&apos;t my insurance rates go up if I file a claim?&quot;</option>
+              {Array.from(new Set(CANVASS_OBJECTIONS.map((item) => item.category))).map((category) => (
+                <optgroup key={category} label={category}>
+                  {CANVASS_OBJECTIONS.filter((item) => item.category === category).map((item) => (
+                    <option key={item.value} value={item.value}>{item.label}</option>
+                  ))}
+                </optgroup>
+              ))}
             </select>
             {advice.objectionResponse && (
               <div className="p-3 bg-amber-400/10 border border-amber-400/30 text-amber-100 rounded mt-2 font-medium">
