@@ -1,3 +1,13 @@
+## 2026-10-16 current verification checkpoint
+
+- Main is green at `c6e8b72` after PR #275 merged. The change was documentation-only: Free Core rules remain GitHub, Supabase, and local Ollama; no security guards or app functions were added or removed.
+- Fresh current-main Field APK build passed on GitHub Actions run `38843100028`. APK release: [field-apk-main-c6e8b72](https://github.com/Gtownrter77/roof-os/releases/tag/field-apk-main-c6e8b72). Direct APK: https://github.com/Gtownrter77/roof-os/releases/download/field-apk-main-c6e8b72/app-debug.apk. SHA-256: `ad8e4f1a1606c9250b33e5efb74f9a84b877b343c045860dd33dbf799ea1be9e`.
+- APK ZIP integrity, mobile auth contract, offline-sync contract, security checks, and TypeScript checks passed. Physical Android installation was not performed from the Sandbox.
+- Live Vercel `https://roof-os-lemon.vercel.app/api/status` reported `overall: operational`; database, API, and storage reported online. `/photo-estimate` returned HTTP 200 and rendered Photo Reports controls.
+- Mobile source is wired to Supabase project `xksumagfbegdlapwysps` and Vercel web fallback `https://roof-os-lemon.vercel.app`. Unauthenticated Supabase health returned the expected missing-API-key 401; no data was changed.
+- Authenticated dashboard data was not verified. Live `/auth/login` currently shows the owner-only break-glass key screen, not the Supabase email/password or OTP form. No credentials were requested, entered, or exposed.
+- Current release truth: build and service reachability are verified; end-to-end authenticated browser/mobile CRUD, login, sync, and physical install remain unverified.
+
 ## 2026-10-05 final synchronized checkpoint
 
 **Runtime source baseline:** `5144836fbc0a949d94cce5e444cd8432dc7c990f`
