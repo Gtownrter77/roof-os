@@ -1,5 +1,11 @@
 # ROOF/OS Database Schema Draft
 
+## Current status — 2026-10-19
+
+This file is a schema overview, not proof that every listed object is applied in production. The repository contains migrations through `052`; the live Supabase ledger/schema audit found source drift, including `051_supplier_account_addons.sql` and `052_mobile_field_measurement_inputs.sql` not reflected in the live ledger at the time of the audit. Use `MIGRATION-ORDER.md` before applying anything, and verify the target project with an authenticated read-only schema check.
+
+The current field app also uses inspection verification and manual measurement fields beyond the original three-migration draft below. Do not infer production readiness from source presence alone.
+
 This draft extends the existing `001_leads.sql` and `002_workspaces_activity_storage.sql` migrations. Apply migrations in numeric order. The third migration adds durable status history, inspection sessions, and photo metadata while keeping binary images in private Supabase Storage.
 
 ## Relationship model

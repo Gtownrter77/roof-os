@@ -1,5 +1,11 @@
 # Claims Pricing Integration Boundary
 
+## Current status — 2026-10-19
+
+- Claims/CapOut and retailer/RapidAPI connectors remain optional paid add-ons. They are not part of the Free Core and no provider key is claimed as configured in this checkpoint.
+- Local Ollama, Supabase, GitHub, NWS, OpenStreetMap, and other free/open fallbacks remain the default direction. No claim-import or carrier estimate should be called live without a configured connector, authorized sample, and human review.
+- The code paths below are boundaries and scaffolds. Their presence does not prove a live provider request, current pricing, or an insurance-approved estimate.
+
 ## Current decision
 
 ROOF/OS will support an **Xactimate-style claims workflow** without reproducing Verisk's proprietary catalog. The internal model supports localized trades, units, coverage type, labor/material/equipment components, tax and depreciation flags, effective dates, source provenance, price-book snapshots, and estimate versioning.
