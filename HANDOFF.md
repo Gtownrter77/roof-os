@@ -1,3 +1,10 @@
+## 2026-10-17 GitHub main handoff refresh
+
+- Current GitHub `main`: `5454cfa` (`docs: add Render migration handoff`). The prior handoff update is present in `main` through merged PR #276 at `54eec3f`.
+- Post-merge main CI for PR #276 passed: run `39060548460`, status `success`. The latest main CI run `39060748459` also passed.
+- Current APK, Vercel, Supabase, login, and physical-install verification facts remain unchanged from the checkpoint below. Do not claim authenticated dashboard data or physical Android installation as verified until those tests complete.
+- This refresh is documentation-only. No application code, AI behavior, security guard, database data, or deployment setting was changed.
+
 ## 2026-10-16 current verification checkpoint
 
 - Main is green at `c6e8b72` after PR #275 merged. The change was documentation-only: Free Core rules remain GitHub, Supabase, and local Ollama; no security guards or app functions were added or removed.

@@ -1,5 +1,9 @@
 # ROOF/OS Supabase Manual Migration Guide
 
+> **Status — 2026-10-18:** This guide describes the historical workspace/storage migration `002`; it is not the complete current production migration procedure. The repository now contains later migrations and known source/ledger drift. Read [MIGRATION-ORDER.md](MIGRATION-ORDER.md) and [AUDIT-STATUS-2026-10-09.md](AUDIT-STATUS-2026-10-09.md) first. Do not replay an applied migration or assume source files equal the live Supabase schema.
+
+> **Current release boundary:** Vercel reports database/API/storage online, but authenticated CRUD and cross-workspace verification were not completed in this task. Keep the production status unverified until the owner runs the live checks below with an authenticated account.
+
 The workspace, activity, and private inspection-photo security layer is prepared in:
 
 ```text
