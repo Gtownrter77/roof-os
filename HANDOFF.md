@@ -1,3 +1,10 @@
+## 2026-10-19 five-document audit batch checkpoint
+
+- Batch 2 updated five stale documentation files: `DATABASE-SCHEMA.md`, `OPERATING-CADENCE.md`, `CLAIMS-PRICING-INTEGRATION.md`, `RESEARCH-GIS-NOAA.md`, and `GAPS-REVIEW.md`.
+- PR #281 merged into `main` as `fe77e3d`. Post-merge main CI run `39242903451` completed successfully; web, mobile, preview-build, migration-safety, and release checks passed.
+- The updates correct documentation drift: schema/migration source is not proof of live Supabase state; paid claims and retailer connectors remain optional; GIS/NOAA outputs remain candidate evidence; authenticated dashboard CRUD and physical Android installation remain unverified.
+- No application code, database data, security guard, provider key, or deployment setting changed in this batch.
+
 ## 2026-10-17 GitHub main handoff refresh
 
 - Current GitHub `main`: `5454cfa` (`docs: add Render migration handoff`). The prior handoff update is present in `main` through merged PR #276 at `54eec3f`.
