@@ -120,3 +120,8 @@ Do not spend the next batch on additional dashboard polish, speculative AI, insu
 ## 2026-10-21 next-five release-evidence batch checkpoint
 
 The branch `repair/next-five-release-evidence` contains exactly five bounded items: staging project target locks, a protected staging RLS smoke workflow, backup evidence wording and safeguards, mobile release version reconciliation, and a static live-release preflight. No production database, customer data, provider, credential, APK, restore, or deployment setting was changed. Local build, security, regression, workflow YAML, and dependency checks pass; staging RLS, backup restore, live schema parity, physical-device, worker runtime, and provider evidence remain external gates.
+
+
+## 2026-10-21 next-five live-evidence batch checkpoint
+
+The branch `repair/next-five-live-evidence` contains exactly five bounded items: protected authenticated read-only staging smoke, heartbeat-only staging probing, worker-health reporting correctness, a redacted physical-device evidence packet contract, and a deterministic PASS/FAIL/UNKNOWN release-gate summary. Local build, security, regression, workflow YAML, and dependency checks pass. No production request, customer data, provider call, physical-device claim, or external staging evidence was performed in this batch.

@@ -382,3 +382,14 @@ The backup workflow produces an ephemeral schema dump/checksum or non-destructiv
 The mobile source/configuration/documentation version is `0.4.0`. The APK workflow now fails if the Expo version drifts. A passing version contract does not prove that an APK was built, installed, or exercised on a physical device.
 
 `npm run test:live-release-preflight` checks repository secret-name hygiene and reports unknown external gates without reading secret values or making network requests. A PASS means repository hygiene only; it is not production verification.
+
+
+## 2026-10-21 next-five live-evidence procedures
+
+The protected `staging-auth` workflow performs bounded authenticated reads with two dedicated staging users. It does not create synthetic rows, upload files, call providers, or target production. A passing read-only smoke is useful evidence of authentication and basic workspace reads, but it is not a physical-device or production-parity proof.
+
+The protected `staging-heartbeat` workflow calls only `/api/cron/heartbeat` with `CRON_SECRET`. That route writes only bounded scheduler heartbeat rows in staging. It cannot execute agent actions, Twilio, retailer, payment, claims, or customer workflows.
+
+The physical-device packet template is `docs/evidence/field-device-0.4.0.example.json`. Replace it only with a redacted real manifest containing a build identifier and artifact identifiers. The validator rejects credentials and customer data; the example intentionally remains **UNKNOWN**.
+
+`npm run test:release-gate-summary` produces a local PASS/FAIL/UNKNOWN table. Missing external evidence stays **UNKNOWN**. The summary is a release conversation aid, not approval to market production readiness.

@@ -5,7 +5,8 @@ const helper = readFileSync('workers/heartbeat.ts', 'utf8')
 assert.ok(helper.includes('agent_worker_heartbeats'))
 assert.ok(helper.includes("status: HeartbeatStatus"))
 assert.ok(helper.includes('last_seen_at'))
-assert.ok(helper.includes('must never turn an otherwise bounded cron'))
+assert.ok(helper.includes('return { persisted: 0, errors: false }'))
+assert.ok(helper.includes('results.some((success) => !success)'))
 
 const routes = [
   ['app/api/cron/agent-actions/route.ts', 'office_copilot'],
@@ -24,4 +25,6 @@ const status = readFileSync('app/api/status/route.ts', 'utf8')
 assert.ok(status.includes('agent_worker_heartbeats'))
 assert.ok(status.includes('15 * 60 * 1000'))
 assert.ok(status.includes("status: 'unknown'"))
+assert.ok(status.includes("order('last_seen_at'"))
+assert.ok(status.includes('queryError'))
 console.log('worker-heartbeat-contract-test: PASS')

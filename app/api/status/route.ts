@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic'
 
 type ServiceStatus = 'online' | 'offline' | 'unknown'
 
-type WorkerHealth = { status: 'healthy' | 'degraded' | 'unknown'; configured: number; stale: number }
+type WorkerHealth = { status: 'healthy' | 'degraded' | 'unknown'; configured: number; stale: number; queryError: boolean }
 
 async function checkWeather(): Promise<ServiceStatus> {
   try {
@@ -25,24 +25,27 @@ export async function GET() {
   const started = Date.now()
   let database: ServiceStatus = 'unknown'
   let storage: ServiceStatus = 'unknown'
-  let workerHealth: WorkerHealth = { status: 'unknown', configured: 0, stale: 0 }
+  let workerHealth: WorkerHealth = { status: 'unknown', configured: 0, stale: 0, queryError: false }
   try {
     const admin = createAdminClient()
     const [databaseResult, storageResult, workerResult] = await Promise.all([
       admin.from('workspaces').select('id').limit(1),
       admin.storage.from('inspection-photos').list('', { limit: 1 }),
-      admin.from('agent_worker_heartbeats').select('status,last_seen_at').limit(100),
+      admin.from('agent_worker_heartbeats').select('status,last_seen_at').order('last_seen_at', { ascending: false }).limit(100),
     ])
     database = databaseResult.error ? 'offline' : 'online'
     storage = storageResult.error ? 'offline' : 'online'
-    if (!workerResult.error && workerResult.data?.length) {
+    if (workerResult.error) {
+      workerHealth = { status: 'unknown', configured: 0, stale: 0, queryError: true }
+    } else if (workerResult.data?.length) {
       const cutoff = Date.now() - 15 * 60 * 1000
       const stale = workerResult.data.filter((worker) => worker.status !== 'healthy' || new Date(worker.last_seen_at).getTime() < cutoff).length
-      workerHealth = { status: stale ? 'degraded' : 'healthy', configured: workerResult.data.length, stale }
+      workerHealth = { status: stale ? 'degraded' : 'healthy', configured: workerResult.data.length, stale, queryError: false }
     }
   } catch {
     // Health reporting must remain available while deployment secrets are being configured.
     // The missing server key is represented as unknown rather than a route-level 500.
+    workerHealth = { status: 'unknown', configured: 0, stale: 0, queryError: true }
   }
   const weather = await checkWeather()
   const api: ServiceStatus = 'online'

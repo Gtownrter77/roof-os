@@ -1,0 +1,52 @@
+name: ROOF OS Staging Heartbeat Probe
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_nonprod:
+        description: Type VERIFY_STAGING_ONLY to authorize the heartbeat-only staging probe
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    name: Heartbeat-only staging probe
+    runs-on: ubuntu-latest
+    environment: staging-heartbeat
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - name: Require explicit staging confirmation
+        env:
+          CONFIRM: ${{ inputs.confirm_nonprod }}
+        run: test "$CONFIRM" = "VERIFY_STAGING_ONLY"
+      - name: Validate staging URL
+        env:
+          STAGING_STATUS_URL: ${{ secrets.STAGING_STATUS_URL }}
+          STAGING_PROJECT_REF: ${{ secrets.STAGING_PROJECT_REF }}
+          PRODUCTION_SUPABASE_HOST: ${{ secrets.PRODUCTION_SUPABASE_HOST }}
+        run: |
+          set -euo pipefail
+          test -n "$STAGING_STATUS_URL"
+          test -n "$STAGING_PROJECT_REF"
+          if [ -n "${PRODUCTION_SUPABASE_HOST:-}" ] && [[ "$STAGING_STATUS_URL" == *"$PRODUCTION_SUPABASE_HOST"* ]]; then
+            echo 'Refusing to probe the configured production host.' >&2
+            exit 1
+          fi
+      - name: Invoke heartbeat-only route
+        env:
+          STAGING_STATUS_URL: ${{ secrets.STAGING_STATUS_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          set -euo pipefail
+          response="$(curl --fail-with-body --silent --show-error --request POST "$STAGING_STATUS_URL/api/cron/heartbeat" --header "Authorization: Bearer $CRON_SECRET")"
+          echo "$response"
+          echo "$response" | grep -q 'heartbeat-only'
+          echo "$response" | grep -q 'healthy'
+      - name: State the boundary
+        run: |
+          echo 'This probe can write only bounded scheduler heartbeat rows in protected staging.'
+          echo 'It does not execute agent actions, customer workflows, or external providers.'
