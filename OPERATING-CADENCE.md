@@ -1,11 +1,18 @@
 # ROOF/OS Owner Operating Cadence
 
-## Current release checkpoint — 2026-10-19
+## Current release checkpoint — 2026-10-21
+
+- Current `main` is `9660661221468ca854e1c628f15bb293e50d4d50`; PR #287 and post-merge CI passed.
+- Normal Supabase password, magic-link, reset, signup, and owner-recovery paths are now represented in source; authenticated live login remains unverified.
+- Migration 053 approval binding is source-hardened; production application and staging concurrency/RLS execution remain open.
+- Two-workspace isolation, backup/restore, physical Android installation, and provider execution remain release gates.
+- Keep the five-completion checkpoint below. Do not mark a routine or documentation update as proof that an authenticated production workflow passed.
+
+## Historical release checkpoint — 2026-10-19
 
 - Current `main` is green after the documentation refresh. Vercel reports the API, database, and Storage online.
 - Current-main Field APK build passed on GitHub Actions run `38843100028`; physical Android installation is still not verified.
 - The live login route currently presents the owner-only break-glass screen. Authenticated dashboard CRUD, cross-workspace isolation, and end-to-end mobile sync remain open release gates.
-- Keep the five-completion checkpoint below. Do not mark a routine or documentation update as proof that an authenticated production workflow passed.
 
 This cadence converts the owner checklist into repeatable operating routines. The owner should assign a backup administrator and use the same time windows every week so reviews do not depend on memory.
 

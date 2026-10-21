@@ -35,16 +35,20 @@ jobs:
       - run: npm run typecheck
       - run: npm run release-check
       - run: npm run verify:security
+      - run: npm run test:security-definer-migrations
       - run: npm run test:receptionist
       - run: npm run test:aerial
       - run: npm run test:crm-missing-spokes
       - run: npm run test:api-security
       - run: npm run test:auth-flow
+      - run: npm run test:invitation-flow
+      - run: npm run test:two-workspace-contract
       - run: npm run test:mobile-offline-sync
       - run: npm run test:field-coach
       - run: npm run test:stale-screens
       - run: npm run test:cinema-theme
       - run: npm run test:agent-runtime
+      - run: npm run test:agent-action-policy
       - run: npm run test:inspection-quality-agent
       - run: npm run test:prototype-guardrails
       - run: npm run test:photo-estimate-flow
@@ -182,6 +186,12 @@ jobs:
           grep -q "drop policy if exists agent_runs_select" supabase/migrations/009_agent_runtime_claims_imports.sql
           test -f supabase/migrations/050_mobile_technician_verification.sql
           test -f supabase/migrations/052_mobile_field_measurement_inputs.sql
+          test -f supabase/migrations/053_agent_action_ledger.sql
+          grep -q "create extension if not exists pgcrypto" supabase/migrations/053_agent_action_ledger.sql
+          grep -q "approval hashes do not match the current action batch" supabase/migrations/053_agent_action_ledger.sql
+          grep -q "get diagnostics updated_count = row_count" supabase/migrations/053_agent_action_ledger.sql
+          grep -q "revoke all on function public.approve_agent_action_batch" supabase/migrations/053_agent_action_ledger.sql
+          grep -q "set search_path = public" supabase/migrations/053_agent_action_ledger.sql
           grep -q "inspection_verifications" supabase/migrations/050_mobile_technician_verification.sql
           grep -q "rafter_lf" supabase/migrations/052_mobile_field_measurement_inputs.sql
           grep -q "soffit_lf" supabase/migrations/052_mobile_field_measurement_inputs.sql
