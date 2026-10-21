@@ -1,5 +1,11 @@
 # ROOF/OS AI Receptionist Runbook
 
+## Current status — 2026-10-20
+
+The receptionist code path remains an optional add-on, not part of the Free Core release claim. Twilio voice/SMS and Stripe Checkout require paid third-party accounts and are disabled unless the owner explicitly enables them. The default AI direction is local Ollama; no OpenAI/Gemini or other hosted-AI key is required or permitted for the Free Core path.
+
+The runbook describes provider boundaries and safety rules. It does not prove that a live Twilio number, Stripe account, receptionist worker, or authenticated end-to-end call has been configured.
+
 ## Current production path
 
 The lowest-cost shippable release uses **Twilio pay-as-you-go voice/SMS transport**, **Stripe-hosted Checkout payment links**, Supabase for durable state, and a server-side constrained dialogue model. Twilio and Stripe are isolated behind webhook and adapter routes, so transport can later move to a SIP carrier or self-hosted Asterisk/LiveKit/Pipecat without changing lead, calendar, consent, or payment policy.
@@ -16,8 +22,8 @@ Set the following in the server-side deployment environment, never in browser or
 - `TWILIO_ACCOUNT_SID`
 - `TWILIO_AUTH_TOKEN`
 - `TWILIO_PHONE_NUMBER`
-- `OPENAI_API_KEY`
-- `RECEPTIONIST_AI_MODEL` (recommended initial value: `gpt-4o-mini`)
+- `OLLAMA_BASE_URL` (server-side URL for the owner-managed local Ollama service, only when receptionist AI is enabled)
+- `RECEPTIONIST_AI_MODEL` (owner-selected local Ollama model; do not set this to a hosted paid model)
 - `RECEPTIONIST_WORKSPACE_ID`
 - `RECEPTIONIST_OWNER_ID`
 - `RECEPTIONIST_PUBLIC_URL`
