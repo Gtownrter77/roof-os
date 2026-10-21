@@ -15,6 +15,22 @@ type ActionRow = {
   idempotency_key: string
 }
 
+function stableJson(value: unknown): string {
+  if (value === null || typeof value !== 'object') return JSON.stringify(value)
+  if (Array.isArray(value)) return `[${value.map(stableJson).join(',')}]`
+  return `{${Object.keys(value as Record<string, unknown>).sort().map((key) => `${JSON.stringify(key)}:${stableJson((value as Record<string, unknown>)[key])}`).join(',')}}`
+}
+
+async function sha256(value: unknown): Promise<string> {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(stableJson(value)))
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('')
+}
+
+async function sha256Text(value: string): Promise<string> {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value))
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('')
+}
+
 function stringValue(payload: Record<string, unknown>, key: string): string {
   const value = payload[key]
   if (typeof value !== 'string' || !value.trim()) throw new Error(`${key} is required`)
@@ -67,7 +83,7 @@ async function executeAction(supabase: SupabaseClient, action: ActionRow) {
 }
 
 export async function executeApprovedBatch(supabase: SupabaseClient, batchId: string): Promise<ExecutorResult> {
-  const { data: batch, error: batchError } = await supabase.from('agent_action_batches').select('id,workspace_id,status,expires_at').eq('id', batchId).maybeSingle()
+  const { data: batch, error: batchError } = await supabase.from('agent_action_batches').select('id,workspace_id,status,summary,approval_token_hash,expires_at').eq('id', batchId).maybeSingle()
   if (batchError) throw batchError
   if (!batch) throw new Error('Action batch not found')
   if (batch.status !== 'approved') throw new Error(`Action batch is not executable from status ${batch.status}`)
@@ -77,6 +93,17 @@ export async function executeApprovedBatch(supabase: SupabaseClient, batchId: st
   if (actionError) throw actionError
   const rows = (actions ?? []) as ActionRow[]
   const result: ExecutorResult = { batchId, executed: 0, failed: 0, skipped: 0 }
+  for (const action of rows) {
+    if (action.payload_hash !== await sha256(action.payload)) {
+      throw new Error(`Action payload hash mismatch for ${action.id}`)
+    }
+  }
+  if (batch.status === 'approved') {
+    const currentPayloadHash = await sha256Text(rows.map((action) => `${action.id}:${action.payload_hash}`).join('\n'))
+    if (!batch.approval_token_hash || currentPayloadHash !== batch.approval_token_hash) {
+      throw new Error('Approved action payload binding no longer matches the batch')
+    }
+  }
   const { data: claimedBatch, error: claimError } = await supabase.from('agent_action_batches').update({ status: 'executing', execution_started_at: new Date().toISOString() }).eq('id', batchId).eq('status', 'approved').select('id').maybeSingle()
   if (claimError) throw claimError
   if (!claimedBatch) return { batchId, executed: 0, failed: 0, skipped: rows.length }

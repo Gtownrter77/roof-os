@@ -876,3 +876,24 @@ Validation passed: `npm run test:agent-action-policy`, `npm run test:agent-runti
 Commit `5e9b3abd5cd691c44d3c8d0afb1bd1de583e443b` is pushed to `feat/agent-action-approval`, and local/remote branch SHAs match. PR #285 remains the review and CI path. Production migration, cron scheduling, worker secrets, and provider side effects remain unconfigured.
 
 Next action: connect the first Lead Desk event handler to action-batch proposals, then configure a staging cron schedule and run authenticated two-workspace/RLS execution tests before enabling production automation.
+
+## 2026-10-21 complete audit and handoff reconciliation
+
+This checkpoint supersedes the earlier 2026-10-21 agent-action entries where they conflict with the current repository state. The audit report is `AUDIT-STATUS-2026-10-21.md`.
+
+- Audited source baseline: `main` at `b8ad35644d5e2f0f40be334f58bfecfe9e4818ca`.
+- Audit branch: `audit/complete-handoff-20261021`.
+- PR #285 (`feat/agent-action-approval`) is **MERGED**. It is not still open and its earlier branch-only validation notes are historical.
+- Fresh local checks passed after `npm ci`: typecheck, production build, production dependency audit, security/release checks, API security, frontend route integrity, agent policy/runtime, auth, photo/report/measurement authority, vision contract/endpoint, mobile offline sync, receptionist, invoices, and status checks.
+- Read-only production checks returned 200 for `/`, `/auth/login`, `/api/status`, and `/leads`. `/api/status` reported `overall: operational`, `visionConfigured: false`, `capoutConfigured: false`, and `localClaimsConfigured: false`. No authenticated CRUD, provider execution, migration, or customer-data operation was performed.
+- Important unresolved design issue: the agent approval RPC stores caller-supplied approval hashes without recomputing them from the exact batch/action payloads, and the executor does not independently rebind the hash before execution. Keep higher-risk and external actions disabled until this is corrected and covered by staging/concurrency tests.
+- `supabase/migrations/053_agent_action_ledger.sql` is present in source, but production application is unverified. Do not enable production approval execution or cron scheduling from source presence alone.
+- The whole product remains pilot/development-ready, not commercially end-to-end verified. Open evidence gates include authenticated two-workspace browser/Storage isolation, real device field testing, migration parity, provider success/failure tests, worker heartbeat, invitation delivery, and licensed claims pricing.
+
+### Next authorized work
+
+1. Fix and test server-side approval-hash recomputation and concurrency behavior.
+2. Verify migration 053 in staging, then reconcile the target production schema with an authenticated read-only check.
+3. Run authorized two-workspace browser/Storage and authenticated inspection/report tests with synthetic data only.
+4. Run the real-device field smoke test: sign-in, camera, offline close/reopen, retry, private upload, and isolation.
+5. Configure staging cron only for the currently supported internal actions; keep external, financial, legal, customer-facing, and production side effects disabled until separately approved.

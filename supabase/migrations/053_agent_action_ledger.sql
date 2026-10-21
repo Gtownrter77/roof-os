@@ -1,5 +1,7 @@
 -- ROOF/OS Agent Action Ledger
 -- Agents may propose work; only approved, exact action payloads may execute.
+create extension if not exists pgcrypto with schema extensions;
+
 create table if not exists public.agent_action_batches (
   id uuid primary key default gen_random_uuid(),
   workspace_id uuid not null references public.workspaces(id) on delete cascade,
@@ -104,6 +106,9 @@ declare
   selected_count integer;
   distinct_count integer;
   action_count integer;
+  expected_summary_hash text;
+  expected_payload_hash text;
+  updated_count integer;
   current_user_id uuid := auth.uid();
   now_at timestamptz := now();
 begin
@@ -135,6 +140,27 @@ begin
     raise exception 'approval must include every action exactly once';
   end if;
 
+  select
+    encode(extensions.digest(
+      p_batch_id::text || E'\n' || b.summary || E'\n' ||
+      coalesce(string_agg(a.id::text, E'\n' order by a.sequence), ''),
+      'sha256'
+    ), 'hex'),
+    encode(extensions.digest(
+      coalesce(string_agg(a.id::text || ':' || a.payload_hash, E'\n' order by a.sequence), ''),
+      'sha256'
+    ), 'hex')
+    into expected_summary_hash, expected_payload_hash
+    from public.agent_action_batches b
+    left join public.agent_actions a on a.batch_id = b.id
+   where b.id = p_batch_id
+   group by b.summary;
+
+  if lower(trim(p_approval_summary_hash)) <> expected_summary_hash
+     or lower(trim(p_approved_payload_hash)) <> expected_payload_hash then
+    raise exception 'approval hashes do not match the current action batch';
+  end if;
+
   if exists (
     select 1 from public.agent_action_batches b
      where b.id = p_batch_id
@@ -145,8 +171,14 @@ begin
 
   update public.agent_action_batches
      set status = 'approved', approved_at = now_at, approved_by = current_user_id,
-         approval_token_hash = p_approved_payload_hash
-   where id = p_batch_id;
+         approval_token_hash = expected_payload_hash
+   where id = p_batch_id
+     and status in ('proposed', 'awaiting_approval')
+     and (expires_at is null or expires_at > now_at);
+  get diagnostics updated_count = row_count;
+  if updated_count <> 1 then
+    raise exception 'action batch is no longer approvable';
+  end if;
 
   update public.agent_actions
      set status = 'approved', approved_at = now_at, approved_by = current_user_id

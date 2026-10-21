@@ -35,6 +35,9 @@ for (const marker of [
   'approval_token_hash',
   'approved_payload_hash',
   'create or replace function public.approve_agent_action_batch',
+  'extensions.digest',
+  'approval hashes do not match the current action batch',
+  'get diagnostics updated_count = row_count',
   'revoke all on function public.approve_agent_action_batch',
   'grant execute on function public.approve_agent_action_batch',
 ]) assert.ok(migration.includes(marker), `ledger migration missing: ${marker}`)
@@ -71,6 +74,8 @@ for (const marker of [
   "status: 'executing'",
   "status: 'executed'",
   'No safe executor is registered',
+  'Action payload hash mismatch',
+  'Approved action payload binding no longer matches the batch',
 ]) assert.ok(executor.includes(marker), `executor missing: ${marker}`)
 
 for (const marker of [
