@@ -1,3 +1,11 @@
+## 2026-10-21 free local stack implementation checkpoint
+
+- Vision default is now `qwen3-vl:8b` through the existing Ollama-compatible local client. Override with `OLLAMA_VISION_MODEL` when hardware requires a smaller model.
+- Added `POST /api/claims/local`, which uses workspace-admin and signed Storage checks, calls `CLAIMS_DOCUMENT_WORKER_URL`, and stores `provider=owner_import` at `ready_for_review`.
+- Added `workers/claims`, a private Docling MIT worker with HTTPS origin allowlisting, 25 MB input cap, bounded output, and temporary-file cleanup. It extracts documents only; it does not create ESX, licensed prices, coverage decisions, or approvals.
+- CapOut remains an optional paid adapter. Whisper remains the existing local faster-whisper worker; no paid speech service was added.
+- This checkpoint is source-only until the local worker is deployed on a persistent private host, `CLAIMS_DOCUMENT_WORKER_URL` is configured, and authenticated sample/RLS tests pass.
+
 ## 2026-10-19 five-document audit batch checkpoint
 
 - Batch 2 updated five stale documentation files: `DATABASE-SCHEMA.md`, `OPERATING-CADENCE.md`, `CLAIMS-PRICING-INTEGRATION.md`, `RESEARCH-GIS-NOAA.md`, and `GAPS-REVIEW.md`.

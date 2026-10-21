@@ -46,6 +46,7 @@ export async function GET() {
     visionConfigured: Boolean(process.env.OLLAMA_VISION_API_BASE_URL?.trim()),
     cronConfigured: Boolean(process.env.CRON_SECRET?.trim()),
     capoutConfigured: Boolean(process.env.CAPOUT_API_KEY?.trim()),
+    localClaimsConfigured: Boolean(process.env.CLAIMS_DOCUMENT_WORKER_URL?.trim()),
     whisperConfigured: Boolean(
       process.env.WHISPER_URL?.trim() || process.env.WHISPER_WORKER_URL?.trim(),
     ),
