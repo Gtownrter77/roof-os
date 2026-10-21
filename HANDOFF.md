@@ -902,3 +902,8 @@ This checkpoint supersedes the earlier 2026-10-21 agent-action entries where the
 ## 2026-10-21 next-ten release-evidence checkpoint
 
 The branch `repair/next-ten-release-evidence` captures the next bounded repair batch. It adds a protected staging-only migration verification workflow, reconciles current migration/deployment guidance, makes invitation acceptance recover through normal login and resist duplicate submits, adds field-app sign-out/local-evidence retention, manual queue retry-now, session-expiry recovery, shared cron heartbeat evidence, and CI/owner release-evidence contracts. The feature shortlist is recorded in `docs/superpowers/specs/2026-10-21-next-ten-release-evidence.md` and is not part of this implementation batch. No production database, customer data, provider, credential, or deployment setting was changed. Resume with focused tests, full three-level verification, PR checks, merge only when green, then verify post-merge main CI; stop after these ten items.
+
+
+## 2026-10-21 next-five release-evidence checkpoint
+
+The branch `repair/next-five-release-evidence` contains exactly five items: lock staging workflows to an allowlisted non-production project, add protected synthetic two-workspace RLS smoke, clarify bounded backup evidence, reconcile mobile release version `0.4.0`, and add static live-release preflight. All local checks pass. No production mutation or external provider action was performed. After merge, stop and await owner completion of the protected staging/RLS, encrypted restore, physical-device, live-schema, worker-runtime, and provider gates.
