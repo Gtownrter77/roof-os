@@ -1,0 +1,70 @@
+name: ROOF OS Staging Backup Verify
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_schema_check:
+        description: Validate the staging schema dump command and migration snapshot
+        required: true
+        default: true
+        type: boolean
+      run_restore_check:
+        description: Run a non-destructive staging diff check (requires protected environment)
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify staging backup path
+    runs-on: ubuntu-latest
+    environment: staging-backup
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Validate migration snapshot
+        if: inputs.run_schema_check
+        run: |
+          set -euo pipefail
+          test -f supabase/migrations/053_agent_action_ledger.sql
+          test "$(find supabase/migrations -maxdepth 1 -name '*.sql' | wc -l)" -ge 53
+          sha256sum supabase/migrations/*.sql | sha256sum
+
+      - name: Install Supabase CLI
+        if: inputs.run_schema_check || inputs.run_restore_check
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Check staging database export path
+        if: inputs.run_schema_check
+        env:
+          STAGING_DB_URL: ${{ secrets.STAGING_DB_URL }}
+        run: |
+          set -euo pipefail
+          test -n "$STAGING_DB_URL"
+          mkdir -p /tmp/roof-os-backup
+          supabase db dump --db-url "$STAGING_DB_URL" --schema public --file /tmp/roof-os-backup/public.sql
+          test -s /tmp/roof-os-backup/public.sql
+          sha256sum /tmp/roof-os-backup/public.sql
+          rm -f /tmp/roof-os-backup/public.sql
+
+      - name: Run non-destructive staging diff check
+        if: inputs.run_restore_check
+        env:
+          STAGING_DB_URL: ${{ secrets.STAGING_DB_URL }}
+        run: |
+          set -euo pipefail
+          test -n "$STAGING_DB_URL"
+          supabase db diff --db-url "$STAGING_DB_URL" --schema public --file /tmp/roof-os-staging-diff.sql
+          sha256sum /tmp/roof-os-staging-diff.sql
+          rm -f /tmp/roof-os-staging-diff.sql
+
+      - name: State retention boundary
+        run: |
+          echo 'No database dump is uploaded as a GitHub artifact.'
+          echo 'This workflow is staging-only and does not restore or mutate production.'

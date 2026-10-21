@@ -1,8 +1,8 @@
 # Estimate Templates and Pricing Release Status
 
-## Current checkpoint — 2026-10-20
+## Current checkpoint — 2026-10-21
 
-The release decision remains **not approved for customer shipment**. Current `main` is green and the prototype guardrails are tested, but authenticated dashboard CRUD, live Supabase migration parity, physical Android installation, and a verified owner-approved price source are not claimed as complete. Free Core uses local Ollama/Supabase/GitHub; CapOut, retailer APIs, hosted AI, Twilio, and Stripe remain optional add-ons.
+The release decision remains **not approved for customer shipment**. Current `main` is `9660661221468ca854e1c628f15bb293e50d4d50`; approval binding, normal auth source paths, and release contracts are hardened, but authenticated dashboard CRUD, live Supabase migration parity, physical Android installation, backup/restore rehearsal, and a verified owner-approved price source are not claimed as complete. Free Core uses local Ollama/Supabase/GitHub; CapOut, retailer APIs, hosted AI, Twilio, and Stripe remain optional add-ons.
 
 ## Shipment decision
 

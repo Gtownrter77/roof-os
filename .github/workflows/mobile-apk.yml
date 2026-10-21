@@ -42,6 +42,16 @@ jobs:
       - name: Validate Expo configuration
         run: npx expo config --json > /tmp/expo-config.json
 
+      - name: Require Expo build credentials
+        run: |
+          if [ -z "${EXPO_TOKEN:-}" ]; then
+            echo 'EXPO_TOKEN is required in the repository or protected environment secrets.' >&2
+            echo 'This workflow cannot produce an APK without an authenticated Expo account.' >&2
+            exit 1
+          fi
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
       - name: Build Android APK with EAS
         run: npx eas-cli@latest build --platform android --profile preview --non-interactive --wait
         env:

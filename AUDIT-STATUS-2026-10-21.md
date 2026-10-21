@@ -7,8 +7,9 @@ This audit reviewed the uploaded `ROOF_OSFinalHandoff(1).pdf` end to end, the cu
 ## Evidence baseline
 
 - Repository: `Gtownrter77/roof-os`
-- Audited source: `main` at `b8ad35644d5e2f0f40be334f58bfecfe9e4818ca`
-- Local audit branch: `audit/complete-handoff-20261021`
+- Audited source before the repair merge: `main` at `b8ad35644d5e2f0f40be334f58bfecfe9e4818ca`
+- Current merged source: `main` at `9660661221468ca854e1c628f15bb293e50d4d50` (PR #287)
+- Current repair branch: `repair/next-ten-release-gaps`
 - PR #285 (`feat/agent-action-approval`) is **MERGED**, not open. GitHub reports its head as `0d837d97ac6eaa6551cd6255f3698ec7fe520b7c`; current `main` is newer.
 - Production URL checked read-only: <https://roof-os-lemon.vercel.app>
 - No production database mutation, migration, provider call, customer-record mutation, credential change, or deployment action was performed.
@@ -103,6 +104,6 @@ Do not spend the next batch on additional dashboard polish, speculative AI, insu
 
 - **Repository code quality:** fresh checks pass.
 - **Production dependency audit:** pass for production dependencies.
-- **Security/authority posture:** strong boundaries are present, but the agent approval hash binding needs a real fix before higher-risk automation.
+- **Security/authority posture:** the approval hash binding fix is merged; staging migration/RLS/concurrency verification is still required before higher-risk automation.
 - **Production operational readiness:** incomplete and not to be represented as complete.
-- **Handoff status:** safe to continue from the audit branch; do not claim end-to-end production verification or enable new side effects from source presence alone.
+- **Handoff status:** ten-item repair batch is in progress; do not claim end-to-end production verification or enable new side effects from source presence alone.

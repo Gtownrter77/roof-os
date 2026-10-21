@@ -316,6 +316,34 @@ The product is ready for continued development and controlled pilot work. It is 
 9. Add crash reporting, privacy policy, support contact, data export, and retention controls.
 10. Re-run Level 1, Level 2, and Level 3 verification before selling access to external companies.
 
+## 14. Free verification tools — 2026-10-21
+
+### Synthetic two-workspace isolation check
+
+The repository includes an opt-in smoke harness. Use only dedicated synthetic users in a non-production project:
+
+```bash
+ROOF_RLS_TEST_NONPROD=true \
+ROOF_RLS_TEST_CONFIRM=I_UNDERSTAND_SYNTHETIC_DATA \
+SUPABASE_URL=https://your-staging-project.supabase.co \
+SUPABASE_ANON_KEY=your-staging-publishable-key \
+ROOF_RLS_USER_A_EMAIL=synthetic-a@example.test \
+ROOF_RLS_USER_A_PASSWORD='use-a-dedicated-test-password' \
+ROOF_RLS_USER_B_EMAIL=synthetic-b@example.test \
+ROOF_RLS_USER_B_PASSWORD='use-a-dedicated-test-password' \
+npm run test:two-workspace-isolation
+```
+
+The command refuses Vercel URLs, does not print credentials, creates namespaced test leads and one private object, checks cross-workspace read/update/storage denial, and cleans up its own records. It is not a substitute for a real-device test.
+
+### Staging backup verification
+
+GitHub Actions contains the manual workflow `.github/workflows/staging-backup-verify.yml`. It is protected by the `staging-backup` environment and requires `STAGING_DB_URL` only when the owner explicitly runs a staging check. It does not export production by default, does not upload database dumps as artifacts, and does not perform a destructive restore. A real encrypted-backup policy requires separate owner decisions about encryption keys, access, retention, and a disposable restore project.
+
+### Current release truth
+
+The current merged `main` baseline is `9660661221468ca854e1c628f15bb293e50d4d50`. Source-level checks passing does not establish production migration parity, authenticated two-workspace isolation, provider execution, or physical-device behavior.
+
 ## References
 
 [1]: https://supabase.com/docs/guides/database/postgres/row-level-security "Supabase Row Level Security"

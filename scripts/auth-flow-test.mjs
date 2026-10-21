@@ -67,6 +67,10 @@ assert.ok(ownerEnterGate.includes('timingSafeEqual'), 'secret compare is timing-
 
 assert.ok(login.includes('/auth/enter'), 'login page can forward into enter with key')
 assert.ok(login.includes('safeNextPath'), 'login forward keeps next path safe')
+assert.ok(login.includes('signInWithPassword'), 'login supports normal password sign-in')
+assert.ok(login.includes('signInWithOtp'), 'login supports magic-link sign-in')
+assert.ok(login.includes('resetPasswordForEmail'), 'login supports password reset requests')
+assert.ok(login.includes('/auth/signup'), 'login links to workspace signup')
 assert.ok(login.includes('Owner enter key'), 'login collects break-glass key')
 assert.ok(login.includes("enter.searchParams.set('key', trimmed)"), 'login passes key into enter')
 
@@ -91,4 +95,4 @@ assert.equal(assertOwnerEnterAuthorized({ providedKey: 'sixteen-chars-min' }).ok
 if (prev === undefined) delete process.env.OWNER_ENTER_SECRET
 else process.env.OWNER_ENTER_SECRET = prev
 
-console.log('auth-flow-test: PASS (private break-glass enter, callback types, cooldowns, safe redirects)')
+console.log('auth-flow-test: PASS (password, magic-link, reset, callback types, private break-glass enter, cooldowns, safe redirects)')
