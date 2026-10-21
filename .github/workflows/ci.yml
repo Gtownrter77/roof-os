@@ -44,6 +44,7 @@ jobs:
       - run: npm run test:invitation-flow
       - run: npm run test:two-workspace-contract
       - run: npm run test:mobile-offline-sync
+      - run: npm run test:mobile-ai-observation-security
       - run: npm run test:mobile-auth
       - run: npm run test:worker-heartbeat
       - run: npm run test:release-evidence
@@ -197,6 +198,11 @@ jobs:
           grep -q "drop policy if exists agent_runs_select" supabase/migrations/009_agent_runtime_claims_imports.sql
           test -f supabase/migrations/050_mobile_technician_verification.sql
           test -f supabase/migrations/052_mobile_field_measurement_inputs.sql
+          test -f supabase/migrations/054_mobile_ai_observations.sql
+          grep -q "enable row level security" supabase/migrations/054_mobile_ai_observations.sql
+          grep -q "AI observation provenance is immutable after insertion" supabase/migrations/054_mobile_ai_observations.sql
+          grep -q "AI observation and inspection must belong to the same workspace" supabase/migrations/054_mobile_ai_observations.sql
+          grep -q "public.is_workspace_admin(workspace_id)" supabase/migrations/054_mobile_ai_observations.sql
           test -f supabase/migrations/053_agent_action_ledger.sql
           grep -q "create extension if not exists pgcrypto" supabase/migrations/053_agent_action_ledger.sql
           grep -q "approval hashes do not match the current action batch" supabase/migrations/053_agent_action_ledger.sql
