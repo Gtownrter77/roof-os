@@ -5,6 +5,9 @@ const source = readFileSync('lib/agent-actions.ts', 'utf8')
 const migration = readFileSync('supabase/migrations/053_agent_action_ledger.sql', 'utf8')
 const route = readFileSync('app/api/agent-actions/approve/route.ts', 'utf8')
 const writer = readFileSync('workers/action-batch.ts', 'utf8')
+const inbox = readFileSync('app/agent-actions/page.tsx', 'utf8')
+const executor = readFileSync('workers/action-executor.ts', 'utf8')
+const cron = readFileSync('app/api/cron/agent-actions/route.ts', 'utf8')
 
 for (const marker of [
   'export type AgentRiskLevel',
@@ -53,6 +56,29 @@ for (const marker of [
   'idempotency_key: action.idempotencyKey',
   'payload_hash: await sha256Hex(action.payload)',
 ]) assert.ok(writer.includes(marker), `batch writer missing: ${marker}`)
+
+for (const marker of [
+  "fetch('/api/agent-actions'",
+  "fetch('/api/agent-actions/approve'",
+  'Authorize ${batch.actions.length}',
+  'approvedPayloadHash',
+]) assert.ok(inbox.includes(marker), `approval inbox missing: ${marker}`)
+
+for (const marker of [
+  "kind === 'create_task'",
+  "kind === 'assign_owner'",
+  'agent-action:${action.id}',
+  "status: 'executing'",
+  "status: 'executed'",
+  'No safe executor is registered',
+]) assert.ok(executor.includes(marker), `executor missing: ${marker}`)
+
+for (const marker of [
+  "process.env.CRON_SECRET",
+  "request.headers.get('authorization')?.replace(/^Bearer\\s+/i, '')",
+  "eq('status', 'approved')",
+  'executeApprovedBatch',
+]) assert.ok(cron.includes(marker), `executor cron missing: ${marker}`)
 
 assert.match(source, /send_message: 'customer_communication'/)
 assert.match(source, /create_payment_link: 'financial'/)
