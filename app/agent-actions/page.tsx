@@ -38,6 +38,10 @@ async function sha256(value: unknown) {
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(stableJson(value)))
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('')
 }
+async function sha256Text(value: string) {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value))
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('')
+}
 function label(value: string) { return value.replaceAll('_', ' ') }
 function riskClass(value: string) {
   if (value === 'financial' || value === 'legal') return 'border-rose-400/40 bg-rose-400/10 text-rose-200'
@@ -72,8 +76,8 @@ export default function AgentActionsPage() {
     setBusy(batch.id); setError(''); setMessage('')
     try {
       const actionIds = batch.actions.map((action) => action.id)
-      const approvalSummaryHash = await sha256({ batchId: batch.id, summary: batch.summary, actionIds })
-      const approvedPayloadHash = await sha256(batch.actions.map((action) => ({ id: action.id, payloadHash: action.payload_hash })))
+      const approvalSummaryHash = await sha256Text(`${batch.id}\n${batch.summary}\n${actionIds.join('\n')}`)
+      const approvedPayloadHash = await sha256Text(batch.actions.map((action) => `${action.id}:${action.payload_hash}`).join('\n'))
       const response = await fetch('/api/agent-actions/approve', {
         method: 'POST', headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ batchId: batch.id, actionIds, approvalSummaryHash, approvedPayloadHash }),
