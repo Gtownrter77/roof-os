@@ -845,3 +845,26 @@ PR #273 was merged into `main` as `bd30df202e5eede9efd89640f3473cfb3a2dfb70`. Ma
 The application code defaults to the requested `http://localhost:20128/v1`, but the explicit Production variable `OLLAMA_VISION_API_BASE_URL` is **not set**. The Vercel connector’s metadata-only read returned 403 for the `ryan-long-s-projects` scope; the documented CLI fallback could not run because `vercel` is not installed. No Vercel variables, permissions, or credentials were changed. The local Sandbox also could not connect to the model endpoint, and no live inference was attempted. In Vercel, `localhost` refers to the function runtime, so neither the setting nor inference reachability should be treated as verified.
 
 **Outstanding action:** after the owner restores Vercel access for project `roof-os` or sets it manually, explicitly configure Production `OLLAMA_VISION_API_BASE_URL=http://localhost:20128/v1`; then redeploy if Vercel requires it and verify the setting and model-server reachability. Until then, retain the inference limitation in release notes. This section supersedes the preceding “Next: open a PR” instruction; the PR, CI, merge, and production deployment steps are complete.
+
+## 2026-10-21 agent action approval checkpoint
+
+- Added the Agent Action Ledger in `supabase/migrations/053_agent_action_ledger.sql` for proposed action batches, individual actions, approval events, risk levels, idempotency keys, payload hashes, expiry, and RLS.
+- Added typed action-risk policy in `lib/agent-actions.ts`, secure one-touch approval RPC/API route at `app/api/agent-actions/approve/route.ts`, and worker-side proposal persistence in `workers/action-batch.ts`.
+- Added `test:agent-action-policy` and validated: `npm run test:agent-action-policy`, `npm run test:agent-runtime`, `npm run verify:security`, `npm run test:frontend-route-integrity`, and `git diff --check` all passed locally.
+- Local commit: `1cb2031c51bd25e24eb57c92fd4df0305b6a8492`.
+- Direct push to protected `main` was rejected by repository rules requiring a pull request. Feature branch `feat/agent-action-approval` is pushed and matches remote SHA.
+- Pull request: https://github.com/Gtownrter77/roof-os/pull/285
+- Production database migration and provider side effects remain unapplied and unverified.
+- Next action: add the approval queue/card UI and an idempotent action executor after PR review; then run CI and staging RLS/migration tests before enabling any agent side effects.
+
+## 2026-10-21 agent approval inbox and executor milestone
+
+The agent-control-plane PR now includes an owner-facing `/agent-actions` approval inbox, a workspace-scoped `GET /api/agent-actions` proposal feed, and mobile navigation access. The inbox computes approval hashes client-side and sends one exact batch authorization through the protected RPC/API path.
+
+Approved batches can now be picked up by the protected `POST /api/cron/agent-actions` worker route. The executor claims batches atomically, supports idempotent internal task creation and lead-owner assignment, records action results, and fails closed for unsupported customer-facing, financial, legal, or provider side effects instead of guessing.
+
+Validation passed: `npm run test:agent-action-policy`, `npm run test:agent-runtime`, `npm run verify:security`, `npm run test:frontend-route-integrity` (75 page routes), and `git diff --check`. The local environment still lacks installed project dependencies, so `npm run typecheck` remains blocked by missing `next`, Supabase, Node type, and related modules; GitHub CI is the authoritative dependency-installed check.
+
+Commit `5e9b3abd5cd691c44d3c8d0afb1bd1de583e443b` is pushed to `feat/agent-action-approval`, and local/remote branch SHAs match. PR #285 remains the review and CI path. Production migration, cron scheduling, worker secrets, and provider side effects remain unconfigured.
+
+Next action: connect the first Lead Desk event handler to action-batch proposals, then configure a staging cron schedule and run authenticated two-workspace/RLS execution tests before enabling production automation.
