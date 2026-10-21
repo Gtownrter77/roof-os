@@ -80,7 +80,7 @@ function LoginPageContent() {
   }
 
   return (
-    <main className="ops-bg flex min-h-screen items-center justify-center p-4">
+    <main className="ops-bg cinema-surface flex min-h-screen items-center justify-center p-4">
       <section className="w-full max-w-md glass rounded-2xl p-6">
         <div className="mb-5 text-center"><div className="mb-2 text-4xl">⚡</div><h1 className="text-2xl font-bold">Sign in to ROOF/OS</h1><p className="mt-1 text-sm text-slate-400">Use your work email and password, or request a secure email link.</p></div>
         <form onSubmit={signIn} className="space-y-3">
