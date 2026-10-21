@@ -115,3 +115,8 @@ Do not spend the next batch on additional dashboard polish, speculative AI, insu
 - Added protected staging-only migration verification workflow, current migration/deployment guidance, invitation login recovery/idempotency contracts, field-app sign-out/local-evidence retention, retry-now and session-expiry recovery, shared cron heartbeat wiring, release-evidence contracts, and owner checklist.
 - The feature shortlist is recorded separately in `docs/superpowers/specs/2026-10-21-next-ten-release-evidence.md`; those features are not being silently implemented in this repair batch.
 - This checkpoint is source-only until focused tests, full local checks, GitHub CI, and post-merge verification pass. Staging migration, authenticated two-workspace testing, physical-device testing, worker runtime evidence, backup/restore, and provider execution remain external gates.
+
+
+## 2026-10-21 next-five release-evidence batch checkpoint
+
+The branch `repair/next-five-release-evidence` contains exactly five bounded items: staging project target locks, a protected staging RLS smoke workflow, backup evidence wording and safeguards, mobile release version reconciliation, and a static live-release preflight. No production database, customer data, provider, credential, APK, restore, or deployment setting was changed. Local build, security, regression, workflow YAML, and dependency checks pass; staging RLS, backup restore, live schema parity, physical-device, worker runtime, and provider evidence remain external gates.

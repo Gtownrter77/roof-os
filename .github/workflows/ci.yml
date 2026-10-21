@@ -47,6 +47,10 @@ jobs:
       - run: npm run test:mobile-auth
       - run: npm run test:worker-heartbeat
       - run: npm run test:release-evidence
+      - run: npm run test:staging-workflows
+      - run: npm run test:backup-evidence
+      - run: npm run test:mobile-release-contract
+      - run: npm run test:live-release-preflight
       - run: npm run test:field-coach
       - run: npm run test:stale-screens
       - run: npm run test:cinema-theme

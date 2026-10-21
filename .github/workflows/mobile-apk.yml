@@ -42,6 +42,9 @@ jobs:
       - name: Validate Expo configuration
         run: npx expo config --json > /tmp/expo-config.json
 
+      - name: Require documented field release version
+        run: node -e "const v=require('./app.json').expo.version; if(v !== '0.4.0') { console.error('Expected field release 0.4.0, found ' + v); process.exit(1) }"
+
       - name: Require Expo build credentials
         run: |
           if [ -z "${EXPO_TOKEN:-}" ]; then

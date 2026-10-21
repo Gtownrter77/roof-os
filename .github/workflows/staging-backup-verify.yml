@@ -44,9 +44,20 @@ jobs:
         if: inputs.run_schema_check
         env:
           STAGING_DB_URL: ${{ secrets.STAGING_DB_URL }}
+          STAGING_PROJECT_REF: ${{ secrets.STAGING_PROJECT_REF }}
+          PRODUCTION_SUPABASE_HOST: ${{ secrets.PRODUCTION_SUPABASE_HOST }}
         run: |
           set -euo pipefail
           test -n "$STAGING_DB_URL"
+          test -n "$STAGING_PROJECT_REF"
+          case "$STAGING_DB_URL" in
+            *"$STAGING_PROJECT_REF"*) ;;
+            *) echo 'STAGING_DB_URL does not contain the allowlisted STAGING_PROJECT_REF' >&2; exit 1 ;;
+          esac
+          if [ -n "${PRODUCTION_SUPABASE_HOST:-}" ] && [[ "$STAGING_DB_URL" == *"$PRODUCTION_SUPABASE_HOST"* ]]; then
+            echo 'Refusing to inspect the configured production Supabase host.' >&2
+            exit 1
+          fi
           mkdir -p /tmp/roof-os-backup
           supabase db dump --db-url "$STAGING_DB_URL" --schema public --file /tmp/roof-os-backup/public.sql
           test -s /tmp/roof-os-backup/public.sql
@@ -57,14 +68,26 @@ jobs:
         if: inputs.run_restore_check
         env:
           STAGING_DB_URL: ${{ secrets.STAGING_DB_URL }}
+          STAGING_PROJECT_REF: ${{ secrets.STAGING_PROJECT_REF }}
+          PRODUCTION_SUPABASE_HOST: ${{ secrets.PRODUCTION_SUPABASE_HOST }}
         run: |
           set -euo pipefail
           test -n "$STAGING_DB_URL"
+          test -n "$STAGING_PROJECT_REF"
+          case "$STAGING_DB_URL" in
+            *"$STAGING_PROJECT_REF"*) ;;
+            *) echo 'STAGING_DB_URL does not contain the allowlisted STAGING_PROJECT_REF' >&2; exit 1 ;;
+          esac
+          if [ -n "${PRODUCTION_SUPABASE_HOST:-}" ] && [[ "$STAGING_DB_URL" == *"$PRODUCTION_SUPABASE_HOST"* ]]; then
+            echo 'Refusing to inspect the configured production Supabase host.' >&2
+            exit 1
+          fi
           supabase db diff --db-url "$STAGING_DB_URL" --schema public --file /tmp/roof-os-staging-diff.sql
           sha256sum /tmp/roof-os-staging-diff.sql
           rm -f /tmp/roof-os-staging-diff.sql
 
       - name: State retention boundary
         run: |
-          echo 'No database dump is uploaded as a GitHub artifact.'
+          echo 'No database dump or diff is uploaded as a GitHub artifact.'
+          echo 'The restore-check input means non-destructive schema diff only; it is not a restore rehearsal.'
           echo 'This workflow is staging-only and does not restore or mutate production.'

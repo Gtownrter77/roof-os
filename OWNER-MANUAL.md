@@ -371,3 +371,14 @@ This batch records ten repairs but does not turn source or CI output into produc
 | Provider actions | Authorized sandbox/sample checks for any Twilio, retailer, claims, or payment connector | Not authorized |
 
 The future feature shortlist is recorded in `docs/superpowers/specs/2026-10-21-next-ten-release-evidence.md`. It is intentionally separate from this repair batch. Highest-value candidates are a dependable inspection-to-Golden-Report pilot, a field queue recovery center, workspace member administration, an appointment-to-field handoff, an evidence timeline, and an owner backup center. Anti-features remain: no autonomous coverage decisions, no unapproved customer messages, no fabricated measurements, no silent provider substitution, and no claim that retail prices are licensed carrier pricing.
+
+
+## 2026-10-21 next-five evidence boundaries
+
+The protected workflows `.github/workflows/staging-rls-smoke.yml`, `.github/workflows/staging-migration-verify.yml`, and `.github/workflows/staging-backup-verify.yml` require an allowlisted `STAGING_PROJECT_REF` and must not point at the production Supabase host. The RLS workflow creates synthetic rows only after explicit non-production confirmation and the harness cleans them up. It must be run manually against the protected staging environment; it is not a CI or production test.
+
+The backup workflow produces an ephemeral schema dump/checksum or non-destructive schema diff. It does not upload database material and the `run_restore_check` input is not a restore rehearsal. A real encrypted backup and staging restore remains a separate owner gate and is still marked **Not yet run**.
+
+The mobile source/configuration/documentation version is `0.4.0`. The APK workflow now fails if the Expo version drifts. A passing version contract does not prove that an APK was built, installed, or exercised on a physical device.
+
+`npm run test:live-release-preflight` checks repository secret-name hygiene and reports unknown external gates without reading secret values or making network requests. A PASS means repository hygiene only; it is not production verification.
