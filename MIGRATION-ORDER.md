@@ -1,5 +1,9 @@
 # Database migration ordering
 
+## Current checkpoint — 2026-10-21
+
+`main` is now `b6520da825cb31cf538894fbfc44c87a38a752c3` after PR #288. Migration `053_agent_action_ledger.sql` is present in source and covered by CI contracts; its target-project application remains unverified. The next new local prefix is `054`. Use the manual, protected staging workflow `.github/workflows/staging-migration-verify.yml` before any production application. A green repository check is not proof of live schema parity.
+
 **Do not rename or renumber an already-released SQL migration without checking the applied production ledger first.** The production Supabase ledger uses timestamp versions; the repo SQL files use shorter numeric prefixes. The project was restored during this release and is now `ACTIVE_HEALTHY`.
 
 > **Evidence freshness:** The live Supabase ledger and schema were queried during the 2026-10-09 audit. The audit found source drift and that repository migrations `051_supplier_account_addons.sql` and `052_mobile_field_measurement_inputs.sql` are not reflected in the live ledger/schema. See [AUDIT-STATUS-2026-10-09.md](AUDIT-STATUS-2026-10-09.md). Do not replay applied migrations; test unapplied changes on staging before production.

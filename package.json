@@ -44,6 +44,8 @@
     "test:ai-report-authority": "node scripts/ai-report-authority-test.mjs",
     "test:invoices-live-data": "node scripts/invoices-live-data-test.mjs",
     "test:mobile-auth": "node scripts/mobile-auth-test.mjs",
+    "test:worker-heartbeat": "node scripts/worker-heartbeat-contract-test.mjs",
+    "test:release-evidence": "node scripts/release-evidence-contract-test.mjs",
     "test:llama-agent": "node scripts/llama-agent-test.mjs",
     "test:ai-chat-bar": "node --experimental-strip-types scripts/ai-chat-bar-test.mjs",
     "test:owner-labor": "node scripts/owner-labor-catalog-test.mjs",

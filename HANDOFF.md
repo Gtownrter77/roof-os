@@ -897,3 +897,8 @@ This checkpoint supersedes the earlier 2026-10-21 agent-action entries where the
 3. Run authorized two-workspace browser/Storage and authenticated inspection/report tests with synthetic data only.
 4. Run the real-device field smoke test: sign-in, camera, offline close/reopen, retry, private upload, and isolation.
 5. Configure staging cron only for the currently supported internal actions; keep external, financial, legal, customer-facing, and production side effects disabled until separately approved.
+
+
+## 2026-10-21 next-ten release-evidence checkpoint
+
+The branch `repair/next-ten-release-evidence` captures the next bounded repair batch. It adds a protected staging-only migration verification workflow, reconciles current migration/deployment guidance, makes invitation acceptance recover through normal login and resist duplicate submits, adds field-app sign-out/local-evidence retention, manual queue retry-now, session-expiry recovery, shared cron heartbeat evidence, and CI/owner release-evidence contracts. The feature shortlist is recorded in `docs/superpowers/specs/2026-10-21-next-ten-release-evidence.md` and is not part of this implementation batch. No production database, customer data, provider, credential, or deployment setting was changed. Resume with focused tests, full three-level verification, PR checks, merge only when green, then verify post-merge main CI; stop after these ten items.

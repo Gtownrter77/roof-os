@@ -1,5 +1,7 @@
 # Deployment
 
+**Current checkpoint — 2026-10-21:** `main` is `b6520da825cb31cf538894fbfc44c87a38a752c3`; post-merge CI passed. Production migration parity, authenticated two-workspace checks, physical-device behavior, and provider execution remain unverified. Run `.github/workflows/staging-migration-verify.yml` only against an owner-designated protected staging environment; never use it as a production deploy mechanism.
+
 ROOF/OS is connected to the free Vercel Hobby project `roof-os`.
 
 Production domain: https://roof-os-lemon.vercel.app

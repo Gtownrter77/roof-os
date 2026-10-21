@@ -44,6 +44,9 @@ jobs:
       - run: npm run test:invitation-flow
       - run: npm run test:two-workspace-contract
       - run: npm run test:mobile-offline-sync
+      - run: npm run test:mobile-auth
+      - run: npm run test:worker-heartbeat
+      - run: npm run test:release-evidence
       - run: npm run test:field-coach
       - run: npm run test:stale-screens
       - run: npm run test:cinema-theme

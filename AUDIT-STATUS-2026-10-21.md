@@ -107,3 +107,11 @@ Do not spend the next batch on additional dashboard polish, speculative AI, insu
 - **Security/authority posture:** the approval hash binding fix is merged; staging migration/RLS/concurrency verification is still required before higher-risk automation.
 - **Production operational readiness:** incomplete and not to be represented as complete.
 - **Handoff status:** ten-item repair batch is in progress; do not claim end-to-end production verification or enable new side effects from source presence alone.
+
+
+## 2026-10-21 next-ten release-evidence batch checkpoint
+
+- The repair branch is `repair/next-ten-release-evidence`; no production database, provider, customer record, deployment setting, or credential was changed.
+- Added protected staging-only migration verification workflow, current migration/deployment guidance, invitation login recovery/idempotency contracts, field-app sign-out/local-evidence retention, retry-now and session-expiry recovery, shared cron heartbeat wiring, release-evidence contracts, and owner checklist.
+- The feature shortlist is recorded separately in `docs/superpowers/specs/2026-10-21-next-ten-release-evidence.md`; those features are not being silently implemented in this repair batch.
+- This checkpoint is source-only until focused tests, full local checks, GitHub CI, and post-merge verification pass. Staging migration, authenticated two-workspace testing, physical-device testing, worker runtime evidence, backup/restore, and provider execution remain external gates.

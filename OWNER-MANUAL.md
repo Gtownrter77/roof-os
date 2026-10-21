@@ -353,3 +353,21 @@ The current merged `main` baseline is `9660661221468ca854e1c628f15bb293e50d4d50`
 [5]: https://docs.expo.dev/versions/latest/sdk/imagepicker/ "Expo ImagePicker Documentation"
 [6]: https://www.openstreetmap.org/ "OpenStreetMap"
 [7]: https://www.google.com/maps "Google Maps"
+
+
+## 2026-10-21 release-evidence checklist
+
+This batch records ten repairs but does not turn source or CI output into production proof. Before commercial use, complete and record each external gate separately:
+
+| Gate | Evidence required | Current state |
+| --- | --- | --- |
+| Staging migration | Protected manual workflow against the allowlisted staging project; migration ledger and diff reviewed | Not yet run |
+| Production schema | Authenticated owner review of the live Supabase migration ledger; never replay by filename | Unverified |
+| Two-workspace isolation | Two authenticated accounts, lead CRUD, private Storage upload/read denial, and cleanup | Unverified |
+| Invitation delivery | Real invitation email, sign-in redirect, acceptance, replay/expiry behavior | Source contract only |
+| Field device | Signed internal APK installed on a real iOS/Android device; offline capture, reopen, upload, retry | Source/CI only |
+| Worker operation | Heartbeat freshness, test event, retry idempotency, and cross-workspace denial | Source contract only |
+| Backups | Encrypted backup and a staging restore rehearsal with dated evidence | Not yet run |
+| Provider actions | Authorized sandbox/sample checks for any Twilio, retailer, claims, or payment connector | Not authorized |
+
+The future feature shortlist is recorded in `docs/superpowers/specs/2026-10-21-next-ten-release-evidence.md`. It is intentionally separate from this repair batch. Highest-value candidates are a dependable inspection-to-Golden-Report pilot, a field queue recovery center, workspace member administration, an appointment-to-field handoff, an evidence timeline, and an owner backup center. Anti-features remain: no autonomous coverage decisions, no unapproved customer messages, no fabricated measurements, no silent provider substitution, and no claim that retail prices are licensed carrier pricing.

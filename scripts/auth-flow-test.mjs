@@ -36,6 +36,8 @@ const proxy = readFileSync(new URL('../proxy.ts', import.meta.url), 'utf8')
 const serverAuth = readFileSync(new URL('../lib/supabase/server.ts', import.meta.url), 'utf8')
 
 assert.ok(callback.includes("safeNextPath(url.searchParams.get('next'), url.origin)"))
+assert.ok(callback.includes("nextUrl.pathname === '/team/invitations/accept'"), 'callback preserves validated invitation redirects')
+assert.ok(callback.includes("nextUrl.searchParams.set('invitationId', invitationId)"), 'callback preserves invitation id')
 assert.ok(callback.includes('exchangeCodeForSession(code)'))
 assert.ok(callback.includes('verifyOtp({ token_hash: tokenHash, type: type as EmailOtpType })'))
 for (const type of ['signup', 'invite', 'magiclink', 'recovery', 'email_change', 'email']) {
