@@ -907,3 +907,8 @@ The branch `repair/next-ten-release-evidence` captures the next bounded repair b
 ## 2026-10-21 next-five release-evidence checkpoint
 
 The branch `repair/next-five-release-evidence` contains exactly five items: lock staging workflows to an allowlisted non-production project, add protected synthetic two-workspace RLS smoke, clarify bounded backup evidence, reconcile mobile release version `0.4.0`, and add static live-release preflight. All local checks pass. No production mutation or external provider action was performed. After merge, stop and await owner completion of the protected staging/RLS, encrypted restore, physical-device, live-schema, worker-runtime, and provider gates.
+
+
+## 2026-10-21 next-five live-evidence checkpoint
+
+The branch `repair/next-five-live-evidence` contains exactly five items: protected authenticated read-only staging smoke, heartbeat-only staging probing, worker-health reporting correctness, the redacted field-device evidence packet contract, and the deterministic release-gate summary. All local checks pass. No production request or customer/provider side effect was performed. After merge, the remaining work is to run the protected staging smoke/probe and collect actual physical-device, restore, schema-parity, worker-runtime, and provider evidence.

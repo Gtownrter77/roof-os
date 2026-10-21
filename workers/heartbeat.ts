@@ -11,12 +11,12 @@ export async function writeWorkerHeartbeats(
   capabilities: Record<string, unknown> = {},
 ) {
   const uniqueWorkspaceIds = [...new Set(workspaceIds.filter(Boolean))]
-  if (!uniqueWorkspaceIds.length) return
+  if (!uniqueWorkspaceIds.length) return { persisted: 0, errors: false }
   const workerId = process.env.AGENT_WORKER_ID?.trim() || 'vercel-cron'
   const workerVersion = process.env.AGENT_WORKER_VERSION?.trim() || `${agentKey}-cron-v1`
-  await Promise.all(uniqueWorkspaceIds.map(async (workspaceId) => {
+  const results = await Promise.all(uniqueWorkspaceIds.map(async (workspaceId) => {
     try {
-      await supabase.from('agent_worker_heartbeats').upsert({
+      const { error } = await supabase.from('agent_worker_heartbeats').upsert({
         workspace_id: workspaceId,
         agent_key: agentKey,
         worker_id: workerId,
@@ -25,8 +25,10 @@ export async function writeWorkerHeartbeats(
         capabilities,
         last_seen_at: new Date().toISOString(),
       })
+      return !error
     } catch {
-      // Heartbeat storage must never turn an otherwise bounded cron into a side effect failure.
+      return false
     }
   }))
+  return { persisted: results.filter(Boolean).length, errors: results.some((success) => !success) }
 }

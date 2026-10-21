@@ -1,0 +1,20 @@
+{
+  "manifestVersion": 1,
+  "status": "UNKNOWN",
+  "appVersion": "0.4.0",
+  "platform": "android",
+  "deviceModel": "REDACTED",
+  "buildId": null,
+  "testedAt": null,
+  "artifactIds": [],
+  "cases": {
+    "signIn": "UNKNOWN",
+    "cameraCapture": "UNKNOWN",
+    "offlineCloseReopen": "UNKNOWN",
+    "retry": "UNKNOWN",
+    "privateUpload": "UNKNOWN",
+    "signOut": "UNKNOWN",
+    "crossWorkspaceDenial": "UNKNOWN"
+  },
+  "notes": "Template only. No credentials, customer data, or success claim."
+}
