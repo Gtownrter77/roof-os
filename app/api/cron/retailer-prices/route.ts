@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getLowesAccessToken, LOWES_PRODUCT_SEARCH_URL } from '../../../../lib/lowes'
 import { fetchWithTimeout } from '../../../../lib/api-security'
+import { writeWorkerHeartbeats } from '../../../../workers/heartbeat'
 
 const HOME_DEPOT_HOST = 'real-time-home-depot-data.p.rapidapi.com'
 const MONTHLY_LIMIT = 100
@@ -25,6 +26,7 @@ export async function GET(request: NextRequest) {
   if (watchlistError) return NextResponse.json({ error: 'Could not load pricing watchlist.', detail: watchlistError.message }, { status: 502 })
   if ((watchlist ?? []).length > MAX_WATCHLIST_ITEMS) return NextResponse.json({ error: `Weekly refresh is capped at ${MAX_WATCHLIST_ITEMS} active watchlist items per run. Reduce the list before retrying.` }, { status: 503 })
   const workspaceIds = [...new Set((watchlist ?? []).map(item => item.workspace_id))]
+  await writeWorkerHeartbeats(supabase, workspaceIds, 'scheduler', 'starting')
   const { data: settings } = workspaceIds.length ? await supabase.from('workspace_settings').select('workspace_id,price_refresh_frequency').in('workspace_id', workspaceIds) : { data: [] }
   const frequencyByWorkspace = new Map((settings ?? []).map(item => [item.workspace_id, item.price_refresh_frequency]))
 
@@ -73,5 +75,7 @@ export async function GET(request: NextRequest) {
     results.push({ watchlistId: item.id, provider: item.provider, status: insertError ? 'cache_error' : 'refreshed' })
   }
 
+  const degraded = results.some((result) => ['provider_timeout', 'provider_error', 'cache_error'].includes(String(result.status)))
+  await writeWorkerHeartbeats(supabase, workspaceIds, 'scheduler', degraded ? 'degraded' : 'healthy', degraded ? { lastError: 'One or more retailer refresh items failed.' } : {})
   return NextResponse.json({ providers: ['home_depot', 'lowes'], cadence: 'weekly', refreshedAt: new Date().toISOString(), count: results.length, results })
 }

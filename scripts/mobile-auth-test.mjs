@@ -29,5 +29,10 @@ assert.ok(appSource.includes('sb_publishable_'), 'Mobile app must have fallback 
 
 // 5. Browser login fallback
 assert.ok(appSource.includes('auth/login'), 'Mobile app must provide direct fallback to web login in browser')
+assert.ok(appSource.includes('auth.signOut'), 'Mobile app must provide explicit sign-out')
+assert.ok(appSource.includes('Local inspection drafts remain safely stored'), 'Sign-out must preserve local evidence')
+assert.ok(appSource.includes('Retry this inspection now'), 'Mobile app must expose manual retry-now')
+assert.ok(appSource.includes('isSessionExpiryError'), 'Mobile app must classify session expiry separately')
+assert.ok(appSource.includes('session expired'), 'Mobile app must explain re-authentication recovery')
 
-console.log('mobile-auth-test: PASS (forgot password button, 6-digit code OTP, password toggle, SecureStore email memory, and credentials fallback verified)')
+console.log('mobile-auth-test: PASS (auth, sign-out hygiene, retry-now, session recovery, and credentials fallback verified)')

@@ -1,5 +1,7 @@
 # ROOF/OS Supabase Manual Migration Guide
 
+> **Current checkpoint — 2026-10-21:** `main` is `b6520da825cb31cf538894fbfc44c87a38a752c3`; migration 053 is source-present but target-project application is unverified. The next new local prefix is 054. Run the protected, read-only staging workflow `.github/workflows/staging-migration-verify.yml` before applying any new migration. Never replay a migration based only on its filename.
+
 > **Status — 2026-10-18:** This guide describes the historical workspace/storage migration `002`; it is not the complete current production migration procedure. The repository now contains later migrations and known source/ledger drift. Read [MIGRATION-ORDER.md](MIGRATION-ORDER.md) and [AUDIT-STATUS-2026-10-09.md](AUDIT-STATUS-2026-10-09.md) first. Do not replay an applied migration or assume source files equal the live Supabase schema.
 
 > **Current release boundary:** Vercel reports database/API/storage online, but authenticated CRUD and cross-workspace verification were not completed in this task. Keep the production status unverified until the owner runs the live checks below with an authenticated account.

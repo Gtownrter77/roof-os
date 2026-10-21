@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '../../../../lib/supabase/admin'
 import { executeApprovedBatch } from '../../../../workers/action-executor'
+import { writeWorkerHeartbeats } from '../../../../workers/heartbeat'
 
 export async function POST(request: NextRequest) {
   const secret = process.env.CRON_SECRET?.trim()
@@ -9,11 +10,13 @@ export async function POST(request: NextRequest) {
   const admin = createAdminClient()
   const { data: batches, error } = await admin
     .from('agent_action_batches')
-    .select('id')
+    .select('id,workspace_id')
     .eq('status', 'approved')
     .order('created_at', { ascending: true })
     .limit(25)
   if (error) return NextResponse.json({ error: 'Could not read approved action batches.', detail: error.message }, { status: 502 })
+  const workspaceIds = (batches ?? []).map((batch) => batch.workspace_id)
+  await writeWorkerHeartbeats(admin, workspaceIds, 'office_copilot', 'starting')
 
   let executed = 0
   let failed = 0
@@ -30,5 +33,6 @@ export async function POST(request: NextRequest) {
       failures.push({ batchId: batch.id, error: workerError instanceof Error ? workerError.message : 'Unknown action executor error' })
     }
   }
+  await writeWorkerHeartbeats(admin, workspaceIds, 'office_copilot', failures.length ? 'degraded' : 'healthy', failures.length ? { lastError: failures[0]?.error } : {})
   return NextResponse.json({ processed: batches?.length ?? 0, executed, failed, skipped, failures }, { status: failures.length ? 502 : 200 })
 }
