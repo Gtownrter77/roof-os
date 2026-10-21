@@ -1,3 +1,23 @@
+## 2026-10-21 mobile AI top-ten remediation plan
+
+- The mobile AI audit identified ten ordered fixes. Batch 1 contains five security and contract fixes: authoritative AI-observation RLS, review-state invariants, workspace/inspection/photo consistency, truthful runtime/model availability, and executable inference/review validation.
+- Batch 2 will contain five integration fixes: wire inference into photo capture, persist and sync AI observations on native mobile, add technician review UI and transitions, replace source-marker tests with runtime/RLS coverage, and restore reproducible field TypeScript/offline-sync release gates.
+- Every batch uses three validation levels: Level 1 local static/type/contract checks; Level 2 security and migration checks; Level 3 full CI/PR checks on the merged-result candidate. No batch is merged until all required GitHub checks are green.
+- Current source baseline is remote `main` commit `1c047f8`; the prior source snapshot is not Git-backed and is not used as an overwrite. Expo SDK 57 requires a development build for native modules; the first batch remains TypeScript-only and does not add native dependencies.
+
+## 2026-10-21 mobile AI top-five batch 1 in progress
+
+- Working branch: `repair/mobile-ai-top-five-20261021`.
+- Migration `054_mobile_ai_observations.sql` adds review-state checks, immutable provenance, workspace consistency triggers, and creator/admin-scoped review updates.
+- `apps/field/src/ai/inference.ts` now validates inputs/results and reports requested/runtime/model state separately; it remains disabled until a reviewed native model is bundled.
+- `apps/field/src/ai/review.ts` now validates review transitions and corrected/rejected payloads.
+- The security contract is registered as `test:mobile-ai-observation-security`; no production database or device/provider action has been performed.
+- Audit against GitHub `main` commit `1c047f8` found that `main` does not yet contain the mobile AI modules or migration. The untracked source snapshot's `App.tsx` differs from current `main` by about 537 lines and removes newer field-coach, radar, alert, session-expiry, photo-queue, and verification-sync behavior; it must not replace current `main` wholesale.
+- The safe porting boundary is AI-only: retain current `main` `App.tsx` and add the inference, queue, sync, and review seams incrementally. The rejected package-script overwrite made no repository change.
+- Fresh checks on the current remediation branch: `mobile-ai-observation-security-test` passed, the snapshot AI contract test passed, and `git diff --check` passed. No PR or merge has been created yet.
+- Batch 1 validation is now green locally: Level 1 AI contract plus standalone TypeScript checks; Level 2 `verify:security`, SECURITY DEFINER migration checks, and migration markers; Level 3 root typecheck, release check, offline-sync/auth/vision tests, production build, field TypeScript, and Expo config checks. Root and field lockfile dependencies were installed with `npm ci --ignore-scripts`; no production mutation occurred.
+- CI/package gates now include `test:mobile-ai-observation-security` and migration `054_mobile_ai_observations.sql` markers. The next action is a protected PR and required-check wait, not a direct push to `main`.
+
 ## 2026-10-21 free local stack implementation checkpoint
 
 - Vision default is now `qwen3-vl:8b` through the existing Ollama-compatible local client. Override with `OLLAMA_VISION_MODEL` when hardware requires a smaller model.
