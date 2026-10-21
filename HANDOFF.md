@@ -856,3 +856,15 @@ The application code defaults to the requested `http://localhost:20128/v1`, but 
 - Pull request: https://github.com/Gtownrter77/roof-os/pull/285
 - Production database migration and provider side effects remain unapplied and unverified.
 - Next action: add the approval queue/card UI and an idempotent action executor after PR review; then run CI and staging RLS/migration tests before enabling any agent side effects.
+
+## 2026-10-21 agent approval inbox and executor milestone
+
+The agent-control-plane PR now includes an owner-facing `/agent-actions` approval inbox, a workspace-scoped `GET /api/agent-actions` proposal feed, and mobile navigation access. The inbox computes approval hashes client-side and sends one exact batch authorization through the protected RPC/API path.
+
+Approved batches can now be picked up by the protected `POST /api/cron/agent-actions` worker route. The executor claims batches atomically, supports idempotent internal task creation and lead-owner assignment, records action results, and fails closed for unsupported customer-facing, financial, legal, or provider side effects instead of guessing.
+
+Validation passed: `npm run test:agent-action-policy`, `npm run test:agent-runtime`, `npm run verify:security`, `npm run test:frontend-route-integrity` (75 page routes), and `git diff --check`. The local environment still lacks installed project dependencies, so `npm run typecheck` remains blocked by missing `next`, Supabase, Node type, and related modules; GitHub CI is the authoritative dependency-installed check.
+
+Commit `5e9b3abd5cd691c44d3c8d0afb1bd1de583e443b` is pushed to `feat/agent-action-approval`, and local/remote branch SHAs match. PR #285 remains the review and CI path. Production migration, cron scheduling, worker secrets, and provider side effects remain unconfigured.
+
+Next action: connect the first Lead Desk event handler to action-batch proposals, then configure a staging cron schedule and run authenticated two-workspace/RLS execution tests before enabling production automation.
