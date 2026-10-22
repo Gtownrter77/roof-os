@@ -8,6 +8,7 @@
     "test:canvass125": "tsx scripts/canvass125-sim.mjs",
     "start": "mkdir -p .next/standalone/.next && cp -R .next/static .next/standalone/.next/static && rm -rf .next/standalone/public && cp -R public .next/standalone/public && node .next/standalone/server.js",
     "test:runtime-smoke": "node scripts/runtime-smoke-test.mjs",
+    "test:performance": "node --experimental-strip-types scripts/performance-optimization-verify.mjs",
     "typecheck": "tsc --noEmit",
     "release-check": "node scripts/release-check.mjs",
     "test:api-security": "node scripts/api-security-test.mjs",

@@ -5,18 +5,28 @@ export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 type ServiceStatus = 'online' | 'offline' | 'unknown'
-
 type WorkerHealth = { status: 'healthy' | 'degraded' | 'unknown'; configured: number; stale: number; queryError: boolean }
 
+// Cache weather health probe for 30s to prevent spamming NWS
+let cachedWeatherStatus: { status: ServiceStatus; expiresAt: number } = { status: 'unknown', expiresAt: 0 }
+
 async function checkWeather(): Promise<ServiceStatus> {
+  const now = Date.now()
+  if (cachedWeatherStatus.expiresAt > now) {
+    return cachedWeatherStatus.status
+  }
+
   try {
     const response = await fetch('https://api.weather.gov/', {
       headers: { 'User-Agent': 'ROOF-OS status check' },
       cache: 'no-store',
       signal: AbortSignal.timeout(5_000),
     })
-    return response.ok ? 'online' : 'offline'
+    const status = response.ok ? 'online' : 'offline'
+    cachedWeatherStatus = { status, expiresAt: now + 30_000 }
+    return status
   } catch {
+    cachedWeatherStatus = { status: 'offline', expiresAt: now + 15_000 }
     return 'offline'
   }
 }
@@ -26,6 +36,9 @@ export async function GET() {
   let database: ServiceStatus = 'unknown'
   let storage: ServiceStatus = 'unknown'
   let workerHealth: WorkerHealth = { status: 'unknown', configured: 0, stale: 0, queryError: false }
+
+  const weatherPromise = checkWeather()
+
   try {
     const admin = createAdminClient()
     const [databaseResult, storageResult, workerResult] = await Promise.all([
@@ -33,8 +46,10 @@ export async function GET() {
       admin.storage.from('inspection-photos').list('', { limit: 1 }),
       admin.from('agent_worker_heartbeats').select('status,last_seen_at').order('last_seen_at', { ascending: false }).limit(100),
     ])
+
     database = databaseResult.error ? 'offline' : 'online'
     storage = storageResult.error ? 'offline' : 'online'
+
     if (workerResult.error) {
       workerHealth = { status: 'unknown', configured: 0, stale: 0, queryError: true }
     } else if (workerResult.data?.length) {
@@ -47,7 +62,8 @@ export async function GET() {
     // The missing server key is represented as unknown rather than a route-level 500.
     workerHealth = { status: 'unknown', configured: 0, stale: 0, queryError: true }
   }
-  const weather = await checkWeather()
+
+  const weather = await weatherPromise
   const api: ServiceStatus = 'online'
   const services = { database, api, weather, storage }
   const operational = Object.values(services).every((value) => value === 'online')
@@ -63,6 +79,7 @@ export async function GET() {
       process.env.WHISPER_URL?.trim() || process.env.WHISPER_WORKER_URL?.trim(),
     ),
   }
+
   const configWarnings: string[] = []
   const visionEndpoint = process.env.OLLAMA_VISION_API_BASE_URL?.trim() || ''
   if (process.env.NODE_ENV === 'production' && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?\b/i.test(visionEndpoint)) {
