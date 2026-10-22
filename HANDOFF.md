@@ -1,5 +1,26 @@
 # Handoff — 2026-10-22
 
+## Active lane: estimate → send
+
+Photo → report is closed enough to leave. PR #307 merged. PR #308 open (draft rides with the golden report).
+
+### This lane
+Turn the verified photo packet into a multi-trade estimate draft, then a send draft.
+
+Tech already confirmed: slope, waste, soffit (in), fascia (in), address certainty.
+
+Agent drafts:
+- Roof squares from the verified measurements
+- Good / Better / Best from one measurement set
+- Lines for roof, gutters, downspouts, siding, windows, paint, fascia, soffit
+- Email and SMS stay drafts until the gate is clear and a technician approves
+
+### Gate
+Drafts only. No prices become final. No send until approval. No regressions.
+
+
+# Handoff — 2026-10-22
+
 ## Active lane: photo → report
 
 PR #306 merged to main (`bf16f85`). This is the first automation lane. Do not start a new lane until this one is closed.
