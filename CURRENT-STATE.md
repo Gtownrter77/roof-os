@@ -46,3 +46,13 @@ Added three non-destructive buttons on the field inspection view via DraftAction
 
 Modal shows draft and notes “Technician must approve on desktop”.
 Unit test covers requiresApproval on report and estimate.
+
+## 2026-10-21 Top-25 Batch 3 — stubs 21-25
+
+Added apps/field/src/ai/batch3.ts:
+- draftPaymentPrompt
+- recordDraftCreated (audit event)
+- sharedDomainNote
+- queueAgenticDraft
+
+All return requiresApproval: true. No UI, no writes.
