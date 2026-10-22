@@ -2,7 +2,7 @@
 
 ## Active lane: production → materials
 
-Estimate → send is PR #309. Photo → report is closed (#307, #308).
+Estimate → send merged as #309. Photo → report is closed.
 
 ### This lane
 Signed/approved estimate becomes a work-order draft and a material list.

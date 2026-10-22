@@ -8,6 +8,7 @@ import { createWorker } from 'tesseract.js'
 import { GoldenReport } from '../../components/GoldenReport'
 import { draftPhoto, draftPhotoReport, gatePhotoReport, PHOTO_REPORT_OPTIONS, type PhotoDraft, type ReportDraft } from '../../lib/ai/photo-report'
 import { readJpegGps, chooseAddressFilter, ADDRESS_FILTERS, type OnePhotoPacket, type AddressFilter } from '../../lib/ai/one-photo'
+import { draftEstimate } from '../../lib/ai/estimate-lane'
 import { draftProduction } from '../../lib/ai/production-lane'
 
 type Photo = { file: File; preview: string; id: string }
@@ -585,12 +586,51 @@ export default function PhotoEstimatePage() {
     </section>
 
     {fullReport && <GoldenReport report={fullReport} photoUrls={reportPhotoById} onPrint={() => window.print()} />}
-    {fullReport && reportDraft && (
+
+
+    <section className="glass rounded-xl p-4 mt-4 space-y-2 border border-amber-400/40">
+      <div className="flex items-center justify-between">
+        <h2 className="font-bold text-sm">Estimate → send</h2>
+        <span className="text-[10px] uppercase text-amber-200">Next lane · gated</span>
+      </div>
+      {(() => {
+        const gate = gatePhotoReport({
+          coverageScore: reportDraft?.coverageScore ?? 0,
+          missing: reportDraft?.missing ?? [],
+          addressBand: onePacket?.addressCertainty.band ?? 'unresolved',
+          pitch: pitch ? Number(pitch) : null,
+          wasteFactor: wasteFactor ? Number(wasteFactor) : null,
+          soffitIn: soffitWidthFt ? Number(soffitWidthFt) : null,
+          fasciaIn: fasciaWidthFt ? Number(fasciaWidthFt) : null,
+        })
+        const estimate = draftEstimate({
+          address,
+          pitch: pitch ? Number(pitch) : null,
+          wasteFactor: wasteFactor ? Number(wasteFactor) : null,
+          soffitIn: soffitWidthFt ? Number(soffitWidthFt) : null,
+          fasciaIn: fasciaWidthFt ? Number(fasciaWidthFt) : null,
+          eaveLf: eaveLf ? Number(eaveLf) : null,
+          rafterLf: rafterLf ? Number(rafterLf) : null,
+          gutterLf: verifiedGutterLf ? Number(verifiedGutterLf) : null,
+          gateReady: gate.ready,
+        })
+        return (
+          <div className="text-xs space-y-1">
+            <p>Squares {estimate.squares ?? 'pending'} · options {estimate.options.join(' / ')}</p>
+            {estimate.readyToSend ? <p className="text-emerald-300">Ready for tech approval. Not sent.</p> : <ul className="text-red-300 list-disc pl-4">{estimate.blockers.map((b) => <li key={b}>{b}</li>)}</ul>}
+            {estimate.readyToSend && <p className="bg-white/5 border border-white/10 rounded p-2">{estimate.sms}</p>}
+            {!estimate.readyToSend && <p className="text-slate-400">Send stays a draft until the gate is clear.</p>}
+          </div>
+        )
+      })()}
+    </section>
+{fullReport && reportDraft && (
       <section className="glass rounded-xl p-4 mt-4 space-y-2">
         <h2 className="font-bold text-sm">Photo-report draft riding with this report</h2>
         <p className="text-[11px] text-amber-200">Draft only. Coverage {reportDraft.coverageScore}%. Does not replace the golden report.</p>
         {reportDraft.sections.map((section) => <p key={section.id} className="text-xs"><span className="font-bold">{section.title}:</span> {section.statements[0]}</p>)}
       </section>
     )}
+
   </div>
 }
