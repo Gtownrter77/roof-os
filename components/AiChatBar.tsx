@@ -24,11 +24,11 @@ type Message = {
 }
 
 const QUICK_ACTIONS = [
-  { label: 'Estimate', href: '/pricing', icon: FileText },
-  { label: 'Photos', href: '/field', icon: Ruler },
-  { label: 'Leads', href: '/leads', icon: Users },
-  { label: 'Storms', href: '/weather', icon: CloudLightning },
-  { label: 'Report', href: '/reports', icon: Zap },
+  { label: 'Track Storms', href: '/weather', icon: CloudLightning },
+  { label: 'Review Leads', href: '/leads', icon: Users },
+  { label: 'Aerial Measure', href: '/measure', icon: Ruler },
+  { label: 'Create Estimate', href: '/pricing', icon: FileText },
+  { label: 'Golden Report', href: '/reports', icon: Zap },
 ]
 
 export default function AiChatBar() {
@@ -50,11 +50,9 @@ export default function AiChatBar() {
   const inputRef = useRef<HTMLInputElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  // Sit above the mobile bottom nav and leave footer readable.
+  // Sit above the mobile bottom nav on pages that show it (home has no bottom nav).
   const aboveMobileNav = pathname !== '/'
-  const dockClass = aboveMobileNav
-    ? 'bottom-24 right-3 md:bottom-6 md:right-4'
-    : 'bottom-6 right-3 md:bottom-6 md:right-4'
+  const dockClass = aboveMobileNav ? 'bottom-20 right-4 md:bottom-4 md:right-4' : 'bottom-4 right-4'
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -145,7 +143,7 @@ export default function AiChatBar() {
       aria-label="AI Command Bar"
     >
       {isOpen && (
-        <div className="pointer-events-auto flex w-[min(100vw-2rem,22rem)] max-h-[min(60vh,24rem)] flex-col overflow-hidden rounded-2xl border border-cyan-500/30 bg-[#080d1a]/70 shadow-[0_12px_40px_rgba(0,0,0,0.5)] backdrop-blur-xl sm:w-[22rem]">
+        <div className="pointer-events-auto flex w-[min(100vw-2rem,22rem)] max-h-[min(70vh,28rem)] flex-col overflow-hidden rounded-2xl border border-cyan-500/40 bg-[#080d1a]/95 shadow-[0_12px_40px_rgba(0,0,0,0.8)] backdrop-blur-2xl sm:w-[22rem]">
           <div className="flex shrink-0 items-center justify-between border-b border-white/10 px-3 py-2.5">
             <div className="flex min-w-0 items-center gap-2">
               <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-cyan-500/20 text-cyan-400">
@@ -231,19 +229,18 @@ export default function AiChatBar() {
             <div ref={messagesEndRef} />
           </div>
 
-          <div className="shrink-0 border-t border-white/10 bg-black/10 p-2">
+          <div className="shrink-0 border-t border-white/5 bg-black/20 p-2">
             <div className="mb-2 flex gap-1.5 overflow-x-auto pb-0.5">
               {QUICK_ACTIONS.map(({ label, href, icon: Icon }) => (
                 <button
                   key={label}
                   type="button"
                   onClick={() => {
-                    router.push(href)
-                    setIsOpen(false)
+                    void handleSend(`How do I use ${label}?`)
                   }}
-                  className="flex shrink-0 items-center gap-1 rounded-lg border border-white/10 bg-white/10 px-2 py-1 text-[11px] text-slate-200 transition hover:border-cyan-400/40 hover:bg-cyan-500/20 hover:text-white"
+                  className="flex shrink-0 items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-slate-300 transition hover:border-cyan-400/40 hover:bg-cyan-500/10 hover:text-cyan-200"
                 >
-                  <Icon className="h-3 w-3 text-cyan-300" />
+                  <Icon className="h-3 w-3 text-cyan-400" />
                   <span>{label}</span>
                 </button>
               ))}
@@ -275,7 +272,7 @@ export default function AiChatBar() {
         <button
           type="button"
           onClick={() => setIsOpen(true)}
-          className="pointer-events-auto flex items-center gap-2 rounded-full border border-cyan-500/40 bg-[#090e1a]/55 px-3 py-2 text-sm font-semibold text-cyan-100 shadow-[0_8px_24px_rgba(0,0,0,0.4)] backdrop-blur-md transition hover:border-cyan-300 hover:bg-[#090e1a]/75"
+          className="pointer-events-auto flex items-center gap-2 rounded-full border border-cyan-500/50 bg-[#090e1a]/95 px-3.5 py-2.5 text-sm font-semibold text-cyan-100 shadow-[0_10px_35px_rgba(0,0,0,0.75)] backdrop-blur-2xl transition hover:border-cyan-300 hover:bg-cyan-500/15"
           aria-label="Open AI Chat"
         >
           <span className="relative flex h-2 w-2">

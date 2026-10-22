@@ -4,33 +4,7 @@ import { FormEvent, useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { smartBack } from '../../lib/smart-back'
 import { createClient } from '../../lib/supabase/client'
-import { CANVASS_OBJECTIONS, getCanvassAdvice, ObjectionType } from '../../lib/ai/canvass-mentor'
-import {
-  draftBestReturnTime,
-  draftDailySummary,
-  draftFollowUpDate,
-  draftHailOverlay,
-  draftLeadScoreAfter,
-  draftLeadScoreBefore,
-  draftMultiTradeFlag,
-  draftNextDoor,
-  draftOpenerScript,
-  draftPhoneFromNotes,
-  draftPinToEstimate,
-  draftSms,
-  draftStormZoneTurf,
-  draftColorPins,
-  draftCoachingTip,
-  draftEmail,
-  draftGoodBetterBest,
-  draftHardStopHostile,
-  CANVASS_125_CATALOG,
-  CANVASS_OPTIONS,
-  draftDispositionOptions,
-  draftLossReasonOptions,
-  draftYoyoReturn,
-  draftWorkflowStage,
-} from '../../lib/ai/canvass125'
+import { getCanvassAdvice, ObjectionType } from '../../lib/ai/canvass-mentor'
 import {
   CANVASS_LEAD_SOURCE,
   CanvassOutcome,
@@ -74,55 +48,6 @@ export default function CanvassPage() {
   const [saving, setSaving] = useState(false)
   const [notice, setNotice] = useState('')
   const [error, setError] = useState('')
-  const [hardStopActive, setHardStopActive] = useState(false)
-  const [hardStopReason, setHardStopReason] = useState('')
-  const [aiQuery, setAiQuery] = useState('')
-  const [voiceNote, setVoiceNote] = useState('')
-  const [yoloOpen, setYoloOpen] = useState(false)
-  const [yoloFree, setYoloFree] = useState(false)
-  const [yoloPin, setYoloPin] = useState('')
-  const [yoloReveal, setYoloReveal] = useState(false)
-
-  function playHardStopAlarm() {
-    try {
-      const AudioContextConstructor = window.AudioContext
-      if (!AudioContextConstructor) return
-      const context = new AudioContextConstructor()
-      const duration = 0.9
-      const buffer = context.createBuffer(1, Math.floor(context.sampleRate * duration), context.sampleRate)
-      const samples = buffer.getChannelData(0)
-      for (let i = 0; i < samples.length; i += 1) samples[i] = (Math.random() * 2 - 1) * 0.8
-      const source = context.createBufferSource()
-      const filter = context.createBiquadFilter()
-      const gain = context.createGain()
-      source.buffer = buffer
-      filter.type = 'bandpass'
-      filter.frequency.setValueAtTime(2400, context.currentTime)
-      filter.frequency.exponentialRampToValueAtTime(450, context.currentTime + duration)
-      gain.gain.setValueAtTime(0.001, context.currentTime)
-      gain.gain.linearRampToValueAtTime(0.22, context.currentTime + 0.08)
-      gain.gain.exponentialRampToValueAtTime(0.001, context.currentTime + duration)
-      source.connect(filter)
-      filter.connect(gain)
-      gain.connect(context.destination)
-      source.onended = () => { void context.close() }
-      source.start()
-      source.stop(context.currentTime + duration)
-    } catch {
-      // The visual hard stop remains active if browser audio is unavailable.
-    }
-  }
-
-  function triggerHardStop(reason = 'Homeowner said no') {
-    setHardStopActive(true)
-    setHardStopReason(reason)
-    setForm((current) => ({
-      ...current,
-      outcome: 'DO_NOT_KNOCK',
-      notes: [current.notes.trim(), 'HARD STOP: ' + reason + '. End the interaction immediately; do not continue pitching.'].filter(Boolean).join(' — '),
-    }))
-    playHardStopAlarm()
-  }
   const [selectedObjection, setSelectedObjection] = useState<ObjectionType>('NO_DAMAGE')
   const [showVCard, setShowVCard] = useState(false)
   const [form, setForm] = useState({
@@ -138,84 +63,6 @@ export default function CanvassPage() {
     objection: selectedObjection,
   })
 
-  const scoreBefore = draftLeadScoreBefore({
-    hailInches: /hail|storm/i.test(form.notes) ? 1 : 0,
-    roofAge: /old|aged|15|20/i.test(form.notes) ? 18 : 10,
-    newHomeowner: /new owner|just bought/i.test(form.notes),
-    noSoliciting: /no solicit|do not knock/i.test(form.notes),
-  })
-  const scoreAfter = draftLeadScoreAfter(form.outcome, form.notes)
-  const hail = draftHailOverlay(/hail|storm/i.test(form.notes) ? 1 : 0)
-  const stormTurf = draftStormZoneTurf(hail.inches)
-  const opener = draftOpenerScript(/\d{4}-\d{2}-\d{2}/.exec(form.notes)?.[0])
-  const nextDoor = draftNextDoor(form.address, leads.map((lead) => lead.address).filter(Boolean))
-  const sms = draftSms(form.homeownerName, form.address)
-  const followUp = draftFollowUpDate(form.outcome)
-  const multi = draftMultiTradeFlag(form.notes)
-  const phone = draftPhoneFromNotes(form.notes)
-  const returnWindow = draftBestReturnTime(form.notes)
-  const estimateLink = draftPinToEstimate(form.address || 'address')
-  const summary = draftDailySummary(leads.length, leads.filter((lead) => outcomeFromLead(lead) === 'INTERESTED').length)
-  const pin = draftColorPins(form.outcome)
-  const coach = draftCoachingTip(form.outcome)
-  const email = draftEmail(form.homeownerName, form.address)
-  const tiers = draftGoodBetterBest()
-  const hostile = draftHardStopHostile(form.notes)
-  const dispositions = draftDispositionOptions()
-  const lossReasons = draftLossReasonOptions()
-  const stage = draftWorkflowStage(form.outcome)
-  const yoyo = draftYoyoReturn(leads.filter((lead) => outcomeFromLead(lead) === 'NOT_HOME').map((lead) => lead.address))
-  const catalog = CANVASS_125_CATALOG.filter((item) => item.name.toLowerCase().includes(aiQuery.toLowerCase()) || item.group.toLowerCase().includes(aiQuery.toLowerCase()))
-  const mapPins = leads.slice(0, 12).map((lead, index) => ({
-    lead,
-    color: draftColorPins(outcomeFromLead(lead) || 'INTERESTED').color,
-    x: 18 + (index % 4) * 22,
-    y: 22 + Math.floor(index / 4) * 24,
-  }))
-
-  function startVoice() {
-    const w = window as unknown as { SpeechRecognition?: new () => any; webkitSpeechRecognition?: new () => any }
-    const SpeechRecognition = w.SpeechRecognition || w.webkitSpeechRecognition
-    if (!SpeechRecognition) {
-      setVoiceNote('Voice not available in this browser')
-      return
-    }
-    const rec = new SpeechRecognition()
-    rec.lang = 'en-US'
-    rec.onresult = (event: any) => {
-      const said = event.results[0][0].transcript as string
-      setVoiceNote(said)
-      setForm((current) => ({ ...current, notes: [current.notes, said].filter(Boolean).join(' — ') }))
-    }
-    rec.start()
-  }
-
-  function loadWebYolo() {
-    try {
-      const raw = localStorage.getItem('roofos.yolo.v1')
-      const flags = raw ? JSON.parse(raw) : {}
-      setYoloOpen(Boolean(flags.unlocked))
-      setYoloFree(Boolean(flags.unlocked && (flags.freeCanvass || flags.freeAll)))
-    } catch {
-      setYoloOpen(false)
-      setYoloFree(false)
-    }
-  }
-
-  function unlockWebYolo() {
-    const stored = localStorage.getItem('roofos.yolo.pin') || ''
-    if (!stored) {
-      if (yoloPin.length < 4) return
-      localStorage.setItem('roofos.yolo.pin', yoloPin)
-    } else if (yoloPin !== stored) {
-      setNotice('Wrong owner PIN')
-      return
-    }
-    const flags = { unlocked: true, freeCanvass: true, freeAll: true }
-    localStorage.setItem('roofos.yolo.v1', JSON.stringify(flags))
-    setYoloPin('')
-    loadWebYolo()
-  }
   const loadCanvassLeads = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
@@ -258,13 +105,11 @@ export default function CanvassPage() {
         return
       }
 
-      const recordedOutcome: CanvassOutcome = hardStopActive ? 'DO_NOT_KNOCK' : form.outcome
-      const fields = canvassOutcomeToLeadFields(recordedOutcome)
+      const fields = canvassOutcomeToLeadFields(form.outcome)
       const name = form.homeownerName.trim() || `Canvass: ${address}`
       const phone = form.phone.trim() || null
       const noteBody = [
-        hardStopActive ? `CONDUCT EVENT: HARD STOP — ${hardStopReason}` : null,
-        `Door knock: ${recordedOutcome.replaceAll('_', ' ')}`,
+        `Door knock: ${form.outcome.replaceAll('_', ' ')}`,
         form.notes.trim() ? form.notes.trim() : null,
       ].filter(Boolean).join(' — ')
 
@@ -323,7 +168,7 @@ export default function CanvassPage() {
         leadId = inserted.id
       }
 
-      const { error: activityError } = await supabase.from('lead_activity').insert({
+      await supabase.from('lead_activity').insert({
         lead_id: leadId,
         workspace_id: workspaceId,
         user_id: user.id,
@@ -332,18 +177,7 @@ export default function CanvassPage() {
       })
 
       setForm({ address: '', homeownerName: '', phone: '', outcome: 'INTERESTED', notes: '' })
-      setHardStopActive(false)
-      setHardStopReason('')
-      if (activityError) {
-        setError(`Lead saved, but the CRM activity log failed: ${activityError.message}`)
-        setNotice(hardStopActive
-          ? 'Do not continue canvassing this homeowner. The lead status was saved, but the hard-stop event was not confirmed in activity history.'
-          : (existing ? 'Lead updated, but the activity note was not saved.' : 'Lead saved, but the activity note was not saved.'))
-      } else {
-        setNotice(hardStopActive
-          ? 'Hard stop recorded in CRM activity. Interaction closed; do not continue canvassing this homeowner.'
-          : (existing ? 'Updated existing canvass lead.' : 'Saved to Leads (canvass source).'))
-      }
+      setNotice(existing ? 'Updated existing canvass lead.' : 'Saved to Leads (canvass source).')
       await loadCanvassLeads()
     } catch {
       setError('Failed to save canvass knock into Leads.')
@@ -384,13 +218,6 @@ export default function CanvassPage() {
 
       <main className="p-4 max-w-3xl mx-auto space-y-4">
         {notice && <div className="bg-emerald-50 border border-emerald-200 text-emerald-900 p-3 rounded-lg text-xs font-bold">{notice}</div>}
-        {hardStopActive && (
-          <section role="alert" aria-live="assertive" className="rounded-xl border-4 border-red-600 bg-red-950 p-4 text-white">
-            <h2 className="text-xl font-black uppercase">HARD STOP — DISENGAGE NOW</h2>
-            <p className="mt-1 font-bold">{hardStopReason}. Stop pitching, apologize if appropriate, and leave respectfully. Do not try to overcome this refusal.</p>
-            <p className="mt-2 text-xs">This event will be logged with the lead when you save. No camera or microphone is used.</p>
-          </section>
-        )}
         {error && <div className="bg-red-400/10 border border-red-200 text-red-800 p-3 rounded-lg text-xs font-bold" role="alert">{error}</div>}
 
         {showVCard && (
@@ -418,31 +245,20 @@ export default function CanvassPage() {
             <label className="font-bold text-slate-100 block">Homeowner objection</label>
             <select
               value={selectedObjection}
-              disabled={hardStopActive}
-              onChange={(e) => {
-                if (!hardStopActive) setSelectedObjection(e.target.value as ObjectionType)
-              }}
+              onChange={(e) => setSelectedObjection(e.target.value as ObjectionType)}
               className="w-full p-2 border rounded font-semibold text-xs"
             >
-              {Array.from(new Set(CANVASS_OBJECTIONS.map((item) => item.category))).map((category) => (
-                <optgroup key={category} label={category}>
-                  {CANVASS_OBJECTIONS.filter((item) => item.category === category).map((item) => (
-                    <option key={item.value} value={item.value}>{item.label}</option>
-                  ))}
-                </optgroup>
-              ))}
+              <option value="NO_DAMAGE">&quot;I don&apos;t see any damage on my roof&quot;</option>
+              <option value="NEW_ROOF">&quot;My roof is relatively new&quot;</option>
+              <option value="HAVE_ADJUSTER">&quot;I already have an insurance adjuster coming out&quot;</option>
+              <option value="NO_TIME">&quot;I don&apos;t have time right now&quot;</option>
+              <option value="SEND_EMAIL">&quot;Just send me an email or leave a flyer&quot;</option>
+              <option value="SPOUSE">&quot;I need to talk to my spouse first&quot;</option>
+              <option value="RATES_GO_UP">&quot;Won&apos;t my insurance rates go up if I file a claim?&quot;</option>
             </select>
-            {hardStopActive ? (
-              <div role="alert" className="p-3 bg-red-950 border-2 border-red-500 text-white rounded mt-2 font-bold">
-                Respect the refusal. Do not counter, persuade, or ask for another chance. End the interaction and leave.
-              </div>
-            ) : ['NOT_INTERESTED', 'DONT_WANT_SALES', 'DO_NOT_SOLICIT'].includes(selectedObjection) ? (
-              <div className="p-3 bg-red-950/80 border-2 border-red-500 text-white rounded mt-2 font-bold">
-                If this is what the homeowner just said, press the red hard-stop button below. Do not counter, persuade, or ask for another chance. Selecting a training example alone does not log a real-world event.
-              </div>
-            ) : advice.objectionResponse && (
+            {advice.objectionResponse && (
               <div className="p-3 bg-amber-400/10 border border-amber-400/30 text-amber-100 rounded mt-2 font-medium">
-                <p className="font-bold text-[11px] uppercase text-amber-800 mb-0.5">Suggested response — never override a refusal</p>
+                <p className="font-bold text-[11px] uppercase text-amber-800 mb-0.5">Recommended counter</p>
                 <p>&ldquo;{advice.objectionResponse}&rdquo;</p>
               </div>
             )}
@@ -458,114 +274,8 @@ export default function CanvassPage() {
           </div>
         </div>
 
-        {yoloOpen && <section className="glass rounded-xl p-4 border border-red-500/40 space-y-3">
-          <div className="flex items-center justify-between">
-            <h2 className="font-bold text-sm text-white">YOLO · all AI drafts</h2>
-            <span className="text-[10px] uppercase tracking-wide text-red-300">{yoloFree ? "FREE" : "LOCKED"}</span>
-          </div>
-          <div className="grid grid-cols-2 gap-2 text-xs">
-            <div className="rounded border border-white/10 p-2">
-              <p className="text-slate-400">Score before door</p>
-              <p className="font-black text-lg">{scoreBefore.score}</p>
-              <p className="text-[10px] text-slate-300">{scoreBefore.reasons.join(', ') || 'base'}</p>
-              <p className="text-[10px] text-cyan-200">{scoreBefore.next}</p>
-            </div>
-            <div className="rounded border border-white/10 p-2">
-              <p className="text-slate-400">Score after talk</p>
-              <p className="font-black text-lg">{scoreAfter.score}</p>
-              <p className="text-[10px] text-slate-300">{scoreAfter.reasons.join(', ')}</p>
-              <p className="text-[10px] text-cyan-200">{scoreAfter.next}</p>
-            </div>
-            <div className="rounded border border-white/10 p-2">
-              <p className="text-slate-400">Storm turf</p>
-              <p className="font-bold">{stormTurf.priority} · {hail.band}</p>
-              <p className="text-[10px] text-slate-300">{stormTurf.reason}</p>
-            </div>
-            <div className="rounded border border-white/10 p-2">
-              <p className="text-slate-400">Today</p>
-              <p className="font-bold">{summary.doors} doors / {summary.rate}%</p>
-              <p className="text-[10px] text-slate-300">{summary.reason}</p>
-            </div>
-          </div>
-
-          <div className="rounded border border-white/10 p-2">
-            <p className="text-[10px] uppercase text-slate-400 mb-1">Turf pins</p>
-            <svg viewBox="0 0 100 80" className="w-full h-28 bg-slate-900/60 rounded">
-              {mapPins.map((pin) => (
-                <g key={pin.lead.id}>
-                  <circle cx={pin.x} cy={pin.y} r="3.2" fill={pin.color} />
-                  <text x={pin.x + 4} y={pin.y + 1} fontSize="3" fill="#e2e8f0">{pin.lead.address.slice(0, 12)}</text>
-                </g>
-              ))}
-              {mapPins.length === 0 && <text x="8" y="40" fontSize="4" fill="#94a3b8">No knocks yet</text>}
-            </svg>
-            <p className="text-[10px] text-slate-400 mt-1">Current pin: {pin.label}</p>
-          </div>
-
-          <div className="rounded border border-white/10 p-2 space-y-1">
-            <p className="text-[10px] uppercase text-slate-400">At the door</p>
-            <p className="text-xs text-cyan-100">{opener.script}</p>
-            <p className="text-xs text-slate-300">Next: {nextDoor.next || 'none queued'} — {nextDoor.next ? nextDoor.reason : 'add an address'}</p>
-            <p className="text-xs text-slate-300">Return {returnWindow.window} · follow-up in {followUp.inDays}d · multi-trade: {multi.yes ? multi.trades.join(', ') : 'roof only'}</p>
-            <p className="text-xs text-amber-200">{coach.tip}</p>
-            {hostile.stop && <p className="text-xs text-red-300 font-bold">{hostile.reason}. {hostile.next}</p>}
-            {phone.phone && <p className="text-xs text-emerald-200">Phone from notes: {phone.phone}</p>}
-          </div>
-
-          <div className="rounded border border-white/10 p-2 space-y-1">
-            <p className="text-[10px] uppercase text-slate-400">SMS draft</p>
-            <p className="text-xs">{sms.text}</p>
-            <p className="text-[10px] text-slate-400">{sms.next}</p>
-          </div>
-          <div className="rounded border border-white/10 p-2 space-y-1">
-            <p className="text-[10px] uppercase text-slate-400">Email draft</p>
-            <p className="text-xs font-bold">{email.subject}</p>
-            <p className="text-xs whitespace-pre-line">{email.body}</p>
-          </div>
-          <p className="text-xs text-slate-300">Tiers: {tiers.tiers.join(' · ')}</p>
-          <div className="rounded border border-white/10 p-2 space-y-1">
-            <p className="text-[10px] uppercase text-slate-400">REA options — SalesRabbit / SPOTIO / JobNimbus</p>
-            <p className="text-[11px]">Stage: {stage.stage}</p>
-            <p className="text-[11px]">Yo-yo return: {yoyo.doors.length} not-home doors at {yoyo.window}</p>
-            <p className="text-[10px] text-slate-300">Dispositions: {dispositions.options.slice(0, 8).join(', ')}…</p>
-            <p className="text-[10px] text-slate-300">Loss reasons: {lossReasons.options.join(', ')}</p>
-            <p className="text-[10px] text-slate-400">Filters: {CANVASS_OPTIONS.filters.join(' · ')}</p>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            <button type="button" onClick={startVoice} className="rounded bg-white text-black text-[11px] font-bold px-2 py-1">Voice log</button>
-            <button type="button" onClick={() => setForm((current) => ({ ...current, notes: [current.notes, sms.text].filter(Boolean).join(' — ') }))} className="rounded bg-cyan-400 text-black text-[11px] font-bold px-2 py-1">Use SMS draft</button>
-            <button type="button" onClick={() => router.push(estimateLink.href)} className="rounded border border-cyan-400/40 text-cyan-100 text-[11px] font-bold px-2 py-1">Pin → estimate</button>
-          </div>
-          {voiceNote && <p className="text-[11px] text-emerald-200">Heard: {voiceNote}</p>}
-
-          <div className="space-y-1">
-            <input value={aiQuery} onChange={(e) => setAiQuery(e.target.value)} placeholder="Search all 125 drafts" className="w-full p-2 border rounded text-xs" />
-            <div className="max-h-36 overflow-auto space-y-1">
-              {catalog.slice(0, 20).map((item) => (
-                <div key={item.id} className="flex justify-between text-[11px] border border-white/10 rounded px-2 py-1">
-                  <span>{item.name}</span>
-                  <span className="text-slate-400">{item.group}</span>
-                </div>
-              ))}
-            </div>
-            <p className="text-[10px] text-slate-500">{catalog.length} of {CANVASS_125_CATALOG.length} drafts. {yoloFree ? "YOLO free — drafts can apply." : "Unlock free canvass to apply."}</p>
-          </div>
-        </section>}
-
-        <button type="button" onDoubleClick={() => { setYoloReveal(true); loadWebYolo() }} className="h-2 w-full" aria-label="owner" />
-        {yoloReveal && !yoloOpen && (
-          <div className="rounded border border-red-500/40 p-2 space-y-2">
-            <p className="text-[10px] uppercase text-red-300">Owner PIN — unlocks all AI</p>
-            <input type="password" value={yoloPin} onChange={(e) => setYoloPin(e.target.value)} placeholder="PIN" className="w-full p-2 border rounded text-xs" />
-            <button type="button" onClick={unlockWebYolo} className="rounded bg-red-700 text-white text-[11px] font-bold px-2 py-1">Unlock YOLO</button>
-          </div>
-        )}
         <form onSubmit={(e) => void logKnock(e)} className="glass rounded-xl p-4 space-y-3 border">
           <h2 className="font-bold text-sm text-slate-100">Log door knock → Leads</h2>
-          <button type="button" onClick={() => triggerHardStop()} disabled={hardStopActive || saving} className="w-full rounded-lg border-2 border-red-500 bg-red-700 px-3 py-3 text-sm font-black uppercase tracking-wide text-white disabled:opacity-60">
-            {hardStopActive ? 'Hard stop active — save event' : 'Homeowner said no — HARD STOP'}
-          </button>
           <input
             type="text"
             required
@@ -593,12 +303,7 @@ export default function CanvassPage() {
           <div className="grid grid-cols-2 gap-2">
             <select
               value={form.outcome}
-              disabled={hardStopActive}
-              onChange={(e) => {
-                const nextOutcome = e.target.value as CanvassOutcome
-                if (nextOutcome === 'DO_NOT_KNOCK') triggerHardStop('Do not knock / no soliciting request')
-                else if (!hardStopActive) setForm({ ...form, outcome: nextOutcome })
-              }}
+              onChange={(e) => setForm({ ...form, outcome: e.target.value as CanvassOutcome })}
               className="p-2.5 border rounded-lg text-sm font-semibold"
             >
               <option value="INTERESTED">Interested / inspection requested</option>
