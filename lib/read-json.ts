@@ -2,6 +2,9 @@ export type JsonReadResult =
   | { body: Record<string, unknown> }
   | { error: string; status: 400 | 413 }
 
+// Reused decoder singleton avoids repeated instantiation overhead
+const textDecoder = new TextDecoder('utf-8', { fatal: true })
+
 /** Read JSON with a hard byte ceiling, including requests without Content-Length. */
 export async function readJson(request: Pick<Request, 'headers' | 'body'>, maxBytes = 64 * 1024): Promise<JsonReadResult> {
   const rawLength = request.headers.get('content-length')
@@ -15,6 +18,7 @@ export async function readJson(request: Pick<Request, 'headers' | 'body'>, maxBy
   const reader = request.body.getReader()
   const chunks: Uint8Array[] = []
   let totalBytes = 0
+
   try {
     while (true) {
       const { done, value } = await reader.read()
@@ -30,15 +34,21 @@ export async function readJson(request: Pick<Request, 'headers' | 'body'>, maxBy
     return { error: 'Could not read request body.', status: 400 }
   }
 
-  const bytes = new Uint8Array(totalBytes)
-  let offset = 0
-  for (const chunk of chunks) {
-    bytes.set(chunk, offset)
-    offset += chunk.byteLength
+  // Fast-path: single chunk avoids buffer reallocation and memory copy overhead
+  let bytes: Uint8Array
+  if (chunks.length === 1) {
+    bytes = chunks[0]
+  } else {
+    bytes = new Uint8Array(totalBytes)
+    let offset = 0
+    for (const chunk of chunks) {
+      bytes.set(chunk, offset)
+      offset += chunk.byteLength
+    }
   }
 
   try {
-    const parsed: unknown = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes))
+    const parsed: unknown = JSON.parse(textDecoder.decode(bytes))
     if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
       return { error: 'JSON body must be an object.', status: 400 }
     }

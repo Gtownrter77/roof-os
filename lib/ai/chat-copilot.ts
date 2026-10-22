@@ -145,7 +145,7 @@ export async function processChatCopilot(input: {
     ]
       .filter(Boolean)
       .join('\n'),
-    { timeoutMs: 8_000 },
+    { timeoutMs: 2_500 },
   )
 
   if (llmReply) {

@@ -1,9 +1,23 @@
 // National Weather Service API: public, no API key required.
-
 const NWS_API = 'https://api.weather.gov'
 const NWS_HEADERS = {
   Accept: 'application/geo+json, application/json',
   'User-Agent': 'ROOF-OS/1.0 (https://github.com/Gtownrter77/roof-os)',
+}
+
+// In-memory caches to eliminate redundant external round-trips
+const POINT_META_CACHE = new Map<string, { expiresAt: number; value: { forecastUrl?: string; relativeLocation?: string | null } }>()
+const FORECAST_CACHE = new Map<string, { expiresAt: number; value: Forecast | null }>()
+const ALERTS_CACHE = new Map<string, { expiresAt: number; value: WeatherAlert[] }>()
+const IN_FLIGHT_REQUESTS = new Map<string, Promise<any>>()
+
+const POINT_TTL_MS = 15 * 60 * 1000 // 15 minutes for static radar/gridpoints metadata
+const FORECAST_TTL_MS = 10 * 60 * 1000 // 10 minutes for forecast periods
+const ALERTS_TTL_MS = 2 * 60 * 1000 // 2 minutes for active emergency weather alerts
+
+function quantizeKey(lat: number, lon: number): string {
+  // Quantize coordinates to 2 decimal places (~1.1 km precision) to group close queries
+  return `${lat.toFixed(2)},${lon.toFixed(2)}`
 }
 
 async function fetchNws(url: string) {
@@ -59,23 +73,72 @@ function mapAlert(feature: { id?: string; properties?: Record<string, unknown> }
 /** Fetch active alerts for this point. Network/API failure throws, never masquerades as zero alerts. */
 export async function getAlertsAtPoint(latitude: number, longitude: number): Promise<WeatherAlert[]> {
   if (!validPoint(latitude, longitude)) throw new Error('A valid location is required for local alerts.')
-  const url = new URL(`${NWS_API}/alerts/active`)
-  url.searchParams.set('point', `${latitude},${longitude}`)
-  const response = await fetchNws(url.toString())
-  if (!response.ok) throw new Error('National Weather Service alerts are unavailable.')
-  const data = await response.json() as { features?: Array<{ id?: string; properties?: Record<string, unknown> }> }
-  return (Array.isArray(data.features) ? data.features : []).slice(0, 100).map((feature, index) => mapAlert(feature, index, url.toString()))
+  
+  const key = quantizeKey(latitude, longitude)
+  const cached = ALERTS_CACHE.get(key)
+  if (cached && cached.expiresAt > Date.now()) return cached.value
+
+  const inFlight = IN_FLIGHT_REQUESTS.get(`alerts:${key}`)
+  if (inFlight) return inFlight
+
+  const task = (async () => {
+    const url = new URL(`${NWS_API}/alerts/active`)
+    url.searchParams.set('point', `${latitude},${longitude}`)
+    const response = await fetchNws(url.toString())
+    if (!response.ok) throw new Error('National Weather Service alerts are unavailable.')
+    const data = await response.json() as { features?: Array<{ id?: string; properties?: Record<string, unknown> }> }
+    const result = (Array.isArray(data.features) ? data.features : []).slice(0, 100).map((feature, index) => mapAlert(feature, index, url.toString()))
+    ALERTS_CACHE.set(key, { expiresAt: Date.now() + ALERTS_TTL_MS, value: result })
+    return result
+  })()
+
+  IN_FLIGHT_REQUESTS.set(`alerts:${key}`, task)
+  try {
+    return await task
+  } finally {
+    IN_FLIGHT_REQUESTS.delete(`alerts:${key}`)
+  }
+}
+
+async function getPointMetadata(latitude: number, longitude: number) {
+  const key = quantizeKey(latitude, longitude)
+  const cached = POINT_META_CACHE.get(key)
+  if (cached && cached.expiresAt > Date.now()) return cached.value
+
+  const inFlight = IN_FLIGHT_REQUESTS.get(`point:${key}`)
+  if (inFlight) return inFlight
+
+  const task = (async () => {
+    const response = await fetchNws(`${NWS_API}/points/${latitude},${longitude}`)
+    if (!response.ok) return { forecastUrl: undefined, relativeLocation: null }
+    const data = await response.json() as {
+      properties?: {
+        forecast?: string
+        relativeLocation?: { properties?: { city?: string; state?: string } }
+      }
+    }
+    const relative = data.properties?.relativeLocation?.properties
+    const relativeLocation = relative?.city && relative?.state ? `${relative.city}, ${relative.state}` : null
+    const forecastUrl = data.properties?.forecast
+    const value = { forecastUrl, relativeLocation }
+    POINT_META_CACHE.set(key, { expiresAt: Date.now() + POINT_TTL_MS, value })
+    return value
+  })()
+
+  IN_FLIGHT_REQUESTS.set(`point:${key}`, task)
+  try {
+    return await task
+  } finally {
+    IN_FLIGHT_REQUESTS.delete(`point:${key}`)
+  }
 }
 
 /** Resolve a display label through NWS metadata without using or storing a street address. */
 export async function getNwsRelativeLocation(latitude: number, longitude: number): Promise<string | null> {
   if (!validPoint(latitude, longitude)) return null
   try {
-    const response = await fetchNws(`${NWS_API}/points/${latitude},${longitude}`)
-    if (!response.ok) return null
-    const data = await response.json() as { properties?: { relativeLocation?: { properties?: { city?: string; state?: string } } } }
-    const relative = data.properties?.relativeLocation?.properties
-    return relative?.city && relative?.state ? `${relative.city}, ${relative.state}` : null
+    const meta = await getPointMetadata(latitude, longitude)
+    return meta.relativeLocation
   } catch {
     return null
   }
@@ -84,28 +147,44 @@ export async function getNwsRelativeLocation(latitude: number, longitude: number
 /** Return the next official NWS forecast period for an explicit point. */
 export async function getForecast(latitude: number, longitude: number): Promise<Forecast | null> {
   if (!validPoint(latitude, longitude)) return null
-  try {
-    const pointsRes = await fetchNws(`${NWS_API}/points/${latitude},${longitude}`)
-    if (!pointsRes.ok) return null
-    const pointsData = await pointsRes.json() as { properties?: { forecast?: string } }
-    const forecastUrl = pointsData.properties?.forecast
-    if (!forecastUrl) return null
-    const forecast = new URL(forecastUrl)
-    if (forecast.origin !== NWS_API || !forecast.pathname.startsWith('/gridpoints/')) return null
+  
+  const key = quantizeKey(latitude, longitude)
+  const cached = FORECAST_CACHE.get(key)
+  if (cached && cached.expiresAt > Date.now()) return cached.value
 
-    const forecastRes = await fetchNws(forecast.toString())
-    if (!forecastRes.ok) return null
-    const forecastData = await forecastRes.json() as { properties?: { periods?: Array<{ name?: string; temperature?: number; temperatureUnit?: string; shortForecast?: string }> } }
-    const period = forecastData.properties?.periods?.[0]
-    if (!period || typeof period.temperature !== 'number') return null
-    return {
-      temperature: period.temperature,
-      temperatureUnit: period.temperatureUnit ?? 'F',
-      conditions: period.shortForecast || 'Unknown',
-      period: period.name || 'Next forecast period',
+  const inFlight = IN_FLIGHT_REQUESTS.get(`forecast:${key}`)
+  if (inFlight) return inFlight
+
+  const task = (async () => {
+    try {
+      const meta = await getPointMetadata(latitude, longitude)
+      const forecastUrl = meta.forecastUrl
+      if (!forecastUrl) return null
+      const forecast = new URL(forecastUrl)
+      if (forecast.origin !== NWS_API || !forecast.pathname.startsWith('/gridpoints/')) return null
+      const forecastRes = await fetchNws(forecast.toString())
+      if (!forecastRes.ok) return null
+      const forecastData = await forecastRes.json() as { properties?: { periods?: Array<{ name?: string; temperature?: number; temperatureUnit?: string; shortForecast?: string }> } }
+      const period = forecastData.properties?.periods?.[0]
+      if (!period || typeof period.temperature !== 'number') return null
+      const result: Forecast = {
+        temperature: period.temperature,
+        temperatureUnit: period.temperatureUnit ?? 'F',
+        conditions: period.shortForecast || 'Unknown',
+        period: period.name || 'Next forecast period',
+      }
+      FORECAST_CACHE.set(key, { expiresAt: Date.now() + FORECAST_TTL_MS, value: result })
+      return result
+    } catch {
+      return null
     }
-  } catch {
-    return null
+  })()
+
+  IN_FLIGHT_REQUESTS.set(`forecast:${key}`, task)
+  try {
+    return await task
+  } finally {
+    IN_FLIGHT_REQUESTS.delete(`forecast:${key}`)
   }
 }
 
