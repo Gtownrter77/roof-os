@@ -27,6 +27,7 @@ import { draftGoodBetterBest, draftPitchLabor, draftMaterialOrder, draftPortalSu
 import { draftJobCost, draftWorkOrderTasks, draftMarginFloor, draftWarranty, draftCompleteness, draftNextAction } from './ai/batch176to200'
 import { draftColorMatch, draftCustomerTextShort, draftOfficeHandoff, draftUpsell, draftCompetitiveNote } from './ai/batch201to225'
 import { loadYolo, applyEstimateDraft, applyMaterialOrder, applyCustomerText, applyWorkOrder, applyPortal, applyESign, applyFinancing, type YoloFlags } from './ai/behaviors'
+import { sendCustomerText, sendMaterialOrder, sendESign } from './ai/external'
 
 type LineItem = {
   id: string
@@ -308,7 +309,8 @@ export function EstimatePage({ squares, pitch, notes, laborRate, materialRate, m
           </Pressable>
           <Pressable onPress={() => {
             const lines = items.map(i => i.name)
-            void runAndQueue('Material order', { lines }, () => applyMaterialOrder(lines, flags || { unlocked: false, freeEstimate: false, freePrefill: false, freeCustomerText: false, freeMaterialOrder: false, freeAll: false }))
+            const f = flags || { unlocked: false, freeEstimate: false, freePrefill: false, freeCustomerText: false, freeMaterialOrder: false, freeAll: false }
+            void runAndQueue('Material order', { lines }, () => sendMaterialOrder('ABC', lines, f))
           }} style={{ padding: 6, backgroundColor: '#102033', borderRadius: 6 }}>
             <Text style={{ color: '#fff', fontSize: 11 }}>Material order</Text>
           </Pressable>
@@ -320,7 +322,7 @@ export function EstimatePage({ squares, pitch, notes, laborRate, materialRate, m
           </Pressable>
           <Pressable onPress={() => {
             const d = draftESignReady(total > 0, true)
-            void runAndQueue('E-sign', d, () => applyESign(d.ready))
+            void runAndQueue('E-sign', d, () => sendESign(d.ready, total))
           }} style={{ padding: 6, backgroundColor: '#102033', borderRadius: 6 }}>
             <Text style={{ color: '#fff', fontSize: 11 }}>E-sign ready</Text>
           </Pressable>
@@ -371,7 +373,8 @@ export function EstimatePage({ squares, pitch, notes, laborRate, materialRate, m
           </Pressable>
           <Pressable onPress={() => {
             const d = draftCustomerTextShort('Customer', total)
-            void runAndQueue('Customer text', d, () => applyCustomerText(d.text, flags || { unlocked: false, freeEstimate: false, freePrefill: false, freeCustomerText: false, freeMaterialOrder: false, freeAll: false }))
+            const f = flags || { unlocked: false, freeEstimate: false, freePrefill: false, freeCustomerText: false, freeMaterialOrder: false, freeAll: false }
+            void runAndQueue('Customer text', d, () => sendCustomerText('', d.text, f))
           }} style={{ padding: 6, backgroundColor: '#102033', borderRadius: 6 }}>
             <Text style={{ color: '#fff', fontSize: 11 }}>Customer text</Text>
           </Pressable>

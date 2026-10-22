@@ -172,3 +172,13 @@ Added apps/field/src/ai/behaviors.ts.
 - EstimatePage buttons now queue real actions; AI prefill also queues
 - DraftCatalog enqueues every run as a desktop-approval item
 - When YOLO free flags are on, estimate/prefill/material/text mark applied: true
+
+## 2026-10-22 External send behaviors
+
+Added:
+- app/api/field/sms/route.ts — Twilio SMS when configured, else 202 queued
+- app/api/field/material-order/route.ts — supplier order when SUPPLIER_API_KEY set, else queued
+- app/api/field/esign/route.ts — DocuSign stub when DOCUSIGN_API_KEY set, else queued
+- apps/field/src/ai/external.ts — field helpers that queue locally and POST to the web routes
+
+EstimatePage material order, customer text, and e-sign now call the external helpers.
