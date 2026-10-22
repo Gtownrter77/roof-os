@@ -98,6 +98,7 @@ export default function AiChatBar() {
       const response = await fetch('/api/ai/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: AbortSignal.timeout(10_000),
         body: JSON.stringify({
           message: text,
           currentPath: pathname,
