@@ -1,4 +1,6 @@
-> **Historical checkpoint warning (updated 2026-10-09):** The checkpoint below was written against baseline `bfdc565` on 2026-10-08 and is not the current repository baseline. Current main is `a308459182e9a6867fb736240c6dc2af9f3aa6e9`. See [AUDIT-STATUS-2026-10-09.md](AUDIT-STATUS-2026-10-09.md) for current GitHub evidence and items that remain unverified. Do not treat older deployment or test claims in this file as verification of the current main commit or live production services.
+> **Current working state (2026-10-22):** Branch `feature/top25-batch-126-150` at `7770594`. PR #303 open. All AI drafts are human-gated (`requiresApproval: true`). Multi-trade estimate page and differentiators 151-225 are wired. See the chronological entries below and [HANDOFF.md](HANDOFF.md) / [COMPETITIVE-MAP.md](COMPETITIVE-MAP.md).
+
+> **Historical checkpoint warning (updated 2026-10-09):** The checkpoint below was written against baseline `bfdc565` on 2026-10-08 and is not the current repository baseline. Current main is `ff20c78` (PR #302 merged). See [AUDIT-STATUS-2026-10-09.md](AUDIT-STATUS-2026-10-09.md) for historical GitHub evidence. Do not treat older deployment or test claims in this file as verification of the current main commit or live production services.
 
 ## 2026-10-08 Main Branch Three-Level Audit Checkpoint
 

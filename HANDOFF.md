@@ -1,3 +1,16 @@
+## 2026-10-22 field AI + multi-trade estimate checkpoint
+
+- Current working branch: `feature/top25-batch-126-150` at `7770594`.
+- PR #303 open against main. Branch updated with main. Mobile type error fixed (`needsApproval` → `requiresApproval` in sim test).
+- PR #302 merged into main as `ff20c78`. CI web-tests permanently fixed by building before runtime-smoke and removing `continue-on-error`.
+- Field AI batches present: `batch1.ts`, `batch3.ts`, `batch26to50.ts`, `batch76to100.ts`, `batch101to125.ts`, `batch126to150.ts` (+ sim), `batch151to175.ts`, `batch176to200.ts`, `batch201to225.ts`.
+- All draft functions return `requiresApproval: true`. Offline-first. No authoritative writes.
+- `EstimatePage.tsx` is a multi-trade detailed estimate (roofing, repairs, gutters, downspouts, siding, windows, exterior/interior painting, fascia, soffit). AI assist prefill button uses 126-150 drafts. Differentiator buttons (Good/Better/Best, pitch labor, material order, portal, e-sign, financing, job cost, work order, margin floor, warranty, completeness, next action, color, customer text, office handoff, upsell) produce human-gated drafts.
+- AI copilot (`components/AiChatBar.tsx`) is translucent, lifted above the footer, and has shorter quick actions that navigate.
+- `COMPETITIVE-MAP.md` tracks AccuLynx / JobNimbus / Roofr parity and differentiators.
+- `CURRENT-STATE.md` has the full chronological log of batches and wiring.
+- Next: wait for #303 CI green, then merge. No regressions. Human gate stays on every AI result.
+
 ## 2026-10-21 mobile AI top-ten remediation plan
 
 - The mobile AI audit identified ten ordered fixes. Batch 1 contains five security and contract fixes: authoritative AI-observation RLS, review-state invariants, workspace/inspection/photo consistency, truthful runtime/model availability, and executable inference/review validation.

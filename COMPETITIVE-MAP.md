@@ -1,5 +1,7 @@
 # Competitive parity + differentiators
 
+**Status (2026-10-22):** Working branch `feature/top25-batch-126-150` at `7770594`. PR #303 open. 225 human-gated drafts. Multi-trade estimate page live. Differentiator buttons wired. All results require desktop approval.
+
 ## What they have (must match)
 
 ### AccuLynx
