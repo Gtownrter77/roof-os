@@ -6,6 +6,21 @@ import { smartBack } from '../../lib/smart-back'
 import { createClient } from '../../lib/supabase/client'
 import { CANVASS_OBJECTIONS, getCanvassAdvice, ObjectionType } from '../../lib/ai/canvass-mentor'
 import {
+  draftBestReturnTime,
+  draftDailySummary,
+  draftFollowUpDate,
+  draftHailOverlay,
+  draftLeadScoreAfter,
+  draftLeadScoreBefore,
+  draftMultiTradeFlag,
+  draftNextDoor,
+  draftOpenerScript,
+  draftPhoneFromNotes,
+  draftPinToEstimate,
+  draftSms,
+  draftStormZoneTurf,
+} from '../../lib/ai/canvass125'
+import {
   CANVASS_LEAD_SOURCE,
   CanvassOutcome,
   canvassOutcomeToLeadFields,
@@ -105,6 +120,25 @@ export default function CanvassPage() {
     address: form.address.trim(),
     objection: selectedObjection,
   })
+
+  const scoreBefore = draftLeadScoreBefore({
+    hailInches: /hail|storm/i.test(form.notes) ? 1 : 0,
+    roofAge: /old|aged|15|20/i.test(form.notes) ? 18 : 10,
+    newHomeowner: /new owner|just bought/i.test(form.notes),
+    noSoliciting: /no solicit|do not knock/i.test(form.notes),
+  })
+  const scoreAfter = draftLeadScoreAfter(form.outcome, form.notes)
+  const hail = draftHailOverlay(/hail|storm/i.test(form.notes) ? 1 : 0)
+  const stormTurf = draftStormZoneTurf(hail.inches)
+  const opener = draftOpenerScript(/\d{4}-\d{2}-\d{2}/.exec(form.notes)?.[0])
+  const nextDoor = draftNextDoor(form.address, leads.map((lead) => lead.address).filter(Boolean))
+  const sms = draftSms(form.homeownerName, form.address)
+  const followUp = draftFollowUpDate(form.outcome)
+  const multi = draftMultiTradeFlag(form.notes)
+  const phone = draftPhoneFromNotes(form.notes)
+  const returnWindow = draftBestReturnTime(form.notes)
+  const estimateLink = draftPinToEstimate(form.address || 'address')
+  const summary = draftDailySummary(leads.length, leads.filter((lead) => outcomeFromLead(lead) === 'INTERESTED').length)
 
   const loadCanvassLeads = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser()
@@ -347,6 +381,29 @@ export default function CanvassPage() {
             <p className="text-cyan-200 font-semibold pt-1">{advice.goldenReportRuleNote}</p>
           </div>
         </div>
+
+        <section className="glass rounded-xl p-4 border border-cyan-400/30 space-y-2">
+          <div className="flex items-center justify-between">
+            <h2 className="font-bold text-sm text-white">Canvass AI — 125 drafts</h2>
+            <span className="text-[10px] uppercase tracking-wide text-cyan-200">Human gated</span>
+          </div>
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <div className="rounded border border-white/10 p-2"><p className="text-slate-400">Score before door</p><p className="font-black text-lg">{scoreBefore.score}</p></div>
+            <div className="rounded border border-white/10 p-2"><p className="text-slate-400">Score after talk</p><p className="font-black text-lg">{scoreAfter.score}</p></div>
+            <div className="rounded border border-white/10 p-2"><p className="text-slate-400">Storm turf</p><p className="font-bold">{stormTurf.priority}</p></div>
+            <div className="rounded border border-white/10 p-2"><p className="text-slate-400">Today</p><p className="font-bold">{summary.doors} doors / {summary.rate}%</p></div>
+          </div>
+          <p className="text-xs text-cyan-100">{opener.script}</p>
+          <p className="text-xs text-slate-300">Next door: {nextDoor.next || 'none queued'}</p>
+          <p className="text-xs text-slate-300">Return window: {returnWindow.window} · follow-up in {followUp.inDays}d · multi-trade: {multi.trades ? 'yes' : 'no'}</p>
+          {phone.phone && <p className="text-xs text-emerald-200">Phone from notes: {phone.phone}</p>}
+          <p className="text-xs bg-white/5 border border-white/10 rounded p-2">{sms.text}</p>
+          <div className="flex gap-2">
+            <button type="button" onClick={() => setForm((current) => ({ ...current, notes: [current.notes, sms.text].filter(Boolean).join(' — ') }))} className="rounded bg-cyan-400 text-black text-[11px] font-bold px-2 py-1">Use SMS draft</button>
+            <button type="button" onClick={() => router.push(estimateLink.href)} className="rounded border border-cyan-400/40 text-cyan-100 text-[11px] font-bold px-2 py-1">Pin → estimate</button>
+          </div>
+          <p className="text-[10px] text-slate-500">All 125 are drafts. Nothing sends or writes until you save the knock.</p>
+        </section>
 
         <form onSubmit={(e) => void logKnock(e)} className="glass rounded-xl p-4 space-y-3 border">
           <h2 className="font-bold text-sm text-slate-100">Log door knock → Leads</h2>
