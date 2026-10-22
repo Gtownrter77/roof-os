@@ -68,3 +68,9 @@ No UI, no authoritative writes.
 Added apps/field/src/ai/batch101to125.ts with human-gated drafts for hail impacts, wind uplift, underlayment, ice dam, ventilation, gutter, skylight, chimney, valley, drip edge, starter, hip/ridge, steep adder, access, dumpster, permit, HOA, color, warranty years, follow-up, album gaps, sync priority, crew note, customer text, office handoff.
 
 Wired hail, wind, album gaps, office handoff, and customer text into DraftActions.
+
+## 2026-10-22 Automations 126-150
+
+Added apps/field/src/ai/batch126to150.ts with human-gated drafts for material match, tear-off, deck repair, pipe boots, ridge vent, soffit, fascia, gutter guard, skylight flash, satellite, solar, chimney cap, cricket, ice barrier, underlayment type, nail pattern, waste factor, labor crew, duration, staging, safety harness, dump fee, permit cost, final walk, and review request.
+
+Wired material match, tear-off, duration, safety harness, and review request into DraftActions.
