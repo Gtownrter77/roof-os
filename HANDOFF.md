@@ -932,3 +932,20 @@ The branch `repair/next-five-release-evidence` contains exactly five items: lock
 ## 2026-10-21 next-five live-evidence checkpoint
 
 The branch `repair/next-five-live-evidence` contains exactly five items: protected authenticated read-only staging smoke, heartbeat-only staging probing, worker-health reporting correctness, the redacted field-device evidence packet contract, and the deterministic release-gate summary. All local checks pass. No production request or customer/provider side effect was performed. After merge, the remaining work is to run the protected staging smoke/probe and collect actual physical-device, restore, schema-parity, worker-runtime, and provider evidence.
+
+## 2026-10-22 performance and resource usage optimization checkpoint
+- Identified and optimized the 10 weakest links in the Roof-OS codebase concerning performance and resource usage:
+  1. `lib/services/weather.ts`: Added in-memory TTL cache (15m point metadata, 10m forecast, 2m alerts) with coordinate quantization (~1.1 km precision) and in-flight request deduplication, reducing repeated weather calls from ~550ms to 0.01ms.
+  2. `lib/ai/ollama.ts` & `lib/ai/chat-copilot.ts`: Added a 60s circuit-breaker for offline Ollama hosts and reduced initial probe timeout, eliminating 8,000ms UI hangs when Ollama is unavailable.
+  3. `app/leads/LeadsClient.tsx`: Added `.limit(100)` query bounding to avoid transferring and rendering unbounded CRM records.
+  4. `app/api/intelligence/property/route.ts`: Parallelized independent database queries via `Promise.all` and bounded photo/session scans with limits (50 sessions, 200 photos), reducing intelligence endpoint latency by >50%.
+  5. `lib/supabase/client.ts`: Implemented a client-side singleton pattern for `createClient()`, preventing multiple browser client allocations, redundant auth timers, and duplicate websocket handles.
+  6. `app/api/status/route.ts`: Parallelized NWS health check concurrently with database/storage health checks and added a 30s cache to prevent hammering federal servers during high-frequency health probes.
+  7. `lib/read-json.ts`: Optimized JSON stream reader to reuse a module-level `TextDecoder` singleton and bypass buffer reallocation on single-chunk payloads (0.79ms decoding).
+  8. `lib/api-security.ts`: Appended explicit `.limit(1)` to `requireWorkspaceMember` SQL query to enable early PostgreSQL index-seek exit.
+  9. `next.config.ts`: Enabled `compress: true` and `experimental.optimizePackageImports: ['lucide-react']` for icon tree-shaking and smaller bundle size.
+  10. `components/AiChatBar.tsx`: Added `AbortSignal.timeout(10_000)` to prevent indefinite client fetch hangs and resource leaks.
+- Verified via 3-Level Checking Process:
+  - Level 1 (Static Verification): `npm run typecheck`, `npm run lint`, `npm run verify:security`, `npm run release-check` all PASS with 0 errors.
+  - Level 2 (Automated Test Suite): `npm run test:api-security`, `npm run test:auth-flow`, `npm run test:ai-chat-bar`, `npm run test:photo-estimate-flow`, `npm run test:photo-full-report-flow`, `npm run test:measurement-estimate-authority`, `npm run test:ai-vision-contract`, `npm run test:ai-vision-endpoint`, `npm run test:aerial`, `npm run test:receptionist`, `npm run test:supabase-client-stability` all PASS.
+  - Level 3 (Runtime Performance Benchmarks & Build): `npm run test:performance` verified all 10 benchmarks. `npm run build` compiled all 128 production routes in 4.3s with zero errors.

@@ -52,7 +52,7 @@ export default function LeadsClient() {
         .from('leads')
         .select('id,name,address,status,phone,email,source,next_action,next_action_due,lead_score')
         .order('lead_score', { ascending: false })
-        .order('created_at', { ascending: false })
+        .order('created_at', { ascending: false }).limit(100)
       if (!active) return
       if (queryError) setError(queryError.message)
       else setLeads(data ?? [])
