@@ -1,9 +1,8 @@
 # Current repository audit — 2026-10-22
 
-**Working branch:** `feature/top25-batch-126-150` at `7770594`
-**Open PR:** [#303](https://github.com/Gtownrter77/roof-os/pull/303) (batch 126-150 + multi-trade estimate + differentiators)
-**Merged:** [#302](https://github.com/Gtownrter77/roof-os/pull/302) into main as `ff20c78`
-**Current audit record:** [AUDIT-STATUS-2026-10-21.md](AUDIT-STATUS-2026-10-21.md) (historical). See [CURRENT-STATE.md](CURRENT-STATE.md) and [HANDOFF.md](HANDOFF.md) for the latest field AI and estimate work.
+**Main:** `b01ff0d`
+**Merged this session:** [#306](https://github.com/Gtownrter77/roof-os/pull/306)–[#310](https://github.com/Gtownrter77/roof-os/pull/310) (photo → report, estimate → send, production → materials)
+**Current record:** [HANDOFF.md](HANDOFF.md) and [CURRENT-STATE.md](CURRENT-STATE.md)
 
 Field AI remains human-gated. Every draft returns `requiresApproval: true`. No authoritative writes from the field app. Desktop approval is required before any estimate or report is sent.
 

@@ -1,5 +1,24 @@
 # Handoff — 2026-10-22
 
+## On main (`b01ff0d`)
+
+Three lanes are merged. All are drafts. Nothing sends, orders, or dispatches until a technician approves.
+
+| Lane | PRs | What is live |
+|---|---|---|
+| Photo → report | #306 #307 #308 | Coverage gate, address certainty, one-photo packet, draft rides with the golden report |
+| Estimate → send | #309 | Good / Better / Best from verified slope, waste, soffit (in), fascia (in) |
+| Production → materials | #310 | Work-order draft and material list. Blocked until the estimate is approved |
+
+### Gate
+Drafts only. Verified-photo workflow owns the customer packet. No supplier order. No crew dispatch. No regressions.
+
+### Next
+Real email/SMS after the gate and technician approval. Real supplier order stays a later lane.
+
+
+# Handoff — 2026-10-22
+
 ## Active lane: production → materials
 
 Estimate → send merged as #309. Photo → report is closed.

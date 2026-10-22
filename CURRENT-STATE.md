@@ -1,3 +1,5 @@
+> **On main (2026-10-22, `b01ff0d`):** Photo → report (#306–#308), estimate → send (#309), and production → materials (#310) are merged. All drafts. Human approval required. See [HANDOFF.md](HANDOFF.md).
+
 > **Active lane (2026-10-22):** Photo → report. PR #306 merged (`bf16f85`). Coverage checklist, one-photo packet, address certainty, and the verify card (slope, waste, soffit/fascia in inches) are on main. See [HANDOFF.md](HANDOFF.md).
 
 > **Current working state (2026-10-22):** Branch `feature/top25-batch-126-150` at `7770594`. PR #303 open. All AI drafts are human-gated (`requiresApproval: true`). Multi-trade estimate page and differentiators 151-225 are wired. See the chronological entries below and [HANDOFF.md](HANDOFF.md) / [COMPETITIVE-MAP.md](COMPETITIVE-MAP.md).
