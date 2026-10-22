@@ -31,10 +31,28 @@ jobs:
           RAPIDAPI_KEY: validation-only-key
           SUPABASE_SERVICE_ROLE_KEY: validation-only-key
           CRON_SECRET: validation-only-key
-      - run: npm run test:runtime-smoke
       - run: npm run typecheck
       - run: npm run release-check
       - run: npm run verify:security
+
+  web-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://validation.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: validation-only-key
+          CAPOUT_API_KEY: validation-only-key
+          RAPIDAPI_KEY: validation-only-key
+          SUPABASE_SERVICE_ROLE_KEY: validation-only-key
+          CRON_SECRET: validation-only-key
+      - run: npm run test:runtime-smoke
       - run: npm run test:security-definer-migrations
       - run: npm run test:receptionist
       - run: npm run test:aerial
@@ -56,9 +74,11 @@ jobs:
       - run: npm run test:heartbeat-probe
       - run: npm run test:field-device-evidence
       - run: npm run test:release-gate-summary
+      - run: npm run test:canvass-hard-stop
       - run: npm run test:field-coach
       - run: npm run test:stale-screens
       - run: npm run test:cinema-theme
+      - run: npm run test:entrance-trailer
       - run: npm run test:agent-runtime
       - run: npm run test:agent-action-policy
       - run: npm run test:inspection-quality-agent
@@ -209,6 +229,9 @@ jobs:
           grep -q "get diagnostics updated_count = row_count" supabase/migrations/053_agent_action_ledger.sql
           grep -q "revoke all on function public.approve_agent_action_batch" supabase/migrations/053_agent_action_ledger.sql
           grep -q "set search_path = public" supabase/migrations/053_agent_action_ledger.sql
+          test -f scripts/canvass-hard-stop-test.mjs
+          grep -q "HARD STOP" app/canvass/page.tsx
+          grep -q "lead_activity" app/canvass/page.tsx
           grep -q "inspection_verifications" supabase/migrations/050_mobile_technician_verification.sql
           grep -q "rafter_lf" supabase/migrations/052_mobile_field_measurement_inputs.sql
           grep -q "soffit_lf" supabase/migrations/052_mobile_field_measurement_inputs.sql

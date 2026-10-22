@@ -1,12 +1,25 @@
-# Current repository audit — 2026-10-21
+# ROOF/OS — 2026-10-22
 
-**Current main baseline:** `9660661221468ca854e1c628f15bb293e50d4d50`
-**Merged repair:** PR #287 passed required checks and post-merge main CI.
-**Current audit record:** [AUDIT-STATUS-2026-10-21.md](AUDIT-STATUS-2026-10-21.md).
+Main is `b01ff0d`. Photo → report, estimate → send, and production → materials are on main. Every AI result is a draft. A technician must approve before anything is sent, ordered, or dispatched.
 
-The dated checkpoints below are historical snapshots, not proof that every production workflow works. Current source includes the agent approval-binding fix, but production migration application, authenticated two-workspace isolation, real-device mobile behavior, provider execution, and backup/restore rehearsal remain evidence-gated. Migration `053` is present in source; the next new local prefix is `054`.
+Record: [HANDOFF.md](HANDOFF.md)
 
 ---
+
+## 2026-10-22 field AI and multi-trade estimate
+
+- 225 human-gated draft functions across batches 1 through 201-225.
+- Multi-trade estimate page covering roofing, repairs, gutters, downspouts, siding, windows, exterior and interior painting, fascia, and soffit.
+- AI assist prefill on the estimate page (tech chooses to apply).
+- Competitive differentiators (Good/Better/Best, pitch labor, material order, portal summary, e-sign readiness, financing, job cost, work order, margin floor, warranty, completeness, next action, color, customer text, office handoff, upsell) wired as draft buttons.
+- AI copilot made translucent and lifted so it does not block the footer.
+- CI web-tests permanently fixed (build before runtime-smoke; job is required).
+
+See [COMPETITIVE-MAP.md](COMPETITIVE-MAP.md) for the AccuLynx / JobNimbus / Roofr comparison.
+
+---
+
+# ROOF/OS
 
 ## 2026-10-08 production release checkpoint
 
