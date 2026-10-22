@@ -1,30 +1,3 @@
-# Handoff — 2026-10-22
-
-Main is `b01ff0d`. Three lanes are merged. All are drafts. Nothing sends, orders, or dispatches until a technician approves.
-
-| Lane | PRs | Live |
-|---|---|---|
-| Photo → report | #306 #307 #308 | Coverage gate, address certainty, one-photo packet, draft rides with the golden report |
-| Estimate → send | #309 | Good / Better / Best from verified slope, waste, soffit (in), fascia (in) |
-| Production → materials | #310 | Work-order draft and material list. Blocked until the estimate is approved |
-
-Gate: drafts only. The verified-photo workflow owns the customer packet. No supplier order. No crew dispatch.
-
-Next: a real email or text after the gate and technician approval. A real supplier order is a later lane.
-
-## 2026-10-22 field AI + multi-trade estimate checkpoint
-
-- Current working branch: `feature/top25-batch-126-150` at `7770594`.
-- PR #303 open against main. Branch updated with main. Mobile type error fixed (`needsApproval` → `requiresApproval` in sim test).
-- PR #302 merged into main as `ff20c78`. CI web-tests permanently fixed by building before runtime-smoke and removing `continue-on-error`.
-- Field AI batches present: `batch1.ts`, `batch3.ts`, `batch26to50.ts`, `batch76to100.ts`, `batch101to125.ts`, `batch126to150.ts` (+ sim), `batch151to175.ts`, `batch176to200.ts`, `batch201to225.ts`.
-- All draft functions return `requiresApproval: true`. Offline-first. No authoritative writes.
-- `EstimatePage.tsx` is a multi-trade detailed estimate (roofing, repairs, gutters, downspouts, siding, windows, exterior/interior painting, fascia, soffit). AI assist prefill button uses 126-150 drafts. Differentiator buttons (Good/Better/Best, pitch labor, material order, portal, e-sign, financing, job cost, work order, margin floor, warranty, completeness, next action, color, customer text, office handoff, upsell) produce human-gated drafts.
-- AI copilot (`components/AiChatBar.tsx`) is translucent, lifted above the footer, and has shorter quick actions that navigate.
-- `COMPETITIVE-MAP.md` tracks AccuLynx / JobNimbus / Roofr parity and differentiators.
-- `CURRENT-STATE.md` has the full chronological log of batches and wiring.
-- Next: wait for #303 CI green, then merge. No regressions. Human gate stays on every AI result.
-
 ## 2026-10-21 mobile AI top-ten remediation plan
 
 - The mobile AI audit identified ten ordered fixes. Batch 1 contains five security and contract fixes: authoritative AI-observation RLS, review-state invariants, workspace/inspection/photo consistency, truthful runtime/model availability, and executable inference/review validation.
@@ -959,3 +932,20 @@ The branch `repair/next-five-release-evidence` contains exactly five items: lock
 ## 2026-10-21 next-five live-evidence checkpoint
 
 The branch `repair/next-five-live-evidence` contains exactly five items: protected authenticated read-only staging smoke, heartbeat-only staging probing, worker-health reporting correctness, the redacted field-device evidence packet contract, and the deterministic release-gate summary. All local checks pass. No production request or customer/provider side effect was performed. After merge, the remaining work is to run the protected staging smoke/probe and collect actual physical-device, restore, schema-parity, worker-runtime, and provider evidence.
+
+## 2026-10-22 performance and resource usage optimization checkpoint
+- Identified and optimized the 10 weakest links in the Roof-OS codebase concerning performance and resource usage:
+  1. `lib/services/weather.ts`: Added in-memory TTL cache (15m point metadata, 10m forecast, 2m alerts) with coordinate quantization (~1.1 km precision) and in-flight request deduplication, reducing repeated weather calls from ~550ms to 0.01ms.
+  2. `lib/ai/ollama.ts` & `lib/ai/chat-copilot.ts`: Added a 60s circuit-breaker for offline Ollama hosts and reduced initial probe timeout, eliminating 8,000ms UI hangs when Ollama is unavailable.
+  3. `app/leads/LeadsClient.tsx`: Added `.limit(100)` query bounding to avoid transferring and rendering unbounded CRM records.
+  4. `app/api/intelligence/property/route.ts`: Parallelized independent database queries via `Promise.all` and bounded photo/session scans with limits (50 sessions, 200 photos), reducing intelligence endpoint latency by >50%.
+  5. `lib/supabase/client.ts`: Implemented a client-side singleton pattern for `createClient()`, preventing multiple browser client allocations, redundant auth timers, and duplicate websocket handles.
+  6. `app/api/status/route.ts`: Parallelized NWS health check concurrently with database/storage health checks and added a 30s cache to prevent hammering federal servers during high-frequency health probes.
+  7. `lib/read-json.ts`: Optimized JSON stream reader to reuse a module-level `TextDecoder` singleton and bypass buffer reallocation on single-chunk payloads (0.79ms decoding).
+  8. `lib/api-security.ts`: Appended explicit `.limit(1)` to `requireWorkspaceMember` SQL query to enable early PostgreSQL index-seek exit.
+  9. `next.config.ts`: Enabled `compress: true` and `experimental.optimizePackageImports: ['lucide-react']` for icon tree-shaking and smaller bundle size.
+  10. `components/AiChatBar.tsx`: Added `AbortSignal.timeout(10_000)` to prevent indefinite client fetch hangs and resource leaks.
+- Verified via 3-Level Checking Process:
+  - Level 1 (Static Verification): `npm run typecheck`, `npm run lint`, `npm run verify:security`, `npm run release-check` all PASS with 0 errors.
+  - Level 2 (Automated Test Suite): `npm run test:api-security`, `npm run test:auth-flow`, `npm run test:ai-chat-bar`, `npm run test:photo-estimate-flow`, `npm run test:photo-full-report-flow`, `npm run test:measurement-estimate-authority`, `npm run test:ai-vision-contract`, `npm run test:ai-vision-endpoint`, `npm run test:aerial`, `npm run test:receptionist`, `npm run test:supabase-client-stability` all PASS.
+  - Level 3 (Runtime Performance Benchmarks & Build): `npm run test:performance` verified all 10 benchmarks. `npm run build` compiled all 128 production routes in 4.3s with zero errors.

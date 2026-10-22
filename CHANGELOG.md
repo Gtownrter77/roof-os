@@ -2,14 +2,6 @@
 
 All notable changes to ROOF/OS are documented here.
 
-## [unreleased] — 2026-10-22
-
-- Photo → report: one-photo packet, coverage gate, address certainty, draft rides with the golden report
-- Estimate → send: Good / Better / Best from the verified packet. Send stays a draft until the gate is clear
-- Production → materials: work-order draft and material list. Blocked until the estimate is approved
-
-Drafts only. No send, order, or dispatch without technician approval.
-
 ## [0.1.1] — 2026-10-08
 
 ### Production release

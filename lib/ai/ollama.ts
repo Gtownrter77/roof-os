@@ -9,6 +9,21 @@ export type OllamaJsonResult<T> = { model: string; value: T }
 const DEFAULT_HOST = 'http://127.0.0.1:11434'
 const DEFAULT_MODEL = 'llama3:8b'
 const DEFAULT_TIMEOUT_MS = 1_500
+const CIRCUIT_BREAKER_COOLDOWN_MS = 60_000
+
+let lastOllamaFailure = 0
+
+function isOllamaCircuitOpen(): boolean {
+  return Date.now() - lastOllamaFailure < CIRCUIT_BREAKER_COOLDOWN_MS
+}
+
+function recordOllamaSuccess(): void {
+  lastOllamaFailure = 0
+}
+
+function recordOllamaFailure(): void {
+  lastOllamaFailure = Date.now()
+}
 
 function ollamaHost() {
   return (process.env.OLLAMA_HOST?.trim() || DEFAULT_HOST).replace(/\/$/, '')
@@ -23,9 +38,15 @@ export function isLlamaAgentEnabled() {
 }
 
 export async function askOllama(prompt: string, options: OllamaRequestOptions = {}): Promise<string | null> {
+  // If the circuit breaker is open (Ollama offline/unreachable recently), fail fast in 0ms
+  if (isOllamaCircuitOpen()) {
+    return null
+  }
+
   const model = ollamaModel(options.model)
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), options.timeoutMs ?? DEFAULT_TIMEOUT_MS)
+
   try {
     const response = await fetch(`${ollamaHost()}/api/generate`, {
       method: 'POST',
@@ -38,10 +59,20 @@ export async function askOllama(prompt: string, options: OllamaRequestOptions = 
         stream: false,
       }),
     })
-    if (!response.ok) return null
+
+    if (!response.ok) {
+      recordOllamaFailure()
+      return null
+    }
+
     const data = await response.json() as { response?: unknown }
-    return typeof data.response === 'string' && data.response.trim() ? data.response.trim() : null
+    const text = typeof data.response === 'string' && data.response.trim() ? data.response.trim() : null
+    if (text) {
+      recordOllamaSuccess()
+    }
+    return text
   } catch {
+    recordOllamaFailure()
     return null
   } finally {
     clearTimeout(timer)

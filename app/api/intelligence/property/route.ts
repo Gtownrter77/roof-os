@@ -14,25 +14,29 @@ export async function GET(request: NextRequest) {
   const { data: workspaceId, error: workspaceError } = await supabase.rpc('current_workspace_id')
   if (workspaceError) return NextResponse.json({ error: 'Could not resolve the active workspace.' }, { status: 503 })
   if (!workspaceId) return NextResponse.json({ error: 'No active workspace is configured.' }, { status: 400 })
+
   const membership = await requireWorkspaceMember(supabase, user.id, workspaceId)
   if (membership.response) return membership.response
 
   const { data: lead } = await supabase.from('leads').select('id,name,address,status,workspace_id').eq('id', leadId).maybeSingle()
   if (!lead || lead.workspace_id !== workspaceId) return NextResponse.json({ error: 'Lead not found in the active workspace.' }, { status: 404 })
 
-  const { data: sessions } = await supabase.from('inspection_sessions').select('id').eq('lead_id', leadId)
-  const sessionIds = (sessions ?? []).map((row) => row.id)
-  const photoRes = sessionIds.length
-    ? await supabase.from('inspection_photos').select('id,album').in('inspection_id', sessionIds)
-    : { data: [] as { id: string; album: string }[] }
-  const photos = photoRes.data ?? []
-  const albums = Array.from(new Set(photos.map((photo) => photo.album).filter(Boolean)))
-
-  const [{ count: openTasks }, { count: warrantiesOpen }, passportRes] = await Promise.all([
+  // Query sessions, open tasks, warranties, and passport concurrently
+  const [sessionsRes, tasksRes, warrantiesRes, passportRes] = await Promise.all([
+    supabase.from('inspection_sessions').select('id').eq('lead_id', leadId).limit(50),
     supabase.from('tasks').select('id', { count: 'exact', head: true }).eq('lead_id', leadId).eq('status', 'open'),
     supabase.from('warranties').select('id', { count: 'exact', head: true }).eq('lead_id', leadId).in('registration_status', ['not_started', 'packet_ready']),
     supabase.from('roof_passports').select('id').eq('lead_id', leadId).limit(1).maybeSingle(),
   ])
+
+  const sessionIds = (sessionsRes.data ?? []).map((row) => row.id)
+
+  const photoRes = sessionIds.length
+    ? await supabase.from('inspection_photos').select('id,album').in('inspection_id', sessionIds).limit(200)
+    : { data: [] as { id: string; album: string }[] }
+
+  const photos = photoRes.data ?? []
+  const albums = Array.from(new Set(photos.map((photo) => photo.album).filter(Boolean)))
 
   const result = scoreProperty({
     leadId,
@@ -40,8 +44,8 @@ export async function GET(request: NextRequest) {
     photoCount: photos.length,
     albums,
     inspectionCount: sessionIds.length,
-    openTaskCount: openTasks ?? 0,
-    warrantyOpenCount: warrantiesOpen ?? 0,
+    openTaskCount: tasksRes.count ?? 0,
+    warrantyOpenCount: warrantiesRes.count ?? 0,
     hasPassport: Boolean(passportRes.data),
     hasAddress: Boolean(lead.address),
   })
@@ -53,6 +57,7 @@ export async function GET(request: NextRequest) {
     blockers: result.gaps,
     computed_at: new Date().toISOString(),
   }, { onConflict: 'lead_id' })
+
   if (readinessError) return NextResponse.json({ error: 'Could not save property readiness.' }, { status: 502 })
 
   return NextResponse.json({

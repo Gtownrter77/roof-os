@@ -30,7 +30,7 @@ export async function requireWorkspaceMember(
     .from('workspace_members')
     .select('workspace_id')
     .eq('workspace_id', workspaceId)
-    .eq('user_id', userId)
+    .eq('user_id', userId).limit(1)
     .maybeSingle()
   if (error) return { response: NextResponse.json({ error: 'Workspace authorization could not be verified.' }, { status: 503 }) }
   if (!data) return { response: forbidden() }
