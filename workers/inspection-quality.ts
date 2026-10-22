@@ -2,7 +2,17 @@ import { SupabaseClient } from '@supabase/supabase-js'
 import { createAgentRuntime } from './agent-runtime'
 import { runLlamaAgentJson } from './llama-agent'
 
+async function isAgentEnabled(supabase: any, workspaceId: string) {
+  const { data } = await supabase
+    .from('workspace_settings')
+    .select('enable_inspection_quality_agent')
+    .eq('workspace_id', workspaceId)
+    .maybeSingle()
+  return data?.enable_inspection_quality_agent ?? true
+}
+
 type InspectionQualityConfig = {
+
   supabaseUrl: string
   serviceRoleKey: string
   workerId: string
@@ -31,7 +41,13 @@ export async function runInspectionQuality(
     reviewTaskCreatorId,
   })
 
+  const supabase = new SupabaseClient(config.supabaseUrl, config.serviceRoleKey)
+  if (!(await isAgentEnabled(supabase, workspaceId))) {
+    return { status: 'skipped' as const, output: { reason: 'agent_disabled_in_settings' } }
+  }
+
   await runtime.heartbeat(workspaceId, 'inspection_quality', 'healthy', {
+
     deterministic: true,
     llama_advisory: process.env.LLAMA_AGENT_ENABLED?.trim().toLowerCase() === 'true',
     checks: ['photo_presence', 'upload_status', 'caption_presence', 'duplicate_object_path'],

@@ -1,12 +1,19 @@
 import { NextResponse } from 'next/server'
 import { processAudioTranscription } from '../../../../lib/ai/chat-copilot'
 import { createClient } from '../../../../lib/supabase/server'
+import { checkAiEnabled } from '../../../../lib/ai-guard'
 
 export const runtime = 'nodejs'
 
 export async function POST(request: Request) {
   const supabase = await createClient()
+  
+  if (!(await checkAiEnabled('enable_voice_copilot_whisper'))) {
+    return NextResponse.json({ error: 'AI Voice Transcription is disabled in workspace settings.' }, { status: 403 })
+  }
+
   const { data: { user } } = await supabase.auth.getUser()
+
   if (!user) return NextResponse.json({ error: 'Authentication required.' }, { status: 401 })
 
   const form = await request.formData()

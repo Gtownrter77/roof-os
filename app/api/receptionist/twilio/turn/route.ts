@@ -3,14 +3,21 @@ import { createAdminClient } from '../../../../../lib/supabase/admin'
 import { generateReceptionistTurn } from '../../../../../lib/receptionist-ai'
 import { bookAppointment, receptionistConfig, resolveLead, recordConsent } from '../../../../../lib/receptionist-actions'
 import { assertTwilioRequest, speechGather, twiml, xmlEscape } from '../../../../../lib/receptionist-twilio'
+import { checkAiEnabled } from '../../../../../lib/ai-guard'
 
 export async function POST(request: NextRequest) {
   const params = Object.fromEntries((await request.formData()).entries()) as Record<string, string>
   try {
     assertTwilioRequest(request, params)
+    
+    if (!(await checkAiEnabled('enable_ai_receptionist'))) {
+      return twiml('<Say>The AI system is disabled. Connecting you to a representative.</Say><Hangup/>')
+    }
+
     const { workspaceId, ownerId, publicUrl } = receptionistConfig()
     const supabase = createAdminClient()
     const callSid = params.CallSid
+
     const speech = params.SpeechResult?.trim()
 
     if (!callSid || !speech) {

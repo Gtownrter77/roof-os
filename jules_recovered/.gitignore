@@ -1,0 +1,16 @@
+node_modules
+.next
+.vercel
+tsconfig.tsbuildinfo
+.env
+.env.*
+!.env.example
+*.tar.gz
+*.demo-backup
+*.apk
+.DS_Store
+apps/field/.expo
+apps/field/dist
+coverage
+.superpowers/
+.claude/
