@@ -96,18 +96,22 @@ export async function applyCustomerText(text: string, flags: YoloFlags) {
   return enqueue('customer-text', { text, applied: false })
 }
 
-export async function applyWorkOrder(tasks: string[]) {
-  return enqueue('work-order', { tasks })
+export async function applyWorkOrder(tasks: string[], flags?: YoloFlags) {
+  const free = flags ? canApply(flags, 'freeAll') : false
+  return enqueue('work-order', { tasks, applied: free })
 }
 
-export async function applyPortal(summary: string) {
-  return enqueue('portal', { summary })
+export async function applyPortal(summary: string, flags?: YoloFlags) {
+  const free = flags ? canApply(flags, 'freeAll') : false
+  return enqueue('portal', { summary, applied: free })
 }
 
-export async function applyESign(ready: boolean) {
-  return enqueue('esign', { ready })
+export async function applyESign(ready: boolean, flags?: YoloFlags) {
+  const free = flags ? canApply(flags, 'freeAll') : false
+  return enqueue('esign', { ready, applied: free })
 }
 
-export async function applyFinancing(offer: string) {
-  return enqueue('financing', { offer })
+export async function applyFinancing(offer: string, flags?: YoloFlags) {
+  const free = flags ? canApply(flags, 'freeAll') : false
+  return enqueue('financing', { offer, applied: free })
 }

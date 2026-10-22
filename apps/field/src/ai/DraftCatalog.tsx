@@ -1,5 +1,5 @@
 import { Pressable, Text, View, Modal, ScrollView, TextInput } from 'react-native'
-import { useState, useMemo } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import * as batch1 from './batch1'
 import * as batch3 from './batch3'
 import * as batch26 from './batch26to50'
@@ -9,7 +9,7 @@ import * as batch126 from './batch126to150'
 import * as batch151 from './batch151to175'
 import * as batch176 from './batch176to200'
 import * as batch201 from './batch201to225'
-import { enqueue } from './behaviors'
+import { enqueue, loadYolo, canApply } from './behaviors'
 
 const modules = [batch1, batch3, batch26, batch76, batch101, batch126, batch151, batch176, batch201]
 
@@ -42,7 +42,8 @@ function sampleArgs(name: string, notes: string, squares: number, pitch: number,
 }
 
 export function DraftCatalog({ notes, squares, pitch, photoCount }: { notes: string; squares: number; pitch: number; photoCount: number }) {
-  const [open, setOpen] = useState(false)
+  const [free, setFree] = useState(false)
+  useEffect(() => { loadYolo().then(f => setFree(canApply(f, 'freeAll'))) }, [open])
   const [q, setQ] = useState('')
   const [result, setResult] = useState<string | null>(null)
   const [picked, setPicked] = useState('')
@@ -54,8 +55,11 @@ export function DraftCatalog({ notes, squares, pitch, photoCount }: { notes: str
       const args = sampleArgs(entry.name, notes, squares, pitch, photoCount)
       const out = entry.fn(...args)
       setPicked(entry.name)
-      const queued = await enqueue('desktop-approval', { name: entry.name, result: out })
-      setResult(JSON.stringify({ result: out, queued }, null, 2))
+      const flags = await loadYolo()
+      const free = canApply(flags, 'freeAll')
+      const kind = free ? 'estimate' : 'desktop-approval'
+      const queued = await enqueue(kind, { name: entry.name, result: out, applied: free })
+      setResult(JSON.stringify({ result: out, applied: free, queued }, null, 2))
     } catch (err) {
       setPicked(entry.name)
       setResult('Draft failed: ' + (err instanceof Error ? err.message : String(err)))
@@ -65,7 +69,7 @@ export function DraftCatalog({ notes, squares, pitch, photoCount }: { notes: str
   return (
     <View style={{ marginTop: 12 }}>
       <Pressable onPress={() => setOpen(true)} style={{ backgroundColor: '#0b1220', padding: 12, borderRadius: 8, borderWidth: 1, borderColor: '#1f3a5f' }}>
-        <Text style={{ color: '#9ecbff', textAlign: 'center', fontWeight: '600' }}>All AI drafts ({ALL.length})</Text>
+        <Text style={{ color: '#9ecbff', textAlign: 'center', fontWeight: '600' }}>All AI drafts ({ALL.length}){free ? ' · FREE' : ''}</Text>
       </Pressable>
       <Modal visible={open} animationType="slide" onRequestClose={() => setOpen(false)}>
         <View style={{ flex: 1, backgroundColor: '#f7f9fc', padding: 12 }}>

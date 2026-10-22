@@ -316,7 +316,7 @@ export function EstimatePage({ squares, pitch, notes, laborRate, materialRate, m
           </Pressable>
           <Pressable onPress={() => {
             const d = draftPortalSummary(total, Object.keys(grouped))
-            void runAndQueue('Portal', d, () => applyPortal(d.text))
+            void runAndQueue('Portal', d, () => applyPortal(d.text, flags || undefined))
           }} style={{ padding: 6, backgroundColor: '#102033', borderRadius: 6 }}>
             <Text style={{ color: '#fff', fontSize: 11 }}>Portal summary</Text>
           </Pressable>
@@ -328,7 +328,7 @@ export function EstimatePage({ squares, pitch, notes, laborRate, materialRate, m
           </Pressable>
           <Pressable onPress={() => {
             const d = draftFinancingOffer(total)
-            void runAndQueue('Financing', d, () => applyFinancing(d.offer))
+            void runAndQueue('Financing', d, () => applyFinancing(d.offer, flags || undefined))
           }} style={{ padding: 6, backgroundColor: '#102033', borderRadius: 6 }}>
             <Text style={{ color: '#fff', fontSize: 11 }}>Financing</Text>
           </Pressable>
@@ -352,7 +352,7 @@ export function EstimatePage({ squares, pitch, notes, laborRate, materialRate, m
           </Pressable>
           <Pressable onPress={() => {
             const d = draftWorkOrderTasks(Object.keys(grouped))
-            void runAndQueue('Work order', d, () => applyWorkOrder(d.tasks.map(t => t.description)))
+            void runAndQueue('Work order', d, () => applyWorkOrder(d.tasks.map(t => t.description), flags || undefined))
           }} style={{ padding: 6, backgroundColor: '#102033', borderRadius: 6 }}>
             <Text style={{ color: '#fff', fontSize: 11 }}>Work order</Text>
           </Pressable>

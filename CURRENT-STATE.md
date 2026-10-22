@@ -182,3 +182,10 @@ Added:
 - apps/field/src/ai/external.ts — field helpers that queue locally and POST to the web routes
 
 EstimatePage material order, customer text, and e-sign now call the external helpers.
+
+## 2026-10-22 YOLO free agent
+
+When owner unlocks YOLO and turns on "Free all drafts":
+- DraftCatalog applies every draft immediately (applied: true, kind estimate) instead of desktop-approval
+- Work order, portal, e-sign, and financing also mark applied
+- Catalog button shows "FREE" when the flag is on
