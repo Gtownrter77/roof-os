@@ -2,6 +2,7 @@ import { Pressable, Text, View, Modal, ScrollView, Alert } from 'react-native'
 import { useState } from 'react'
 import { draftGoldenReport, draftEstimate, type PhotoAiResult } from './batch1'
 import { draftMissingShingles, draftGranuleLoss, draftStructuredNote, draftJobComplete, draftAuditEvent, draftAgentProposal } from './batch76to100'
+import { draftHailImpacts, draftWindUplift, draftPhotoAlbumGap, draftOfficeHandoff, draftCustomerText } from './batch101to125'
 
 type Props = {
   photoCount: number
@@ -84,6 +85,36 @@ export function DraftActions({ photoCount, notes, squares, pitch, hasPriceBook, 
     setModal('agent')
   }
 
+  function showHail() {
+    const d = draftHailImpacts(photoCount)
+    setContent(JSON.stringify(d, null, 2))
+    setModal('hail')
+  }
+
+  function showWind() {
+    const d = draftWindUplift(pitch)
+    setContent(JSON.stringify(d, null, 2))
+    setModal('wind')
+  }
+
+  function showAlbumGap() {
+    const d = draftPhotoAlbumGap(['damage'])
+    setContent(JSON.stringify(d, null, 2))
+    setModal('album')
+  }
+
+  function showHandoff() {
+    const d = draftOfficeHandoff(photoCount > 0, notes.length > 0)
+    setContent(JSON.stringify(d, null, 2))
+    setModal('handoff')
+  }
+
+  function showCustomer() {
+    const d = draftCustomerText('Customer')
+    setContent(JSON.stringify(d, null, 2))
+    setModal('customer')
+  }
+
   return (
     <View style={{ marginTop: 12, gap: 8 }}>
       <Pressable onPress={showReport} style={{ backgroundColor: '#1769e0', padding: 12, borderRadius: 8 }}>
@@ -118,6 +149,21 @@ export function DraftActions({ photoCount, notes, squares, pitch, hasPriceBook, 
       </Pressable>
       <Pressable onPress={showAgent} style={{ backgroundColor: '#1769e0', padding: 12, borderRadius: 8 }}>
         <Text style={{ color: '#fff', textAlign: 'center' }}>Next action</Text>
+      </Pressable>
+      <Pressable onPress={showHail} style={{ backgroundColor: '#b42318', padding: 12, borderRadius: 8 }}>
+        <Text style={{ color: '#fff', textAlign: 'center' }}>Hail impacts</Text>
+      </Pressable>
+      <Pressable onPress={showWind} style={{ backgroundColor: '#607086', padding: 12, borderRadius: 8 }}>
+        <Text style={{ color: '#fff', textAlign: 'center' }}>Wind uplift</Text>
+      </Pressable>
+      <Pressable onPress={showAlbumGap} style={{ backgroundColor: '#138a5b', padding: 12, borderRadius: 8 }}>
+        <Text style={{ color: '#fff', textAlign: 'center' }}>Album gaps</Text>
+      </Pressable>
+      <Pressable onPress={showHandoff} style={{ backgroundColor: '#102033', padding: 12, borderRadius: 8 }}>
+        <Text style={{ color: '#fff', textAlign: 'center' }}>Office handoff</Text>
+      </Pressable>
+      <Pressable onPress={showCustomer} style={{ backgroundColor: '#1769e0', padding: 12, borderRadius: 8 }}>
+        <Text style={{ color: '#fff', textAlign: 'center' }}>Customer text</Text>
       </Pressable>
 
       <Modal visible={!!modal} animationType="slide" onRequestClose={() => setModal(null)}>
