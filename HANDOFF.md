@@ -1,74 +1,17 @@
 # Handoff — 2026-10-22
 
-## On main (`b01ff0d`)
+Main is `b01ff0d`. Three lanes are merged. All are drafts. Nothing sends, orders, or dispatches until a technician approves.
 
-Three lanes are merged. All are drafts. Nothing sends, orders, or dispatches until a technician approves.
-
-| Lane | PRs | What is live |
+| Lane | PRs | Live |
 |---|---|---|
 | Photo → report | #306 #307 #308 | Coverage gate, address certainty, one-photo packet, draft rides with the golden report |
 | Estimate → send | #309 | Good / Better / Best from verified slope, waste, soffit (in), fascia (in) |
 | Production → materials | #310 | Work-order draft and material list. Blocked until the estimate is approved |
 
-### Gate
-Drafts only. Verified-photo workflow owns the customer packet. No supplier order. No crew dispatch. No regressions.
+Gate: drafts only. The verified-photo workflow owns the customer packet. No supplier order. No crew dispatch.
 
-### Next
-Real email/SMS after the gate and technician approval. Real supplier order stays a later lane.
+Next: a real email or text after the gate and technician approval. A real supplier order is a later lane.
 
-
-# Handoff — 2026-10-22
-
-## Active lane: production → materials
-
-Estimate → send merged as #309. Photo → report is closed.
-
-### This lane
-Signed/approved estimate becomes a work-order draft and a material list.
-
-- Roof squares, gutter LF, soffit width, fascia width
-- Color confirmation before any order
-- Deck photo before close-in
-- Nothing is ordered or dispatched until a human approves
-
-### Gate
-Drafts only. No supplier order. No crew dispatch. No regressions.
-
-
-# Handoff — 2026-10-22
-
-## Active lane: photo → report
-
-PR #306 merged to main (`bf16f85`). This is the first automation lane. Do not start a new lane until this one is closed.
-
-### What is live
-- `lib/ai/photo-report.ts` — insurance-grade drafts: 16-point coverage checklist, test-square bands (0–3 cosmetic, 4–7 moderate, 8+ functional), three-shot findings, 12-section golden report draft. `requiresApproval: true`.
-- `lib/ai/one-photo.ts` — GPS from the JPEG, address certainty score, packet builder.
-- `app/api/one-photo/route.ts` — bounded JSON reader. Reverse geocode, NOAA/NWS storm candidate, open aerial note, local code note.
-- `app/photo-estimate/page.tsx` — AI runs the filter set (tech does not pick). Verify card: slope, waste, soffit (inches), fascia (inches). Certainty shown on the address.
-- Sims: `scripts/photo-report-sim.mjs`, `scripts/one-photo-sim.mjs`.
-
-### 10-minute budget
-Agent time is seconds (filters + GPS + lookups). Tech time is the verify card. Nothing sends until slope, waste, soffit, and fascia are confirmed.
-
-### Gate
-Drafts only. Verified-photo workflow still owns the customer packet. Human approval required. No regressions.
-
-### Done on this lane
-1. Coverage score blocks a trusted packet when elevations or the test square are missing.
-2. Address certainty below medium blocks a confident send.
-3. Golden report draft sections ride with the existing report route as `photoReportDraft`.
-4. Email/SMS stay drafts until the verify card is complete.
-
-### Next on this lane
-- Persist the draft when a saved workflow is reopened.
-- Actual email/SMS send after the gate and technician approval.
-
-### Closed
-- Canvass 125 merged earlier on 2026-10-22.
-- Field AI batches 1–225 remain human-gated drafts.
-
-- Canvass 125: lib/ai/canvass125.ts + live panel on /canvass (feat/canvass-125-automations) [2026-10-22]
 ## 2026-10-22 field AI + multi-trade estimate checkpoint
 
 - Current working branch: `feature/top25-batch-126-150` at `7770594`.

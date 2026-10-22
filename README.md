@@ -1,10 +1,8 @@
-# Current repository audit — 2026-10-22
+# ROOF/OS — 2026-10-22
 
-**Main:** `b01ff0d`
-**Merged this session:** [#306](https://github.com/Gtownrter77/roof-os/pull/306)–[#310](https://github.com/Gtownrter77/roof-os/pull/310) (photo → report, estimate → send, production → materials)
-**Current record:** [HANDOFF.md](HANDOFF.md) and [CURRENT-STATE.md](CURRENT-STATE.md)
+Main is `b01ff0d`. Photo → report, estimate → send, and production → materials are on main. Every AI result is a draft. A technician must approve before anything is sent, ordered, or dispatched.
 
-Field AI remains human-gated. Every draft returns `requiresApproval: true`. No authoritative writes from the field app. Desktop approval is required before any estimate or report is sent.
+Record: [HANDOFF.md](HANDOFF.md)
 
 ---
 

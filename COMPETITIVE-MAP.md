@@ -1,6 +1,6 @@
 # Competitive parity + differentiators
 
-**Status (2026-10-22):** Main at `b01ff0d`. Photo → report, estimate → send, and production → materials are merged. 225 human-gated field drafts. All results require approval. Nothing sends or orders until a technician says so.
+**Status (2026-10-22):** Main at `b01ff0d`. Photo → report, estimate → send, and production → materials are merged. Drafts only.
 
 ## What they have (must match)
 

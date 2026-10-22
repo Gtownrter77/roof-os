@@ -4,20 +4,11 @@ All notable changes to ROOF/OS are documented here.
 
 ## [unreleased] — 2026-10-22
 
-### Photo → report
-- One-photo packet: GPS, address certainty, NOAA candidate, aerial note, local code
-- Coverage, test square, and verify card (slope, waste, soffit/fascia in inches) block a trusted packet
-- Photo-report draft rides beside the golden report
+- Photo → report: one-photo packet, coverage gate, address certainty, draft rides with the golden report
+- Estimate → send: Good / Better / Best from the verified packet. Send stays a draft until the gate is clear
+- Production → materials: work-order draft and material list. Blocked until the estimate is approved
 
-### Estimate → send
-- Good / Better / Best draft from the verified packet
-- Send stays a draft until the photo-report gate is clear
-
-### Production → materials
-- Work-order draft and material list
-- Blocked until the estimate is approved
-
-All of the above are drafts. No send, order, or dispatch without technician approval.
+Drafts only. No send, order, or dispatch without technician approval.
 
 ## [0.1.1] — 2026-10-08
 
