@@ -78,6 +78,15 @@ export default function Home() {
 
   return (
     <div className="space-y-5 pb-4">
+      <div className="flex justify-end">
+        <button
+          type="button"
+          className="rounded-full border border-white/15 bg-black/40 px-3 py-1.5 text-xs font-semibold text-cyan-100 hover:bg-white/10"
+          onClick={() => window.dispatchEvent(new Event('roofos-play-trailer'))}
+        >
+          Play the entrance
+        </button>
+      </div>
       <WorkspaceWeather variant="hero" tickerMetrics={[
         { label: 'Leads', value: counts.leads },
         { label: 'Inspections', value: counts.inspections },
