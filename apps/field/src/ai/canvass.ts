@@ -1,1 +1,1 @@
-export * from '../../../../lib/ai/canvass125'
+export * from './canvass125'
