@@ -2,10 +2,17 @@
 // Address from GPS, NOAA storm date, open aerial metadata, local code notes.
 // Draft only. Tech verifies before any email or text.
 
+export type AddressCertainty = {
+  score: number
+  band: 'high' | 'medium' | 'low' | 'unresolved'
+  reasons: string[]
+}
+
 export type OnePhotoInput = {
   address: string
   latitude: number | null
   longitude: number | null
+  addressCertainty?: AddressCertainty
   stormDate: string | null
   stormEvent: string | null
   aerialNote: string
@@ -21,6 +28,7 @@ export type OnePhotoInput = {
 export type OnePhotoPacket = {
   version: 'one-photo-v1'
   address: string
+  addressCertainty: AddressCertainty
   storm: { date: string | null; event: string | null; source: 'NOAA/NWS' }
   aerial: { source: 'OpenAerialMap'; note: string; squares: number | null }
   codes: { reference: string; notes: string[] }
@@ -33,6 +41,20 @@ export type OnePhotoPacket = {
   requiresApproval: true
 }
 
+
+export function scoreAddressCertainty(input: { hasGps: boolean; reverseGeocoded: boolean; hasHouseNumber: boolean; hasStreet: boolean; hasZip: boolean; ocrMatch: boolean }): AddressCertainty {
+  let score = 0
+  const reasons: string[] = []
+  if (input.hasGps) { score += 25; reasons.push('GPS in the photo') } else reasons.push('No GPS in the photo')
+  if (input.reverseGeocoded) { score += 25; reasons.push('Reverse geocode returned a place') } else reasons.push('Reverse geocode failed')
+  if (input.hasHouseNumber) { score += 15; reasons.push('House number present') } else reasons.push('No house number')
+  if (input.hasStreet) { score += 15; reasons.push('Street name present') } else reasons.push('No street name')
+  if (input.hasZip) { score += 10; reasons.push('ZIP present') } else reasons.push('No ZIP')
+  if (input.ocrMatch) { score += 10; reasons.push('Photo text matches the geocode') } else reasons.push('Photo text did not confirm the geocode')
+  const band = score >= 80 ? 'high' : score >= 50 ? 'medium' : score > 0 ? 'low' : 'unresolved'
+  return { score, band, reasons }
+}
+
 export function buildOnePhotoPacket(input: OnePhotoInput): OnePhotoPacket {
   const address = input.address || 'address not resolved'
   const stormLine = input.stormDate
@@ -41,6 +63,7 @@ export function buildOnePhotoPacket(input: OnePhotoInput): OnePhotoPacket {
   return {
     version: 'one-photo-v1',
     address,
+    addressCertainty: input.addressCertainty ?? { score: 0, band: 'unresolved', reasons: ['Address certainty was not scored.'] },
     storm: { date: input.stormDate, event: input.stormEvent, source: 'NOAA/NWS' },
     aerial: { source: 'OpenAerialMap', note: input.aerialNote, squares: input.squares },
     codes: { reference: input.code, notes: input.codeNotes },
@@ -50,8 +73,8 @@ export function buildOnePhotoPacket(input: OnePhotoInput): OnePhotoPacket {
         { trade: 'roof', note: input.squares ? `Aerial draft ${input.squares} squares — confirm` : 'Squares not measured — confirm on site' },
         { trade: 'slope', note: input.pitch ? `Pitch ${input.pitch}/12 — confirm` : 'Roof slope not verified' },
         { trade: 'waste', note: input.wasteFactor !== null && input.wasteFactor !== undefined ? `Waste ${Math.round(input.wasteFactor * 100)}% — confirm` : 'Waste factor not verified' },
-        { trade: 'soffit', note: input.soffitWidthFt ? `Soffit ${input.soffitWidthFt} ft — confirm` : 'Soffit width not verified' },
-        { trade: 'fascia', note: input.fasciaWidthFt ? `Fascia ${input.fasciaWidthFt} ft — confirm` : 'Fascia width not verified' },
+        { trade: 'soffit', note: input.soffitWidthFt ? `Soffit ${input.soffitWidthFt} in — confirm` : 'Soffit width not verified' },
+        { trade: 'fascia', note: input.fasciaWidthFt ? `Fascia ${input.fasciaWidthFt} in — confirm` : 'Fascia width not verified' },
         { trade: 'storm', note: stormLine },
         { trade: 'codes', note: input.code },
       ],
