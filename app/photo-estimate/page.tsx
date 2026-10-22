@@ -476,6 +476,19 @@ export default function PhotoEstimatePage() {
           <p>Aerial: {onePacket.aerial.note}</p>
           <p>Code: {onePacket.codes.reference}</p>
           <p>{onePacket.estimate.next}</p>
+          <div className="grid grid-cols-2 gap-2 mt-2">
+            <label className="text-[11px]">Roof slope (pitch/12)<input value={pitch} onChange={(e) => setPitch(e.target.value)} className="w-full p-2 border rounded mt-1" /></label>
+            <label className="text-[11px]">Waste factor
+              <select value={wasteFactor} onChange={(e) => setWasteFactor(e.target.value)} className="w-full p-2 border rounded mt-1">
+                <option value="0.10">10%</option>
+                <option value="0.15">15%</option>
+                <option value="0.20">20%</option>
+              </select>
+            </label>
+            <label className="text-[11px]">Soffit width (ft)<input value={soffitWidthFt} onChange={(e) => setSoffitWidthFt(e.target.value)} className="w-full p-2 border rounded mt-1" /></label>
+            <label className="text-[11px]">Fascia width (ft)<input value={fasciaWidthFt} onChange={(e) => setFasciaWidthFt(e.target.value)} className="w-full p-2 border rounded mt-1" /></label>
+          </div>
+          <p className="text-[11px] text-amber-200">Tech verifies slope {pitch || '—'}/12, waste {Math.round(Number(wasteFactor) * 100)}%, soffit {soffitWidthFt || '—'} ft, fascia {fasciaWidthFt || '—'} ft before send.</p>
           <p className="bg-white/5 border border-white/10 rounded p-2">{onePacket.delivery.sms}</p>
           <p className="bg-white/5 border border-white/10 rounded p-2">{onePacket.delivery.email}</p>
           <p className="text-[10px] text-slate-400">SLA target {onePacket.delivery.slaMinutes} minutes. Not sent.</p>

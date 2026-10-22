@@ -12,6 +12,10 @@ export type OnePhotoInput = {
   code: string
   codeNotes: string[]
   squares: number | null
+  pitch: number | null
+  wasteFactor: number | null
+  soffitWidthFt: number | null
+  fasciaWidthFt: number | null
 }
 
 export type OnePhotoPacket = {
@@ -44,6 +48,10 @@ export function buildOnePhotoPacket(input: OnePhotoInput): OnePhotoPacket {
       status: 'draft-for-tech',
       lines: [
         { trade: 'roof', note: input.squares ? `Aerial draft ${input.squares} squares — confirm` : 'Squares not measured — confirm on site' },
+        { trade: 'slope', note: input.pitch ? `Pitch ${input.pitch}/12 — confirm` : 'Roof slope not verified' },
+        { trade: 'waste', note: input.wasteFactor !== null && input.wasteFactor !== undefined ? `Waste ${Math.round(input.wasteFactor * 100)}% — confirm` : 'Waste factor not verified' },
+        { trade: 'soffit', note: input.soffitWidthFt ? `Soffit ${input.soffitWidthFt} ft — confirm` : 'Soffit width not verified' },
+        { trade: 'fascia', note: input.fasciaWidthFt ? `Fascia ${input.fasciaWidthFt} ft — confirm` : 'Fascia width not verified' },
         { trade: 'storm', note: stormLine },
         { trade: 'codes', note: input.code },
       ],

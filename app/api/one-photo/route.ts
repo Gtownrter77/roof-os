@@ -55,6 +55,10 @@ export async function POST(request: NextRequest) {
     code: zip ? `${state || 'Local'} code reference for ${zip}` : 'Local code reference',
     codeNotes,
     squares: null,
+    pitch: null,
+    wasteFactor: 0.10,
+    soffitWidthFt: null,
+    fasciaWidthFt: null,
   })
 
   return NextResponse.json({ packet, zip, state })
