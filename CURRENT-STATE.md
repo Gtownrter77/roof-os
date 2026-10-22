@@ -56,3 +56,9 @@ Added apps/field/src/ai/batch3.ts:
 - queueAgenticDraft
 
 All return requiresApproval: true. No UI, no writes.
+
+## 2026-10-21 Automations 76-100 stubs
+
+Added apps/field/src/ai/batch76to100.ts with human-gated draft functions for missing-shingle detection, granule loss, flashing, elevation sort, pitch/squares from photo, structured voice notes, code RAG, supplement lines, Xact codes, photo-to-estimate, margin floor, takeoff opt, supplier order, route, check-in anomaly, portal summary, redaction, audit event, translation, job completeness, warranty pack, capacity, and agent proposal.
+
+No UI, no authoritative writes.
