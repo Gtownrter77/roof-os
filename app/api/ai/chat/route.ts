@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '../../../../lib/supabase/server'
 import { readJson } from '../../../../lib/api-security'
 import { processChatCopilot, type ChatMessage } from '../../../../lib/ai/chat-copilot'
+import { checkAiEnabled } from '../../../../lib/ai-guard'
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient()
@@ -9,8 +10,13 @@ export async function POST(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
+  if (!(await checkAiEnabled('enable_voice_copilot_whisper'))) {
+    return NextResponse.json({ error: 'AI Chat Copilot is disabled in workspace settings.' }, { status: 403 })
+  }
+
   // Bounded JSON reading per security standards
   const parsed = await readJson(request)
+
   if ('error' in parsed) {
     return NextResponse.json({ error: parsed.error }, { status: parsed.status })
   }
