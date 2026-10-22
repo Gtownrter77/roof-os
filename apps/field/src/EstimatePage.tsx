@@ -292,7 +292,7 @@ export function EstimatePage({ squares, pitch, notes, laborRate, materialRate, m
             const seeded = aiSeedItems(squares, pitch, notes, laborRate, materialRate, state, stories)
             setItems(seeded)
             setAiApplied(true)
-            void applyEstimateDraft(seeded, flags || { unlocked: false, freeEstimate: false, freePrefill: false, freeCustomerText: false, freeMaterialOrder: false, freeAll: false })
+            void applyEstimateDraft(seeded, flags || { unlocked: false, freeEstimate: false, freePrefill: false, freeCustomerText: false, freeMaterialOrder: false, freeCanvass: false, freeAll: false })
           }}
           style={{ marginTop: 10, padding: 10, backgroundColor: '#1769e0', borderRadius: 8 }}
         >
@@ -303,13 +303,13 @@ export function EstimatePage({ squares, pitch, notes, laborRate, materialRate, m
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
           <Pressable onPress={() => {
             const d = draftGoodBetterBest()
-            void runAndQueue('Good/Better/Best', d, () => applyEstimateDraft(d.options, flags || { unlocked: false, freeEstimate: false, freePrefill: false, freeCustomerText: false, freeMaterialOrder: false, freeAll: false }))
+            void runAndQueue('Good/Better/Best', d, () => applyEstimateDraft(d.options, flags || { unlocked: false, freeEstimate: false, freePrefill: false, freeCustomerText: false, freeMaterialOrder: false, freeCanvass: false, freeAll: false }))
           }} style={{ padding: 6, backgroundColor: '#102033', borderRadius: 6 }}>
             <Text style={{ color: '#fff', fontSize: 11 }}>Good/Better/Best</Text>
           </Pressable>
           <Pressable onPress={() => {
             const lines = items.map(i => i.name)
-            const f = flags || { unlocked: false, freeEstimate: false, freePrefill: false, freeCustomerText: false, freeMaterialOrder: false, freeAll: false }
+            const f = flags || { unlocked: false, freeEstimate: false, freePrefill: false, freeCustomerText: false, freeMaterialOrder: false, freeCanvass: false, freeAll: false }
             void runAndQueue('Material order', { lines }, () => sendMaterialOrder('ABC', lines, f))
           }} style={{ padding: 6, backgroundColor: '#102033', borderRadius: 6 }}>
             <Text style={{ color: '#fff', fontSize: 11 }}>Material order</Text>
@@ -373,7 +373,7 @@ export function EstimatePage({ squares, pitch, notes, laborRate, materialRate, m
           </Pressable>
           <Pressable onPress={() => {
             const d = draftCustomerTextShort('Customer', total)
-            const f = flags || { unlocked: false, freeEstimate: false, freePrefill: false, freeCustomerText: false, freeMaterialOrder: false, freeAll: false }
+            const f = flags || { unlocked: false, freeEstimate: false, freePrefill: false, freeCustomerText: false, freeMaterialOrder: false, freeCanvass: false, freeAll: false }
             void runAndQueue('Customer text', d, () => sendCustomerText('', d.text, f))
           }} style={{ padding: 6, backgroundColor: '#102033', borderRadius: 6 }}>
             <Text style={{ color: '#fff', fontSize: 11 }}>Customer text</Text>
