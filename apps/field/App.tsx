@@ -1,4 +1,5 @@
 import { DraftActions } from "./src/ai/DraftActions"
+import { DraftCatalog } from "./src/ai/DraftCatalog"
 import { EstimatePage } from "./src/EstimatePage"
 import { StatusBar } from 'expo-status-bar'
 import * as ImagePicker from 'expo-image-picker'
@@ -790,6 +791,12 @@ export default function App() {
             laborRate={85}
             materialRate={120}
             minMargin={2000}
+          />
+          <DraftCatalog
+            notes={verificationNotes}
+            squares={Number(squares) || 0}
+            pitch={Number(pitch) || 0}
+            photoCount={photos}
           />
           <Pressable style={[styles.secondary, { marginTop: 10 }]} onPress={() => setShowEstimate(true)}>
             <Text style={styles.secondaryText}>Open detailed estimate</Text>

@@ -144,3 +144,7 @@ Wired job cost, work order, margin floor, warranty, completeness, and next actio
 Added apps/field/src/ai/batch201to225.ts covering color match, shingle weight, ventilation calc, ice dam risk, access difficulty, dumpster size, magnet sweep, customer text, office handoff, photo quality, damage severity, hail impacts, wind uplift, album gaps, structured notes, price book match, labor hours, material lead time, safety checklist, cleanup, warranty registration, referral ask, upsell, and competitive note.
 
 Wired color, customer text, office handoff, upsell, and competitive note into the estimate page.
+
+## 2026-10-22 All drafts wired
+
+Added apps/field/src/ai/DraftCatalog.tsx. It collects every draft* export from batches 1 through 201-225 and presents a searchable modal. Every function is reachable from the inspection screen via "All AI drafts".
