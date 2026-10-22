@@ -113,3 +113,9 @@ EstimatePage now covers:
 - Accessories and Other
 
 AI assist uses existing draft functions + measurement-derived quantities (eave, rake, hip/ridge, wall SF, window count).
+
+## 2026-10-22 Competitive parity + differentiators
+
+Added COMPETITIVE-MAP.md and apps/field/src/ai/batch151to175.ts.
+Wired Good/Better/Best, pitch labor, material order, portal summary, e-sign ready, and financing drafts into the estimate page.
+All remain human-gated.

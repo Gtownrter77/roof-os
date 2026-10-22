@@ -23,6 +23,7 @@ import {
   draftDumpFee,
   draftPermitCost,
 } from './ai/batch126to150'
+import { draftGoodBetterBest, draftPitchLabor, draftMaterialOrder, draftPortalSummary, draftESignReady, draftFinancingOffer } from './ai/batch151to175'
 
 type LineItem = {
   id: string
@@ -212,6 +213,7 @@ function seedItems(squares: number, pitch: number, laborRate: number, materialRa
 export function EstimatePage({ squares, pitch, notes, laborRate, materialRate, minMargin, state = 'GA', stories = 1, onClose }: Props) {
   const [items, setItems] = useState<LineItem[]>(() => seedItems(squares, pitch, laborRate, materialRate))
   const [aiApplied, setAiApplied] = useState(false)
+  const [diffDraft, setDiffDraft] = useState<string | null>(null)
   const [taxRate, setTaxRate] = useState(7)
   const [marginPct, setMarginPct] = useState(minMargin || 20)
   const [customerNote, setCustomerNote] = useState('Draft estimate — technician must approve on desktop before sending.')
@@ -284,6 +286,31 @@ export function EstimatePage({ squares, pitch, notes, laborRate, materialRate, m
             {aiApplied ? 'AI prefill applied' : 'AI assist — prefill from notes & measurements'}
           </Text>
         </Pressable>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+          <Pressable onPress={() => setDiffDraft(JSON.stringify(draftGoodBetterBest(), null, 2))} style={{ padding: 6, backgroundColor: '#102033', borderRadius: 6 }}>
+            <Text style={{ color: '#fff', fontSize: 11 }}>Good/Better/Best</Text>
+          </Pressable>
+          <Pressable onPress={() => setDiffDraft(JSON.stringify(draftPitchLabor(laborRate, pitch), null, 2))} style={{ padding: 6, backgroundColor: '#102033', borderRadius: 6 }}>
+            <Text style={{ color: '#fff', fontSize: 11 }}>Pitch labor</Text>
+          </Pressable>
+          <Pressable onPress={() => setDiffDraft(JSON.stringify(draftMaterialOrder(items.map(i => i.name)), null, 2))} style={{ padding: 6, backgroundColor: '#102033', borderRadius: 6 }}>
+            <Text style={{ color: '#fff', fontSize: 11 }}>Material order</Text>
+          </Pressable>
+          <Pressable onPress={() => setDiffDraft(JSON.stringify(draftPortalSummary(total, Object.keys(grouped)), null, 2))} style={{ padding: 6, backgroundColor: '#102033', borderRadius: 6 }}>
+            <Text style={{ color: '#fff', fontSize: 11 }}>Portal summary</Text>
+          </Pressable>
+          <Pressable onPress={() => setDiffDraft(JSON.stringify(draftESignReady(total > 0, true), null, 2))} style={{ padding: 6, backgroundColor: '#102033', borderRadius: 6 }}>
+            <Text style={{ color: '#fff', fontSize: 11 }}>E-sign ready</Text>
+          </Pressable>
+          <Pressable onPress={() => setDiffDraft(JSON.stringify(draftFinancingOffer(total), null, 2))} style={{ padding: 6, backgroundColor: '#102033', borderRadius: 6 }}>
+            <Text style={{ color: '#fff', fontSize: 11 }}>Financing</Text>
+          </Pressable>
+        </View>
+        {diffDraft && (
+          <View style={{ marginTop: 8, backgroundColor: '#fff', borderRadius: 6, padding: 8 }}>
+            <Text style={{ fontSize: 11, fontFamily: 'monospace' }}>{diffDraft}</Text>
+          </View>
+        )}
       </View>
 
       <View style={{ backgroundColor: '#fff', borderRadius: 10, padding: 12, marginBottom: 12 }}>
