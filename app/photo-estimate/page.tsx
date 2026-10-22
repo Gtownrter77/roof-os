@@ -6,6 +6,7 @@ import { smartBack } from '../../lib/smart-back'
 import { createClient } from '../../lib/supabase/client'
 import { createWorker } from 'tesseract.js'
 import { GoldenReport } from '../../components/GoldenReport'
+import { draftPhoto, draftPhotoReport, PHOTO_REPORT_OPTIONS, type PhotoDraft, type ReportDraft } from '../../lib/ai/photo-report'
 
 type Photo = { file: File; preview: string; id: string }
 type SourcePhoto = { id: string; url: string }
@@ -55,6 +56,9 @@ export default function PhotoEstimatePage() {
   const [managerName, setManagerName] = useState('')
   const [managerSignature, setManagerSignature] = useState('')
   const [photoReviewNotes, setPhotoReviewNotes] = useState<Record<string, string>>({})
+  const [photoDrafts, setPhotoDrafts] = useState<PhotoDraft[]>([])
+  const [reportDraft, setReportDraft] = useState<ReportDraft | null>(null)
+  const [reportNotes, setReportNotes] = useState('')
 
   useEffect(() => {
     let active = true
@@ -140,6 +144,18 @@ export default function PhotoEstimatePage() {
       next.push({ file, preview: URL.createObjectURL(file), id: crypto.randomUUID() })
     }
     setPhotos(next)
+    void Promise.all(next.map(async (photo) => {
+      const dims = await new Promise<{ width: number; height: number }>((resolve) => {
+        const img = new Image()
+        img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight })
+        img.onerror = () => resolve({ width: 0, height: 0 })
+        img.src = photo.preview
+      })
+      return draftPhoto({ id: photo.id, name: photo.file.name, notes: reportNotes, width: dims.width, height: dims.height, bytes: photo.file.size })
+    })).then((drafts) => {
+      setPhotoDrafts(drafts)
+      setReportDraft(draftPhotoReport(address, drafts, reportNotes))
+    })
     if (unsupportedCount || limitReached) {
       setError(`Only JPEG, PNG, and WebP photos are supported, up to ${MAX_PHOTOS} photos and 30 MB total.`)
     } else {
@@ -338,7 +354,39 @@ export default function PhotoEstimatePage() {
     <p className="text-sm text-slate-300 mt-1 mb-4">Upload evidence first. The system assembles address, property, storm, measurement, pricing, and report candidates. A technician must verify the packet before it can be sent.</p>
     <div className="bg-amber-400/10 border border-amber-400/30 rounded-lg p-3 text-sm text-amber-100 mb-4"><b>Important:</b> OCR can read visible address text; it cannot prove a roof photo’s location. Confirm the property and quantities before approval.</div>
     <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp" capture="environment" multiple className="hidden" onChange={chooseFiles} />
-    <button onClick={() => inputRef.current?.click()} className="ops-btn-primary w-full py-3">{photos.length ? `Add photos (${photos.length})` : 'Take or upload photos'}</button>
+
+    <section className="glass rounded-xl p-4 mt-4 space-y-2 border border-cyan-400/30">
+      <div className="flex items-center justify-between">
+        <h2 className="font-bold text-sm">Photo → report drafts</h2>
+        <span className="text-[10px] uppercase text-cyan-200">Maxed · gated</span>
+      </div>
+      <textarea value={reportNotes} onChange={(e) => { setReportNotes(e.target.value); setReportDraft(draftPhotoReport(address, photoDrafts, e.target.value)) }} placeholder="Damage notes: hail, gutters, siding, windows, fascia..." className="w-full p-2 border rounded text-sm" rows={3} />
+      {reportDraft && (
+        <div className="text-xs space-y-1">
+          <p>{reportDraft.statements[0]}</p>
+          <p>{reportDraft.statements[1]}</p>
+          <p>{reportDraft.statements[2]}</p>
+          <p>{reportDraft.statements[3]}</p>
+          <p className="text-cyan-200">{reportDraft.next}</p>
+          <p>Trades: {reportDraft.trades.join(', ') || 'none'}</p>
+          {reportDraft.damages.length > 0 && <ul className="list-disc pl-4">{reportDraft.damages.map((d) => <li key={d.trade + d.category}>{d.trade} · {d.category} · {d.severity}</li>)}</ul>}
+        </div>
+      )}
+      {photoDrafts.length > 0 && (
+        <div className="grid grid-cols-2 gap-2 text-[11px]">
+          {photoDrafts.map((draft) => (
+            <div key={draft.id} className="border border-white/10 rounded p-2">
+              <p className="font-bold">{draft.elevation} · {draft.quality}</p>
+              <p>{draft.width}×{draft.height} · {Math.round(draft.bytes / 1024)} KB</p>
+              <p>{draft.captions.join(' · ')}</p>
+            </div>
+          ))}
+        </div>
+      )}
+      <p className="text-[10px] text-slate-400">Elevations: {PHOTO_REPORT_OPTIONS.elevations.join(', ')}. Trades: {PHOTO_REPORT_OPTIONS.trades.join(', ')}. Drafts only — the verified workflow still gates the packet.</p>
+    </section>
+
+        <button onClick={() => inputRef.current?.click()} className="ops-btn-primary w-full py-3">{photos.length ? `Add photos (${photos.length})` : 'Take or upload photos'}</button>
     {photos.length > 0 && <><div className="grid grid-cols-3 gap-2 mt-3">{photos.map((photo) => <img key={photo.id} src={photo.preview} alt="Uploaded roof evidence" className="h-24 w-full object-cover rounded" />)}</div><button onClick={() => void findAddressInPhotos()} disabled={ocrWorking} className="w-full mt-3 bg-purple-600 text-white py-2 rounded-lg disabled:opacity-60">{ocrWorking ? 'Reading photo text…' : 'Find address text in photo'}</button></>}
     <div className="glass rounded-xl p-4 mt-4 space-y-3">
       <h2 className="font-semibold">Property confirmation</h2>
