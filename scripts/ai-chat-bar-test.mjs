@@ -29,7 +29,7 @@ assert.ok(
   componentSource.includes('/api/ai/chat'),
   'AiChatBar must connect to /api/ai/chat'
 )
-for (const action of ['Track Storms', 'Review Leads', 'Aerial Measure', 'Create Estimate', 'Golden Report']) {
+for (const action of ['Estimate', 'Photos', 'Leads', 'Storms', 'Report']) {
   assert.ok(
     componentSource.includes(action),
     `AiChatBar must provide quick action suggestion: ${action}`

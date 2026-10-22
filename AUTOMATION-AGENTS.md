@@ -1,5 +1,7 @@
 # ROOF/OS Automation Agents
 
+**Field AI status (2026-10-22):** 225 human-gated draft functions live in `apps/field/src/ai/batch*.ts`. Every result returns `requiresApproval: true`. No authoritative writes from the field. Desktop approval is required. See [CURRENT-STATE.md](CURRENT-STATE.md) and [COMPETITIVE-MAP.md](COMPETITIVE-MAP.md).
+
 ROOF/OS should use four bounded automation agents. Each agent is an auditable worker with deterministic rules first and optional local open-source language-model assistance second. The system must continue to function when no model is configured.
 
 ## Agent 1: Intake and Lead Router

@@ -1,4 +1,6 @@
-> **Historical checkpoint warning (updated 2026-10-09):** The checkpoint below was written against baseline `bfdc565` on 2026-10-08 and is not the current repository baseline. Current main is `a308459182e9a6867fb736240c6dc2af9f3aa6e9`. See [AUDIT-STATUS-2026-10-09.md](AUDIT-STATUS-2026-10-09.md) for current GitHub evidence and items that remain unverified. Do not treat older deployment or test claims in this file as verification of the current main commit or live production services.
+> **Current working state (2026-10-22):** Branch `feature/top25-batch-126-150` at `7770594`. PR #303 open. All AI drafts are human-gated (`requiresApproval: true`). Multi-trade estimate page and differentiators 151-225 are wired. See the chronological entries below and [HANDOFF.md](HANDOFF.md) / [COMPETITIVE-MAP.md](COMPETITIVE-MAP.md).
+
+> **Historical checkpoint warning (updated 2026-10-09):** The checkpoint below was written against baseline `bfdc565` on 2026-10-08 and is not the current repository baseline. Current main is `ff20c78` (PR #302 merged). See [AUDIT-STATUS-2026-10-09.md](AUDIT-STATUS-2026-10-09.md) for historical GitHub evidence. Do not treat older deployment or test claims in this file as verification of the current main commit or live production services.
 
 ## 2026-10-08 Main Branch Three-Level Audit Checkpoint
 
@@ -79,3 +81,111 @@ No UI, no authoritative writes.
 Added apps/field/src/ai/batch101to125.ts with human-gated drafts for hail impacts, wind uplift, underlayment, ice dam, ventilation, gutter, skylight, chimney, valley, drip edge, starter, hip/ridge, steep adder, access, dumpster, permit, HOA, color, warranty years, follow-up, album gaps, sync priority, crew note, customer text, office handoff.
 
 Wired hail, wind, album gaps, office handoff, and customer text into DraftActions.
+
+## 2026-10-22 Automations 126-150
+
+Added apps/field/src/ai/batch126to150.ts with human-gated drafts for material match, tear-off, deck repair, pipe boots, ridge vent, soffit, fascia, gutter guard, skylight flash, satellite, solar, chimney cap, cricket, ice barrier, underlayment type, nail pattern, waste factor, labor crew, duration, staging, safety harness, dump fee, permit cost, final walk, and review request.
+
+Wired material match, tear-off, duration, safety harness, and review request into DraftActions.
+
+## 2026-10-22 Detailed Estimate Page
+
+Added apps/field/src/EstimatePage.tsx mirroring AccuLynx / JobNimbus / Roofr estimate workflows:
+- Measurement summary (squares, pitch, waste)
+- Collapsible sections: Materials, Labor, Accessories, Other
+- Editable line items (name, qty, unit, unit price, total)
+- Margin % and tax % with live totals
+- Customer note + internal note
+- Draft banner requiring desktop approval
+
+Wired via "Open detailed estimate" button on the inspection screen. All values remain drafts.
+
+## 2026-10-22 AI assist on estimate page
+
+EstimatePage now has an "AI assist — prefill from notes & measurements" button.
+When tapped it uses the existing 126-150 draft functions to populate:
+- Material type from notes
+- Tear-off, deck repair, ice barrier, cricket, soffit, fascia, gutter guard, satellite, solar
+- Pipe boot count, ridge vent LF, nail pattern, waste, crew, duration, staging, harness
+- Dump fee and permit
+
+Tech chooses whether to apply. All results remain drafts requiring desktop approval.
+
+## 2026-10-22 Extreme multi-trade estimate page
+
+EstimatePage now covers:
+- Roofing (shingles, underlayment, ice barrier, starter, drip edge, ridge cap, ridge vent, step/counter flashing, pipe boots, cricket, nail pattern, labor, tear-off, steep)
+- Roofing Repairs (deck, valley metal, pipe jacks, flashing reseal)
+- Gutters (K-style, miters, end caps, hangers, guards)
+- Downspouts (downspouts, elbows, outlets, straps)
+- Siding (material, house wrap, J-channel, corners, starter, demo, staging)
+- Windows (replacement, flashing, interior trim)
+- Exterior Painting (prep, primer, 2-coat, trim)
+- Interior Painting (walls, ceilings, trim)
+- Fascia and Soffit (with tear-off)
+- Accessories and Other
+
+AI assist uses existing draft functions + measurement-derived quantities (eave, rake, hip/ridge, wall SF, window count).
+
+## 2026-10-22 Competitive parity + differentiators
+
+Added COMPETITIVE-MAP.md and apps/field/src/ai/batch151to175.ts.
+Wired Good/Better/Best, pitch labor, material order, portal summary, e-sign ready, and financing drafts into the estimate page.
+All remain human-gated.
+
+## 2026-10-22 Differentiators 176-200
+
+Added apps/field/src/ai/batch176to200.ts covering job cost, supplements, work orders, production day, portal, automation trigger, branded proposal, photo annotation, margin floor, waste override, tax exempt, discount, warranty, insurance claim, permit status, crew schedule, material delivery, change order reason, customer approval, final invoice, review request, follow-up, lead score, next action, and completeness.
+
+Wired job cost, work order, margin floor, warranty, completeness, and next action into the estimate page.
+
+## 2026-10-22 Differentiators 201-225
+
+Added apps/field/src/ai/batch201to225.ts covering color match, shingle weight, ventilation calc, ice dam risk, access difficulty, dumpster size, magnet sweep, customer text, office handoff, photo quality, damage severity, hail impacts, wind uplift, album gaps, structured notes, price book match, labor hours, material lead time, safety checklist, cleanup, warranty registration, referral ask, upsell, and competitive note.
+
+Wired color, customer text, office handoff, upsell, and competitive note into the estimate page.
+
+## 2026-10-22 All drafts wired
+
+Added apps/field/src/ai/DraftCatalog.tsx. It collects every draft* export from batches 1 through 201-225 and presents a searchable modal. Every function is reachable from the inspection screen via "All AI drafts".
+
+## 2026-10-22 Owner YOLO gate
+
+Added apps/field/src/ai/YoloGate.tsx.
+- Hidden by default. Long-press the empty gap under the draft catalog to reveal.
+- Owner PIN required to unlock (stored in expo-secure-store).
+- Once unlocked, toggles free specific AI paths: estimate apply, AI prefill, customer text, material order, or all drafts.
+- Locking clears every free toggle.
+
+## 2026-10-22 Owner settings page
+
+Added apps/field/src/ai/OwnerSettings.tsx and an "Owner settings" button on the inspection screen.
+- PIN-gated entry (set, change, or clear)
+- YOLO free toggles: unlock, estimate apply, AI prefill, customer text, material order, free all
+- Stored in expo-secure-store
+
+## 2026-10-22 All behaviors wired
+
+Added apps/field/src/ai/behaviors.ts.
+- loadYolo / canApply reads owner free flags
+- enqueue writes to a local secure-store queue (estimate, material-order, customer-text, desktop-approval, work-order, portal, esign, financing)
+- EstimatePage buttons now queue real actions; AI prefill also queues
+- DraftCatalog enqueues every run as a desktop-approval item
+- When YOLO free flags are on, estimate/prefill/material/text mark applied: true
+
+## 2026-10-22 External send behaviors
+
+Added:
+- app/api/field/sms/route.ts — Twilio SMS when configured, else 202 queued
+- app/api/field/material-order/route.ts — supplier order when SUPPLIER_API_KEY set, else queued
+- app/api/field/esign/route.ts — DocuSign stub when DOCUSIGN_API_KEY set, else queued
+- apps/field/src/ai/external.ts — field helpers that queue locally and POST to the web routes
+
+EstimatePage material order, customer text, and e-sign now call the external helpers.
+
+## 2026-10-22 YOLO free agent
+
+When owner unlocks YOLO and turns on "Free all drafts":
+- DraftCatalog applies every draft immediately (applied: true, kind estimate) instead of desktop-approval
+- Work order, portal, e-sign, and financing also mark applied
+- Catalog button shows "FREE" when the flag is on

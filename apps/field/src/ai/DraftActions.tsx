@@ -4,6 +4,7 @@ import { draftGoldenReport, draftEstimate, type PhotoAiResult } from './batch1'
 import { draftDamageSeverity, draftPhotoQuality, draftVoiceMeasurement, draftCompleteness, draftDailySummary } from './batch26to50'
 import { draftMissingShingles, draftGranuleLoss, draftStructuredNote, draftJobComplete, draftAuditEvent, draftAgentProposal } from './batch76to100'
 import { draftHailImpacts, draftWindUplift, draftPhotoAlbumGap, draftOfficeHandoff, draftCustomerText } from './batch101to125'
+import { draftMaterialMatch, draftTearOff, draftDuration, draftSafetyHarness, draftReviewRequest } from './batch126to150'
 
 type Props = {
   photoCount: number
@@ -146,6 +147,36 @@ export function DraftActions({ photoCount, notes, squares, pitch, hasPriceBook, 
     setModal('customer')
   }
 
+  function showMaterial() {
+    const d = draftMaterialMatch(notes)
+    setContent(JSON.stringify(d, null, 2))
+    setModal('material')
+  }
+
+  function showTearOff() {
+    const d = draftTearOff(notes)
+    setContent(JSON.stringify(d, null, 2))
+    setModal('tearoff')
+  }
+
+  function showDuration() {
+    const d = draftDuration(squares)
+    setContent(JSON.stringify(d, null, 2))
+    setModal('duration')
+  }
+
+  function showHarness() {
+    const d = draftSafetyHarness(pitch)
+    setContent(JSON.stringify(d, null, 2))
+    setModal('harness')
+  }
+
+  function showReview() {
+    const d = draftReviewRequest('Customer')
+    setContent(JSON.stringify(d, null, 2))
+    setModal('review')
+  }
+
   return (
     <View style={{ marginTop: 12, gap: 8 }}>
       <Pressable onPress={showReport} style={{ backgroundColor: '#1769e0', padding: 12, borderRadius: 8 }}>
@@ -210,6 +241,21 @@ export function DraftActions({ photoCount, notes, squares, pitch, hasPriceBook, 
       </Pressable>
       <Pressable onPress={showCustomer} style={{ backgroundColor: '#1769e0', padding: 12, borderRadius: 8 }}>
         <Text style={{ color: '#fff', textAlign: 'center' }}>Customer text</Text>
+      </Pressable>
+      <Pressable onPress={showMaterial} style={{ backgroundColor: '#138a5b', padding: 12, borderRadius: 8 }}>
+        <Text style={{ color: '#fff', textAlign: 'center' }}>Material match</Text>
+      </Pressable>
+      <Pressable onPress={showTearOff} style={{ backgroundColor: '#b42318', padding: 12, borderRadius: 8 }}>
+        <Text style={{ color: '#fff', textAlign: 'center' }}>Tear-off</Text>
+      </Pressable>
+      <Pressable onPress={showDuration} style={{ backgroundColor: '#607086', padding: 12, borderRadius: 8 }}>
+        <Text style={{ color: '#fff', textAlign: 'center' }}>Duration</Text>
+      </Pressable>
+      <Pressable onPress={showHarness} style={{ backgroundColor: '#102033', padding: 12, borderRadius: 8 }}>
+        <Text style={{ color: '#fff', textAlign: 'center' }}>Safety harness</Text>
+      </Pressable>
+      <Pressable onPress={showReview} style={{ backgroundColor: '#1769e0', padding: 12, borderRadius: 8 }}>
+        <Text style={{ color: '#fff', textAlign: 'center' }}>Review request</Text>
       </Pressable>
 
       <Modal visible={!!modal} animationType="slide" onRequestClose={() => setModal(null)}>
