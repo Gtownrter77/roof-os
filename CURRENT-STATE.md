@@ -97,3 +97,19 @@ When tapped it uses the existing 126-150 draft functions to populate:
 - Dump fee and permit
 
 Tech chooses whether to apply. All results remain drafts requiring desktop approval.
+
+## 2026-10-22 Extreme multi-trade estimate page
+
+EstimatePage now covers:
+- Roofing (shingles, underlayment, ice barrier, starter, drip edge, ridge cap, ridge vent, step/counter flashing, pipe boots, cricket, nail pattern, labor, tear-off, steep)
+- Roofing Repairs (deck, valley metal, pipe jacks, flashing reseal)
+- Gutters (K-style, miters, end caps, hangers, guards)
+- Downspouts (downspouts, elbows, outlets, straps)
+- Siding (material, house wrap, J-channel, corners, starter, demo, staging)
+- Windows (replacement, flashing, interior trim)
+- Exterior Painting (prep, primer, 2-coat, trim)
+- Interior Painting (walls, ceilings, trim)
+- Fascia and Soffit (with tear-off)
+- Accessories and Other
+
+AI assist uses existing draft functions + measurement-derived quantities (eave, rake, hip/ridge, wall SF, window count).

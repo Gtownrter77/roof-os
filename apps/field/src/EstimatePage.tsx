@@ -45,7 +45,20 @@ type Props = {
   onClose?: () => void
 }
 
-const SECTIONS = ['Materials', 'Labor', 'Accessories', 'Other'] as const
+const SECTIONS = [
+  'Roofing',
+  'Roofing Repairs',
+  'Gutters',
+  'Downspouts',
+  'Siding',
+  'Windows',
+  'Exterior Painting',
+  'Interior Painting',
+  'Fascia',
+  'Soffit',
+  'Accessories',
+  'Other',
+] as const
 
 function uid() {
   return Math.random().toString(36).slice(2, 9)
@@ -57,8 +70,8 @@ function aiSeedItems(squares: number, pitch: number, notes: string, laborRate: n
   const deck = draftDeckRepair(notes)
   const boots = draftPipeBoots(notes)
   const ridge = draftRidgeVent(squares)
-  const soffit = draftSoffit(notes)
-  const fascia = draftFascia(notes)
+  const soffitNeeded = draftSoffit(notes)
+  const fasciaNeeded = draftFascia(notes)
   const guard = draftGutterGuard(notes)
   const sat = draftSatellite(notes)
   const solar = draftSolar(notes)
@@ -76,32 +89,101 @@ function aiSeedItems(squares: number, pitch: number, notes: string, laborRate: n
 
   const wasteFactor = 1 + waste.percent / 100
   const matQty = Math.round(squares * wasteFactor * 10) / 10
+  const eaveLf = Math.round(squares * 4)
+  const rakeLf = Math.round(squares * 2)
+  const hipRidgeLf = Math.round(squares * 3)
+  const wallSf = Math.round(squares * 40)
+  const windowCount = Math.max(4, Math.round(squares / 4))
 
-  const items: LineItem[] = [
-    { id: uid(), section: 'Materials', name: material.match, qty: matQty, unit: 'sq', unitPrice: materialRate || 95 },
-    { id: uid(), section: 'Materials', name: under.type, qty: Math.round(squares * 1.05 * 10) / 10, unit: 'sq', unitPrice: under.type.includes('Double') ? 28 : 18 },
-  ]
+  const items: LineItem[] = []
 
-  if (tear.needed) items.push({ id: uid(), section: 'Labor', name: 'Tear-off', qty: squares, unit: 'sq', unitPrice: 15 })
-  if (deck.flagged) items.push({ id: uid(), section: 'Labor', name: 'Deck repair allowance', qty: 1, unit: 'ea', unitPrice: 350 })
-  items.push({ id: uid(), section: 'Labor', name: 'Install', qty: squares, unit: 'sq', unitPrice: laborRate || 45 })
-  if (harness.required) items.push({ id: uid(), section: 'Labor', name: 'Safety harness / steep', qty: squares, unit: 'sq', unitPrice: 12 })
-  if (staging.needed) items.push({ id: uid(), section: 'Labor', name: 'Staging', qty: 1, unit: 'ea', unitPrice: 250 })
-  items.push({ id: uid(), section: 'Labor', name: `Crew (${crew.crew}) · ${duration.days} day(s)`, qty: 1, unit: 'job', unitPrice: 0 })
+  // Roofing
+  items.push({ id: uid(), section: 'Roofing', name: material.match + ' (with waste)', qty: matQty, unit: 'sq', unitPrice: materialRate || 95 })
+  items.push({ id: uid(), section: 'Roofing', name: under.type, qty: Math.round(squares * 1.05 * 10) / 10, unit: 'sq', unitPrice: under.type.includes('Double') ? 28 : 18 })
+  if (ice.needed) items.push({ id: uid(), section: 'Roofing', name: 'Ice & water barrier (eaves + valleys)', qty: Math.round(squares * 0.35 * 10) / 10, unit: 'sq', unitPrice: 45 })
+  items.push({ id: uid(), section: 'Roofing', name: 'Starter strip', qty: eaveLf + rakeLf, unit: 'lf', unitPrice: 1.2 })
+  items.push({ id: uid(), section: 'Roofing', name: 'Drip edge', qty: eaveLf + rakeLf, unit: 'lf', unitPrice: 1.8 })
+  items.push({ id: uid(), section: 'Roofing', name: 'Ridge cap', qty: hipRidgeLf, unit: 'lf', unitPrice: 3.5 })
+  items.push({ id: uid(), section: 'Roofing', name: 'Ridge vent', qty: ridge.lf, unit: 'lf', unitPrice: 4.5 })
+  items.push({ id: uid(), section: 'Roofing', name: 'Step flashing', qty: Math.round(squares * 1.5), unit: 'lf', unitPrice: 2.5 })
+  items.push({ id: uid(), section: 'Roofing', name: 'Counter flashing', qty: Math.round(squares * 0.8), unit: 'lf', unitPrice: 4 })
+  if (boots.count > 0) items.push({ id: uid(), section: 'Roofing', name: 'Pipe boots / vent flashing', qty: boots.count, unit: 'ea', unitPrice: 28 })
+  if (cricket.needed) items.push({ id: uid(), section: 'Roofing', name: 'Chimney cricket', qty: 1, unit: 'ea', unitPrice: 180 })
+  items.push({ id: uid(), section: 'Roofing', name: nails.pattern + ' pattern', qty: matQty, unit: 'sq', unitPrice: 0 })
+  items.push({ id: uid(), section: 'Roofing', name: 'Install labor', qty: squares, unit: 'sq', unitPrice: laborRate || 45 })
+  if (tear.needed) items.push({ id: uid(), section: 'Roofing', name: 'Tear-off', qty: squares, unit: 'sq', unitPrice: 15 })
+  if (harness.required) items.push({ id: uid(), section: 'Roofing', name: 'Steep / harness adder', qty: squares, unit: 'sq', unitPrice: 12 })
+  items.push({ id: uid(), section: 'Roofing', name: `Crew ${crew.crew} · ${duration.days} day(s)`, qty: 1, unit: 'job', unitPrice: 0 })
 
-  if (ice.needed) items.push({ id: uid(), section: 'Materials', name: 'Ice barrier', qty: Math.round(squares * 0.3 * 10) / 10, unit: 'sq', unitPrice: 45 })
-  if (cricket.needed) items.push({ id: uid(), section: 'Accessories', name: 'Cricket', qty: 1, unit: 'ea', unitPrice: 180 })
-  items.push({ id: uid(), section: 'Accessories', name: 'Ridge vent', qty: ridge.lf, unit: 'lf', unitPrice: 4.5 })
-  if (boots.count > 0) items.push({ id: uid(), section: 'Accessories', name: 'Pipe boots', qty: boots.count, unit: 'ea', unitPrice: 28 })
-  if (soffit.needed) items.push({ id: uid(), section: 'Accessories', name: 'Soffit', qty: 1, unit: 'ea', unitPrice: 120 })
-  if (fascia.needed) items.push({ id: uid(), section: 'Accessories', name: 'Fascia', qty: 1, unit: 'ea', unitPrice: 95 })
-  if (guard.suggest) items.push({ id: uid(), section: 'Accessories', name: 'Gutter guard', qty: 1, unit: 'ea', unitPrice: 220 })
+  // Roofing Repairs
+  if (deck.flagged) items.push({ id: uid(), section: 'Roofing Repairs', name: 'Deck / sheathing repair', qty: 1, unit: 'ea', unitPrice: 350 })
+  items.push({ id: uid(), section: 'Roofing Repairs', name: 'Valley metal', qty: Math.round(squares * 0.5), unit: 'lf', unitPrice: 6 })
+  items.push({ id: uid(), section: 'Roofing Repairs', name: 'Pipe jack / boot replacement', qty: Math.max(1, boots.count), unit: 'ea', unitPrice: 35 })
+  items.push({ id: uid(), section: 'Roofing Repairs', name: 'Flashing reseal / touch-up', qty: 1, unit: 'job', unitPrice: 120 })
+
+  // Gutters
+  items.push({ id: uid(), section: 'Gutters', name: 'K-style gutter (5")', qty: eaveLf, unit: 'lf', unitPrice: 8 })
+  items.push({ id: uid(), section: 'Gutters', name: 'Inside / outside miters', qty: 4, unit: 'ea', unitPrice: 12 })
+  items.push({ id: uid(), section: 'Gutters', name: 'End caps', qty: 4, unit: 'ea', unitPrice: 6 })
+  items.push({ id: uid(), section: 'Gutters', name: 'Hangers / brackets', qty: Math.ceil(eaveLf / 2), unit: 'ea', unitPrice: 1.5 })
+  if (guard.suggest) items.push({ id: uid(), section: 'Gutters', name: 'Gutter guards', qty: eaveLf, unit: 'lf', unitPrice: 4 })
+
+  // Downspouts
+  const dsCount = Math.max(2, Math.ceil(eaveLf / 40))
+  items.push({ id: uid(), section: 'Downspouts', name: 'Downspouts (3" x 4")', qty: dsCount * 12, unit: 'lf', unitPrice: 6 })
+  items.push({ id: uid(), section: 'Downspouts', name: 'Elbows (A/B)', qty: dsCount * 2, unit: 'ea', unitPrice: 8 })
+  items.push({ id: uid(), section: 'Downspouts', name: 'Outlets', qty: dsCount, unit: 'ea', unitPrice: 7 })
+  items.push({ id: uid(), section: 'Downspouts', name: 'Straps / brackets', qty: dsCount * 3, unit: 'ea', unitPrice: 2 })
+
+  // Siding
+  items.push({ id: uid(), section: 'Siding', name: 'Siding (vinyl / fiber cement)', qty: wallSf, unit: 'sf', unitPrice: 4.5 })
+  items.push({ id: uid(), section: 'Siding', name: 'House wrap', qty: wallSf, unit: 'sf', unitPrice: 0.35 })
+  items.push({ id: uid(), section: 'Siding', name: 'J-channel', qty: Math.round(wallSf * 0.15), unit: 'lf', unitPrice: 1.2 })
+  items.push({ id: uid(), section: 'Siding', name: 'Outside corners', qty: 8, unit: 'ea', unitPrice: 18 })
+  items.push({ id: uid(), section: 'Siding', name: 'Starter strip', qty: Math.round(wallSf * 0.1), unit: 'lf', unitPrice: 1 })
+  items.push({ id: uid(), section: 'Siding', name: 'Demo + disposal', qty: 1, unit: 'job', unitPrice: 450 })
+  if (staging.needed) items.push({ id: uid(), section: 'Siding', name: 'Scaffolding / staging', qty: 1, unit: 'job', unitPrice: 350 })
+
+  // Windows
+  items.push({ id: uid(), section: 'Windows', name: 'Window replacement', qty: windowCount, unit: 'ea', unitPrice: 450 })
+  items.push({ id: uid(), section: 'Windows', name: 'Flashing / seal', qty: windowCount, unit: 'ea', unitPrice: 35 })
+  items.push({ id: uid(), section: 'Windows', name: 'Interior trim', qty: windowCount, unit: 'ea', unitPrice: 45 })
+
+  // Exterior Painting
+  items.push({ id: uid(), section: 'Exterior Painting', name: 'Prep / scrape / wash', qty: wallSf, unit: 'sf', unitPrice: 0.4 })
+  items.push({ id: uid(), section: 'Exterior Painting', name: 'Primer', qty: wallSf, unit: 'sf', unitPrice: 0.35 })
+  items.push({ id: uid(), section: 'Exterior Painting', name: '2-coat finish', qty: wallSf, unit: 'sf', unitPrice: 0.9 })
+  items.push({ id: uid(), section: 'Exterior Painting', name: 'Trim paint', qty: eaveLf + rakeLf, unit: 'lf', unitPrice: 1.5 })
+
+  // Interior Painting
+  const intSf = Math.round(squares * 25)
+  items.push({ id: uid(), section: 'Interior Painting', name: 'Walls (primer + 2 coats)', qty: intSf, unit: 'sf', unitPrice: 1.2 })
+  items.push({ id: uid(), section: 'Interior Painting', name: 'Ceilings', qty: Math.round(intSf * 0.4), unit: 'sf', unitPrice: 0.8 })
+  items.push({ id: uid(), section: 'Interior Painting', name: 'Trim / doors', qty: 1, unit: 'job', unitPrice: 350 })
+
+  // Fascia
+  if (fasciaNeeded.needed) {
+    items.push({ id: uid(), section: 'Fascia', name: 'Fascia board / wrap', qty: eaveLf + rakeLf, unit: 'lf', unitPrice: 8 })
+    items.push({ id: uid(), section: 'Fascia', name: 'Fascia tear-off', qty: eaveLf + rakeLf, unit: 'lf', unitPrice: 2 })
+  }
+
+  // Soffit
+  if (soffitNeeded.needed) {
+    const soffitSf = Math.round(eaveLf * 1.5)
+    items.push({ id: uid(), section: 'Soffit', name: 'Soffit panels (vented)', qty: soffitSf, unit: 'sf', unitPrice: 5 })
+    items.push({ id: uid(), section: 'Soffit', name: 'J-channel / F-channel', qty: eaveLf * 2, unit: 'lf', unitPrice: 1.1 })
+    items.push({ id: uid(), section: 'Soffit', name: 'Soffit tear-off', qty: soffitSf, unit: 'sf', unitPrice: 1.5 })
+  }
+
+  // Accessories
   if (sat.present) items.push({ id: uid(), section: 'Accessories', name: 'Satellite relocation', qty: 1, unit: 'ea', unitPrice: 75 })
   if (solar.present) items.push({ id: uid(), section: 'Accessories', name: 'Solar coordination', qty: 1, unit: 'ea', unitPrice: 200 })
-  items.push({ id: uid(), section: 'Accessories', name: nails.pattern, qty: 1, unit: 'job', unitPrice: 0 })
+  items.push({ id: uid(), section: 'Accessories', name: 'Magnet sweep / cleanup', qty: 1, unit: 'job', unitPrice: 75 })
 
+  // Other
   items.push({ id: uid(), section: 'Other', name: 'Dumpster', qty: 1, unit: 'ea', unitPrice: dump.estimate })
-  items.push({ id: uid(), section: 'Other', name: 'Permit', qty: 1, unit: 'ea', unitPrice: permit.estimate })
+  items.push({ id: uid(), section: 'Other', name: 'Permit allowance', qty: 1, unit: 'ea', unitPrice: permit.estimate })
+  items.push({ id: uid(), section: 'Other', name: 'Final walk / punch', qty: 1, unit: 'job', unitPrice: 0 })
 
   return items
 }
@@ -109,16 +191,21 @@ function aiSeedItems(squares: number, pitch: number, notes: string, laborRate: n
 function seedItems(squares: number, pitch: number, laborRate: number, materialRate: number): LineItem[] {
   const waste = pitch >= 8 ? 0.15 : 0.1
   const matQty = Math.round(squares * (1 + waste) * 10) / 10
+  const eaveLf = Math.round(squares * 4)
   return [
-    { id: uid(), section: 'Materials', name: 'Architectural shingles', qty: matQty, unit: 'sq', unitPrice: materialRate || 95, },
-    { id: uid(), section: 'Materials', name: 'Synthetic underlayment', qty: Math.round(squares * 1.05 * 10) / 10, unit: 'sq', unitPrice: 18 },
-    { id: uid(), section: 'Materials', name: 'Starter strip', qty: Math.round(squares * 0.4 * 10) / 10, unit: 'lf', unitPrice: 1.2 },
-    { id: uid(), section: 'Labor', name: 'Tear-off and install', qty: squares, unit: 'sq', unitPrice: laborRate || 45 },
-    { id: uid(), section: 'Labor', name: 'Steep adder', qty: pitch >= 8 ? squares : 0, unit: 'sq', unitPrice: 12 },
-    { id: uid(), section: 'Accessories', name: 'Ridge vent', qty: Math.round(squares * 2), unit: 'lf', unitPrice: 4.5 },
-    { id: uid(), section: 'Accessories', name: 'Pipe boots', qty: 4, unit: 'ea', unitPrice: 28 },
-    { id: uid(), section: 'Other', name: 'Dumpster', qty: squares > 25 ? 2 : 1, unit: 'ea', unitPrice: 450 },
-    { id: uid(), section: 'Other', name: 'Permit allowance', qty: 1, unit: 'ea', unitPrice: 150 },
+    { id: uid(), section: 'Roofing', name: 'Architectural shingles', qty: matQty, unit: 'sq', unitPrice: materialRate || 95 },
+    { id: uid(), section: 'Roofing', name: 'Underlayment', qty: Math.round(squares * 1.05 * 10) / 10, unit: 'sq', unitPrice: 18 },
+    { id: uid(), section: 'Roofing', name: 'Starter + drip edge', qty: eaveLf, unit: 'lf', unitPrice: 3 },
+    { id: uid(), section: 'Roofing', name: 'Install labor', qty: squares, unit: 'sq', unitPrice: laborRate || 45 },
+    { id: uid(), section: 'Gutters', name: 'K-style gutter', qty: eaveLf, unit: 'lf', unitPrice: 8 },
+    { id: uid(), section: 'Downspouts', name: 'Downspouts', qty: Math.max(24, Math.round(eaveLf * 0.3)), unit: 'lf', unitPrice: 6 },
+    { id: uid(), section: 'Siding', name: 'Siding allowance', qty: Math.round(squares * 40), unit: 'sf', unitPrice: 4.5 },
+    { id: uid(), section: 'Windows', name: 'Window allowance', qty: Math.max(4, Math.round(squares / 4)), unit: 'ea', unitPrice: 450 },
+    { id: uid(), section: 'Exterior Painting', name: 'Exterior paint', qty: Math.round(squares * 40), unit: 'sf', unitPrice: 1.65 },
+    { id: uid(), section: 'Interior Painting', name: 'Interior paint', qty: Math.round(squares * 25), unit: 'sf', unitPrice: 1.2 },
+    { id: uid(), section: 'Fascia', name: 'Fascia', qty: eaveLf, unit: 'lf', unitPrice: 8 },
+    { id: uid(), section: 'Soffit', name: 'Soffit', qty: Math.round(eaveLf * 1.5), unit: 'sf', unitPrice: 5 },
+    { id: uid(), section: 'Other', name: 'Dumpster + permit', qty: 1, unit: 'job', unitPrice: 600 },
   ]
 }
 
@@ -129,7 +216,20 @@ export function EstimatePage({ squares, pitch, notes, laborRate, materialRate, m
   const [marginPct, setMarginPct] = useState(minMargin || 20)
   const [customerNote, setCustomerNote] = useState('Draft estimate — technician must approve on desktop before sending.')
   const [internalNote, setInternalNote] = useState(notes || '')
-  const [open, setOpen] = useState<Record<string, boolean>>({ Materials: true, Labor: true, Accessories: true, Other: true })
+  const [open, setOpen] = useState<Record<string, boolean>>({
+    Roofing: true,
+    'Roofing Repairs': true,
+    Gutters: true,
+    Downspouts: true,
+    Siding: true,
+    Windows: true,
+    'Exterior Painting': true,
+    'Interior Painting': true,
+    Fascia: true,
+    Soffit: true,
+    Accessories: true,
+    Other: true,
+  })
 
   const grouped = useMemo(() => {
     const map: Record<string, LineItem[]> = {}
