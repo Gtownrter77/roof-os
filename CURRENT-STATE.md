@@ -36,3 +36,13 @@ Added `apps/field/src/ai/batch1.ts` scaffolding the first 10 improvements:
 All outputs are drafts requiring human approval. Offline-first. No authoritative writes.
 
 Branch: feature/top25-batch1-field-ai
+
+## 2026-10-21 Top-25 Batch 2 — Draft buttons
+
+Added three non-destructive buttons on the field inspection view via DraftActions:
+- Draft report
+- Draft estimate (disabled until price book; currently stubbed enabled)
+- Copy draft link (prefixed DRAFT — not active yet)
+
+Modal shows draft and notes “Technician must approve on desktop”.
+Unit test covers requiresApproval on report and estimate.

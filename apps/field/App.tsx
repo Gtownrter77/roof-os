@@ -1,3 +1,4 @@
+import { DraftActions } from "./src/ai/DraftActions"
 import { StatusBar } from 'expo-status-bar'
 import * as ImagePicker from 'expo-image-picker'
 import * as Linking from 'expo-linking'
@@ -1331,6 +1332,18 @@ function Checklist({
     </Pressable>
   )
 }
+
+
+      <DraftActions
+        photoCount={photos}
+        notes={verificationNotes}
+        squares={Number(squares) || 0}
+        pitch={Number(pitch) || 0}
+        hasPriceBook={true}
+        laborRate={85}
+        materialRate={120}
+        minMargin={2000}
+      />
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#f7f9fc' },
