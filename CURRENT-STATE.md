@@ -17,3 +17,22 @@ The repository has no open pull requests. Historical and backup branches remain 
 - **Level 1 (Security & Code Integrity):** `typecheck`, `release-check`, `verify:security`, `test:receptionist`, and production dependency audit passed.
 - **Level 2 (Workflows & Business Logic):** the repository test suite passed after fixing the Node 22 TypeScript loading command for `test:ai-chat-bar`.
 - **Level 3 (Production Build):** `npm run build` compiled 111 static/dynamic routes successfully with zero compilation errors.
+
+## 2026-10-21 Top-25 Batch 1 — Field AI Foundations
+
+Added `apps/field/src/ai/batch1.ts` scaffolding the first 10 improvements:
+
+1. Photo AI analysis stub (local draft)
+2. Voice transcript intent parser
+3. Golden Report draft generator
+4. Estimate draft from measurements + price book
+5. Supplement draft
+6. Follow-up message draft
+7. Lead scoring
+8. Upload task model
+9. Adaptive checklist prompt
+10. Building-code suggestion
+
+All outputs are drafts requiring human approval. Offline-first. No authoritative writes.
+
+Branch: feature/top25-batch1-field-ai
