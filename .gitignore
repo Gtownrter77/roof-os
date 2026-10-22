@@ -12,3 +12,5 @@ tsconfig.tsbuildinfo
 apps/field/.expo
 apps/field/dist
 coverage
+.superpowers/
+.claude/
