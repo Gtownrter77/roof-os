@@ -391,7 +391,7 @@ export default function PhotoEstimatePage() {
       const response = await fetch('/api/photo-estimate/report', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ workflowId: workflow.id }),
+        body: JSON.stringify({ workflowId: workflow.id, photoReportDraft: reportDraft }),
       })
       const payload = await response.json().catch(() => null)
       if (!response.ok) throw new Error(payload?.error || 'The full report could not be generated.')
@@ -562,6 +562,7 @@ export default function PhotoEstimatePage() {
 {workflow?.status === 'approved' && workflow?.manager_approved_at && !fullReport && <button onClick={() => void generateFullReport()} disabled={working} className="w-full mt-4 bg-indigo-700 text-white py-3 rounded font-semibold disabled:opacity-60">{working ? 'Generating full report…' : 'Generate full report'}</button>}
     {fullReport && <GoldenReport report={fullReport} photoUrls={reportPhotoById} onPrint={() => window.print()} />}
 
+
     <section className="glass rounded-xl p-4 mt-4 space-y-2 border border-amber-400/40">
       <div className="flex items-center justify-between">
         <h2 className="font-bold text-sm">Estimate → send</h2>
@@ -598,6 +599,13 @@ export default function PhotoEstimatePage() {
         )
       })()}
     </section>
+{fullReport && reportDraft && (
+      <section className="glass rounded-xl p-4 mt-4 space-y-2">
+        <h2 className="font-bold text-sm">Photo-report draft riding with this report</h2>
+        <p className="text-[11px] text-amber-200">Draft only. Coverage {reportDraft.coverageScore}%. Does not replace the golden report.</p>
+        {reportDraft.sections.map((section) => <p key={section.id} className="text-xs"><span className="font-bold">{section.title}:</span> {section.statements[0]}</p>)}
+      </section>
+    )}
 
   </div>
 }
