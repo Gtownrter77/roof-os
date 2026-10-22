@@ -7,7 +7,7 @@ import { createClient } from '../../lib/supabase/client'
 import { createWorker } from 'tesseract.js'
 import { GoldenReport } from '../../components/GoldenReport'
 import { draftPhoto, draftPhotoReport, PHOTO_REPORT_OPTIONS, type PhotoDraft, type ReportDraft } from '../../lib/ai/photo-report'
-import { readJpegGps, chooseAddressFilter, type OnePhotoPacket, type AddressFilter } from '../../lib/ai/one-photo'
+import { readJpegGps, chooseAddressFilter, ADDRESS_FILTERS, type OnePhotoPacket, type AddressFilter } from '../../lib/ai/one-photo'
 
 type Photo = { file: File; preview: string; id: string }
 type SourcePhoto = { id: string; url: string }
@@ -63,6 +63,7 @@ export default function PhotoEstimatePage() {
   const [testHits, setTestHits] = useState('')
   const [onePacket, setOnePacket] = useState<OnePhotoPacket | null>(null)
   const [aiFilter, setAiFilter] = useState<AddressFilter | null>(null)
+  const [aiFiltersRun, setAiFiltersRun] = useState<AddressFilter[]>([])
   const [editedPreview, setEditedPreview] = useState('')
 
   useEffect(() => {
@@ -278,6 +279,8 @@ export default function PhotoEstimatePage() {
       })
       const filter = chooseAddressFilter(dims.width, dims.height, photo.file.size)
       setAiFilter(filter)
+      setAiFiltersRun([...ADDRESS_FILTERS])
+      for (const pass of ADDRESS_FILTERS) await aiFilterForAddress(photo, pass)
       await aiFilterForAddress(photo, filter)
       const bytes = new Uint8Array(await photo.file.arrayBuffer())
       const gps = readJpegGps(bytes)
@@ -463,7 +466,7 @@ export default function PhotoEstimatePage() {
         <span className="text-[10px] uppercase text-emerald-200">Under 10 min · gated</span>
       </div>
       <p className="text-xs text-slate-300">Uses the first photo. GPS → address → NOAA storm date → open aerial note → local code. Tech verifies before email or text.</p>
-      {aiFilter && <p className="text-[11px] text-emerald-200">AI chose {aiFilter} to read the address. Tech does not pick a filter.</p>}
+      {aiFiltersRun.length > 0 && <p className="text-[11px] text-emerald-200">AI ran {aiFiltersRun.join(", ")}. Kept {aiFilter} for the address. Tech does not pick a filter.</p>}
       {editedPreview && <img src={editedPreview} alt="AI filtered for address" className="w-full max-h-48 object-contain rounded border" />}
       <button type="button" onClick={() => void runOnePhoto()} disabled={working || photos.length === 0} className="rounded bg-emerald-400 text-black text-xs font-bold px-3 py-2 disabled:opacity-50">Run one-photo packet</button>
       {onePacket && (
