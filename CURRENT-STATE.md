@@ -119,3 +119,9 @@ AI assist uses existing draft functions + measurement-derived quantities (eave, 
 Added COMPETITIVE-MAP.md and apps/field/src/ai/batch151to175.ts.
 Wired Good/Better/Best, pitch labor, material order, portal summary, e-sign ready, and financing drafts into the estimate page.
 All remain human-gated.
+
+## 2026-10-22 Differentiators 176-200
+
+Added apps/field/src/ai/batch176to200.ts covering job cost, supplements, work orders, production day, portal, automation trigger, branded proposal, photo annotation, margin floor, waste override, tax exempt, discount, warranty, insurance claim, permit status, crew schedule, material delivery, change order reason, customer approval, final invoice, review request, follow-up, lead score, next action, and completeness.
+
+Wired job cost, work order, margin floor, warranty, completeness, and next action into the estimate page.

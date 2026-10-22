@@ -24,6 +24,7 @@ import {
   draftPermitCost,
 } from './ai/batch126to150'
 import { draftGoodBetterBest, draftPitchLabor, draftMaterialOrder, draftPortalSummary, draftESignReady, draftFinancingOffer } from './ai/batch151to175'
+import { draftJobCost, draftWorkOrderTasks, draftMarginFloor, draftWarranty, draftCompleteness, draftNextAction } from './ai/batch176to200'
 
 type LineItem = {
   id: string
@@ -304,6 +305,24 @@ export function EstimatePage({ squares, pitch, notes, laborRate, materialRate, m
           </Pressable>
           <Pressable onPress={() => setDiffDraft(JSON.stringify(draftFinancingOffer(total), null, 2))} style={{ padding: 6, backgroundColor: '#102033', borderRadius: 6 }}>
             <Text style={{ color: '#fff', fontSize: 11 }}>Financing</Text>
+          </Pressable>
+          <Pressable onPress={() => setDiffDraft(JSON.stringify(draftJobCost(total, subtotal * 0.6, subtotal * 0.3, subtotal * 0.1), null, 2))} style={{ padding: 6, backgroundColor: '#102033', borderRadius: 6 }}>
+            <Text style={{ color: '#fff', fontSize: 11 }}>Job cost</Text>
+          </Pressable>
+          <Pressable onPress={() => setDiffDraft(JSON.stringify(draftWorkOrderTasks(Object.keys(grouped)), null, 2))} style={{ padding: 6, backgroundColor: '#102033', borderRadius: 6 }}>
+            <Text style={{ color: '#fff', fontSize: 11 }}>Work order</Text>
+          </Pressable>
+          <Pressable onPress={() => setDiffDraft(JSON.stringify(draftMarginFloor(marginPct, 20), null, 2))} style={{ padding: 6, backgroundColor: '#102033', borderRadius: 6 }}>
+            <Text style={{ color: '#fff', fontSize: 11 }}>Margin floor</Text>
+          </Pressable>
+          <Pressable onPress={() => setDiffDraft(JSON.stringify(draftWarranty(30), null, 2))} style={{ padding: 6, backgroundColor: '#102033', borderRadius: 6 }}>
+            <Text style={{ color: '#fff', fontSize: 11 }}>Warranty</Text>
+          </Pressable>
+          <Pressable onPress={() => setDiffDraft(JSON.stringify(draftCompleteness(0, notes, squares), null, 2))} style={{ padding: 6, backgroundColor: '#102033', borderRadius: 6 }}>
+            <Text style={{ color: '#fff', fontSize: 11 }}>Completeness</Text>
+          </Pressable>
+          <Pressable onPress={() => setDiffDraft(JSON.stringify(draftNextAction('estimated'), null, 2))} style={{ padding: 6, backgroundColor: '#102033', borderRadius: 6 }}>
+            <Text style={{ color: '#fff', fontSize: 11 }}>Next action</Text>
           </Pressable>
         </View>
         {diffDraft && (
