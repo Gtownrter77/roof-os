@@ -48,6 +48,49 @@ export default function CanvassPage() {
   const [saving, setSaving] = useState(false)
   const [notice, setNotice] = useState('')
   const [error, setError] = useState('')
+  const [hardStopActive, setHardStopActive] = useState(false)
+  const [hardStopReason, setHardStopReason] = useState('')
+
+  function playHardStopAlarm() {
+    try {
+      const AudioContextConstructor = window.AudioContext
+      if (!AudioContextConstructor) return
+      const context = new AudioContextConstructor()
+      const duration = 0.9
+      const buffer = context.createBuffer(1, Math.floor(context.sampleRate * duration), context.sampleRate)
+      const samples = buffer.getChannelData(0)
+      for (let i = 0; i < samples.length; i += 1) samples[i] = (Math.random() * 2 - 1) * 0.8
+      const source = context.createBufferSource()
+      const filter = context.createBiquadFilter()
+      const gain = context.createGain()
+      source.buffer = buffer
+      filter.type = 'bandpass'
+      filter.frequency.setValueAtTime(2400, context.currentTime)
+      filter.frequency.exponentialRampToValueAtTime(450, context.currentTime + duration)
+      gain.gain.setValueAtTime(0.001, context.currentTime)
+      gain.gain.linearRampToValueAtTime(0.22, context.currentTime + 0.08)
+      gain.gain.exponentialRampToValueAtTime(0.001, context.currentTime + duration)
+      source.connect(filter)
+      filter.connect(gain)
+      gain.connect(context.destination)
+      source.onended = () => { void context.close() }
+      source.start()
+      source.stop(context.currentTime + duration)
+    } catch {
+      // The visual hard stop remains active if browser audio is unavailable.
+    }
+  }
+
+  function triggerHardStop(reason = 'Homeowner said no') {
+    setHardStopActive(true)
+    setHardStopReason(reason)
+    setForm((current) => ({
+      ...current,
+      outcome: 'DO_NOT_KNOCK',
+      notes: [current.notes.trim(), 'HARD STOP: ' + reason + '. End the interaction immediately; do not continue pitching.'].filter(Boolean).join(' — '),
+    }))
+    playHardStopAlarm()
+  }
   const [selectedObjection, setSelectedObjection] = useState<ObjectionType>('NO_DAMAGE')
   const [showVCard, setShowVCard] = useState(false)
   const [form, setForm] = useState({
@@ -105,11 +148,13 @@ export default function CanvassPage() {
         return
       }
 
-      const fields = canvassOutcomeToLeadFields(form.outcome)
+      const recordedOutcome: CanvassOutcome = hardStopActive ? 'DO_NOT_KNOCK' : form.outcome
+      const fields = canvassOutcomeToLeadFields(recordedOutcome)
       const name = form.homeownerName.trim() || `Canvass: ${address}`
       const phone = form.phone.trim() || null
       const noteBody = [
-        `Door knock: ${form.outcome.replaceAll('_', ' ')}`,
+        hardStopActive ? `CONDUCT EVENT: HARD STOP — ${hardStopReason}` : null,
+        `Door knock: ${recordedOutcome.replaceAll('_', ' ')}`,
         form.notes.trim() ? form.notes.trim() : null,
       ].filter(Boolean).join(' — ')
 
@@ -168,7 +213,7 @@ export default function CanvassPage() {
         leadId = inserted.id
       }
 
-      await supabase.from('lead_activity').insert({
+      const { error: activityError } = await supabase.from('lead_activity').insert({
         lead_id: leadId,
         workspace_id: workspaceId,
         user_id: user.id,
@@ -177,7 +222,18 @@ export default function CanvassPage() {
       })
 
       setForm({ address: '', homeownerName: '', phone: '', outcome: 'INTERESTED', notes: '' })
-      setNotice(existing ? 'Updated existing canvass lead.' : 'Saved to Leads (canvass source).')
+      setHardStopActive(false)
+      setHardStopReason('')
+      if (activityError) {
+        setError(`Lead saved, but the CRM activity log failed: ${activityError.message}`)
+        setNotice(hardStopActive
+          ? 'Do not continue canvassing this homeowner. The lead status was saved, but the hard-stop event was not confirmed in activity history.'
+          : (existing ? 'Lead updated, but the activity note was not saved.' : 'Lead saved, but the activity note was not saved.'))
+      } else {
+        setNotice(hardStopActive
+          ? 'Hard stop recorded in CRM activity. Interaction closed; do not continue canvassing this homeowner.'
+          : (existing ? 'Updated existing canvass lead.' : 'Saved to Leads (canvass source).'))
+      }
       await loadCanvassLeads()
     } catch {
       setError('Failed to save canvass knock into Leads.')
@@ -218,6 +274,13 @@ export default function CanvassPage() {
 
       <main className="p-4 max-w-3xl mx-auto space-y-4">
         {notice && <div className="bg-emerald-50 border border-emerald-200 text-emerald-900 p-3 rounded-lg text-xs font-bold">{notice}</div>}
+        {hardStopActive && (
+          <section role="alert" aria-live="assertive" className="rounded-xl border-4 border-red-600 bg-red-950 p-4 text-white">
+            <h2 className="text-xl font-black uppercase">HARD STOP — DISENGAGE NOW</h2>
+            <p className="mt-1 font-bold">{hardStopReason}. Stop pitching, apologize if appropriate, and leave respectfully. Do not try to overcome this refusal.</p>
+            <p className="mt-2 text-xs">This event will be logged with the lead when you save. No camera or microphone is used.</p>
+          </section>
+        )}
         {error && <div className="bg-red-400/10 border border-red-200 text-red-800 p-3 rounded-lg text-xs font-bold" role="alert">{error}</div>}
 
         {showVCard && (
@@ -245,7 +308,10 @@ export default function CanvassPage() {
             <label className="font-bold text-slate-100 block">Homeowner objection</label>
             <select
               value={selectedObjection}
-              onChange={(e) => setSelectedObjection(e.target.value as ObjectionType)}
+              disabled={hardStopActive}
+              onChange={(e) => {
+                if (!hardStopActive) setSelectedObjection(e.target.value as ObjectionType)
+              }}
               className="w-full p-2 border rounded font-semibold text-xs"
             >
               {Array.from(new Set(CANVASS_OBJECTIONS.map((item) => item.category))).map((category) => (
@@ -256,9 +322,17 @@ export default function CanvassPage() {
                 </optgroup>
               ))}
             </select>
-            {advice.objectionResponse && (
+            {hardStopActive ? (
+              <div role="alert" className="p-3 bg-red-950 border-2 border-red-500 text-white rounded mt-2 font-bold">
+                Respect the refusal. Do not counter, persuade, or ask for another chance. End the interaction and leave.
+              </div>
+            ) : ['NOT_INTERESTED', 'DONT_WANT_SALES', 'DO_NOT_SOLICIT'].includes(selectedObjection) ? (
+              <div className="p-3 bg-red-950/80 border-2 border-red-500 text-white rounded mt-2 font-bold">
+                If this is what the homeowner just said, press the red hard-stop button below. Do not counter, persuade, or ask for another chance. Selecting a training example alone does not log a real-world event.
+              </div>
+            ) : advice.objectionResponse && (
               <div className="p-3 bg-amber-400/10 border border-amber-400/30 text-amber-100 rounded mt-2 font-medium">
-                <p className="font-bold text-[11px] uppercase text-amber-800 mb-0.5">Recommended counter</p>
+                <p className="font-bold text-[11px] uppercase text-amber-800 mb-0.5">Suggested response — never override a refusal</p>
                 <p>&ldquo;{advice.objectionResponse}&rdquo;</p>
               </div>
             )}
@@ -276,6 +350,9 @@ export default function CanvassPage() {
 
         <form onSubmit={(e) => void logKnock(e)} className="glass rounded-xl p-4 space-y-3 border">
           <h2 className="font-bold text-sm text-slate-100">Log door knock → Leads</h2>
+          <button type="button" onClick={() => triggerHardStop()} disabled={hardStopActive || saving} className="w-full rounded-lg border-2 border-red-500 bg-red-700 px-3 py-3 text-sm font-black uppercase tracking-wide text-white disabled:opacity-60">
+            {hardStopActive ? 'Hard stop active — save event' : 'Homeowner said no — HARD STOP'}
+          </button>
           <input
             type="text"
             required
@@ -303,7 +380,12 @@ export default function CanvassPage() {
           <div className="grid grid-cols-2 gap-2">
             <select
               value={form.outcome}
-              onChange={(e) => setForm({ ...form, outcome: e.target.value as CanvassOutcome })}
+              disabled={hardStopActive}
+              onChange={(e) => {
+                const nextOutcome = e.target.value as CanvassOutcome
+                if (nextOutcome === 'DO_NOT_KNOCK') triggerHardStop('Do not knock / no soliciting request')
+                else if (!hardStopActive) setForm({ ...form, outcome: nextOutcome })
+              }}
               className="p-2.5 border rounded-lg text-sm font-semibold"
             >
               <option value="INTERESTED">Interested / inspection requested</option>
