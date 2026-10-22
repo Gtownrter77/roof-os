@@ -1,22 +1,19 @@
 # Handoff — 2026-10-22
 
-## Active lane: estimate → send
+## Active lane: production → materials
 
-Photo → report is closed enough to leave. PR #307 merged. PR #308 open (draft rides with the golden report).
+Estimate → send merged as #309. Photo → report is closed.
 
 ### This lane
-Turn the verified photo packet into a multi-trade estimate draft, then a send draft.
+Signed/approved estimate becomes a work-order draft and a material list.
 
-Tech already confirmed: slope, waste, soffit (in), fascia (in), address certainty.
-
-Agent drafts:
-- Roof squares from the verified measurements
-- Good / Better / Best from one measurement set
-- Lines for roof, gutters, downspouts, siding, windows, paint, fascia, soffit
-- Email and SMS stay drafts until the gate is clear and a technician approves
+- Roof squares, gutter LF, soffit width, fascia width
+- Color confirmation before any order
+- Deck photo before close-in
+- Nothing is ordered or dispatched until a human approves
 
 ### Gate
-Drafts only. No prices become final. No send until approval. No regressions.
+Drafts only. No supplier order. No crew dispatch. No regressions.
 
 
 # Handoff — 2026-10-22
