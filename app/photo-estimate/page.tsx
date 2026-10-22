@@ -390,7 +390,7 @@ export default function PhotoEstimatePage() {
       const response = await fetch('/api/photo-estimate/report', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ workflowId: workflow.id }),
+        body: JSON.stringify({ workflowId: workflow.id, photoReportDraft: reportDraft }),
       })
       const payload = await response.json().catch(() => null)
       if (!response.ok) throw new Error(payload?.error || 'The full report could not be generated.')
@@ -560,5 +560,12 @@ export default function PhotoEstimatePage() {
     {workflow && <section className="glass rounded-xl p-4 mt-4"><h2 className="font-semibold">Golden Report evidence review</h2><p className="text-xs text-slate-300 mt-1">Review every source photo before owner or manager approval. These are human evidence decisions, not AI findings.</p><div className="space-y-3 mt-3">{photoIds.map((photoId, index) => <div key={photoId} className="border rounded p-3"><p className="text-sm font-medium">Photo {index + 1} · {photoId}</p><input value={photoReviewNotes[photoId] ?? ''} onChange={(e) => setPhotoReviewNotes((current) => ({ ...current, [photoId]: e.target.value }))} placeholder="Optional coverage note" className="w-full p-2 border rounded mt-2 text-sm" /><div className="flex flex-wrap gap-2 mt-2"><button onClick={() => void reviewPhoto(photoId, 'usable', 'complete')} disabled={working} className="bg-green-600 text-white px-2 py-1 rounded text-xs">Usable · complete</button><button onClick={() => void reviewPhoto(photoId, 'usable', 'partial')} disabled={working} className="bg-amber-600 text-white px-2 py-1 rounded text-xs">Usable · partial</button><button onClick={() => void reviewPhoto(photoId, 'not_usable', 'not_visible')} disabled={working} className="bg-red-600 text-white px-2 py-1 rounded text-xs">Not usable</button></div></div>)}</div><div className="border-t mt-4 pt-4"><h3 className="font-medium">Owner or manager approval</h3><div className="grid grid-cols-2 gap-2 mt-2"><input value={managerName} onChange={(e) => setManagerName(e.target.value)} placeholder="Owner / manager name" className="ops-input" /><label className="text-sm">Signature (PNG)<input type="file" accept="image/png" onChange={(e) => { const file = e.target.files?.[0]; if (!file) return; const reader = new FileReader(); reader.onload = () => setManagerSignature(typeof reader.result === 'string' ? reader.result : ''); reader.readAsDataURL(file) }} className="w-full p-2 border rounded mt-1" /></label></div><button onClick={() => void approveManager()} disabled={working} className="w-full mt-3 bg-indigo-700 text-white py-2 rounded disabled:opacity-60">Record owner / manager approval</button></div></section>}
 {workflow?.status === 'approved' && workflow?.manager_approved_at && !fullReport && <button onClick={() => void generateFullReport()} disabled={working} className="w-full mt-4 bg-indigo-700 text-white py-3 rounded font-semibold disabled:opacity-60">{working ? 'Generating full report…' : 'Generate full report'}</button>}
     {fullReport && <GoldenReport report={fullReport} photoUrls={reportPhotoById} onPrint={() => window.print()} />}
+    {fullReport && reportDraft && (
+      <section className="glass rounded-xl p-4 mt-4 space-y-2">
+        <h2 className="font-bold text-sm">Photo-report draft riding with this report</h2>
+        <p className="text-[11px] text-amber-200">Draft only. Coverage {reportDraft.coverageScore}%. Does not replace the golden report.</p>
+        {reportDraft.sections.map((section) => <p key={section.id} className="text-xs"><span className="font-bold">{section.title}:</span> {section.statements[0]}</p>)}
+      </section>
+    )}
   </div>
 }

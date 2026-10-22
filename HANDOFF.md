@@ -17,11 +17,15 @@ Agent time is seconds (filters + GPS + lookups). Tech time is the verify card. N
 ### Gate
 Drafts only. Verified-photo workflow still owns the customer packet. Human approval required. No regressions.
 
-### Next on this lane
+### Done on this lane
 1. Coverage score blocks a trusted packet when elevations or the test square are missing.
 2. Address certainty below medium blocks a confident send.
-3. Golden report draft sections ride with the existing report route.
+3. Golden report draft sections ride with the existing report route as `photoReportDraft`.
 4. Email/SMS stay drafts until the verify card is complete.
+
+### Next on this lane
+- Persist the draft when a saved workflow is reopened.
+- Actual email/SMS send after the gate and technician approval.
 
 ### Closed
 - Canvass 125 merged earlier on 2026-10-22.
