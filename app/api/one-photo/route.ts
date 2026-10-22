@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '../../../lib/supabase/server'
-import { fetchWithTimeout } from '../../../lib/api-security'
+import { fetchWithTimeout, readJson } from '../../../lib/api-security'
 import { describeAerialImageryAvailability } from '../../../lib/measurements/aerial-provider'
-import { buildOnePhotoPacket } from '../../../lib/ai/one-photo'
+import { buildOnePhotoPacket, scoreAddressCertainty } from '../../../lib/ai/one-photo'
 
 const NWS = 'https://api.weather.gov'
 const UA = 'ROOF-OS/1.0 (contact: admin@roof-os.local)'
@@ -12,7 +12,9 @@ export async function POST(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Authentication required.' }, { status: 401 })
 
-  const body = await request.json().catch(() => null) as { latitude?: number; longitude?: number; address?: string } | null
+  const parsed = await readJson(request)
+  if ('error' in parsed) return NextResponse.json({ error: parsed.error }, { status: parsed.status })
+  const body = parsed.body as { latitude?: number; longitude?: number; address?: string }
   const latitude = Number(body?.latitude)
   const longitude = Number(body?.longitude)
   if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
@@ -28,6 +30,16 @@ export async function POST(request: NextRequest) {
   const address = body?.address || geoJson?.display_name || `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`
   const zip = geoJson?.address?.postcode || ''
   const state = geoJson?.address?.state || ''
+  const house = geoJson?.address?.house_number || ''
+  const street = geoJson?.address?.road || ''
+  const addressCertainty = scoreAddressCertainty({
+    hasGps: true,
+    reverseGeocoded: Boolean(geoJson?.display_name),
+    hasHouseNumber: Boolean(house),
+    hasStreet: Boolean(street),
+    hasZip: Boolean(zip),
+    ocrMatch: false,
+  })
 
   const nws = await fetchWithTimeout(
     `${NWS}/alerts?point=${latitude},${longitude}&limit=20`,
@@ -47,6 +59,7 @@ export async function POST(request: NextRequest) {
 
   const packet = buildOnePhotoPacket({
     address,
+    addressCertainty,
     latitude,
     longitude,
     stormDate,
