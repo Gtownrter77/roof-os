@@ -61,7 +61,7 @@ run('127 draftTearOff', () => {
   assert(draftTearOff('tear off old').needed === true, 'tear')
   assert(draftTearOff('remove existing').needed === true, 'remove')
   assert(draftTearOff('overlay').needed === false, 'no tear')
-  assert(draftTearOff('').needsApproval === undefined || draftTearOff('').requiresApproval === true, 'approval')
+  assert(draftTearOff('').requiresApproval === true, 'approval')
 })
 
 run('128 draftDeckRepair', () => {
