@@ -9,9 +9,10 @@ import * as batch126 from './batch126to150'
 import * as batch151 from './batch151to175'
 import * as batch176 from './batch176to200'
 import * as batch201 from './batch201to225'
+import * as canvass from './canvass'
 import { enqueue, loadYolo, canApply } from './behaviors'
 
-const modules = [batch1, batch3, batch26, batch76, batch101, batch126, batch151, batch176, batch201]
+const modules = [batch1, batch3, batch26, batch76, batch101, batch126, batch151, batch176, batch201, canvass]
 
 type Entry = { name: string; fn: (...args: any[]) => any }
 
@@ -57,7 +58,7 @@ export function DraftCatalog({ notes, squares, pitch, photoCount }: { notes: str
       const out = entry.fn(...args)
       setPicked(entry.name)
       const flags = await loadYolo()
-      const free = canApply(flags, 'freeAll')
+      const free = canApply(flags, 'freeAll') || (canApply(flags, 'freeCanvass') && /canvass|territory|hail|knock|turf|opener|sms|disposition|yoyo|buyer/i.test(entry.name))
       const kind = free ? 'estimate' : 'desktop-approval'
       const queued = await enqueue(kind, { name: entry.name, result: out, applied: free })
       setResult(JSON.stringify({ result: out, applied: free, queued }, null, 2))

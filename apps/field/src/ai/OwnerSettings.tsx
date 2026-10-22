@@ -11,6 +11,7 @@ export type YoloFlags = {
   freePrefill: boolean
   freeCustomerText: boolean
   freeMaterialOrder: boolean
+  freeCanvass: boolean
   freeAll: boolean
 }
 
@@ -20,6 +21,7 @@ const DEFAULTS: YoloFlags = {
   freePrefill: false,
   freeCustomerText: false,
   freeMaterialOrder: false,
+  freeCanvass: false,
   freeAll: false,
 }
 
@@ -95,7 +97,7 @@ export function OwnerSettings({ visible, onClose }: { visible: boolean; onClose:
   async function clearPin() {
     await SecureStore.deleteItemAsync(PIN_KEY)
     setHasPin(false)
-    update({ unlocked: false, freeEstimate: false, freePrefill: false, freeCustomerText: false, freeMaterialOrder: false, freeAll: false })
+    update({ unlocked: false, freeEstimate: false, freePrefill: false, freeCustomerText: false, freeMaterialOrder: false, freeCanvass: false, freeAll: false })
     Alert.alert('Cleared', 'PIN removed. YOLO locked.')
   }
 
@@ -136,6 +138,7 @@ export function OwnerSettings({ visible, onClose }: { visible: boolean; onClose:
             <Row label="Free AI prefill" value={flags.freePrefill} onChange={v => update({ freePrefill: v })} />
             <Row label="Free customer text" value={flags.freeCustomerText} onChange={v => update({ freeCustomerText: v })} />
             <Row label="Free material order" value={flags.freeMaterialOrder} onChange={v => update({ freeMaterialOrder: v })} />
+            <Row label="Free canvass AI (125)" value={flags.freeCanvass} onChange={v => update({ freeCanvass: v })} />
             <Row label="Free all drafts" value={flags.freeAll} onChange={v => update({ freeAll: v })} />
           </>
         )}

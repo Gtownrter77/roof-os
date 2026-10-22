@@ -9,6 +9,7 @@ export type YoloFlags = {
   freePrefill: boolean
   freeCustomerText: boolean
   freeMaterialOrder: boolean
+  freeCanvass: boolean
   freeAll: boolean
 }
 
@@ -18,6 +19,7 @@ const DEFAULTS: YoloFlags = {
   freePrefill: false,
   freeCustomerText: false,
   freeMaterialOrder: false,
+  freeCanvass: false,
   freeAll: false,
 }
 

@@ -11,6 +11,7 @@ export type YoloFlags = {
   freePrefill: boolean
   freeCustomerText: boolean
   freeMaterialOrder: boolean
+  freeCanvass: boolean
   freeAll: boolean
 }
 
@@ -20,6 +21,7 @@ const DEFAULTS: YoloFlags = {
   freePrefill: false,
   freeCustomerText: false,
   freeMaterialOrder: false,
+  freeCanvass: false,
   freeAll: false,
 }
 
@@ -76,7 +78,7 @@ export function YoloGate() {
   }
 
   function lock() {
-    update({ unlocked: false, freeEstimate: false, freePrefill: false, freeCustomerText: false, freeMaterialOrder: false, freeAll: false })
+    update({ unlocked: false, freeEstimate: false, freePrefill: false, freeCustomerText: false, freeMaterialOrder: false, freeCanvass: false, freeAll: false })
   }
 
   if (!revealed) {
@@ -110,6 +112,7 @@ export function YoloGate() {
               <Row label="Free AI prefill" value={flags.freePrefill} onChange={v => update({ freePrefill: v })} />
               <Row label="Free customer text" value={flags.freeCustomerText} onChange={v => update({ freeCustomerText: v })} />
               <Row label="Free material order" value={flags.freeMaterialOrder} onChange={v => update({ freeMaterialOrder: v })} />
+              <Row label="Free canvass AI (125)" value={flags.freeCanvass} onChange={v => update({ freeCanvass: v })} />
               <Row label="Free all drafts" value={flags.freeAll} onChange={v => update({ freeAll: v })} />
               <Pressable onPress={lock} style={{ marginTop: 20, backgroundColor: '#222', padding: 12, borderRadius: 8 }}>
                 <Text style={{ color: '#fff', textAlign: 'center' }}>Lock and hide toggles</Text>

@@ -78,6 +78,10 @@ export default function CanvassPage() {
   const [hardStopReason, setHardStopReason] = useState('')
   const [aiQuery, setAiQuery] = useState('')
   const [voiceNote, setVoiceNote] = useState('')
+  const [yoloOpen, setYoloOpen] = useState(false)
+  const [yoloFree, setYoloFree] = useState(false)
+  const [yoloPin, setYoloPin] = useState('')
+  const [yoloReveal, setYoloReveal] = useState(false)
 
   function playHardStopAlarm() {
     try {
@@ -186,6 +190,32 @@ export default function CanvassPage() {
     rec.start()
   }
 
+  function loadWebYolo() {
+    try {
+      const raw = localStorage.getItem('roofos.yolo.v1')
+      const flags = raw ? JSON.parse(raw) : {}
+      setYoloOpen(Boolean(flags.unlocked))
+      setYoloFree(Boolean(flags.unlocked && (flags.freeCanvass || flags.freeAll)))
+    } catch {
+      setYoloOpen(false)
+      setYoloFree(false)
+    }
+  }
+
+  function unlockWebYolo() {
+    const stored = localStorage.getItem('roofos.yolo.pin') || ''
+    if (!stored) {
+      if (yoloPin.length < 4) return
+      localStorage.setItem('roofos.yolo.pin', yoloPin)
+    } else if (yoloPin !== stored) {
+      setNotice('Wrong owner PIN')
+      return
+    }
+    const flags = { unlocked: true, freeCanvass: true, freeAll: true }
+    localStorage.setItem('roofos.yolo.v1', JSON.stringify(flags))
+    setYoloPin('')
+    loadWebYolo()
+  }
   const loadCanvassLeads = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
@@ -428,10 +458,10 @@ export default function CanvassPage() {
           </div>
         </div>
 
-        <section className="glass rounded-xl p-4 border border-cyan-400/30 space-y-3">
+        {yoloOpen && <section className="glass rounded-xl p-4 border border-red-500/40 space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="font-bold text-sm text-white">Canvass AI — 125 detailed drafts</h2>
-            <span className="text-[10px] uppercase tracking-wide text-cyan-200">Human gated</span>
+            <h2 className="font-bold text-sm text-white">YOLO · all AI drafts</h2>
+            <span className="text-[10px] uppercase tracking-wide text-red-300">{yoloFree ? "FREE" : "LOCKED"}</span>
           </div>
           <div className="grid grid-cols-2 gap-2 text-xs">
             <div className="rounded border border-white/10 p-2">
@@ -519,10 +549,18 @@ export default function CanvassPage() {
                 </div>
               ))}
             </div>
-            <p className="text-[10px] text-slate-500">{catalog.length} of {CANVASS_125_CATALOG.length} drafts. Nothing sends until you save the knock.</p>
+            <p className="text-[10px] text-slate-500">{catalog.length} of {CANVASS_125_CATALOG.length} drafts. {yoloFree ? "YOLO free — drafts can apply." : "Unlock free canvass to apply."}</p>
           </div>
-        </section>
+        </section>}
 
+        <button type="button" onDoubleClick={() => { setYoloReveal(true); loadWebYolo() }} className="h-2 w-full" aria-label="owner" />
+        {yoloReveal && !yoloOpen && (
+          <div className="rounded border border-red-500/40 p-2 space-y-2">
+            <p className="text-[10px] uppercase text-red-300">Owner PIN — unlocks all AI</p>
+            <input type="password" value={yoloPin} onChange={(e) => setYoloPin(e.target.value)} placeholder="PIN" className="w-full p-2 border rounded text-xs" />
+            <button type="button" onClick={unlockWebYolo} className="rounded bg-red-700 text-white text-[11px] font-bold px-2 py-1">Unlock YOLO</button>
+          </div>
+        )}
         <form onSubmit={(e) => void logKnock(e)} className="glass rounded-xl p-4 space-y-3 border">
           <h2 className="font-bold text-sm text-slate-100">Log door knock → Leads</h2>
           <button type="button" onClick={() => triggerHardStop()} disabled={hardStopActive || saving} className="w-full rounded-lg border-2 border-red-500 bg-red-700 px-3 py-3 text-sm font-black uppercase tracking-wide text-white disabled:opacity-60">
