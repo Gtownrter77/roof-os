@@ -234,3 +234,30 @@ export const PHOTO_REPORT_OPTIONS = {
   collateral: ['gutters', 'downspouts', 'fascia wraps', 'vents', 'AC fins', 'mailbox', 'garage door'],
   testSquareBands: ['cosmetic 0-3', 'moderate 4-7', 'functional 8+'],
 }
+
+export type PhotoReportGate = {
+  ready: boolean
+  blockers: string[]
+  requiresApproval: true
+}
+
+export function gatePhotoReport(input: {
+  coverageScore: number
+  missing: string[]
+  addressBand: 'high' | 'medium' | 'low' | 'unresolved'
+  pitch: number | null
+  wasteFactor: number | null
+  soffitIn: number | null
+  fasciaIn: number | null
+}): PhotoReportGate {
+  const blockers: string[] = []
+  if (input.coverageScore < 60) blockers.push(`Coverage ${input.coverageScore}% — need elevations and a test square`)
+  if (input.missing.includes('Marked 10x10 test square')) blockers.push('Test square not marked')
+  if (input.addressBand === 'low' || input.addressBand === 'unresolved') blockers.push(`Address certainty ${input.addressBand}`)
+  if (!input.pitch) blockers.push('Roof slope not verified')
+  if (input.wasteFactor === null) blockers.push('Waste factor not verified')
+  if (!input.soffitIn) blockers.push('Soffit width (in) not verified')
+  if (!input.fasciaIn) blockers.push('Fascia width (in) not verified')
+  return { ready: blockers.length === 0, blockers, requiresApproval: true }
+}
+
