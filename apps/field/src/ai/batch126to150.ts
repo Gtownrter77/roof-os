@@ -3,7 +3,12 @@
 
 export type MaterialMatchDraft = { match: string; requiresApproval: true }
 export function draftMaterialMatch(notes: string): MaterialMatchDraft {
-  return { match: /architectural/i.test(notes) ? 'Architectural shingle' : 'Standard', requiresApproval: true }
+  if (!notes) return { match: 'Unknown', requiresApproval: true }
+  if (/architectural|arch/i.test(notes)) return { match: 'Architectural shingle', requiresApproval: true }
+  if (/3-tab|three.tab/i.test(notes)) return { match: '3-tab shingle', requiresApproval: true }
+  if (/metal/i.test(notes)) return { match: 'Metal', requiresApproval: true }
+  if (/tile/i.test(notes)) return { match: 'Tile', requiresApproval: true }
+  return { match: 'Standard', requiresApproval: true }
 }
 
 export type TearOffDraft = { needed: boolean; requiresApproval: true }
@@ -18,13 +23,16 @@ export function draftDeckRepair(notes: string): DeckRepairDraft {
 
 export type PipeBootDraft = { count: number; requiresApproval: true }
 export function draftPipeBoots(notes: string): PipeBootDraft {
+  if (!notes) return { count: 0, requiresApproval: true }
   const m = notes.match(/(\d+)\s*boot/i)
-  return { count: m ? Number(m[1]) : 2, requiresApproval: true }
+  if (m) return { count: Math.max(0, Number(m[1])), requiresApproval: true }
+  if (/boot/i.test(notes)) return { count: 2, requiresApproval: true }
+  return { count: 0, requiresApproval: true }
 }
 
 export type RidgeVentDraft = { lf: number; requiresApproval: true }
 export function draftRidgeVent(squares: number): RidgeVentDraft {
-  return { lf: squares * 2, requiresApproval: true }
+  return { lf: Math.max(0, squares) * 2, requiresApproval: true }
 }
 
 export type SoffitDraft = { needed: boolean; requiresApproval: true }
@@ -69,7 +77,8 @@ export function draftCricket(pitch: number): CricketDraft {
 
 export type IceBarrierDraft = { needed: boolean; requiresApproval: true }
 export function draftIceBarrier(state: string): IceBarrierDraft {
-  return { needed: ['OH', 'PA', 'NY'].includes(state), requiresApproval: true }
+  const cold = ['OH', 'PA', 'NY', 'MI', 'MN', 'WI', 'MA', 'VT', 'NH', 'ME']
+  return { needed: cold.includes((state || '').toUpperCase()), requiresApproval: true }
 }
 
 export type UnderlaymentTypeDraft = { type: string; requiresApproval: true }
@@ -84,7 +93,9 @@ export function draftNailPattern(windZone: string): NailPatternDraft {
 
 export type WasteFactorDraft = { percent: number; requiresApproval: true }
 export function draftWasteFactor(pitch: number, complexity: number): WasteFactorDraft {
-  return { percent: 10 + pitch * 0.5 + complexity, requiresApproval: true }
+  const p = Math.max(0, pitch)
+  const c = Math.max(0, complexity)
+  return { percent: Math.round((10 + p * 0.5 + c) * 10) / 10, requiresApproval: true }
 }
 
 export type LaborCrewDraft = { crew: number; requiresApproval: true }
@@ -94,7 +105,7 @@ export function draftLaborCrew(squares: number): LaborCrewDraft {
 
 export type DurationDraft = { days: number; requiresApproval: true }
 export function draftDuration(squares: number): DurationDraft {
-  return { days: Math.max(1, Math.ceil(squares / 15)), requiresApproval: true }
+  return { days: Math.max(1, Math.ceil(Math.max(0, squares) / 15)), requiresApproval: true }
 }
 
 export type StagingDraft = { needed: boolean; requiresApproval: true }
@@ -109,7 +120,7 @@ export function draftSafetyHarness(pitch: number): SafetyHarnessDraft {
 
 export type DumpFeeDraft = { estimate: number; requiresApproval: true }
 export function draftDumpFee(squares: number): DumpFeeDraft {
-  return { estimate: squares * 8, requiresApproval: true }
+  return { estimate: Math.max(0, squares) * 8, requiresApproval: true }
 }
 
 export type PermitCostDraft = { estimate: number; requiresApproval: true }
@@ -124,5 +135,6 @@ export function draftFinalWalk(): FinalWalkDraft {
 
 export type ReviewRequestDraft = { text: string; requiresApproval: true }
 export function draftReviewRequest(name: string): ReviewRequestDraft {
-  return { text: `Hi ${name}, review request draft ready.`, requiresApproval: true }
+  const n = (name || 'Customer').trim() || 'Customer'
+  return { text: `Hi ${n}, review request draft ready.`, requiresApproval: true }
 }
