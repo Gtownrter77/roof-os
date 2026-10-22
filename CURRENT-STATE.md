@@ -74,3 +74,15 @@ Wired hail, wind, album gaps, office handoff, and customer text into DraftAction
 Added apps/field/src/ai/batch126to150.ts with human-gated drafts for material match, tear-off, deck repair, pipe boots, ridge vent, soffit, fascia, gutter guard, skylight flash, satellite, solar, chimney cap, cricket, ice barrier, underlayment type, nail pattern, waste factor, labor crew, duration, staging, safety harness, dump fee, permit cost, final walk, and review request.
 
 Wired material match, tear-off, duration, safety harness, and review request into DraftActions.
+
+## 2026-10-22 Detailed Estimate Page
+
+Added apps/field/src/EstimatePage.tsx mirroring AccuLynx / JobNimbus / Roofr estimate workflows:
+- Measurement summary (squares, pitch, waste)
+- Collapsible sections: Materials, Labor, Accessories, Other
+- Editable line items (name, qty, unit, unit price, total)
+- Margin % and tax % with live totals
+- Customer note + internal note
+- Draft banner requiring desktop approval
+
+Wired via "Open detailed estimate" button on the inspection screen. All values remain drafts.

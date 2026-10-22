@@ -1,4 +1,5 @@
 import { DraftActions } from "./src/ai/DraftActions"
+import { EstimatePage } from "./src/EstimatePage"
 import { StatusBar } from 'expo-status-bar'
 import * as ImagePicker from 'expo-image-picker'
 import * as Linking from 'expo-linking'
@@ -146,6 +147,7 @@ export default function App() {
   const [cooldown, setCooldown] = useState(0)
   const [showPassword, setShowPassword] = useState(false)
   const [showRadar, setShowRadar] = useState(false)
+  const [showEstimate, setShowEstimate] = useState(false)
 
   const [address, setAddress] = useState('')
   const [photos, setPhotos] = useState(0)
@@ -742,6 +744,19 @@ export default function App() {
     <SafeAreaView style={styles.safe}>
       <StatusBar style="dark" />
       <RadarCinema visible={showRadar} onClose={() => setShowRadar(false)} webAppUrl={webAppUrl} />
+      {showEstimate && (
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#fff', zIndex: 100 }}>
+          <EstimatePage
+            squares={Number(squares) || 0}
+            pitch={Number(pitch) || 0}
+            notes={verificationNotes}
+            laborRate={85}
+            materialRate={120}
+            minMargin={20}
+            onClose={() => setShowEstimate(false)}
+          />
+        </View>
+      )}
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={styles.header}>
@@ -776,6 +791,9 @@ export default function App() {
             materialRate={120}
             minMargin={2000}
           />
+          <Pressable style={[styles.secondary, { marginTop: 10 }]} onPress={() => setShowEstimate(true)}>
+            <Text style={styles.secondaryText}>Open detailed estimate</Text>
+          </Pressable>
           <Text style={styles.syncChip}>
             {syncing ? 'Syncing' : !online ? 'Offline · saved on the phone' : pendingUploads > 0 ? `${pendingUploads} photo${pendingUploads === 1 ? '' : 's'} waiting` : draft?.remoteId ? 'Synced' : 'Not uploaded yet'}
           </Text>
