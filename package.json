@@ -5,7 +5,6 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "test:canvass125": "tsx scripts/canvass125-sim.mjs",
     "start": "mkdir -p .next/standalone/.next && cp -R .next/static .next/standalone/.next/static && rm -rf .next/standalone/public && cp -R public .next/standalone/public && node .next/standalone/server.js",
     "test:runtime-smoke": "node scripts/runtime-smoke-test.mjs",
     "test:performance": "node --experimental-strip-types scripts/performance-optimization-verify.mjs",
@@ -20,10 +19,8 @@
     "test:mobile-offline-sync": "node scripts/mobile-offline-sync-test.mjs",
     "test:mobile-ai-observation-security": "node scripts/mobile-ai-observation-security-test.mjs",
     "test:field-coach": "node --experimental-strip-types scripts/field-coach-test.mjs",
-    "test:canvass-hard-stop": "node scripts/canvass-hard-stop-test.mjs",
     "test:stale-screens": "node scripts/stale-screens-test.mjs",
     "test:cinema-theme": "node scripts/cinema-theme-test.mjs",
-    "test:entrance-trailer": "node scripts/entrance-trailer-test.mjs",
     "test:photo-estimate-flow": "node scripts/photo-estimate-flow-test.mjs",
     "test:photo-full-report-flow": "node scripts/photo-full-report-flow-test.mjs",
     "test:measurement-estimate-authority": "node scripts/measurement-estimate-authority-test.mjs",
