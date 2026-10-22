@@ -42,6 +42,7 @@ function sampleArgs(name: string, notes: string, squares: number, pitch: number,
 }
 
 export function DraftCatalog({ notes, squares, pitch, photoCount }: { notes: string; squares: number; pitch: number; photoCount: number }) {
+  const [open, setOpen] = useState(false)
   const [free, setFree] = useState(false)
   useEffect(() => { loadYolo().then(f => setFree(canApply(f, 'freeAll'))) }, [open])
   const [q, setQ] = useState('')
