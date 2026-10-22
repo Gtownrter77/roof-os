@@ -1,3 +1,32 @@
+# Handoff — 2026-10-22
+
+## Active lane: photo → report
+
+PR #306 merged to main (`bf16f85`). This is the first automation lane. Do not start a new lane until this one is closed.
+
+### What is live
+- `lib/ai/photo-report.ts` — insurance-grade drafts: 16-point coverage checklist, test-square bands (0–3 cosmetic, 4–7 moderate, 8+ functional), three-shot findings, 12-section golden report draft. `requiresApproval: true`.
+- `lib/ai/one-photo.ts` — GPS from the JPEG, address certainty score, packet builder.
+- `app/api/one-photo/route.ts` — bounded JSON reader. Reverse geocode, NOAA/NWS storm candidate, open aerial note, local code note.
+- `app/photo-estimate/page.tsx` — AI runs the filter set (tech does not pick). Verify card: slope, waste, soffit (inches), fascia (inches). Certainty shown on the address.
+- Sims: `scripts/photo-report-sim.mjs`, `scripts/one-photo-sim.mjs`.
+
+### 10-minute budget
+Agent time is seconds (filters + GPS + lookups). Tech time is the verify card. Nothing sends until slope, waste, soffit, and fascia are confirmed.
+
+### Gate
+Drafts only. Verified-photo workflow still owns the customer packet. Human approval required. No regressions.
+
+### Next on this lane
+1. Coverage score blocks a trusted packet when elevations or the test square are missing.
+2. Address certainty below medium blocks a confident send.
+3. Golden report draft sections ride with the existing report route.
+4. Email/SMS stay drafts until the verify card is complete.
+
+### Closed
+- Canvass 125 merged earlier on 2026-10-22.
+- Field AI batches 1–225 remain human-gated drafts.
+
 - Canvass 125: lib/ai/canvass125.ts + live panel on /canvass (feat/canvass-125-automations) [2026-10-22]
 ## 2026-10-22 field AI + multi-trade estimate checkpoint
 

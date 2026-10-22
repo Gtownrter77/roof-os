@@ -21,3 +21,11 @@ assert.ok(coverageChecklist('front back left right', []).some((item) => item.id 
 assert.equal(report.requiresApproval, true)
 
 console.log('photo-report v2: insurance-grade drafts gated')
+
+import { gatePhotoReport } from '../lib/ai/photo-report.ts'
+const blocked = gatePhotoReport({ coverageScore: 20, missing: ['Marked 10x10 test square'], addressBand: 'low', pitch: null, wasteFactor: null, soffitIn: null, fasciaIn: null })
+assert.equal(blocked.ready, false)
+assert.ok(blocked.blockers.length >= 4)
+const open = gatePhotoReport({ coverageScore: 80, missing: [], addressBand: 'high', pitch: 6, wasteFactor: 0.1, soffitIn: 12, fasciaIn: 6 })
+assert.equal(open.ready, true)
+console.log('photo-report gate: blockers hold the send')

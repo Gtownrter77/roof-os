@@ -6,7 +6,7 @@ import { smartBack } from '../../lib/smart-back'
 import { createClient } from '../../lib/supabase/client'
 import { createWorker } from 'tesseract.js'
 import { GoldenReport } from '../../components/GoldenReport'
-import { draftPhoto, draftPhotoReport, PHOTO_REPORT_OPTIONS, type PhotoDraft, type ReportDraft } from '../../lib/ai/photo-report'
+import { draftPhoto, draftPhotoReport, gatePhotoReport, PHOTO_REPORT_OPTIONS, type PhotoDraft, type ReportDraft } from '../../lib/ai/photo-report'
 import { readJpegGps, chooseAddressFilter, ADDRESS_FILTERS, type OnePhotoPacket, type AddressFilter } from '../../lib/ai/one-photo'
 
 type Photo = { file: File; preview: string; id: string }
@@ -491,9 +491,40 @@ export default function PhotoEstimatePage() {
             <label className="text-[11px]">Fascia width (in)<input value={fasciaWidthFt} onChange={(e) => setFasciaWidthFt(e.target.value)} className="w-full p-2 border rounded mt-1" /></label>
           </div>
           <p className="text-[11px] text-amber-200">Tech verifies slope {pitch || '—'}/12, waste {Math.round(Number(wasteFactor) * 100)}%, soffit {soffitWidthFt || '—'} in, fascia {fasciaWidthFt || '—'} in before send.</p>
-          <p className="bg-white/5 border border-white/10 rounded p-2">{onePacket.delivery.sms}</p>
-          <p className="bg-white/5 border border-white/10 rounded p-2">{onePacket.delivery.email}</p>
-          <p className="text-[10px] text-slate-400">SLA target {onePacket.delivery.slaMinutes} minutes. Not sent.</p>
+          {(() => {
+            const gate = gatePhotoReport({
+              coverageScore: reportDraft?.coverageScore ?? 0,
+              missing: reportDraft?.missing ?? [],
+              addressBand: onePacket.addressCertainty.band,
+              pitch: pitch ? Number(pitch) : null,
+              wasteFactor: wasteFactor ? Number(wasteFactor) : null,
+              soffitIn: soffitWidthFt ? Number(soffitWidthFt) : null,
+              fasciaIn: fasciaWidthFt ? Number(fasciaWidthFt) : null,
+            })
+            return gate.ready
+              ? <p className="text-[11px] text-emerald-300">Ready for tech approval. Still not sent.</p>
+              : <ul className="text-[11px] text-red-300 list-disc pl-4">{gate.blockers.map((b) => <li key={b}>{b}</li>)}</ul>
+          })()}
+          {(() => {
+            const gate = gatePhotoReport({
+              coverageScore: reportDraft?.coverageScore ?? 0,
+              missing: reportDraft?.missing ?? [],
+              addressBand: onePacket.addressCertainty.band,
+              pitch: pitch ? Number(pitch) : null,
+              wasteFactor: wasteFactor ? Number(wasteFactor) : null,
+              soffitIn: soffitWidthFt ? Number(soffitWidthFt) : null,
+              fasciaIn: fasciaWidthFt ? Number(fasciaWidthFt) : null,
+            })
+            return gate.ready ? (
+              <>
+                <p className="bg-white/5 border border-white/10 rounded p-2">{onePacket.delivery.sms}</p>
+                <p className="bg-white/5 border border-white/10 rounded p-2">{onePacket.delivery.email}</p>
+                <p className="text-[10px] text-slate-400">Drafts only. Tech still approves before send. SLA {onePacket.delivery.slaMinutes} min.</p>
+              </>
+            ) : (
+              <p className="text-[11px] text-slate-400">Email and text stay drafts until the blockers above are clear.</p>
+            )
+          })()}
         </div>
       )}
     </section>
