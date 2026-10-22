@@ -1,5 +1,6 @@
 import { DraftActions } from "./src/ai/DraftActions"
 import { DraftCatalog } from "./src/ai/DraftCatalog"
+import { YoloGate } from "./src/ai/YoloGate"
 import { EstimatePage } from "./src/EstimatePage"
 import { StatusBar } from 'expo-status-bar'
 import * as ImagePicker from 'expo-image-picker'
@@ -798,6 +799,7 @@ export default function App() {
             pitch={Number(pitch) || 0}
             photoCount={photos}
           />
+          <YoloGate />
           <Pressable style={[styles.secondary, { marginTop: 10 }]} onPress={() => setShowEstimate(true)}>
             <Text style={styles.secondaryText}>Open detailed estimate</Text>
           </Pressable>

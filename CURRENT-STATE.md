@@ -148,3 +148,11 @@ Wired color, customer text, office handoff, upsell, and competitive note into th
 ## 2026-10-22 All drafts wired
 
 Added apps/field/src/ai/DraftCatalog.tsx. It collects every draft* export from batches 1 through 201-225 and presents a searchable modal. Every function is reachable from the inspection screen via "All AI drafts".
+
+## 2026-10-22 Owner YOLO gate
+
+Added apps/field/src/ai/YoloGate.tsx.
+- Hidden by default. Long-press the empty gap under the draft catalog to reveal.
+- Owner PIN required to unlock (stored in expo-secure-store).
+- Once unlocked, toggles free specific AI paths: estimate apply, AI prefill, customer text, material order, or all drafts.
+- Locking clears every free toggle.
