@@ -59,6 +59,7 @@ export default function PhotoEstimatePage() {
   const [photoDrafts, setPhotoDrafts] = useState<PhotoDraft[]>([])
   const [reportDraft, setReportDraft] = useState<ReportDraft | null>(null)
   const [reportNotes, setReportNotes] = useState('')
+  const [testHits, setTestHits] = useState('')
 
   useEffect(() => {
     let active = true
@@ -154,7 +155,7 @@ export default function PhotoEstimatePage() {
       return draftPhoto({ id: photo.id, name: photo.file.name, notes: reportNotes, width: dims.width, height: dims.height, bytes: photo.file.size })
     })).then((drafts) => {
       setPhotoDrafts(drafts)
-      setReportDraft(draftPhotoReport(address, drafts, reportNotes))
+      setReportDraft(draftPhotoReport(address, drafts, reportNotes, testHits ? Number(testHits) : null))
     })
     if (unsupportedCount || limitReached) {
       setError(`Only JPEG, PNG, and WebP photos are supported, up to ${MAX_PHOTOS} photos and 30 MB total.`)
@@ -360,16 +361,26 @@ export default function PhotoEstimatePage() {
         <h2 className="font-bold text-sm">Photo → report drafts</h2>
         <span className="text-[10px] uppercase text-cyan-200">Maxed · gated</span>
       </div>
-      <textarea value={reportNotes} onChange={(e) => { setReportNotes(e.target.value); setReportDraft(draftPhotoReport(address, photoDrafts, e.target.value)) }} placeholder="Damage notes: hail, gutters, siding, windows, fascia..." className="w-full p-2 border rounded text-sm" rows={3} />
+      <textarea value={reportNotes} onChange={(e) => { setReportNotes(e.target.value); setReportDraft(draftPhotoReport(address, photoDrafts, e.target.value, testHits ? Number(testHits) : null)) }} placeholder="Damage notes: hail, gutters, siding, windows, fascia..." className="w-full p-2 border rounded text-sm" rows={3} />
+      <label className="block text-xs">Test-square hits
+        <input value={testHits} onChange={(e) => { setTestHits(e.target.value); setReportDraft(draftPhotoReport(address, photoDrafts, reportNotes, e.target.value ? Number(e.target.value) : null)) }} inputMode="numeric" placeholder="Count in the 10x10" className="w-full p-2 border rounded mt-1" />
+      </label>
       {reportDraft && (
-        <div className="text-xs space-y-1">
-          <p>{reportDraft.statements[0]}</p>
-          <p>{reportDraft.statements[1]}</p>
-          <p>{reportDraft.statements[2]}</p>
-          <p>{reportDraft.statements[3]}</p>
+        <div className="text-xs space-y-2">
+          <p className="font-bold">Coverage {reportDraft.coverageScore}% · test square {reportDraft.testSquare.band}</p>
+          <p>{reportDraft.testSquare.note}</p>
           <p className="text-cyan-200">{reportDraft.next}</p>
-          <p>Trades: {reportDraft.trades.join(', ') || 'none'}</p>
-          {reportDraft.damages.length > 0 && <ul className="list-disc pl-4">{reportDraft.damages.map((d) => <li key={d.trade + d.category}>{d.trade} · {d.category} · {d.severity}</li>)}</ul>}
+          <div className="grid grid-cols-2 gap-1">
+            {reportDraft.checklist.map((item) => (
+              <p key={item.id} className={item.done ? 'text-emerald-300' : 'text-amber-200'}>{item.done ? '✓' : '○'} {item.label}</p>
+            ))}
+          </div>
+          {reportDraft.damages.length > 0 && <ul className="list-disc pl-4">{reportDraft.damages.map((d) => <li key={d.id}>{d.id} {d.trade} · {d.category} · {d.severity} · needs {d.shotsNeeded.join('/')}</li>)}</ul>}
+          <div className="border-t border-white/10 pt-2 space-y-1">
+            {reportDraft.sections.map((section) => (
+              <p key={section.id}><span className="font-bold">{section.title}:</span> {section.statements[0]}</p>
+            ))}
+          </div>
         </div>
       )}
       {photoDrafts.length > 0 && (
