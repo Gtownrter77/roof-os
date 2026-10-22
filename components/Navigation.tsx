@@ -9,6 +9,7 @@ const NAV_ITEMS = [
   { icon: 'Passport', path: '/warranty' },
   { icon: 'Camera', path: '/camera' },
   { icon: 'Measure', path: '/measure' },
+  { icon: 'Agents', path: '/agent-actions' },
 ]
 
 const HIDDEN_ON = ['/auth/login', '/auth/signup', '/auth/enter', '/onboarding', '/radar']

@@ -27,7 +27,13 @@ function callbackFailure(url: URL, next: string) {
 
 export async function GET(request: Request) {
   const url = new URL(request.url)
-  const next = safeNextPath(url.searchParams.get('next'), url.origin)
+  const nextPath = safeNextPath(url.searchParams.get('next'), url.origin)
+  const invitationId = url.searchParams.get('invitationId')?.trim() ?? ''
+  const nextUrl = new URL(nextPath, url.origin)
+  if (nextUrl.pathname === '/team/invitations/accept' && /^[0-9a-f-]{36}$/i.test(invitationId) && !nextUrl.searchParams.has('invitationId')) {
+    nextUrl.searchParams.set('invitationId', invitationId)
+  }
+  const next = `${nextUrl.pathname}${nextUrl.search}`
   const code = url.searchParams.get('code')
   const tokenHash = url.searchParams.get('token_hash')
   const type = url.searchParams.get('type')

@@ -1,5 +1,7 @@
 # Deployment
 
+**Current checkpoint — 2026-10-21:** `main` is `b6520da825cb31cf538894fbfc44c87a38a752c3`; post-merge CI passed. Production migration parity, authenticated two-workspace checks, physical-device behavior, and provider execution remain unverified. Run `.github/workflows/staging-migration-verify.yml` only against an owner-designated protected staging environment; never use it as a production deploy mechanism.
+
 ROOF/OS is connected to the free Vercel Hobby project `roof-os`.
 
 Production domain: https://roof-os-lemon.vercel.app
@@ -8,7 +10,7 @@ The GitHub `main` branch is connected for automatic production deployments.
 
 ## Required production secrets
 
-Configure `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and the server-only `CAPOUT_API_KEY`, `RAPIDAPI_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, and `CRON_SECRET` in the deployment secret manager. Vision inference uses `OLLAMA_VISION_API_BASE_URL` (current local default `http://localhost:20128/v1`) and `OLLAMA_VISION_MODEL` (default `llava`); the endpoint must be reachable from the app runtime. In Vercel, `localhost` refers to the function runtime itself, so production inference requires a local listener there or a reachable endpoint configured for that deployment. No Gemini API key is used by the vision routes. Never place a Supabase service-role key, CapOut key, RapidAPI key, or cron secret in `NEXT_PUBLIC_*` variables, the browser bundle, or the field app.
+Configure `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and the server-only `CAPOUT_API_KEY`, `RAPIDAPI_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `CRON_SECRET`, and optional `CLAIMS_DOCUMENT_WORKER_URL` in the deployment secret manager. Vision inference uses `OLLAMA_VISION_API_BASE_URL` (current local default `http://localhost:20128/v1`) and `OLLAMA_VISION_MODEL` (default `qwen3-vl:8b`); the endpoint must be reachable from the app runtime. In Vercel, `localhost` refers to the function runtime itself, so production inference requires a reachable private worker or an explicitly exposed, authenticated endpoint. No Gemini API key is used by the vision routes. Never place a Supabase service-role key, CapOut key, RapidAPI key, worker URL with credentials, or cron secret in `NEXT_PUBLIC_*` variables, the browser bundle, or the field app.
 
 ## Migration order
 
@@ -21,6 +23,10 @@ Deploy the four agent workers only after the target database has migrations `008
 ## CapOut release gate
 
 The web adapter is `POST /api/claims/capout`. It requires an authenticated user, a workspace UUID, and an HTTPS source URL. It is disabled with a clear `503` response when `CAPOUT_API_KEY` is absent. Do not test it with customer documents until data-processing terms and retention have been reviewed and an authorized sample claim is available.
+
+The free adapter is `POST /api/claims/local`. It requires the same workspace-admin and signed-Storage checks, then sends the document to the self-hosted Docling worker at `CLAIMS_DOCUMENT_WORKER_URL`. It stores `provider=owner_import` with `status=ready_for_review`. It does not produce Verisk/Xactimate ESX, licensed claim pricing, or an approved estimate. The worker must be private, allow only the configured Supabase Storage origin, enforce download and response limits, and delete temporary source files after parsing.
+
+The recommended free worker is `workers/claims` with Docling (MIT). PaddleOCR (Apache-2.0) or OCRmyPDF (MPL-2.0) may be selected by the operator for OCR-heavy documents. The current Vercel Hobby deployment does not run this worker; use a persistent local or private host.
 
 The NOAA adapter is `GET /api/storms/nws`. It uses the official NWS API with a descriptive User-Agent and stores only candidate evidence. It must not be used as an automatic date-of-loss attestation.
 

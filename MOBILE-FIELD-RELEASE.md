@@ -1,4 +1,6 @@
-# ROOF/OS Field Mobile Release 0.2.0
+# ROOF/OS Field Mobile Release 0.4.0
+
+**Current checkpoint — 2026-10-21:** The source and Expo configuration report version `0.4.0`. The app now includes explicit sign-out, owner-scoped local evidence retention, manual retry-now, and session-expiry recovery. These are source/CI behaviors only; an authenticated physical-device capture, offline reopen, private upload, and two-workspace test remain required.
 
 ## Release scope
 
@@ -6,7 +8,7 @@ The Expo field app now provides an authenticated, offline-first inspection captu
 
 When a workspace connection is available, the app resolves the authenticated workspace through `current_workspace_id`, creates an RLS-scoped `inspection_sessions` record, syncs manual measurements as explicitly unverified evidence, and uploads queued camera files into the private `inspection-photos` bucket using a workspace/user/inspection path. Photo metadata is inserted only after the Storage upload succeeds. The UI keeps estimate and report approval review-gated and labels GPS and manual measurements honestly.
 
-The release also persists the latest draft location, provides sign-in/sign-out states, exposes queued-work sync, makes checklist rows interactive and screen-reader addressable, and adds release checks for the mobile security boundary. The app version is `0.2.0`.
+The release also persists the latest draft location, provides sign-in/sign-out states, exposes queued-work sync and retry-now, makes checklist rows interactive and screen-reader addressable, and adds release checks for the mobile security boundary. The app version is `0.4.0`.
 
 ## Three-level verification
 

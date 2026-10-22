@@ -127,13 +127,20 @@ for (const route of routes) {
     && source.includes('analyzePhotosWithOllama(')
     && source.includes('timeoutMs:90000')
     && boundedLocalVisionRequest
-    const boundedStatusHealthFetch = isPublicStatusRoute
+  const boundedStatusHealthFetch = isPublicStatusRoute
     && fetchCallCount === 1
     && source.includes('api.weather.gov')
     && source.includes('AbortSignal.timeout(5_000)')
     && source.includes('createAdminClient()')
     && source.includes("from('workspaces')")
     && source.includes("from('inspection-photos')")
+  const boundedLocalClaimsFetch = route === join(root, 'app', 'api', 'claims', 'local', 'route.ts')
+    && fetchCallCount === 1
+    && source.includes('fetchWithTimeout')
+    && source.includes('WORKER_TIMEOUT_MS')
+    && source.includes('MAX_WORKER_RESPONSE_BYTES')
+    && source.includes('isAuthorizedStorageUrl(body.sourceUrl)')
+    && source.includes('CLAIMS_DOCUMENT_WORKER_URL')
   const boundedAerialGeometryFetch = route === join(root, 'app', 'api', 'measurements', 'aerial', 'route.ts')
     && fetchCallCount === 1
     && (source.match(/new AbortController\(\)/g) ?? []).length === 1
@@ -145,7 +152,7 @@ for (const route of routes) {
     && source.includes('analyzePhotosWithOllama(')
     && boundedLocalVisionRequest
   // D.3 bounds private-storage reads and the shared local vision request/response.
-  if (fetchCallCount > 0 && !boundedPhotoAnalysisFetch && !boundedAerialGeometryFetch && !boundedSidingAnalysisFetch && !boundedStatusHealthFetch) {
+  if (fetchCallCount > 0 && !boundedPhotoAnalysisFetch && !boundedAerialGeometryFetch && !boundedSidingAnalysisFetch && !boundedStatusHealthFetch && !boundedLocalClaimsFetch) {
     throw new Error(`API route makes a network request without an approved bounded fetch helper: ${route}`)
   }
 }

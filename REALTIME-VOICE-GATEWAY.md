@@ -1,5 +1,9 @@
 # ROOF/OS Realtime Voice Gateway
 
+## Current status — 2026-10-20
+
+The provider-neutral contract is a repository design target, not a deployed realtime service. No LiveKit, Asterisk, SIP trunk, or streaming worker is claimed as configured. Twilio remains an optional paid fallback only when explicitly enabled. Free Core does not require hosted AI; any enabled receptionist model must use the owner-managed Ollama boundary.
+
 ## Target architecture
 
 The current receptionist domain remains in ROOF/OS: lead resolution, consent, scheduling, payment policy, audit, and workspace isolation. The media layer is being separated behind a provider-neutral event contract in `lib/realtime-voice.ts`. This allows the system to replace turn-based Twilio Gather with a streaming gateway without changing business rules.
@@ -22,7 +26,7 @@ A minimal deployment consists of one SIP trunk, one LiveKit or Asterisk media no
 
 ## Rollout sequence
 
-First, deploy the event contract and atomic appointment function, which are now in the repository and live Supabase. Second, implement the Python streaming worker against LiveKit SIP, with `barge_in`, response cancellation, VAD, and structured tool calls. Third, run shadow sessions where the streaming agent observes transcripts but cannot act. Fourth, enable a small canary percentage with human transfer and automatic rollback. Finally, retire Twilio Gather only after interruption, consent, scheduling, webhook, and failure metrics meet the release thresholds.
+First, verify the event contract and atomic appointment function against the target Supabase project; repository presence is not proof of live schema parity. Second, implement the Python streaming worker against LiveKit SIP, with `barge_in`, response cancellation, VAD, and structured tool calls. Third, run shadow sessions where the streaming agent observes transcripts but cannot act. Fourth, enable a small canary percentage with human transfer and automatic rollback. Finally, retire Twilio Gather only after interruption, consent, scheduling, webhook, and failure metrics meet the release thresholds.
 
 The current Twilio implementation is therefore not discarded. It is the low-cost fallback and emergency path while the open-source realtime gateway earns production traffic through measured canary releases.
 
