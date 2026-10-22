@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native'
 import {
   draftMaterialMatch,
@@ -26,6 +26,7 @@ import {
 import { draftGoodBetterBest, draftPitchLabor, draftMaterialOrder, draftPortalSummary, draftESignReady, draftFinancingOffer } from './ai/batch151to175'
 import { draftJobCost, draftWorkOrderTasks, draftMarginFloor, draftWarranty, draftCompleteness, draftNextAction } from './ai/batch176to200'
 import { draftColorMatch, draftCustomerTextShort, draftOfficeHandoff, draftUpsell, draftCompetitiveNote } from './ai/batch201to225'
+import { loadYolo, applyEstimateDraft, applyMaterialOrder, applyCustomerText, applyWorkOrder, applyPortal, applyESign, applyFinancing, type YoloFlags } from './ai/behaviors'
 
 type LineItem = {
   id: string
@@ -216,6 +217,14 @@ export function EstimatePage({ squares, pitch, notes, laborRate, materialRate, m
   const [items, setItems] = useState<LineItem[]>(() => seedItems(squares, pitch, laborRate, materialRate))
   const [aiApplied, setAiApplied] = useState(false)
   const [diffDraft, setDiffDraft] = useState<string | null>(null)
+  const [flags, setFlags] = useState<YoloFlags | null>(null)
+
+  useEffect(() => { loadYolo().then(setFlags) }, [])
+
+  async function runAndQueue(label: string, payload: unknown, queue: () => Promise<unknown>) {
+    const item = await queue()
+    setDiffDraft(`${label}\n${JSON.stringify(payload, null, 2)}\nqueued: ${JSON.stringify(item)}`)
+  }
   const [taxRate, setTaxRate] = useState(7)
   const [marginPct, setMarginPct] = useState(minMargin || 20)
   const [customerNote, setCustomerNote] = useState('Draft estimate — technician must approve on desktop before sending.')
@@ -279,8 +288,10 @@ export function EstimatePage({ squares, pitch, notes, laborRate, materialRate, m
         <Text style={{ color: '#664d03', marginTop: 4, fontSize: 13 }}>No prices are authoritative. Review all line items before sending.</Text>
         <Pressable
           onPress={() => {
-            setItems(aiSeedItems(squares, pitch, notes, laborRate, materialRate, state, stories))
+            const seeded = aiSeedItems(squares, pitch, notes, laborRate, materialRate, state, stories)
+            setItems(seeded)
             setAiApplied(true)
+            void applyEstimateDraft(seeded, flags || { unlocked: false, freeEstimate: false, freePrefill: false, freeCustomerText: false, freeMaterialOrder: false, freeAll: false })
           }}
           style={{ marginTop: 10, padding: 10, backgroundColor: '#1769e0', borderRadius: 8 }}
         >
@@ -289,8 +300,35 @@ export function EstimatePage({ squares, pitch, notes, laborRate, materialRate, m
           </Text>
         </Pressable>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
-          <Pressable onPress={() => setDiffDraft(JSON.stringify(draftGoodBetterBest(), null, 2))} style={{ padding: 6, backgroundColor: '#102033', borderRadius: 6 }}>
+          <Pressable onPress={() => {
+            const d = draftGoodBetterBest()
+            void runAndQueue('Good/Better/Best', d, () => applyEstimateDraft(d.options, flags || { unlocked: false, freeEstimate: false, freePrefill: false, freeCustomerText: false, freeMaterialOrder: false, freeAll: false }))
+          }} style={{ padding: 6, backgroundColor: '#102033', borderRadius: 6 }}>
             <Text style={{ color: '#fff', fontSize: 11 }}>Good/Better/Best</Text>
+          </Pressable>
+          <Pressable onPress={() => {
+            const lines = items.map(i => i.name)
+            void runAndQueue('Material order', { lines }, () => applyMaterialOrder(lines, flags || { unlocked: false, freeEstimate: false, freePrefill: false, freeCustomerText: false, freeMaterialOrder: false, freeAll: false }))
+          }} style={{ padding: 6, backgroundColor: '#102033', borderRadius: 6 }}>
+            <Text style={{ color: '#fff', fontSize: 11 }}>Material order</Text>
+          </Pressable>
+          <Pressable onPress={() => {
+            const d = draftPortalSummary(total, Object.keys(grouped))
+            void runAndQueue('Portal', d, () => applyPortal(d.text))
+          }} style={{ padding: 6, backgroundColor: '#102033', borderRadius: 6 }}>
+            <Text style={{ color: '#fff', fontSize: 11 }}>Portal summary</Text>
+          </Pressable>
+          <Pressable onPress={() => {
+            const d = draftESignReady(total > 0, true)
+            void runAndQueue('E-sign', d, () => applyESign(d.ready))
+          }} style={{ padding: 6, backgroundColor: '#102033', borderRadius: 6 }}>
+            <Text style={{ color: '#fff', fontSize: 11 }}>E-sign ready</Text>
+          </Pressable>
+          <Pressable onPress={() => {
+            const d = draftFinancingOffer(total)
+            void runAndQueue('Financing', d, () => applyFinancing(d.offer))
+          }} style={{ padding: 6, backgroundColor: '#102033', borderRadius: 6 }}>
+            <Text style={{ color: '#fff', fontSize: 11 }}>Financing</Text>
           </Pressable>
           <Pressable onPress={() => setDiffDraft(JSON.stringify(draftPitchLabor(laborRate, pitch), null, 2))} style={{ padding: 6, backgroundColor: '#102033', borderRadius: 6 }}>
             <Text style={{ color: '#fff', fontSize: 11 }}>Pitch labor</Text>
@@ -310,7 +348,10 @@ export function EstimatePage({ squares, pitch, notes, laborRate, materialRate, m
           <Pressable onPress={() => setDiffDraft(JSON.stringify(draftJobCost(total, subtotal * 0.6, subtotal * 0.3, subtotal * 0.1), null, 2))} style={{ padding: 6, backgroundColor: '#102033', borderRadius: 6 }}>
             <Text style={{ color: '#fff', fontSize: 11 }}>Job cost</Text>
           </Pressable>
-          <Pressable onPress={() => setDiffDraft(JSON.stringify(draftWorkOrderTasks(Object.keys(grouped)), null, 2))} style={{ padding: 6, backgroundColor: '#102033', borderRadius: 6 }}>
+          <Pressable onPress={() => {
+            const d = draftWorkOrderTasks(Object.keys(grouped))
+            void runAndQueue('Work order', d, () => applyWorkOrder(d.tasks.map(t => t.description)))
+          }} style={{ padding: 6, backgroundColor: '#102033', borderRadius: 6 }}>
             <Text style={{ color: '#fff', fontSize: 11 }}>Work order</Text>
           </Pressable>
           <Pressable onPress={() => setDiffDraft(JSON.stringify(draftMarginFloor(marginPct, 20), null, 2))} style={{ padding: 6, backgroundColor: '#102033', borderRadius: 6 }}>
@@ -328,7 +369,10 @@ export function EstimatePage({ squares, pitch, notes, laborRate, materialRate, m
           <Pressable onPress={() => setDiffDraft(JSON.stringify(draftColorMatch(notes), null, 2))} style={{ padding: 6, backgroundColor: '#102033', borderRadius: 6 }}>
             <Text style={{ color: '#fff', fontSize: 11 }}>Color</Text>
           </Pressable>
-          <Pressable onPress={() => setDiffDraft(JSON.stringify(draftCustomerTextShort('Customer', total), null, 2))} style={{ padding: 6, backgroundColor: '#102033', borderRadius: 6 }}>
+          <Pressable onPress={() => {
+            const d = draftCustomerTextShort('Customer', total)
+            void runAndQueue('Customer text', d, () => applyCustomerText(d.text, flags || { unlocked: false, freeEstimate: false, freePrefill: false, freeCustomerText: false, freeMaterialOrder: false, freeAll: false }))
+          }} style={{ padding: 6, backgroundColor: '#102033', borderRadius: 6 }}>
             <Text style={{ color: '#fff', fontSize: 11 }}>Customer text</Text>
           </Pressable>
           <Pressable onPress={() => setDiffDraft(JSON.stringify(draftOfficeHandoff(0, notes, squares), null, 2))} style={{ padding: 6, backgroundColor: '#102033', borderRadius: 6 }}>

@@ -163,3 +163,12 @@ Added apps/field/src/ai/OwnerSettings.tsx and an "Owner settings" button on the 
 - PIN-gated entry (set, change, or clear)
 - YOLO free toggles: unlock, estimate apply, AI prefill, customer text, material order, free all
 - Stored in expo-secure-store
+
+## 2026-10-22 All behaviors wired
+
+Added apps/field/src/ai/behaviors.ts.
+- loadYolo / canApply reads owner free flags
+- enqueue writes to a local secure-store queue (estimate, material-order, customer-text, desktop-approval, work-order, portal, esign, financing)
+- EstimatePage buttons now queue real actions; AI prefill also queues
+- DraftCatalog enqueues every run as a desktop-approval item
+- When YOLO free flags are on, estimate/prefill/material/text mark applied: true

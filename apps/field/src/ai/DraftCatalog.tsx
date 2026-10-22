@@ -9,6 +9,7 @@ import * as batch126 from './batch126to150'
 import * as batch151 from './batch151to175'
 import * as batch176 from './batch176to200'
 import * as batch201 from './batch201to225'
+import { enqueue } from './behaviors'
 
 const modules = [batch1, batch3, batch26, batch76, batch101, batch126, batch151, batch176, batch201]
 
@@ -48,12 +49,13 @@ export function DraftCatalog({ notes, squares, pitch, photoCount }: { notes: str
 
   const filtered = useMemo(() => ALL.filter(e => e.name.toLowerCase().includes(q.toLowerCase())), [q])
 
-  function run(entry: Entry) {
+  async function run(entry: Entry) {
     try {
       const args = sampleArgs(entry.name, notes, squares, pitch, photoCount)
       const out = entry.fn(...args)
       setPicked(entry.name)
-      setResult(JSON.stringify(out, null, 2))
+      const queued = await enqueue('desktop-approval', { name: entry.name, result: out })
+      setResult(JSON.stringify({ result: out, queued }, null, 2))
     } catch (err) {
       setPicked(entry.name)
       setResult('Draft failed: ' + (err instanceof Error ? err.message : String(err)))
