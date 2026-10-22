@@ -1,3 +1,10 @@
+## 2026-10-20 five-document audit batch checkpoint
+
+- Batch 3 updated five stale documents: `REVIEW.md`, `AI-RECEPTIONIST-RUNBOOK.md`, `PRICING-RELEASE-STATUS.md`, `REALTIME-VOICE-GATEWAY.md`, and `MISSION-CHECKPOINT-2026-09-18.md`.
+- PR #283 merged into `main` as `9bfc042`. The batch also made one minimal test-contract repair: `scripts/receptionist-check.mjs` now checks the existing local `askOllamaJson` marker instead of the obsolete `OPENAI_API_KEY` marker. No receptionist runtime function was removed.
+- Post-merge main CI run `39522665426` completed successfully; web, mobile, preview-build, migration-safety, and release checks passed.
+- The receptionist runbook now states Free Core/local Ollama and keeps Twilio/Stripe as optional paid transport. Authenticated CRUD, physical Android installation, live receptionist provider configuration, and realtime voice deployment remain unverified.
+
 ## 2026-10-21 mobile AI top-ten remediation plan
 
 - The mobile AI audit identified ten ordered fixes. Batch 1 contains five security and contract fixes: authoritative AI-observation RLS, review-state invariants, workspace/inspection/photo consistency, truthful runtime/model availability, and executable inference/review validation.
