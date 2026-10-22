@@ -1,3 +1,4 @@
+import { DraftActions } from "./src/ai/DraftActions"
 import { StatusBar } from 'expo-status-bar'
 import * as ImagePicker from 'expo-image-picker'
 import * as Linking from 'expo-linking'
@@ -765,6 +766,16 @@ export default function App() {
               ? `${agenda[0].startsAt ? new Date(agenda[0].startsAt).toLocaleString() : 'No time set'}${agenda[0].location ? ` · ${agenda[0].location}` : ''}`
               : address.trim() || 'Capture the property. The photo stays on the phone until it syncs.'}
           </Text>
+          <DraftActions
+            photoCount={photos}
+            notes={verificationNotes}
+            squares={Number(squares) || 0}
+            pitch={Number(pitch) || 0}
+            hasPriceBook={true}
+            laborRate={85}
+            materialRate={120}
+            minMargin={2000}
+          />
           <Text style={styles.syncChip}>
             {syncing ? 'Syncing' : !online ? 'Offline · saved on the phone' : pendingUploads > 0 ? `${pendingUploads} photo${pendingUploads === 1 ? '' : 's'} waiting` : draft?.remoteId ? 'Synced' : 'Not uploaded yet'}
           </Text>
@@ -1331,6 +1342,7 @@ function Checklist({
     </Pressable>
   )
 }
+
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#f7f9fc' },
