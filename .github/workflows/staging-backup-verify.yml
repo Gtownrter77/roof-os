@@ -1,0 +1,93 @@
+name: ROOF OS Staging Backup Verify
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_schema_check:
+        description: Validate the staging schema dump command and migration snapshot
+        required: true
+        default: true
+        type: boolean
+      run_restore_check:
+        description: Run a non-destructive staging diff check (requires protected environment)
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify staging backup path
+    runs-on: ubuntu-latest
+    environment: staging-backup
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Validate migration snapshot
+        if: inputs.run_schema_check
+        run: |
+          set -euo pipefail
+          test -f supabase/migrations/053_agent_action_ledger.sql
+          test "$(find supabase/migrations -maxdepth 1 -name '*.sql' | wc -l)" -ge 53
+          sha256sum supabase/migrations/*.sql | sha256sum
+
+      - name: Install Supabase CLI
+        if: inputs.run_schema_check || inputs.run_restore_check
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Check staging database export path
+        if: inputs.run_schema_check
+        env:
+          STAGING_DB_URL: ${{ secrets.STAGING_DB_URL }}
+          STAGING_PROJECT_REF: ${{ secrets.STAGING_PROJECT_REF }}
+          PRODUCTION_SUPABASE_HOST: ${{ secrets.PRODUCTION_SUPABASE_HOST }}
+        run: |
+          set -euo pipefail
+          test -n "$STAGING_DB_URL"
+          test -n "$STAGING_PROJECT_REF"
+          case "$STAGING_DB_URL" in
+            *"$STAGING_PROJECT_REF"*) ;;
+            *) echo 'STAGING_DB_URL does not contain the allowlisted STAGING_PROJECT_REF' >&2; exit 1 ;;
+          esac
+          if [ -n "${PRODUCTION_SUPABASE_HOST:-}" ] && [[ "$STAGING_DB_URL" == *"$PRODUCTION_SUPABASE_HOST"* ]]; then
+            echo 'Refusing to inspect the configured production Supabase host.' >&2
+            exit 1
+          fi
+          mkdir -p /tmp/roof-os-backup
+          supabase db dump --db-url "$STAGING_DB_URL" --schema public --file /tmp/roof-os-backup/public.sql
+          test -s /tmp/roof-os-backup/public.sql
+          sha256sum /tmp/roof-os-backup/public.sql
+          rm -f /tmp/roof-os-backup/public.sql
+
+      - name: Run non-destructive staging diff check
+        if: inputs.run_restore_check
+        env:
+          STAGING_DB_URL: ${{ secrets.STAGING_DB_URL }}
+          STAGING_PROJECT_REF: ${{ secrets.STAGING_PROJECT_REF }}
+          PRODUCTION_SUPABASE_HOST: ${{ secrets.PRODUCTION_SUPABASE_HOST }}
+        run: |
+          set -euo pipefail
+          test -n "$STAGING_DB_URL"
+          test -n "$STAGING_PROJECT_REF"
+          case "$STAGING_DB_URL" in
+            *"$STAGING_PROJECT_REF"*) ;;
+            *) echo 'STAGING_DB_URL does not contain the allowlisted STAGING_PROJECT_REF' >&2; exit 1 ;;
+          esac
+          if [ -n "${PRODUCTION_SUPABASE_HOST:-}" ] && [[ "$STAGING_DB_URL" == *"$PRODUCTION_SUPABASE_HOST"* ]]; then
+            echo 'Refusing to inspect the configured production Supabase host.' >&2
+            exit 1
+          fi
+          supabase db diff --db-url "$STAGING_DB_URL" --schema public --file /tmp/roof-os-staging-diff.sql
+          sha256sum /tmp/roof-os-staging-diff.sql
+          rm -f /tmp/roof-os-staging-diff.sql
+
+      - name: State retention boundary
+        run: |
+          echo 'No database dump or diff is uploaded as a GitHub artifact.'
+          echo 'The restore-check input means non-destructive schema diff only; it is not a restore rehearsal.'
+          echo 'This workflow is staging-only and does not restore or mutate production.'

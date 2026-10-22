@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { AIContractValidationError, ROOF_AI_CONTRACT_VERSION, ROOF_AI_DISCLAIMER, validateRoofAIObservationPacket } from '../../../../lib/ai/roof-contract'
-import { createGeminiGenerateContentRequest } from '../../../../lib/ai/gemini-request.mjs'
+import { analyzePhotosWithOllama, getOllamaVisionModel, LocalVisionError } from '../../../../lib/ai/local-vision.mjs'
 import { isUuid, readJson, requireWorkspaceMember } from '../../../../lib/api-security'
 import { getSupabaseEnv } from '../../../../lib/supabase/env'
 import { createClient } from '../../../../lib/supabase/server'
@@ -10,10 +10,9 @@ export const runtime = 'nodejs'
 export const maxDuration = 120
 
 const BUCKET = 'inspection-photos'
-const MODEL_ID = 'gemini-2.5-flash'
+const MODEL_ID = getOllamaVisionModel()
 const MAX_PHOTOS = 50
 const MAX_TOTAL_BYTES = 30 * 1024 * 1024
-const MAX_PROVIDER_RESPONSE_BYTES = 2 * 1024 * 1024
 const REQUEST_BUDGET_MS = 110_000
 const STORAGE_TIMEOUT_MS = 15_000
 const PROVIDER_TIMEOUT_MS = 90_000
@@ -124,22 +123,6 @@ async function fetchBytesWithinBudget(url: string, remainingBytes: number, deadl
   }
 }
 
-async function fetchTextWithinTimeout(url: string, init: RequestInit, timeoutMs: number, responseLimit: number) {
-  const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), timeoutMs)
-  try {
-    const response = await fetch(url, { ...init, signal: controller.signal, cache: 'no-store' })
-    const body = await readBoundedBody(response, responseLimit, 'The AI provider response exceeded the allowed size.', 502)
-    return { response, text: body.toString('utf8') }
-  } catch (error) {
-    if (error instanceof RouteError) throw error
-    if (controller.signal.aborted) throw new RouteError(504, 'AI analysis timed out. Please try again.')
-    throw new RouteError(503, 'AI analysis is temporarily unavailable. Please try again.')
-  } finally {
-    clearTimeout(timer)
-  }
-}
-
 function canonicalContentHash(photos: PreparedPhoto[]) {
   const sortedHashes = photos.map((photo) => photo.hash).sort()
   return createHash('sha256').update(JSON.stringify(sortedHashes)).digest('hex')
@@ -170,7 +153,7 @@ const SYSTEM_INSTRUCTIONS = [
   'Do not produce dimensions, areas, roof squares, quantities, linear feet, numeric pitch ratios, prices, costs, estimates, insurance/claim decisions, or building-code determinations.',
   'Do not describe any observation as certified, verified, official, guaranteed, engineered, exact, or authoritative. All findings are unverified AI observations.',
   'Use only contract enum values. Include the exact contract disclaimer and contract version. If uncertain, choose indeterminate or low confidence.',
-  `Required constants: contract_version=${ROOF_AI_CONTRACT_VERSION}; measurement_status=unverified_ai_observation; authority_disclaimer=${ROOF_AI_DISCLAIMER}`,
+  `Required constants: contract_version=${ROOF_AI_CONTRACT_VERSION}; model_id=${MODEL_ID}; measurement_status=unverified_ai_observation; authority_disclaimer=${ROOF_AI_DISCLAIMER}`,
 ].join('\n')
 
 export async function POST(request: NextRequest) {
@@ -291,54 +274,21 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const apiKey = process.env.GEMINI_API_KEY?.trim()
-    if (!apiKey) return jsonError('AI analysis is not configured on this server.', 503)
-
-    const contents = {
-      contents: [{
-        role: 'user',
-        parts: [
-          { text: SYSTEM_INSTRUCTIONS },
-          ...preparedPhotos.map((photo) => ({ inline_data: { mime_type: photo.mimeType, data: photo.bytes.toString('base64') } })),
-        ],
-      }],
-      generationConfig: { responseMimeType: 'application/json', temperature: 0.1, maxOutputTokens: 8192 },
-    }
-    const providerRequest = createGeminiGenerateContentRequest(MODEL_ID, apiKey, contents)
-
     const timeoutMs = Math.min(PROVIDER_TIMEOUT_MS, deadline - Date.now())
     if (timeoutMs <= 0) throw new RouteError(504, 'AI analysis timed out. Please try again.')
-    const provider = await fetchTextWithinTimeout(providerRequest.url, providerRequest.init, timeoutMs, MAX_PROVIDER_RESPONSE_BYTES)
-
-    if (!provider.response.ok) {
-      if (provider.response.status === 429) throw new RouteError(503, 'AI analysis is temporarily rate-limited. Please try again later.')
-      if (provider.response.status >= 500) throw new RouteError(503, 'AI analysis is temporarily unavailable. Please try again.')
-      throw new RouteError(502, 'The AI provider could not complete this analysis.')
-    }
-
-    let providerPayload: unknown
-    try {
-      providerPayload = JSON.parse(provider.text)
-    } catch {
-      throw new RouteError(502, 'The AI provider returned an invalid response.')
-    }
-    if (!isRecord(providerPayload)) throw new RouteError(502, 'The AI provider returned an invalid response.')
-    const candidates = providerPayload.candidates
-    if (!Array.isArray(candidates) || !isRecord(candidates[0])) throw new RouteError(502, 'The AI provider returned no usable analysis.')
-    const candidate = candidates[0]
-    if (candidate.finishReason && candidate.finishReason !== 'STOP') throw new RouteError(502, 'The AI provider did not complete the analysis.')
-    if (!isRecord(candidate.content) || !Array.isArray(candidate.content.parts)) throw new RouteError(502, 'The AI provider returned no usable analysis.')
-    const responseText = candidate.content.parts
-      .filter((part): part is Record<string, unknown> => isRecord(part) && typeof part.text === 'string')
-      .map((part) => part.text as string)
-      .join('')
-    if (!responseText) throw new RouteError(502, 'The AI provider returned no usable analysis.')
-
     let candidatePacket: unknown
     try {
-      candidatePacket = JSON.parse(responseText)
-    } catch {
-      throw new RouteError(502, 'The AI provider returned malformed analysis JSON.')
+      const result = await analyzePhotosWithOllama({
+        prompt: SYSTEM_INSTRUCTIONS,
+        photos: preparedPhotos,
+        model: MODEL_ID,
+        timeoutMs,
+      })
+      candidatePacket = JSON.parse(result.text)
+    } catch (error) {
+      if (error instanceof LocalVisionError) throw new RouteError(error.status, `${error.message} Manual measurement remains available.`)
+      if (error instanceof SyntaxError) throw new RouteError(502, 'The local vision service returned malformed analysis JSON. Manual measurement remains available.')
+      throw new RouteError(503, 'The local vision service is unavailable. Manual measurement remains available.')
     }
 
     let analysis
@@ -346,9 +296,9 @@ export async function POST(request: NextRequest) {
       analysis = validateRoofAIObservationPacket(candidatePacket, preparedPhotos.length)
       rejectUnsafeClaims(analysis)
     } catch {
-      throw new RouteError(502, 'The AI provider response did not satisfy the required observation contract.')
+      throw new RouteError(502, 'The local vision response did not satisfy the required observation contract.')
     }
-    if (analysis.model_id !== MODEL_ID) throw new RouteError(502, 'The AI provider response did not identify the configured model.')
+    if (analysis.model_id !== MODEL_ID) throw new RouteError(502, 'The local vision response did not identify the configured model.')
 
     const { data: saved, error: saveError } = await supabase
       .from('photo_estimate_workflows')

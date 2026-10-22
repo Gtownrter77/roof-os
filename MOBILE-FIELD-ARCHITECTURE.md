@@ -2,6 +2,12 @@
 
 **Target:** A commercial iOS and Android field application for roofing sales representatives, inspectors, project managers, and crew leads.
 
+## Current implementation checkpoint — 2026-10-18
+
+The target architecture below is not a claim that every planned layer exists today. The current field app is centered in `apps/field/App.tsx` with supporting local database modules. It currently uses Expo/React Native, Supabase Auth, SecureStore, Expo SQLite, NetInfo, local draft/queue state, retryable sync, camera/photo capture, private Storage paths, inspection verification, and manual measurement inputs. Expo Router, TanStack Query, shared packages, Sentry, background task execution, and signed store delivery remain architectural targets unless separately marked implemented in the handoff.
+
+The current arm64 Android debug APK was built from `main` by GitHub Actions run `38843100028`. Build and static mobile contracts passed; physical-device installation and authenticated end-to-end sync remain unverified.
+
 ## Architecture decision
 
 Build a separate Expo/React Native application that shares the existing Supabase project with the Next.js desktop application. Do not make the desktop site the long-term mobile product. The phone and tablet workflow needs camera controls, offline persistence, background upload, push notifications, location-aware appointments, and app-store distribution.

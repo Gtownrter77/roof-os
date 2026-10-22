@@ -1,19 +1,17 @@
 import { createHash } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
-import { createGeminiGenerateContentRequest } from '../../../../lib/ai/gemini-request.mjs'
+import { analyzePhotosWithOllama, getOllamaVisionModel, LocalVisionError } from '../../../../lib/ai/local-vision.mjs'
 import { GEOMETRY_CONTRACT_VERSION, validateGeometrySuggestion, GeometryContractValidationError } from '../../../../lib/ai/geometry-contract'
 import { isUuid, readJson, requireWorkspaceMember } from '../../../../lib/api-security'
 import { getSupabaseEnv } from '../../../../lib/supabase/env'
 import { createClient } from '../../../../lib/supabase/server'
 export const runtime = 'nodejs'
 export const maxDuration = 120
-const MODEL_ID = 'gemini-2.5-flash'
+const MODEL_ID = getOllamaVisionModel()
 const MAX_IMAGE_BYTES = 30 * 1024 * 1024
-const MAX_RESPONSE_BYTES = 2 * 1024 * 1024
 const PHOTO_BUCKET = 'inspection-photos'
 class RouteError extends Error { constructor(readonly status: number, message: string) { super(message) } }
 function jsonError(message: string, status: number) { return NextResponse.json({ error: message }, { status }) }
-function record(value: unknown): value is Record<string, unknown> { return value !== null && typeof value === 'object' && !Array.isArray(value) }
 async function boundedBytes(response: Response, maxBytes: number) {
   if (!response.body) throw new RouteError(502, 'The selected image could not be read.')
   const reader = response.body.getReader(); const chunks: Uint8Array[] = []; let size = 0
@@ -24,12 +22,6 @@ async function fetchBounded(url: string, timeoutMs: number, maxBytes: number) {
   const controller = new AbortController(); const timer = setTimeout(() => controller.abort(), timeoutMs)
   try { const response = await fetch(url, { signal: controller.signal, cache: 'no-store' }); if (!response.ok) throw new RouteError(502, 'The selected image could not be retrieved from private storage.'); return await boundedBytes(response, maxBytes) }
   catch (error) { if (error instanceof RouteError) throw error; if (controller.signal.aborted) throw new RouteError(504, 'Aerial analysis timed out.'); throw new RouteError(502, 'The selected image could not be retrieved.') }
-  finally { clearTimeout(timer) }
-}
-async function providerText(url: string, init: RequestInit) {
-  const controller = new AbortController(); const timer = setTimeout(() => controller.abort(), 90_000)
-  try { const response = await fetch(url, { ...init, signal: controller.signal, cache: 'no-store' }); const bytes = await boundedBytes(response, MAX_RESPONSE_BYTES); return { response, text: bytes.toString('utf8') } }
-  catch (error) { if (error instanceof RouteError) throw error; if (controller.signal.aborted) throw new RouteError(504, 'AI analysis timed out.'); throw new RouteError(503, 'AI analysis is temporarily unavailable.') }
   finally { clearTimeout(timer) }
 }
 function isImage(bytes: Buffer) { return (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) || bytes.subarray(0, 8).equals(Buffer.from([0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,0x0a])) || (bytes.toString('ascii', 0, 4) === 'RIFF' && bytes.toString('ascii', 8, 12) === 'WEBP') }
@@ -64,19 +56,14 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ measurement: existing, suggestion: { contract_version: GEOMETRY_CONTRACT_VERSION, image_width: existing.image_width, image_height: existing.image_height, source_image_reference: 'persisted-review-suggestions', planes: (planes.data ?? []).map((row) => ({ id: row.id, dbId: row.id, vertices: row.vertices, suggested_pitch: row.suggested_pitch, confidence: row.confidence, review_status: row.review_status })), edges: (edges.data ?? []).map((row) => ({ id: row.id, dbId: row.id, start: row.start_point, end: row.end_point, classification: row.classification, confidence: row.confidence, review_status: row.review_status })), objects: (objects.data ?? []).map((row) => ({ id: row.id, dbId: row.id, type: row.object_type, position: row.position, confidence: row.confidence, review_status: row.review_status })), warnings: ['Persisted suggestions loaded; no existing geometry was overwritten.'] }, cached: true, warning: 'Existing suggestions were preserved. Use the review controls to accept, reject, or edit them.' })
       }
     }
-    const apiKey = process.env.GEMINI_API_KEY?.trim()
-    if (!apiKey) return jsonError('AI image analysis is not configured on this server. Manual measurement remains available.', 503)
     const measurement = existing ?? (await supabase.from('aerial_measurements').insert({ workspace_id: workspaceId, inspection_id: inspectionId, source_photo_id: photoId, image_width: width, image_height: height, status: 'draft', created_by: user.id }).select('id,status,calibration_status,source_photo_id').single()).data
     if (!measurement) return jsonError('Could not create the aerial measurement workspace.', 502)
-    const payload = { contents: [{ role: 'user', parts: [{ text: SYSTEM_PROMPT }, { inline_data: { mime_type: photo.mime_type, data: bytes.toString('base64') } }] }], generationConfig: { responseMimeType: 'application/json', temperature: 0.1, maxOutputTokens: 8192 } }
-    const providerRequest = createGeminiGenerateContentRequest(MODEL_ID, apiKey, payload); const provider = await providerText(providerRequest.url, providerRequest.init)
-    if (!provider.response.ok) throw new RouteError(provider.response.status === 429 ? 503 : 502, 'The configured AI provider could not complete this analysis.')
-    let outer: unknown; try { outer = JSON.parse(provider.text) } catch { throw new RouteError(502, 'The AI provider returned malformed JSON.') }
-    if (!record(outer) || !Array.isArray(outer.candidates) || !record(outer.candidates[0]) || !record(outer.candidates[0].content) || !Array.isArray(outer.candidates[0].content.parts)) throw new RouteError(502, 'The AI provider returned no usable geometry.')
-    const text = outer.candidates[0].content.parts.filter((part: unknown): part is Record<string, unknown> => record(part) && typeof part.text === 'string').map((part) => part.text as string).join('')
-    let suggestion: unknown; try { suggestion = JSON.parse(text) } catch { throw new RouteError(502, 'The AI provider returned malformed geometry JSON.') }
-    let validated; try { validated = validateGeometrySuggestion(suggestion) } catch (error) { if (error instanceof GeometryContractValidationError) throw new RouteError(502, 'The AI provider returned invalid geometry.'); throw error }
-    if (validated.image_width !== width || validated.image_height !== height) throw new RouteError(502, 'The AI provider returned mismatched image dimensions.')
+    let localResult: { model: string; text: string }
+    try { localResult = await analyzePhotosWithOllama({ prompt: SYSTEM_PROMPT, photos: [{ mimeType: photo.mime_type, bytes }], model: MODEL_ID, timeoutMs: 90_000 }) }
+    catch (error) { if (error instanceof LocalVisionError) throw new RouteError(error.status, `${error.message} Manual measurement remains available.`); throw new RouteError(503, 'The local vision service is unavailable. Manual measurement remains available.') }
+    let suggestion: unknown; try { suggestion = JSON.parse(localResult.text) } catch { throw new RouteError(502, 'The local vision service returned malformed geometry JSON.') }
+    let validated; try { validated = validateGeometrySuggestion(suggestion) } catch (error) { if (error instanceof GeometryContractValidationError) throw new RouteError(502, 'The local vision service returned invalid geometry.'); throw error }
+    if (validated.image_width !== width || validated.image_height !== height) throw new RouteError(502, 'The local vision service returned mismatched image dimensions.')
     const sourceReference = `inspection-photo:${photoId}:sha256:${contentHash}`
     const planeRows = validated.planes.map((plane) => ({ aerial_measurement_id: measurement.id, workspace_id: workspaceId, vertices: plane.vertices, suggested_pitch: plane.suggested_pitch, confidence: plane.confidence, source_image_reference: sourceReference, is_suggested: true, created_by: user.id }))
     const edgeRows = validated.edges.map((edge) => ({ aerial_measurement_id: measurement.id, workspace_id: workspaceId, start_point: edge.start, end_point: edge.end, classification: edge.classification, confidence: edge.confidence, source_image_reference: sourceReference, is_suggested: true, created_by: user.id }))

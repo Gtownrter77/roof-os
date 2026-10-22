@@ -1,3 +1,68 @@
+## 2026-10-22 field AI + multi-trade estimate checkpoint
+
+- Current working branch: `feature/top25-batch-126-150` at `7770594`.
+- PR #303 open against main. Branch updated with main. Mobile type error fixed (`needsApproval` → `requiresApproval` in sim test).
+- PR #302 merged into main as `ff20c78`. CI web-tests permanently fixed by building before runtime-smoke and removing `continue-on-error`.
+- Field AI batches present: `batch1.ts`, `batch3.ts`, `batch26to50.ts`, `batch76to100.ts`, `batch101to125.ts`, `batch126to150.ts` (+ sim), `batch151to175.ts`, `batch176to200.ts`, `batch201to225.ts`.
+- All draft functions return `requiresApproval: true`. Offline-first. No authoritative writes.
+- `EstimatePage.tsx` is a multi-trade detailed estimate (roofing, repairs, gutters, downspouts, siding, windows, exterior/interior painting, fascia, soffit). AI assist prefill button uses 126-150 drafts. Differentiator buttons (Good/Better/Best, pitch labor, material order, portal, e-sign, financing, job cost, work order, margin floor, warranty, completeness, next action, color, customer text, office handoff, upsell) produce human-gated drafts.
+- AI copilot (`components/AiChatBar.tsx`) is translucent, lifted above the footer, and has shorter quick actions that navigate.
+- `COMPETITIVE-MAP.md` tracks AccuLynx / JobNimbus / Roofr parity and differentiators.
+- `CURRENT-STATE.md` has the full chronological log of batches and wiring.
+- Next: wait for #303 CI green, then merge. No regressions. Human gate stays on every AI result.
+
+## 2026-10-21 mobile AI top-ten remediation plan
+
+- The mobile AI audit identified ten ordered fixes. Batch 1 contains five security and contract fixes: authoritative AI-observation RLS, review-state invariants, workspace/inspection/photo consistency, truthful runtime/model availability, and executable inference/review validation.
+- Batch 2 will contain five integration fixes: wire inference into photo capture, persist and sync AI observations on native mobile, add technician review UI and transitions, replace source-marker tests with runtime/RLS coverage, and restore reproducible field TypeScript/offline-sync release gates.
+- Every batch uses three validation levels: Level 1 local static/type/contract checks; Level 2 security and migration checks; Level 3 full CI/PR checks on the merged-result candidate. No batch is merged until all required GitHub checks are green.
+- Current source baseline is remote `main` commit `1c047f8`; the prior source snapshot is not Git-backed and is not used as an overwrite. Expo SDK 57 requires a development build for native modules; the first batch remains TypeScript-only and does not add native dependencies.
+
+## 2026-10-21 mobile AI top-five batch 1 in progress
+
+- Working branch: `repair/mobile-ai-top-five-20261021`.
+- Migration `054_mobile_ai_observations.sql` adds review-state checks, immutable provenance, workspace consistency triggers, and creator/admin-scoped review updates.
+- `apps/field/src/ai/inference.ts` now validates inputs/results and reports requested/runtime/model state separately; it remains disabled until a reviewed native model is bundled.
+- `apps/field/src/ai/review.ts` now validates review transitions and corrected/rejected payloads.
+- The security contract is registered as `test:mobile-ai-observation-security`; no production database or device/provider action has been performed.
+- Audit against GitHub `main` commit `1c047f8` found that `main` does not yet contain the mobile AI modules or migration. The untracked source snapshot's `App.tsx` differs from current `main` by about 537 lines and removes newer field-coach, radar, alert, session-expiry, photo-queue, and verification-sync behavior; it must not replace current `main` wholesale.
+- The safe porting boundary is AI-only: retain current `main` `App.tsx` and add the inference, queue, sync, and review seams incrementally. The rejected package-script overwrite made no repository change.
+- Fresh checks on the current remediation branch: `mobile-ai-observation-security-test` passed, the snapshot AI contract test passed, and `git diff --check` passed. No PR or merge has been created yet.
+- Batch 1 validation is now green locally: Level 1 AI contract plus standalone TypeScript checks; Level 2 `verify:security`, SECURITY DEFINER migration checks, and migration markers; Level 3 root typecheck, release check, offline-sync/auth/vision tests, production build, field TypeScript, and Expo config checks. Root and field lockfile dependencies were installed with `npm ci --ignore-scripts`; no production mutation occurred.
+- CI/package gates now include `test:mobile-ai-observation-security` and migration `054_mobile_ai_observations.sql` markers. The next action is a protected PR and required-check wait, not a direct push to `main`.
+
+## 2026-10-21 free local stack implementation checkpoint
+
+- Vision default is now `qwen3-vl:8b` through the existing Ollama-compatible local client. Override with `OLLAMA_VISION_MODEL` when hardware requires a smaller model.
+- Added `POST /api/claims/local`, which uses workspace-admin and signed Storage checks, calls `CLAIMS_DOCUMENT_WORKER_URL`, and stores `provider=owner_import` at `ready_for_review`.
+- Added `workers/claims`, a private Docling MIT worker with HTTPS origin allowlisting, 25 MB input cap, bounded output, and temporary-file cleanup. It extracts documents only; it does not create ESX, licensed prices, coverage decisions, or approvals.
+- CapOut remains an optional paid adapter. Whisper remains the existing local faster-whisper worker; no paid speech service was added.
+- This checkpoint is source-only until the local worker is deployed on a persistent private host, `CLAIMS_DOCUMENT_WORKER_URL` is configured, and authenticated sample/RLS tests pass.
+
+## 2026-10-19 five-document audit batch checkpoint
+
+- Batch 2 updated five stale documentation files: `DATABASE-SCHEMA.md`, `OPERATING-CADENCE.md`, `CLAIMS-PRICING-INTEGRATION.md`, `RESEARCH-GIS-NOAA.md`, and `GAPS-REVIEW.md`.
+- PR #281 merged into `main` as `fe77e3d`. Post-merge main CI run `39242903451` completed successfully; web, mobile, preview-build, migration-safety, and release checks passed.
+- The updates correct documentation drift: schema/migration source is not proof of live Supabase state; paid claims and retailer connectors remain optional; GIS/NOAA outputs remain candidate evidence; authenticated dashboard CRUD and physical Android installation remain unverified.
+- No application code, database data, security guard, provider key, or deployment setting changed in this batch.
+
+## 2026-10-17 GitHub main handoff refresh
+
+- Current GitHub `main`: `5454cfa` (`docs: add Render migration handoff`). The prior handoff update is present in `main` through merged PR #276 at `54eec3f`.
+- Post-merge main CI for PR #276 passed: run `39060548460`, status `success`. The latest main CI run `39060748459` also passed.
+- Current APK, Vercel, Supabase, login, and physical-install verification facts remain unchanged from the checkpoint below. Do not claim authenticated dashboard data or physical Android installation as verified until those tests complete.
+- This refresh is documentation-only. No application code, AI behavior, security guard, database data, or deployment setting was changed.
+
+## 2026-10-16 current verification checkpoint
+
+- Main is green at `c6e8b72` after PR #275 merged. The change was documentation-only: Free Core rules remain GitHub, Supabase, and local Ollama; no security guards or app functions were added or removed.
+- Fresh current-main Field APK build passed on GitHub Actions run `38843100028`. APK release: [field-apk-main-c6e8b72](https://github.com/Gtownrter77/roof-os/releases/tag/field-apk-main-c6e8b72). Direct APK: https://github.com/Gtownrter77/roof-os/releases/download/field-apk-main-c6e8b72/app-debug.apk. SHA-256: `ad8e4f1a1606c9250b33e5efb74f9a84b877b343c045860dd33dbf799ea1be9e`.
+- APK ZIP integrity, mobile auth contract, offline-sync contract, security checks, and TypeScript checks passed. Physical Android installation was not performed from the Sandbox.
+- Live Vercel `https://roof-os-lemon.vercel.app/api/status` reported `overall: operational`; database, API, and storage reported online. `/photo-estimate` returned HTTP 200 and rendered Photo Reports controls.
+- Mobile source is wired to Supabase project `xksumagfbegdlapwysps` and Vercel web fallback `https://roof-os-lemon.vercel.app`. Unauthenticated Supabase health returned the expected missing-API-key 401; no data was changed.
+- Authenticated dashboard data was not verified. Live `/auth/login` currently shows the owner-only break-glass key screen, not the Supabase email/password or OTP form. No credentials were requested, entered, or exposed.
+- Current release truth: build and service reachability are verified; end-to-end authenticated browser/mobile CRUD, login, sync, and physical install remain unverified.
+
 ## 2026-10-05 final synchronized checkpoint
 
 **Runtime source baseline:** `5144836fbc0a949d94cce5e444cd8432dc7c990f`
@@ -801,3 +866,82 @@ The mobile verification record is evidence of a technician review event only. A 
 - Rebased the requested Storm Command Center dashboard onto current `main` after newer AI, mobile-auth, and inspection-audio work advanced the base branch.
 - Preserved current `main` for all unrelated newer features and retained the requested detailed dashboard, persistent Storm Theme setting, print contract, and root/field dependency audit remediations.
 - PR #223 checks were fully green before this merge-resolution commit; rerun the complete PR gate after pushing the conflict resolution.
+
+
+## 2026-10-13 Gemini vision replacement checkpoint
+
+- Starting point: clean `main` at `9e1efb17eaccf325b35bbe2740a835d3d506d50a`. Before edits, pushed and verified remote backup `backup/pre-gemini-ollama-20261013-9e1efb1` at that same SHA.
+- Code checkpoint: `80a0aec42b6f8a51be33a63199b24772fe8cfed7`, branch `fix/gemini-to-ollama-20261013`. Immediately after the branch push, `git rev-parse HEAD` and `git ls-remote origin refs/heads/fix/gemini-to-ollama-20261013` matched exactly.
+- Replaced Gemini calls in photo-estimate, aerial geometry, and siding analysis with the shared local OpenAI-compatible vision client. Its current base URL is `http://localhost:20128/v1` (`OLLAMA_VISION_API_BASE_URL`); default model is `llava` (`OLLAMA_VISION_MODEL`). Requests use `/chat/completions`, send images as data URLs, enforce a 90-second default/120-second maximum timeout, cap responses at 2 MiB, and do not attach a hosted-provider key. Removed the obsolete Gemini request factory and updated status, deployment, no-paid-AI, and vision regression documentation.
+- Existing workspace/session authorization, private-storage checks, image-size limits, AI observation/geometry validators, technician review semantics, and manual-measurement fallbacks were retained. No account permissions or unrelated provider settings were changed. Open PRs #241 and #270 were not touched.
+- Local checks passed: production build with validation-only environment values; runtime smoke; typecheck; release/security checks; all repository web tests; field dependency audit and brace regression; field TypeScript check; Expo config; and `npm audit` (0 vulnerabilities). `git diff --check` passed. The first aerial test run exposed an obsolete Gemini request-shape assertion; it was updated and the rerun passed. The field typecheck initially lacked installed field dependencies; after `npm ci --prefix apps/field`, the field checks passed.
+- **Runtime limitation:** non-generating probes to `http://localhost:20128/v1` from this Sandbox could not connect, so no real model inference was attempted. The code and `.env.example` use the supplied endpoint as requested, but runtime reachability is unverified. In Vercel, `localhost` refers to the Vercel function runtime; the production status endpoint previously showed no explicit `OLLAMA_HOST` (text fell back to keywords). The `visionConfigured` field now reflects whether `OLLAMA_VISION_API_BASE_URL` is explicitly set. Do not claim live inference works until a post-deploy authorized test confirms a reachable model server.
+- Next: open a PR for `fix/gemini-to-ollama-20261013`, wait for every required CI/preview check, merge only when green, then verify the production deployment commit and route status. Preserve the endpoint limitation above in any release report.
+
+
+## 2026-10-13 post-merge deployment and endpoint configuration (latest)
+
+PR #273 was merged into `main` as `bd30df202e5eede9efd89640f3473cfb3a2dfb70`. Main-branch GitHub Actions run `38502849390` completed successfully. Vercel production deployment `dpl_ApzF3XNZyLtQAqTV3KC6BU2BVqgo` reached `READY` for that exact commit and includes the `roof-os-lemon.vercel.app` alias. Live read-only smoke checks returned HTTP 200 for `/`, `/auth/login`, and `/api/status`; the status payload reported `overall: operational`, `textProvider: keywords`, and `visionConfigured: false`.
+
+The application code defaults to the requested `http://localhost:20128/v1`, but the explicit Production variable `OLLAMA_VISION_API_BASE_URL` is **not set**. The Vercel connector’s metadata-only read returned 403 for the `ryan-long-s-projects` scope; the documented CLI fallback could not run because `vercel` is not installed. No Vercel variables, permissions, or credentials were changed. The local Sandbox also could not connect to the model endpoint, and no live inference was attempted. In Vercel, `localhost` refers to the function runtime, so neither the setting nor inference reachability should be treated as verified.
+
+**Outstanding action:** after the owner restores Vercel access for project `roof-os` or sets it manually, explicitly configure Production `OLLAMA_VISION_API_BASE_URL=http://localhost:20128/v1`; then redeploy if Vercel requires it and verify the setting and model-server reachability. Until then, retain the inference limitation in release notes. This section supersedes the preceding “Next: open a PR” instruction; the PR, CI, merge, and production deployment steps are complete.
+
+## 2026-10-21 agent action approval checkpoint
+
+- Added the Agent Action Ledger in `supabase/migrations/053_agent_action_ledger.sql` for proposed action batches, individual actions, approval events, risk levels, idempotency keys, payload hashes, expiry, and RLS.
+- Added typed action-risk policy in `lib/agent-actions.ts`, secure one-touch approval RPC/API route at `app/api/agent-actions/approve/route.ts`, and worker-side proposal persistence in `workers/action-batch.ts`.
+- Added `test:agent-action-policy` and validated: `npm run test:agent-action-policy`, `npm run test:agent-runtime`, `npm run verify:security`, `npm run test:frontend-route-integrity`, and `git diff --check` all passed locally.
+- Local commit: `1cb2031c51bd25e24eb57c92fd4df0305b6a8492`.
+- Direct push to protected `main` was rejected by repository rules requiring a pull request. Feature branch `feat/agent-action-approval` is pushed and matches remote SHA.
+- Pull request: https://github.com/Gtownrter77/roof-os/pull/285
+- Production database migration and provider side effects remain unapplied and unverified.
+- Next action: add the approval queue/card UI and an idempotent action executor after PR review; then run CI and staging RLS/migration tests before enabling any agent side effects.
+
+## 2026-10-21 agent approval inbox and executor milestone
+
+The agent-control-plane PR now includes an owner-facing `/agent-actions` approval inbox, a workspace-scoped `GET /api/agent-actions` proposal feed, and mobile navigation access. The inbox computes approval hashes client-side and sends one exact batch authorization through the protected RPC/API path.
+
+Approved batches can now be picked up by the protected `POST /api/cron/agent-actions` worker route. The executor claims batches atomically, supports idempotent internal task creation and lead-owner assignment, records action results, and fails closed for unsupported customer-facing, financial, legal, or provider side effects instead of guessing.
+
+Validation passed: `npm run test:agent-action-policy`, `npm run test:agent-runtime`, `npm run verify:security`, `npm run test:frontend-route-integrity` (75 page routes), and `git diff --check`. The local environment still lacks installed project dependencies, so `npm run typecheck` remains blocked by missing `next`, Supabase, Node type, and related modules; GitHub CI is the authoritative dependency-installed check.
+
+Commit `5e9b3abd5cd691c44d3c8d0afb1bd1de583e443b` is pushed to `feat/agent-action-approval`, and local/remote branch SHAs match. PR #285 remains the review and CI path. Production migration, cron scheduling, worker secrets, and provider side effects remain unconfigured.
+
+Next action: connect the first Lead Desk event handler to action-batch proposals, then configure a staging cron schedule and run authenticated two-workspace/RLS execution tests before enabling production automation.
+
+## 2026-10-21 complete audit and handoff reconciliation
+
+This checkpoint supersedes the earlier 2026-10-21 agent-action entries where they conflict with the current repository state. The audit report is `AUDIT-STATUS-2026-10-21.md`.
+
+- Audited source baseline: `main` at `b8ad35644d5e2f0f40be334f58bfecfe9e4818ca`.
+- Audit branch: `audit/complete-handoff-20261021`.
+- PR #285 (`feat/agent-action-approval`) is **MERGED**. It is not still open and its earlier branch-only validation notes are historical.
+- Fresh local checks passed after `npm ci`: typecheck, production build, production dependency audit, security/release checks, API security, frontend route integrity, agent policy/runtime, auth, photo/report/measurement authority, vision contract/endpoint, mobile offline sync, receptionist, invoices, and status checks.
+- Read-only production checks returned 200 for `/`, `/auth/login`, `/api/status`, and `/leads`. `/api/status` reported `overall: operational`, `visionConfigured: false`, `capoutConfigured: false`, and `localClaimsConfigured: false`. No authenticated CRUD, provider execution, migration, or customer-data operation was performed.
+- Important unresolved design issue: the agent approval RPC stores caller-supplied approval hashes without recomputing them from the exact batch/action payloads, and the executor does not independently rebind the hash before execution. Keep higher-risk and external actions disabled until this is corrected and covered by staging/concurrency tests.
+- `supabase/migrations/053_agent_action_ledger.sql` is present in source, but production application is unverified. Do not enable production approval execution or cron scheduling from source presence alone.
+- The whole product remains pilot/development-ready, not commercially end-to-end verified. Open evidence gates include authenticated two-workspace browser/Storage isolation, real device field testing, migration parity, provider success/failure tests, worker heartbeat, invitation delivery, and licensed claims pricing.
+
+### Next authorized work
+
+1. Fix and test server-side approval-hash recomputation and concurrency behavior.
+2. Verify migration 053 in staging, then reconcile the target production schema with an authenticated read-only check.
+3. Run authorized two-workspace browser/Storage and authenticated inspection/report tests with synthetic data only.
+4. Run the real-device field smoke test: sign-in, camera, offline close/reopen, retry, private upload, and isolation.
+5. Configure staging cron only for the currently supported internal actions; keep external, financial, legal, customer-facing, and production side effects disabled until separately approved.
+
+
+## 2026-10-21 next-ten release-evidence checkpoint
+
+The branch `repair/next-ten-release-evidence` captures the next bounded repair batch. It adds a protected staging-only migration verification workflow, reconciles current migration/deployment guidance, makes invitation acceptance recover through normal login and resist duplicate submits, adds field-app sign-out/local-evidence retention, manual queue retry-now, session-expiry recovery, shared cron heartbeat evidence, and CI/owner release-evidence contracts. The feature shortlist is recorded in `docs/superpowers/specs/2026-10-21-next-ten-release-evidence.md` and is not part of this implementation batch. No production database, customer data, provider, credential, or deployment setting was changed. Resume with focused tests, full three-level verification, PR checks, merge only when green, then verify post-merge main CI; stop after these ten items.
+
+
+## 2026-10-21 next-five release-evidence checkpoint
+
+The branch `repair/next-five-release-evidence` contains exactly five items: lock staging workflows to an allowlisted non-production project, add protected synthetic two-workspace RLS smoke, clarify bounded backup evidence, reconcile mobile release version `0.4.0`, and add static live-release preflight. All local checks pass. No production mutation or external provider action was performed. After merge, stop and await owner completion of the protected staging/RLS, encrypted restore, physical-device, live-schema, worker-runtime, and provider gates.
+
+
+## 2026-10-21 next-five live-evidence checkpoint
+
+The branch `repair/next-five-live-evidence` contains exactly five items: protected authenticated read-only staging smoke, heartbeat-only staging probing, worker-health reporting correctness, the redacted field-device evidence packet contract, and the deterministic release-gate summary. All local checks pass. No production request or customer/provider side effect was performed. After merge, the remaining work is to run the protected staging smoke/probe and collect actual physical-device, restore, schema-parity, worker-runtime, and provider evidence.

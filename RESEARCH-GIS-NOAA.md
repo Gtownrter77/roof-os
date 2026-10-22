@@ -1,5 +1,11 @@
 # GIS and Storm Evidence Source Notes
 
+## Current implementation checkpoint — 2026-10-19
+
+The free fallback remains the implemented path: property lookup uses Nominatim plus OpenStreetMap/Overpass candidates, and storm lookup uses the official NWS endpoint. Outputs remain low-confidence or candidate evidence. No GIS footprint proves roof surface area, pitch, loss date, or claim causation. Human verification and source attribution remain mandatory.
+
+Vercel/API reachability is operational, but this research note does not claim an authenticated live property or storm query was completed in the current checkpoint. Do not upgrade confidence or remove the manual-review gate from source availability alone.
+
 ## Official sources reviewed
 
 - Cobb County GIS data page: https://geo-cobbcountyga.hub.arcgis.com/pages/get-data

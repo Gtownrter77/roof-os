@@ -1,3 +1,8 @@
+import { DraftActions } from "./src/ai/DraftActions"
+import { DraftCatalog } from "./src/ai/DraftCatalog"
+import { YoloGate } from "./src/ai/YoloGate"
+import { OwnerSettings } from "./src/ai/OwnerSettings"
+import { EstimatePage } from "./src/EstimatePage"
 import { StatusBar } from 'expo-status-bar'
 import * as ImagePicker from 'expo-image-picker'
 import * as Linking from 'expo-linking'
@@ -119,6 +124,12 @@ type QueuedPhoto = {
 const timestamp = () => new Date().toISOString()
 const clientId = (prefix: string) => `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 12)}`
 
+function isSessionExpiryError(error: unknown) {
+  const candidate = error as { status?: number; code?: string; message?: string } | null
+  const text = `${candidate?.code ?? ''} ${candidate?.message ?? ''}`.toLowerCase()
+  return candidate?.status === 401 || /invalid[_ -]?jwt|jwt expired|token has expired|refresh token|session expired|not authenticated/.test(text)
+}
+
 function ensureDatabase() {
   db.execSync(`CREATE TABLE IF NOT EXISTS inspection_drafts (id INTEGER PRIMARY KEY AUTOINCREMENT, remote_id TEXT, owner_user_id TEXT, workspace_id TEXT, client_id TEXT, lead_id TEXT, address TEXT NOT NULL DEFAULT '', photo_count INTEGER NOT NULL DEFAULT 0, status TEXT NOT NULL DEFAULT 'draft', latitude REAL, longitude REAL, technician_name TEXT, technician_license TEXT, verified_at TEXT, verification_notes TEXT, updated_at TEXT NOT NULL); CREATE TABLE IF NOT EXISTS inspection_measurements_local (id INTEGER PRIMARY KEY AUTOINCREMENT, draft_id INTEGER NOT NULL, client_id TEXT, roof_squares REAL NOT NULL, gutter_lf REAL NOT NULL, eave_lf REAL NOT NULL, rafter_lf REAL NOT NULL, pitch REAL NOT NULL, soffit_lf REAL NOT NULL, fascia_lf REAL NOT NULL, roof_type TEXT NOT NULL, latitude REAL, longitude REAL, captured_at TEXT NOT NULL, sync_status TEXT NOT NULL DEFAULT 'queued', retry_count INTEGER NOT NULL DEFAULT 0, next_retry_at TEXT, last_error TEXT); CREATE TABLE IF NOT EXISTS inspection_photo_queue (id INTEGER PRIMARY KEY AUTOINCREMENT, draft_id INTEGER NOT NULL, client_id TEXT, local_uri TEXT NOT NULL, album TEXT NOT NULL DEFAULT 'general', caption TEXT, mime_type TEXT NOT NULL DEFAULT 'image/jpeg', file_size_bytes INTEGER, width INTEGER, height INTEGER, captured_at TEXT NOT NULL, sync_status TEXT NOT NULL DEFAULT 'queued', remote_id TEXT, error TEXT, retry_count INTEGER NOT NULL DEFAULT 0, next_retry_at TEXT, last_error TEXT);`)
   for (const statement of ['ALTER TABLE inspection_drafts ADD COLUMN owner_user_id TEXT', 'ALTER TABLE inspection_drafts ADD COLUMN technician_name TEXT', 'ALTER TABLE inspection_drafts ADD COLUMN technician_license TEXT', 'ALTER TABLE inspection_drafts ADD COLUMN verified_at TEXT', 'ALTER TABLE inspection_drafts ADD COLUMN verification_notes TEXT', 'ALTER TABLE inspection_drafts ADD COLUMN lead_id TEXT', 'ALTER TABLE inspection_drafts ADD COLUMN workspace_id TEXT', 'ALTER TABLE inspection_drafts ADD COLUMN client_id TEXT', 'ALTER TABLE inspection_measurements_local ADD COLUMN client_id TEXT', 'ALTER TABLE inspection_measurements_local ADD COLUMN eave_lf REAL NOT NULL DEFAULT 0', 'ALTER TABLE inspection_measurements_local ADD COLUMN rafter_lf REAL NOT NULL DEFAULT 0', 'ALTER TABLE inspection_measurements_local ADD COLUMN pitch REAL NOT NULL DEFAULT 0', 'ALTER TABLE inspection_measurements_local ADD COLUMN soffit_lf REAL NOT NULL DEFAULT 0', 'ALTER TABLE inspection_measurements_local ADD COLUMN fascia_lf REAL NOT NULL DEFAULT 0', "ALTER TABLE inspection_measurements_local ADD COLUMN roof_type TEXT NOT NULL DEFAULT 'unknown'", 'ALTER TABLE inspection_measurements_local ADD COLUMN retry_count INTEGER NOT NULL DEFAULT 0', 'ALTER TABLE inspection_measurements_local ADD COLUMN next_retry_at TEXT', 'ALTER TABLE inspection_measurements_local ADD COLUMN last_error TEXT', 'ALTER TABLE inspection_photo_queue ADD COLUMN client_id TEXT', 'ALTER TABLE inspection_photo_queue ADD COLUMN caption TEXT', "ALTER TABLE inspection_photo_queue ADD COLUMN mime_type TEXT NOT NULL DEFAULT 'image/jpeg'", 'ALTER TABLE inspection_photo_queue ADD COLUMN file_size_bytes INTEGER', 'ALTER TABLE inspection_photo_queue ADD COLUMN width INTEGER', 'ALTER TABLE inspection_photo_queue ADD COLUMN height INTEGER', 'ALTER TABLE inspection_photo_queue ADD COLUMN album TEXT NOT NULL DEFAULT \'general\'', 'ALTER TABLE inspection_photo_queue ADD COLUMN retry_count INTEGER NOT NULL DEFAULT 0', 'ALTER TABLE inspection_photo_queue ADD COLUMN next_retry_at TEXT', 'ALTER TABLE inspection_photo_queue ADD COLUMN last_error TEXT', 'ALTER TABLE inspection_drafts ADD COLUMN verification_synced INTEGER NOT NULL DEFAULT 0']) {
@@ -139,6 +150,8 @@ export default function App() {
   const [cooldown, setCooldown] = useState(0)
   const [showPassword, setShowPassword] = useState(false)
   const [showRadar, setShowRadar] = useState(false)
+  const [showEstimate, setShowEstimate] = useState(false)
+  const [showOwnerSettings, setShowOwnerSettings] = useState(false)
 
   const [address, setAddress] = useState('')
   const [photos, setPhotos] = useState(0)
@@ -587,9 +600,26 @@ export default function App() {
     draftRef.current = next; setDraft(next); setDrafts((items) => items.map((item) => item.id === next.id ? next : item)); setNotice('Technician verification saved locally. Manager approval and signature remain separate gates.'); if (online) void syncNow(next)
   }
 
+  async function signOut() {
+    if (supabase) await supabase.auth.signOut().catch(() => {})
+    await SecureStore.deleteItemAsync('roof_os_field_email').catch(() => {})
+    await SecureStore.deleteItemAsync('roof_os_field_tech_name').catch(() => {})
+    draftRef.current = null
+    setSession(null); setDraft(null); setDrafts([]); setPhotoQueue([]); setPendingUploads(0); setSelectedLeadId(null); setNotice('Signed out. Local inspection drafts remain safely stored for their original owner.'); setError('')
+  }
+
+  function retryNow() {
+    const selected = draftRef.current ?? draft
+    if (!selected) { setError('Select an inspection before retrying its queue.'); return }
+    db.runSync('UPDATE inspection_measurements_local SET sync_status = ?, next_retry_at = NULL WHERE draft_id = ? AND sync_status IN (?, ?)', 'queued', selected.id, 'queued', 'retrying')
+    db.runSync('UPDATE inspection_photo_queue SET sync_status = ?, next_retry_at = NULL WHERE draft_id = ? AND sync_status IN (?, ?)', 'queued', selected.id, 'queued', 'retrying')
+    refreshPhotoQueue(selected.id); setPendingUploads(pendingRowCount(selected.id)); setNotice('Retrying this inspection now. Local errors are preserved if it fails again.'); void syncNow(selected)
+  }
+
   async function syncNow(draftToSync = draftRef.current ?? draft) {
     if (!supabase || !session || !draftToSync || syncLock.current || !online) { if (!online) setNotice('Offline. Local work is saved and will retry when connectivity returns.'); return }
     const activeDraftId = draftRef.current?.id
+    let sessionExpired = false
     syncLock.current = true; setSyncing(true); setError('')
     try {
       const { data: workspaceId, error: workspaceError } = await supabase.rpc('current_workspace_id')
@@ -636,6 +666,14 @@ export default function App() {
       setNotice('Synced securely to the workspace. Evidence and estimates remain review-gated.')
     } catch (syncError) {
       const message = syncError instanceof Error ? syncError.message : 'Unknown sync error'
+      if (isSessionExpiryError(syncError)) {
+        sessionExpired = true
+        if (supabase) await supabase.auth.signOut().catch(() => {})
+        draftRef.current = null
+        setSession(null); setDraft(null); setDrafts([]); setPhotoQueue([]); setPendingUploads(0)
+        setError('Your session expired. Local inspection evidence is preserved; sign in again to resume syncing.')
+        return
+      }
       const retryRows = db.getAllSync<{ retry_count: number }>('SELECT retry_count FROM inspection_measurements_local WHERE draft_id = ? AND sync_status IN (?, ?)', draftToSync.id, 'queued', 'retrying')
       const photoRetryRows = db.getAllSync<{ retry_count: number }>('SELECT retry_count FROM inspection_photo_queue WHERE draft_id = ? AND sync_status IN (?, ?)', draftToSync.id, 'queued', 'retrying')
       const retryCount = Math.max(0, ...retryRows.map((row) => row.retry_count), ...photoRetryRows.map((row) => row.retry_count))
@@ -645,7 +683,7 @@ export default function App() {
       db.runSync('UPDATE inspection_photo_queue SET sync_status = ?, retry_count = retry_count + 1, next_retry_at = ?, last_error = ?, error = ? WHERE draft_id = ? AND sync_status IN (?, ?)', 'retrying', retryAt, message, message, draftToSync.id, 'queued', 'retrying')
       setError(`Sync paused: ${message}. Automatic retry scheduled.`)
     }
-    finally { syncLock.current = false; setSyncing(false); loadDrafts(undefined, true) }
+    finally { syncLock.current = false; setSyncing(false); if (!sessionExpired) loadDrafts(undefined, true) }
   }
 
   const coachItems = fieldCoach({
@@ -710,6 +748,20 @@ export default function App() {
     <SafeAreaView style={styles.safe}>
       <StatusBar style="dark" />
       <RadarCinema visible={showRadar} onClose={() => setShowRadar(false)} webAppUrl={webAppUrl} />
+      {showEstimate && (
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#fff', zIndex: 100 }}>
+          <EstimatePage
+            squares={Number(squares) || 0}
+            pitch={Number(pitch) || 0}
+            notes={verificationNotes}
+            laborRate={85}
+            materialRate={120}
+            minMargin={20}
+            onClose={() => setShowEstimate(false)}
+          />
+        </View>
+      )}
+      <OwnerSettings visible={showOwnerSettings} onClose={() => setShowOwnerSettings(false)} />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={styles.header}>
@@ -721,6 +773,9 @@ export default function App() {
           <View style={styles.avatar}>
             <Text style={styles.avatarText}>{(session.user.email?.[0] ?? 'R').toUpperCase()}</Text>
           </View>
+          <Pressable style={styles.secondary} onPress={() => void signOut()} accessibilityLabel="Sign out">
+            <Text style={styles.secondaryText}>Sign out</Text>
+          </Pressable>
         </View>
 
         <View style={styles.hero}>
@@ -731,6 +786,29 @@ export default function App() {
               ? `${agenda[0].startsAt ? new Date(agenda[0].startsAt).toLocaleString() : 'No time set'}${agenda[0].location ? ` · ${agenda[0].location}` : ''}`
               : address.trim() || 'Capture the property. The photo stays on the phone until it syncs.'}
           </Text>
+          <DraftActions
+            photoCount={photos}
+            notes={verificationNotes}
+            squares={Number(squares) || 0}
+            pitch={Number(pitch) || 0}
+            hasPriceBook={true}
+            laborRate={85}
+            materialRate={120}
+            minMargin={2000}
+          />
+          <DraftCatalog
+            notes={verificationNotes}
+            squares={Number(squares) || 0}
+            pitch={Number(pitch) || 0}
+            photoCount={photos}
+          />
+          <YoloGate />
+          <Pressable style={[styles.secondary, { marginTop: 10 }]} onPress={() => setShowOwnerSettings(true)}>
+            <Text style={styles.secondaryText}>Owner settings</Text>
+          </Pressable>
+          <Pressable style={[styles.secondary, { marginTop: 10 }]} onPress={() => setShowEstimate(true)}>
+            <Text style={styles.secondaryText}>Open detailed estimate</Text>
+          </Pressable>
           <Text style={styles.syncChip}>
             {syncing ? 'Syncing' : !online ? 'Offline · saved on the phone' : pendingUploads > 0 ? `${pendingUploads} photo${pendingUploads === 1 ? '' : 's'} waiting` : draft?.remoteId ? 'Synced' : 'Not uploaded yet'}
           </Text>
@@ -1033,6 +1111,9 @@ export default function App() {
         <Pressable style={styles.syncButton} onPress={() => void syncQueuedDrafts()} disabled={syncing}>
           <Text style={styles.syncText}>{syncing ? 'Syncing securely…' : 'Sync queued work now'}</Text>
         </Pressable>
+        <Pressable style={[styles.secondary, { marginTop: 10 }]} onPress={retryNow} disabled={syncing || !draft}>
+          <Text style={styles.secondaryText}>Retry this inspection now</Text>
+        </Pressable>
         {notice ? <Text style={styles.notice}>{notice}</Text> : null}
         {error ? <Text style={styles.error}>{error}</Text> : null}
         <Text style={styles.footer}>Field release 0.4.0 · local drafts remain until server confirmation.</Text>
@@ -1294,6 +1375,7 @@ function Checklist({
     </Pressable>
   )
 }
+
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#f7f9fc' },

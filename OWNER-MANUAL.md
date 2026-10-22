@@ -316,6 +316,34 @@ The product is ready for continued development and controlled pilot work. It is 
 9. Add crash reporting, privacy policy, support contact, data export, and retention controls.
 10. Re-run Level 1, Level 2, and Level 3 verification before selling access to external companies.
 
+## 14. Free verification tools — 2026-10-21
+
+### Synthetic two-workspace isolation check
+
+The repository includes an opt-in smoke harness. Use only dedicated synthetic users in a non-production project:
+
+```bash
+ROOF_RLS_TEST_NONPROD=true \
+ROOF_RLS_TEST_CONFIRM=I_UNDERSTAND_SYNTHETIC_DATA \
+SUPABASE_URL=https://your-staging-project.supabase.co \
+SUPABASE_ANON_KEY=your-staging-publishable-key \
+ROOF_RLS_USER_A_EMAIL=synthetic-a@example.test \
+ROOF_RLS_USER_A_PASSWORD='use-a-dedicated-test-password' \
+ROOF_RLS_USER_B_EMAIL=synthetic-b@example.test \
+ROOF_RLS_USER_B_PASSWORD='use-a-dedicated-test-password' \
+npm run test:two-workspace-isolation
+```
+
+The command refuses Vercel URLs, does not print credentials, creates namespaced test leads and one private object, checks cross-workspace read/update/storage denial, and cleans up its own records. It is not a substitute for a real-device test.
+
+### Staging backup verification
+
+GitHub Actions contains the manual workflow `.github/workflows/staging-backup-verify.yml`. It is protected by the `staging-backup` environment and requires `STAGING_DB_URL` only when the owner explicitly runs a staging check. It does not export production by default, does not upload database dumps as artifacts, and does not perform a destructive restore. A real encrypted-backup policy requires separate owner decisions about encryption keys, access, retention, and a disposable restore project.
+
+### Current release truth
+
+The current merged `main` baseline is `9660661221468ca854e1c628f15bb293e50d4d50`. Source-level checks passing does not establish production migration parity, authenticated two-workspace isolation, provider execution, or physical-device behavior.
+
 ## References
 
 [1]: https://supabase.com/docs/guides/database/postgres/row-level-security "Supabase Row Level Security"
@@ -325,3 +353,43 @@ The product is ready for continued development and controlled pilot work. It is 
 [5]: https://docs.expo.dev/versions/latest/sdk/imagepicker/ "Expo ImagePicker Documentation"
 [6]: https://www.openstreetmap.org/ "OpenStreetMap"
 [7]: https://www.google.com/maps "Google Maps"
+
+
+## 2026-10-21 release-evidence checklist
+
+This batch records ten repairs but does not turn source or CI output into production proof. Before commercial use, complete and record each external gate separately:
+
+| Gate | Evidence required | Current state |
+| --- | --- | --- |
+| Staging migration | Protected manual workflow against the allowlisted staging project; migration ledger and diff reviewed | Not yet run |
+| Production schema | Authenticated owner review of the live Supabase migration ledger; never replay by filename | Unverified |
+| Two-workspace isolation | Two authenticated accounts, lead CRUD, private Storage upload/read denial, and cleanup | Unverified |
+| Invitation delivery | Real invitation email, sign-in redirect, acceptance, replay/expiry behavior | Source contract only |
+| Field device | Signed internal APK installed on a real iOS/Android device; offline capture, reopen, upload, retry | Source/CI only |
+| Worker operation | Heartbeat freshness, test event, retry idempotency, and cross-workspace denial | Source contract only |
+| Backups | Encrypted backup and a staging restore rehearsal with dated evidence | Not yet run |
+| Provider actions | Authorized sandbox/sample checks for any Twilio, retailer, claims, or payment connector | Not authorized |
+
+The future feature shortlist is recorded in `docs/superpowers/specs/2026-10-21-next-ten-release-evidence.md`. It is intentionally separate from this repair batch. Highest-value candidates are a dependable inspection-to-Golden-Report pilot, a field queue recovery center, workspace member administration, an appointment-to-field handoff, an evidence timeline, and an owner backup center. Anti-features remain: no autonomous coverage decisions, no unapproved customer messages, no fabricated measurements, no silent provider substitution, and no claim that retail prices are licensed carrier pricing.
+
+
+## 2026-10-21 next-five evidence boundaries
+
+The protected workflows `.github/workflows/staging-rls-smoke.yml`, `.github/workflows/staging-migration-verify.yml`, and `.github/workflows/staging-backup-verify.yml` require an allowlisted `STAGING_PROJECT_REF` and must not point at the production Supabase host. The RLS workflow creates synthetic rows only after explicit non-production confirmation and the harness cleans them up. It must be run manually against the protected staging environment; it is not a CI or production test.
+
+The backup workflow produces an ephemeral schema dump/checksum or non-destructive schema diff. It does not upload database material and the `run_restore_check` input is not a restore rehearsal. A real encrypted backup and staging restore remains a separate owner gate and is still marked **Not yet run**.
+
+The mobile source/configuration/documentation version is `0.4.0`. The APK workflow now fails if the Expo version drifts. A passing version contract does not prove that an APK was built, installed, or exercised on a physical device.
+
+`npm run test:live-release-preflight` checks repository secret-name hygiene and reports unknown external gates without reading secret values or making network requests. A PASS means repository hygiene only; it is not production verification.
+
+
+## 2026-10-21 next-five live-evidence procedures
+
+The protected `staging-auth` workflow performs bounded authenticated reads with two dedicated staging users. It does not create synthetic rows, upload files, call providers, or target production. A passing read-only smoke is useful evidence of authentication and basic workspace reads, but it is not a physical-device or production-parity proof.
+
+The protected `staging-heartbeat` workflow calls only `/api/cron/heartbeat` with `CRON_SECRET`. That route writes only bounded scheduler heartbeat rows in staging. It cannot execute agent actions, Twilio, retailer, payment, claims, or customer workflows.
+
+The physical-device packet template is `docs/evidence/field-device-0.4.0.example.json`. Replace it only with a redacted real manifest containing a build identifier and artifact identifiers. The validator rejects credentials and customer data; the example intentionally remains **UNKNOWN**.
+
+`npm run test:release-gate-summary` produces a local PASS/FAIL/UNKNOWN table. Missing external evidence stays **UNKNOWN**. The summary is a release conversation aid, not approval to market production readiness.

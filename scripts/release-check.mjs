@@ -99,45 +99,60 @@ for (const route of routes) {
     throw new Error(`API route bypasses the bounded JSON reader: ${route}`)
   }
   const fetchCallCount = [...source.matchAll(/\bfetch\s*\(/g)].length
+  const localVisionSource = readFileSync(join(root, 'lib', 'ai', 'local-vision.mjs'), 'utf8')
+  const boundedLocalVisionRequest = localVisionSource.includes('await fetch(endpoint,')
+    && localVisionSource.includes('new AbortController()')
+    && localVisionSource.includes('signal: controller.signal')
+    && localVisionSource.includes('const timer = setTimeout(() => controller.abort(), boundedTimeout)')
+    && localVisionSource.includes('clearTimeout(timer)')
+    && localVisionSource.includes('size > MAX_RESPONSE_BYTES')
   const boundedPhotoAnalysisFetch = route === join(root, 'app', 'api', 'photo-estimate', 'analyze', 'route.ts')
-    && fetchCallCount === 2
-    && (source.match(/new AbortController\(\)/g) ?? []).length === 2
-    && (source.match(/const timer = setTimeout\(\(\) => controller\.abort\(\), timeoutMs\)/g) ?? []).length === 2
-    && (source.match(/clearTimeout\(timer\)/g) ?? []).length === 2
+    && fetchCallCount === 1
+    && (source.match(/new AbortController\(\)/g) ?? []).length === 1
+    && (source.match(/const timer = setTimeout\(\(\) => controller\.abort\(\), timeoutMs\)/g) ?? []).length === 1
+    && (source.match(/clearTimeout\(timer\)/g) ?? []).length === 1
     && source.includes('async function readBoundedBody(')
     && source.includes('async function fetchBytesWithinBudget(')
-    && source.includes('async function fetchTextWithinTimeout(')
     && source.includes('size > maxBytes')
     && source.includes('await readBoundedBody(response, remainingBytes,')
-    && source.includes('await readBoundedBody(response, responseLimit,')
     && source.includes('Math.min(STORAGE_TIMEOUT_MS, deadline - Date.now())')
     && source.includes('Math.min(PROVIDER_TIMEOUT_MS, deadline - Date.now())')
+    && source.includes('analyzePhotosWithOllama(')
+    && boundedLocalVisionRequest
   const boundedSidingAnalysisFetch = route.includes('/app/api/siding/analyze/route.ts')
-    && fetchCallCount === 2
+    && fetchCallCount === 1
     && source.includes('async function getBytes(')
-    && source.includes('async function readBoundedText(')
     && source.includes('size>MAX')
-    && source.includes('size>maxBytes')
-    && source.includes('AbortSignal.timeout(90000)')
-    && source.includes('await readBoundedText(response)')
-    const boundedStatusHealthFetch = isPublicStatusRoute
+    && source.includes('AbortSignal.timeout(15_000)')
+    && source.includes('analyzePhotosWithOllama(')
+    && source.includes('timeoutMs:90000')
+    && boundedLocalVisionRequest
+  const boundedStatusHealthFetch = isPublicStatusRoute
     && fetchCallCount === 1
     && source.includes('api.weather.gov')
     && source.includes('AbortSignal.timeout(5_000)')
     && source.includes('createAdminClient()')
     && source.includes("from('workspaces')")
     && source.includes("from('inspection-photos')")
+  const boundedLocalClaimsFetch = route === join(root, 'app', 'api', 'claims', 'local', 'route.ts')
+    && fetchCallCount === 1
+    && source.includes('fetchWithTimeout')
+    && source.includes('WORKER_TIMEOUT_MS')
+    && source.includes('MAX_WORKER_RESPONSE_BYTES')
+    && source.includes('isAuthorizedStorageUrl(body.sourceUrl)')
+    && source.includes('CLAIMS_DOCUMENT_WORKER_URL')
   const boundedAerialGeometryFetch = route === join(root, 'app', 'api', 'measurements', 'aerial', 'route.ts')
-    && fetchCallCount === 2
-    && (source.match(/new AbortController\(\)/g) ?? []).length === 2
-    && (source.match(/const timer = setTimeout\(\(\) => controller\.abort\(\),/g) ?? []).length === 2
-    && (source.match(/clearTimeout\(timer\)/g) ?? []).length === 2
+    && fetchCallCount === 1
+    && (source.match(/new AbortController\(\)/g) ?? []).length === 1
+    && (source.match(/const timer = setTimeout\(\(\) => controller\.abort\(\),/g) ?? []).length === 1
+    && (source.match(/clearTimeout\(timer\)/g) ?? []).length === 1
     && source.includes('async function boundedBytes(')
     && source.includes('async function fetchBounded(')
-    && source.includes('async function providerText(')
     && source.includes('size > maxBytes')
-  // D.3 keeps both abort timers active while stream-limiting storage and provider response bodies.
-  if (fetchCallCount > 0 && !boundedPhotoAnalysisFetch && !boundedAerialGeometryFetch && !boundedSidingAnalysisFetch && !boundedStatusHealthFetch) {
+    && source.includes('analyzePhotosWithOllama(')
+    && boundedLocalVisionRequest
+  // D.3 bounds private-storage reads and the shared local vision request/response.
+  if (fetchCallCount > 0 && !boundedPhotoAnalysisFetch && !boundedAerialGeometryFetch && !boundedSidingAnalysisFetch && !boundedStatusHealthFetch && !boundedLocalClaimsFetch) {
     throw new Error(`API route makes a network request without an approved bounded fetch helper: ${route}`)
   }
 }

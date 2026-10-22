@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import twilio from 'twilio'
 import { createAdminClient } from '../../../../lib/supabase/admin'
+import { writeWorkerHeartbeats } from '../../../../workers/heartbeat'
 
 export async function POST(request: NextRequest) {
   const secret = process.env.CRON_SECRET?.trim()
@@ -16,6 +17,8 @@ export async function POST(request: NextRequest) {
   const admin = createAdminClient()
   const { data: attempts, error } = await admin.from('receptionist_call_attempts').select('id,workspace_id,lead_id,phone,attempt_number').eq('direction', 'outbound').eq('status', 'queued').not('next_attempt_at', 'is', null).lte('next_attempt_at', new Date().toISOString()).order('created_at', { ascending: true }).limit(25)
   if (error) return NextResponse.json({ error: 'Could not read follow-up queue.', detail: error.message }, { status: 502 })
+  const workspaceIds = (attempts ?? []).map((attempt) => attempt.workspace_id)
+  await writeWorkerHeartbeats(admin, workspaceIds, 'scheduler', 'starting')
   const client = twilio(accountSid, authToken)
   let started = 0
   let failed = 0
@@ -67,8 +70,10 @@ export async function POST(request: NextRequest) {
   }
 
   if (failed > 0) {
+    await writeWorkerHeartbeats(admin, workspaceIds, 'scheduler', 'degraded', { lastError: failures[0]?.error })
     return NextResponse.json({ processed: attempts?.length || 0, started, optedOut, failed, failures }, { status: 502 })
   }
 
+  await writeWorkerHeartbeats(admin, workspaceIds, 'scheduler', 'healthy')
   return NextResponse.json({ processed: attempts?.length || 0, started, optedOut, failed: 0 })
 }

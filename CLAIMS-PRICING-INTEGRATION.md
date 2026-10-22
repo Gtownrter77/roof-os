@@ -1,5 +1,13 @@
 # Claims Pricing Integration Boundary
 
+## Current status — 2026-10-19
+
+- Claims/CapOut and retailer/RapidAPI connectors remain optional paid add-ons. They are not part of the Free Core and no provider key is claimed as configured in this checkpoint.
+- Local Ollama, Supabase, GitHub, NWS, OpenStreetMap, and other free/open fallbacks remain the default direction. No claim-import or carrier estimate should be called live without a configured connector, authorized sample, and human review.
+- The code paths below are boundaries and scaffolds. Their presence does not prove a live provider request, current pricing, or an insurance-approved estimate.
+
+The free local path is `POST /api/claims/local`. It sends an authorized signed inspection PDF to a private `workers/claims` service through `CLAIMS_DOCUMENT_WORKER_URL`. The worker uses Docling for local PDF structure/OCR and returns bounded text and layout metadata. The result is stored as `provider=owner_import` with `status=ready_for_review`. This replaces paid PDF ingestion, not proprietary ESX generation or licensed pricing.
+
 ## Current decision
 
 ROOF/OS will support an **Xactimate-style claims workflow** without reproducing Verisk's proprietary catalog. The internal model supports localized trades, units, coverage type, labor/material/equipment components, tax and depreciation flags, effective dates, source provenance, price-book snapshots, and estimate versioning.
@@ -19,6 +27,8 @@ The supplied CapOut links show a viable authorized workflow for uploading insura
 ## ROOF/OS adapter
 
 The web app now exposes `POST /api/claims/capout`. It requires an authenticated ROOF/OS user, a workspace UUID, and an HTTPS source URL. The server sends the request to CapOut using the server-only `CAPOUT_API_KEY`, then records the returned document ID and provider response in `claims_imports`. The key is never accepted from the browser request and is never returned to the client.
+
+The free adapter `POST /api/claims/local` uses the same authentication, workspace-admin, and signed-Storage checks. It records an owner-import row and leaves it in `ready_for_review`. It never creates Verisk/Xactimate ESX, coverage decisions, insurance-approved rates, or an approved estimate. Human mapping and approval remain required.
 
 ## Home Depot reference pricing
 

@@ -1,5 +1,11 @@
 # Roof OS gap review vs AccuLynx, JobNimbus, Jobber, Roofr
 
+## Current status — 2026-10-19
+
+The repository has a working web/mobile source baseline and a current-main APK build, but this gap review remains a product-readiness document, not a claim that the product is fully live. The owner-only break-glass login screen prevented authenticated dashboard CRUD verification in the latest check. Physical Android installation, cross-workspace isolation, and end-to-end mobile sync still require owner-run verification.
+
+Free Core boundary: local Ollama/Supabase/GitHub and free/open evidence sources remain the default. Paid claims, retailer, telephony, or hosted-AI connectors are not counted as shipped until explicitly enabled and tested.
+
 Reviewed against the current repo. Do not treat prototype routes (`/quantum`, `/vr`, `/genetic`) as product.
 
 ## Table stakes we should not sell as unique

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '../../../../lib/supabase/admin'
 import { runInspectionQuality } from '../../../../workers/inspection-quality'
+import { writeWorkerHeartbeats } from '../../../../workers/heartbeat'
 
 export async function POST(request: NextRequest) {
   const secret = process.env.CRON_SECRET?.trim()
@@ -22,6 +23,8 @@ export async function POST(request: NextRequest) {
     .limit(25)
 
   if (error) return NextResponse.json({ error: 'Could not read completed inspections.', detail: error.message }, { status: 502 })
+  const workspaceIds = (inspections ?? []).map((inspection) => inspection.workspace_id)
+  await writeWorkerHeartbeats(admin, workspaceIds, 'inspection_quality', 'starting')
 
   let processed = 0
   let failed = 0
@@ -57,8 +60,10 @@ export async function POST(request: NextRequest) {
   }
 
   if (failed > 0) {
+    await writeWorkerHeartbeats(admin, workspaceIds, 'inspection_quality', 'degraded', { lastError: failures[0]?.error })
     return NextResponse.json({ processed, failed, failures }, { status: 500 })
   }
 
+  await writeWorkerHeartbeats(admin, workspaceIds, 'inspection_quality', 'healthy')
   return NextResponse.json({ processed, failed: 0 })
 }
