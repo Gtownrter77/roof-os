@@ -1,5 +1,23 @@
 # Handoff — 2026-10-22
 
+## Active lane: production → materials
+
+Estimate → send is PR #309. Photo → report is closed (#307, #308).
+
+### This lane
+Signed/approved estimate becomes a work-order draft and a material list.
+
+- Roof squares, gutter LF, soffit width, fascia width
+- Color confirmation before any order
+- Deck photo before close-in
+- Nothing is ordered or dispatched until a human approves
+
+### Gate
+Drafts only. No supplier order. No crew dispatch. No regressions.
+
+
+# Handoff — 2026-10-22
+
 ## Active lane: photo → report
 
 PR #306 merged to main (`bf16f85`). This is the first automation lane. Do not start a new lane until this one is closed.
