@@ -1,3 +1,8 @@
+import { DraftActions } from "./src/ai/DraftActions"
+import { DraftCatalog } from "./src/ai/DraftCatalog"
+import { YoloGate } from "./src/ai/YoloGate"
+import { OwnerSettings } from "./src/ai/OwnerSettings"
+import { EstimatePage } from "./src/EstimatePage"
 import { StatusBar } from 'expo-status-bar'
 import * as ImagePicker from 'expo-image-picker'
 import * as Linking from 'expo-linking'
@@ -145,6 +150,8 @@ export default function App() {
   const [cooldown, setCooldown] = useState(0)
   const [showPassword, setShowPassword] = useState(false)
   const [showRadar, setShowRadar] = useState(false)
+  const [showEstimate, setShowEstimate] = useState(false)
+  const [showOwnerSettings, setShowOwnerSettings] = useState(false)
 
   const [address, setAddress] = useState('')
   const [photos, setPhotos] = useState(0)
@@ -741,6 +748,20 @@ export default function App() {
     <SafeAreaView style={styles.safe}>
       <StatusBar style="dark" />
       <RadarCinema visible={showRadar} onClose={() => setShowRadar(false)} webAppUrl={webAppUrl} />
+      {showEstimate && (
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#fff', zIndex: 100 }}>
+          <EstimatePage
+            squares={Number(squares) || 0}
+            pitch={Number(pitch) || 0}
+            notes={verificationNotes}
+            laborRate={85}
+            materialRate={120}
+            minMargin={20}
+            onClose={() => setShowEstimate(false)}
+          />
+        </View>
+      )}
+      <OwnerSettings visible={showOwnerSettings} onClose={() => setShowOwnerSettings(false)} />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={styles.header}>
@@ -765,6 +786,29 @@ export default function App() {
               ? `${agenda[0].startsAt ? new Date(agenda[0].startsAt).toLocaleString() : 'No time set'}${agenda[0].location ? ` · ${agenda[0].location}` : ''}`
               : address.trim() || 'Capture the property. The photo stays on the phone until it syncs.'}
           </Text>
+          <DraftActions
+            photoCount={photos}
+            notes={verificationNotes}
+            squares={Number(squares) || 0}
+            pitch={Number(pitch) || 0}
+            hasPriceBook={true}
+            laborRate={85}
+            materialRate={120}
+            minMargin={2000}
+          />
+          <DraftCatalog
+            notes={verificationNotes}
+            squares={Number(squares) || 0}
+            pitch={Number(pitch) || 0}
+            photoCount={photos}
+          />
+          <YoloGate />
+          <Pressable style={[styles.secondary, { marginTop: 10 }]} onPress={() => setShowOwnerSettings(true)}>
+            <Text style={styles.secondaryText}>Owner settings</Text>
+          </Pressable>
+          <Pressable style={[styles.secondary, { marginTop: 10 }]} onPress={() => setShowEstimate(true)}>
+            <Text style={styles.secondaryText}>Open detailed estimate</Text>
+          </Pressable>
           <Text style={styles.syncChip}>
             {syncing ? 'Syncing' : !online ? 'Offline · saved on the phone' : pendingUploads > 0 ? `${pendingUploads} photo${pendingUploads === 1 ? '' : 's'} waiting` : draft?.remoteId ? 'Synced' : 'Not uploaded yet'}
           </Text>
@@ -1331,6 +1375,7 @@ function Checklist({
     </Pressable>
   )
 }
+
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#f7f9fc' },

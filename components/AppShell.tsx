@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Settings } from 'lucide-react'
 import { APP_NAV_ITEMS, APP_SHELL_HIDDEN } from '../lib/nav'
+import NextPage from './NextPage'
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() || '/'
@@ -11,7 +12,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   if (hidden) return <>{children}</>
 
   return (
-    <div className="ops-bg min-h-screen pb-24 text-slate-100 lg:pb-8">
+    <div className="ops-bg min-h-screen pb-28 text-slate-100 lg:pb-12">
       <header className="sticky top-0 z-20 border-b border-white/10 bg-[#070b14]/95 backdrop-blur">
         <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-4 px-4 py-3 md:px-6">
           <Link href="/" className="text-xl font-black tracking-tight text-white">
@@ -59,7 +60,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             })}
           </nav>
         </aside>
-        <div className="min-w-0">{children}</div>
+        <div className="min-w-0">
+          <NextPage pathname={pathname} />
+          {children}
+        </div>
       </div>
     </div>
   )
