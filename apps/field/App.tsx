@@ -1334,17 +1334,6 @@ function Checklist({
 }
 
 
-      <DraftActions
-        photoCount={photos}
-        notes={verificationNotes}
-        squares={Number(squares) || 0}
-        pitch={Number(pitch) || 0}
-        hasPriceBook={true}
-        laborRate={85}
-        materialRate={120}
-        minMargin={2000}
-      />
-
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#f7f9fc' },
   center: { flex: 1, backgroundColor: '#f7f9fc', justifyContent: 'center', padding: 24 },
