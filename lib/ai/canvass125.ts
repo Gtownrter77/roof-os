@@ -694,3 +694,69 @@ export const CANVASS_125 = CANVASS_125_CATALOG
 export function canvass125Count() {
   return CANVASS_125_CATALOG.length
 }
+
+// REA option sets — SalesRabbit, SPOTIO, JobNimbus, Terros, QuoteIQ
+export const CANVASS_OPTIONS = {
+  dispositions: [
+    'INTERESTED', 'HOT', 'WARM', 'COLD', 'NOT_HOME', 'COME_BACK',
+    'APPOINTMENT_SET', 'INSPECTED', 'NOT_INTERESTED', 'DO_NOT_KNOCK',
+    'ALREADY_CUSTOMER', 'RENTER', 'VACANT', 'NO_SOLICITING', 'GATE_LOCKED',
+    'SPOUSE_NEEDED', 'CALLBACK', 'SOLD', 'LOST',
+  ],
+  lossReasons: [
+    'price', 'already has a roofer', 'no damage', 'renter', 'spouse',
+    'timing', 'competitor', 'not the owner', 'HOA', 'deductible too high',
+    'hostile', 'do not solicit',
+  ],
+  stages: ['Lead', 'Estimating', 'Sold', 'In Production', 'Accounts Receivable', 'Completed', 'Lost'],
+  leadSources: ['canvass', 'storm', 'referral', 'neighbor', 'mover', 'web', 'call'],
+  buyerScoreFactors: [
+    'hail inches', 'roof age', 'year built', 'owner vs renter', 'recent buyer',
+    'home value', 'sqft', 'neighbor sold', 'prior claim', 'phone present',
+    'email present', 'credit capacity', 'no soliciting',
+  ],
+  photoPrompts: ['curb', 'front', 'back', 'left', 'right', 'soft metal', 'granule loss', 'gutter dent', 'screen', 'interior leak'],
+  returnWindows: ['10:00-12:00', '12:00-14:00', '14:00-17:00', '17:00-19:00', 'weekend'],
+  languages: ['en', 'es'],
+  territoryCuts: ['freehand', 'street', 'zip', 'county', 'storm zone'],
+  filters: ['disposition', 'score', 'storm', 'owner', 'renter', 'recent buyer', 'roof age', 'DNK', 'untouched'],
+}
+
+export function draftDispositionOptions() {
+  return gated('disposition-options', `${CANVASS_OPTIONS.dispositions.length} outcomes from SalesRabbit/SPOTIO`, 'Pick one. Do not invent.', {
+    options: CANVASS_OPTIONS.dispositions,
+  })
+}
+export function draftLossReasonOptions() {
+  return gated('loss-reasons', `${CANVASS_OPTIONS.lossReasons.length} loss reasons`, 'Required when outcome is LOST or NOT_INTERESTED', {
+    options: CANVASS_OPTIONS.lossReasons,
+  })
+}
+export function draftBuyerScoreFactors(input: CanvassInput) {
+  const hit = [
+    (input.hailInches || 0) >= 0.75 ? 'hail inches' : null,
+    (input.roofAge || 0) >= 15 ? 'roof age' : null,
+    input.newHomeowner ? 'recent buyer' : null,
+    input.priorCustomer ? 'already a customer' : null,
+    input.noSoliciting ? 'no soliciting' : null,
+  ].filter(Boolean)
+  return gated('buyer-factors', hit.length ? hit.join(', ') : 'base factors only', 'Use these before the door', {
+    factors: CANVASS_OPTIONS.buyerScoreFactors,
+    active: hit,
+  })
+}
+export function draftYoyoReturn(notHome: string[]) {
+  return gated('yoyo', `${notHome.length} not-home doors to circle back after 5pm`, 'SalesRabbit yo-yo: skip empty, return at 5', {
+    doors: notHome,
+    window: '17:00-19:00',
+  })
+}
+export function draftLeadMachineFilters() {
+  return gated('lead-machine', 'SPOTIO Lead Machine criteria', 'Filter the turf before anyone walks', {
+    criteria: ['owner', 'recent buyer', 'year built', 'home value', 'sqft', 'phone present', 'email present'],
+  })
+}
+export function draftWorkflowStage(outcome: string) {
+  const stage = outcome === 'SOLD' ? 'Sold' : outcome === 'INSPECTED' || outcome === 'INTERESTED' ? 'Estimating' : outcome === 'LOST' || outcome === 'DO_NOT_KNOCK' ? 'Lost' : 'Lead'
+  return gated('workflow-stage', `JobNimbus stage: ${stage}`, 'Map the knock into the board', { stage, stages: CANVASS_OPTIONS.stages })
+}

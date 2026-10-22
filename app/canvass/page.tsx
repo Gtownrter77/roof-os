@@ -25,6 +25,11 @@ import {
   draftGoodBetterBest,
   draftHardStopHostile,
   CANVASS_125_CATALOG,
+  CANVASS_OPTIONS,
+  draftDispositionOptions,
+  draftLossReasonOptions,
+  draftYoyoReturn,
+  draftWorkflowStage,
 } from '../../lib/ai/canvass125'
 import {
   CANVASS_LEAD_SOURCE,
@@ -152,6 +157,10 @@ export default function CanvassPage() {
   const email = draftEmail(form.homeownerName, form.address)
   const tiers = draftGoodBetterBest()
   const hostile = draftHardStopHostile(form.notes)
+  const dispositions = draftDispositionOptions()
+  const lossReasons = draftLossReasonOptions()
+  const stage = draftWorkflowStage(form.outcome)
+  const yoyo = draftYoyoReturn(leads.filter((lead) => outcomeFromLead(lead) === 'NOT_HOME').map((lead) => lead.address))
   const catalog = CANVASS_125_CATALOG.filter((item) => item.name.toLowerCase().includes(aiQuery.toLowerCase()) || item.group.toLowerCase().includes(aiQuery.toLowerCase()))
   const mapPins = leads.slice(0, 12).map((lead, index) => ({
     lead,
@@ -484,6 +493,14 @@ export default function CanvassPage() {
             <p className="text-xs whitespace-pre-line">{email.body}</p>
           </div>
           <p className="text-xs text-slate-300">Tiers: {tiers.tiers.join(' · ')}</p>
+          <div className="rounded border border-white/10 p-2 space-y-1">
+            <p className="text-[10px] uppercase text-slate-400">REA options — SalesRabbit / SPOTIO / JobNimbus</p>
+            <p className="text-[11px]">Stage: {stage.stage}</p>
+            <p className="text-[11px]">Yo-yo return: {yoyo.doors.length} not-home doors at {yoyo.window}</p>
+            <p className="text-[10px] text-slate-300">Dispositions: {dispositions.options.slice(0, 8).join(', ')}…</p>
+            <p className="text-[10px] text-slate-300">Loss reasons: {lossReasons.options.join(', ')}</p>
+            <p className="text-[10px] text-slate-400">Filters: {CANVASS_OPTIONS.filters.join(' · ')}</p>
+          </div>
 
           <div className="flex flex-wrap gap-2">
             <button type="button" onClick={startVoice} className="rounded bg-white text-black text-[11px] font-bold px-2 py-1">Voice log</button>
