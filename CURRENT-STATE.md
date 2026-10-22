@@ -86,3 +86,14 @@ Added apps/field/src/EstimatePage.tsx mirroring AccuLynx / JobNimbus / Roofr est
 - Draft banner requiring desktop approval
 
 Wired via "Open detailed estimate" button on the inspection screen. All values remain drafts.
+
+## 2026-10-22 AI assist on estimate page
+
+EstimatePage now has an "AI assist — prefill from notes & measurements" button.
+When tapped it uses the existing 126-150 draft functions to populate:
+- Material type from notes
+- Tear-off, deck repair, ice barrier, cricket, soffit, fascia, gutter guard, satellite, solar
+- Pipe boot count, ridge vent LF, nail pattern, waste, crew, duration, staging, harness
+- Dump fee and permit
+
+Tech chooses whether to apply. All results remain drafts requiring desktop approval.

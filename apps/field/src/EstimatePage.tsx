@@ -1,5 +1,28 @@
 import { useMemo, useState } from 'react'
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native'
+import {
+  draftMaterialMatch,
+  draftTearOff,
+  draftDeckRepair,
+  draftPipeBoots,
+  draftRidgeVent,
+  draftSoffit,
+  draftFascia,
+  draftGutterGuard,
+  draftSatellite,
+  draftSolar,
+  draftCricket,
+  draftIceBarrier,
+  draftUnderlaymentType,
+  draftNailPattern,
+  draftWasteFactor,
+  draftLaborCrew,
+  draftDuration,
+  draftStaging,
+  draftSafetyHarness,
+  draftDumpFee,
+  draftPermitCost,
+} from './ai/batch126to150'
 
 type LineItem = {
   id: string
@@ -17,6 +40,8 @@ type Props = {
   laborRate: number
   materialRate: number
   minMargin: number
+  state?: string
+  stories?: number
   onClose?: () => void
 }
 
@@ -24,6 +49,61 @@ const SECTIONS = ['Materials', 'Labor', 'Accessories', 'Other'] as const
 
 function uid() {
   return Math.random().toString(36).slice(2, 9)
+}
+
+function aiSeedItems(squares: number, pitch: number, notes: string, laborRate: number, materialRate: number, state: string, stories: number): LineItem[] {
+  const material = draftMaterialMatch(notes)
+  const tear = draftTearOff(notes)
+  const deck = draftDeckRepair(notes)
+  const boots = draftPipeBoots(notes)
+  const ridge = draftRidgeVent(squares)
+  const soffit = draftSoffit(notes)
+  const fascia = draftFascia(notes)
+  const guard = draftGutterGuard(notes)
+  const sat = draftSatellite(notes)
+  const solar = draftSolar(notes)
+  const cricket = draftCricket(pitch)
+  const ice = draftIceBarrier(state)
+  const under = draftUnderlaymentType(pitch)
+  const nails = draftNailPattern(pitch >= 8 ? 'high' : 'normal')
+  const waste = draftWasteFactor(pitch, 1)
+  const crew = draftLaborCrew(squares)
+  const duration = draftDuration(squares)
+  const staging = draftStaging(stories)
+  const harness = draftSafetyHarness(pitch)
+  const dump = draftDumpFee(squares)
+  const permit = draftPermitCost()
+
+  const wasteFactor = 1 + waste.percent / 100
+  const matQty = Math.round(squares * wasteFactor * 10) / 10
+
+  const items: LineItem[] = [
+    { id: uid(), section: 'Materials', name: material.match, qty: matQty, unit: 'sq', unitPrice: materialRate || 95 },
+    { id: uid(), section: 'Materials', name: under.type, qty: Math.round(squares * 1.05 * 10) / 10, unit: 'sq', unitPrice: under.type.includes('Double') ? 28 : 18 },
+  ]
+
+  if (tear.needed) items.push({ id: uid(), section: 'Labor', name: 'Tear-off', qty: squares, unit: 'sq', unitPrice: 15 })
+  if (deck.flagged) items.push({ id: uid(), section: 'Labor', name: 'Deck repair allowance', qty: 1, unit: 'ea', unitPrice: 350 })
+  items.push({ id: uid(), section: 'Labor', name: 'Install', qty: squares, unit: 'sq', unitPrice: laborRate || 45 })
+  if (harness.required) items.push({ id: uid(), section: 'Labor', name: 'Safety harness / steep', qty: squares, unit: 'sq', unitPrice: 12 })
+  if (staging.needed) items.push({ id: uid(), section: 'Labor', name: 'Staging', qty: 1, unit: 'ea', unitPrice: 250 })
+  items.push({ id: uid(), section: 'Labor', name: `Crew (${crew.crew}) · ${duration.days} day(s)`, qty: 1, unit: 'job', unitPrice: 0 })
+
+  if (ice.needed) items.push({ id: uid(), section: 'Materials', name: 'Ice barrier', qty: Math.round(squares * 0.3 * 10) / 10, unit: 'sq', unitPrice: 45 })
+  if (cricket.needed) items.push({ id: uid(), section: 'Accessories', name: 'Cricket', qty: 1, unit: 'ea', unitPrice: 180 })
+  items.push({ id: uid(), section: 'Accessories', name: 'Ridge vent', qty: ridge.lf, unit: 'lf', unitPrice: 4.5 })
+  if (boots.count > 0) items.push({ id: uid(), section: 'Accessories', name: 'Pipe boots', qty: boots.count, unit: 'ea', unitPrice: 28 })
+  if (soffit.needed) items.push({ id: uid(), section: 'Accessories', name: 'Soffit', qty: 1, unit: 'ea', unitPrice: 120 })
+  if (fascia.needed) items.push({ id: uid(), section: 'Accessories', name: 'Fascia', qty: 1, unit: 'ea', unitPrice: 95 })
+  if (guard.suggest) items.push({ id: uid(), section: 'Accessories', name: 'Gutter guard', qty: 1, unit: 'ea', unitPrice: 220 })
+  if (sat.present) items.push({ id: uid(), section: 'Accessories', name: 'Satellite relocation', qty: 1, unit: 'ea', unitPrice: 75 })
+  if (solar.present) items.push({ id: uid(), section: 'Accessories', name: 'Solar coordination', qty: 1, unit: 'ea', unitPrice: 200 })
+  items.push({ id: uid(), section: 'Accessories', name: nails.pattern, qty: 1, unit: 'job', unitPrice: 0 })
+
+  items.push({ id: uid(), section: 'Other', name: 'Dumpster', qty: 1, unit: 'ea', unitPrice: dump.estimate })
+  items.push({ id: uid(), section: 'Other', name: 'Permit', qty: 1, unit: 'ea', unitPrice: permit.estimate })
+
+  return items
 }
 
 function seedItems(squares: number, pitch: number, laborRate: number, materialRate: number): LineItem[] {
@@ -42,8 +122,9 @@ function seedItems(squares: number, pitch: number, laborRate: number, materialRa
   ]
 }
 
-export function EstimatePage({ squares, pitch, notes, laborRate, materialRate, minMargin, onClose }: Props) {
+export function EstimatePage({ squares, pitch, notes, laborRate, materialRate, minMargin, state = 'GA', stories = 1, onClose }: Props) {
   const [items, setItems] = useState<LineItem[]>(() => seedItems(squares, pitch, laborRate, materialRate))
+  const [aiApplied, setAiApplied] = useState(false)
   const [taxRate, setTaxRate] = useState(7)
   const [marginPct, setMarginPct] = useState(minMargin || 20)
   const [customerNote, setCustomerNote] = useState('Draft estimate — technician must approve on desktop before sending.')
@@ -92,6 +173,17 @@ export function EstimatePage({ squares, pitch, notes, laborRate, materialRate, m
       <View style={{ backgroundColor: '#fff3cd', padding: 12, borderRadius: 8, marginBottom: 12 }}>
         <Text style={{ color: '#664d03', fontWeight: '600' }}>DRAFT — technician must approve on desktop</Text>
         <Text style={{ color: '#664d03', marginTop: 4, fontSize: 13 }}>No prices are authoritative. Review all line items before sending.</Text>
+        <Pressable
+          onPress={() => {
+            setItems(aiSeedItems(squares, pitch, notes, laborRate, materialRate, state, stories))
+            setAiApplied(true)
+          }}
+          style={{ marginTop: 10, padding: 10, backgroundColor: '#1769e0', borderRadius: 8 }}
+        >
+          <Text style={{ color: '#fff', textAlign: 'center', fontWeight: '600' }}>
+            {aiApplied ? 'AI prefill applied' : 'AI assist — prefill from notes & measurements'}
+          </Text>
+        </Pressable>
       </View>
 
       <View style={{ backgroundColor: '#fff', borderRadius: 10, padding: 12, marginBottom: 12 }}>
