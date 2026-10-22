@@ -7,6 +7,7 @@ import { createClient } from '../../lib/supabase/client'
 import { createWorker } from 'tesseract.js'
 import { GoldenReport } from '../../components/GoldenReport'
 import { draftPhoto, draftPhotoReport, PHOTO_REPORT_OPTIONS, type PhotoDraft, type ReportDraft } from '../../lib/ai/photo-report'
+import { readJpegGps, chooseAddressFilter, type OnePhotoPacket, type AddressFilter } from '../../lib/ai/one-photo'
 
 type Photo = { file: File; preview: string; id: string }
 type SourcePhoto = { id: string; url: string }
@@ -60,6 +61,9 @@ export default function PhotoEstimatePage() {
   const [reportDraft, setReportDraft] = useState<ReportDraft | null>(null)
   const [reportNotes, setReportNotes] = useState('')
   const [testHits, setTestHits] = useState('')
+  const [onePacket, setOnePacket] = useState<OnePhotoPacket | null>(null)
+  const [aiFilter, setAiFilter] = useState<AddressFilter | null>(null)
+  const [editedPreview, setEditedPreview] = useState('')
 
   useEffect(() => {
     let active = true
@@ -235,6 +239,61 @@ export default function PhotoEstimatePage() {
     return { ids, inspectionId: activeInspectionId }
   }
 
+
+
+  async function aiFilterForAddress(photo: Photo, filter: AddressFilter) {
+    const img = new Image()
+    img.src = photo.preview
+    await new Promise((resolve) => { img.onload = resolve })
+    const canvas = document.createElement('canvas')
+    canvas.width = img.naturalWidth
+    canvas.height = img.naturalHeight
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+    ctx.drawImage(img, 0, 0)
+    if (filter === 'none') { setEditedPreview(canvas.toDataURL('image/jpeg', 0.85)); return }
+    const frame = ctx.getImageData(0, 0, canvas.width, canvas.height)
+    const data = frame.data
+    for (let i = 0; i < data.length; i += 4) {
+      let r = data[i], g = data[i + 1], b = data[i + 2]
+      if (filter === 'bright') { r = Math.min(255, r + 30); g = Math.min(255, g + 30); b = Math.min(255, b + 30) }
+      if (filter === 'contrast' || filter === 'sharpen') { r = Math.max(0, Math.min(255, (r - 128) * 1.35 + 128)); g = Math.max(0, Math.min(255, (g - 128) * 1.35 + 128)); b = Math.max(0, Math.min(255, (b - 128) * 1.35 + 128)) }
+      if (filter === 'mono' || filter === 'address') { const y = 0.3 * r + 0.59 * g + 0.11 * b; r = g = b = y }
+      if (filter === 'address') { r = g = b = r > 150 ? 255 : 0 }
+      data[i] = r; data[i + 1] = g; data[i + 2] = b
+    }
+    ctx.putImageData(frame, 0, 0)
+    setEditedPreview(canvas.toDataURL('image/jpeg', 0.85))
+  }
+  async function runOnePhoto() {
+    const photo = photos[0]
+    if (!photo) { setError('Take one photo first.'); return }
+    setWorking(true); setError(''); setMessage('')
+    try {
+      const dims = await new Promise<{ width: number; height: number }>((resolve) => {
+        const img = new Image()
+        img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight })
+        img.onerror = () => resolve({ width: 0, height: 0 })
+        img.src = photo.preview
+      })
+      const filter = chooseAddressFilter(dims.width, dims.height, photo.file.size)
+      setAiFilter(filter)
+      await aiFilterForAddress(photo, filter)
+      const bytes = new Uint8Array(await photo.file.arrayBuffer())
+      const gps = readJpegGps(bytes)
+      if (!gps) throw new Error('This photo has no GPS. Turn on location and retake.')
+      const response = await fetch('/api/one-photo', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(gps) })
+      const payload = await response.json()
+      if (!response.ok) throw new Error(payload.error || 'One-photo lookup failed.')
+      setOnePacket(payload.packet)
+      setAddress(payload.packet.address)
+      setMessage('Packet ready for tech verification. Nothing sent.')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'One-photo lookup failed.')
+    } finally {
+      setWorking(false)
+    }
+  }
   async function buildPacket() {
     setWorking(true); setError(''); setMessage('')
     try {
@@ -395,6 +454,30 @@ export default function PhotoEstimatePage() {
         </div>
       )}
       <p className="text-[10px] text-slate-400">Elevations: {PHOTO_REPORT_OPTIONS.elevations.join(', ')}. Trades: {PHOTO_REPORT_OPTIONS.trades.join(', ')}. Drafts only — the verified workflow still gates the packet.</p>
+    </section>
+
+    
+    <section className="glass rounded-xl p-4 mt-4 space-y-2 border border-emerald-400/40">
+      <div className="flex items-center justify-between">
+        <h2 className="font-bold text-sm">One photo → estimate</h2>
+        <span className="text-[10px] uppercase text-emerald-200">Under 10 min · gated</span>
+      </div>
+      <p className="text-xs text-slate-300">Uses the first photo. GPS → address → NOAA storm date → open aerial note → local code. Tech verifies before email or text.</p>
+      {aiFilter && <p className="text-[11px] text-emerald-200">AI chose {aiFilter} to read the address. Tech does not pick a filter.</p>}
+      {editedPreview && <img src={editedPreview} alt="AI filtered for address" className="w-full max-h-48 object-contain rounded border" />}
+      <button type="button" onClick={() => void runOnePhoto()} disabled={working || photos.length === 0} className="rounded bg-emerald-400 text-black text-xs font-bold px-3 py-2 disabled:opacity-50">Run one-photo packet</button>
+      {onePacket && (
+        <div className="text-xs space-y-1">
+          <p className="font-bold">{onePacket.address}</p>
+          <p>Storm: {onePacket.storm.event || 'none'} {onePacket.storm.date || ''}</p>
+          <p>Aerial: {onePacket.aerial.note}</p>
+          <p>Code: {onePacket.codes.reference}</p>
+          <p>{onePacket.estimate.next}</p>
+          <p className="bg-white/5 border border-white/10 rounded p-2">{onePacket.delivery.sms}</p>
+          <p className="bg-white/5 border border-white/10 rounded p-2">{onePacket.delivery.email}</p>
+          <p className="text-[10px] text-slate-400">SLA target {onePacket.delivery.slaMinutes} minutes. Not sent.</p>
+        </div>
+      )}
     </section>
 
         <button onClick={() => inputRef.current?.click()} className="ops-btn-primary w-full py-3">{photos.length ? `Add photos (${photos.length})` : 'Take or upload photos'}</button>
