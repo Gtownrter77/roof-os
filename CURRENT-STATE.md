@@ -67,3 +67,15 @@ Added apps/field/src/ai/batch26to50.ts with human-gated draft stubs for:
 46 no-show risk, 47 upsell, 48 completeness, 49 translation, 50 daily summary.
 
 No UI, no authoritative writes.
+
+## 2026-10-21 Automations 76-100 stubs
+
+Added apps/field/src/ai/batch76to100.ts with human-gated draft functions for missing-shingle detection, granule loss, flashing, elevation sort, pitch/squares from photo, structured voice notes, code RAG, supplement lines, Xact codes, photo-to-estimate, margin floor, takeoff opt, supplier order, route, check-in anomaly, portal summary, redaction, audit event, translation, job completeness, warranty pack, capacity, and agent proposal.
+
+No UI, no authoritative writes.
+
+## 2026-10-22 Automations 101-125
+
+Added apps/field/src/ai/batch101to125.ts with human-gated drafts for hail impacts, wind uplift, underlayment, ice dam, ventilation, gutter, skylight, chimney, valley, drip edge, starter, hip/ridge, steep adder, access, dumpster, permit, HOA, color, warranty years, follow-up, album gaps, sync priority, crew note, customer text, office handoff.
+
+Wired hail, wind, album gaps, office handoff, and customer text into DraftActions.
