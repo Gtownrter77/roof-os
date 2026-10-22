@@ -18,7 +18,7 @@ function makeBasePacket() {
   return {
     contract_version: ROOF_AI_CONTRACT_VERSION,
     analyzed_at: new Date().toISOString(),
-    model_id: "gemini-2.5-flash",
+    model_id: "llava",
     measurement_status: "unverified_ai_observation",
     authority_disclaimer: ROOF_AI_DISCLAIMER,
     image_audit: [

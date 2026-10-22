@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { smartBack } from '../../lib/smart-back'
 
 export default function AITrainPage() {
   const router = useRouter()
@@ -268,26 +269,26 @@ export default function AITrainPage() {
   if (showGuide && stepData) {
     return (
       <div className="min-h-screen bg-gray-900 text-white pb-20">
-        <header className="bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-lg sticky top-0 z-10">
+        <header className="glass rounded-xl mb-4">
           <div className="px-4 py-3 flex items-center justify-between">
             <div className="flex items-center">
-              <button onClick={() => setShowGuide(false)} className="text-white mr-3 text-xl">←</button>
+              <button onClick={() => setShowGuide(false)} className="mr-3 text-xl text-cyan-300">←</button>
               <h1 className="text-xl font-bold">🎓 Training Mode</h1>
             </div>
-            <span className="bg-yellow-500 text-black text-xs px-2 py-1 rounded font-bold">{getProgress()}%</span>
+            <span className="bg-amber-400/100 text-black text-xs px-2 py-1 rounded font-bold">{getProgress()}%</span>
           </div>
         </header>
 
         <main className="p-4">
           {/* Progress Bar */}
           <div className="w-full bg-gray-700 rounded-full h-2.5 mb-4">
-            <div className="bg-green-500 h-2.5 rounded-full transition-all duration-500" style={{ width: `${getProgress()}%` }}></div>
+            <div className="bg-emerald-400/100 h-2.5 rounded-full transition-all duration-500" style={{ width: `${getProgress()}%` }}></div>
           </div>
 
           {/* Phase Indicator */}
           {currentPhaseData && (
             <div className="bg-gray-800 rounded-lg p-3 mb-4 border border-gray-700">
-              <p className="text-xs text-gray-400">Phase</p>
+              <p className="text-xs text-slate-400">Phase</p>
               <p className="font-semibold">{currentPhaseData.title}</p>
             </div>
           )}
@@ -316,7 +317,7 @@ export default function AITrainPage() {
               onClick={prevStep}
               disabled={currentStep === 0}
               className={`flex-1 py-3 rounded-lg font-semibold ${
-                currentStep === 0 ? 'bg-gray-700 text-gray-500' : 'bg-gray-700 text-white'
+                currentStep === 0 ? 'bg-gray-700 text-slate-400' : 'bg-gray-700 text-white'
               }`}
             >
               ← Back
@@ -341,12 +342,12 @@ export default function AITrainPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
-      <header className="bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-lg sticky top-0 z-10">
+    <div className="space-y-4 pb-4">
+      <header className="glass rounded-xl mb-4">
         <div className="px-4 py-3 flex items-center">
-          <button onClick={() => router.back()} className="text-white mr-3 text-xl">←</button>
+          <button onClick={() => smartBack(router)} className="mr-3 text-xl text-cyan-300">←</button>
           <h1 className="text-xl font-bold">🎓 AI Training Center</h1>
-          <span className="ml-2 bg-yellow-500 text-black text-xs px-2 py-0.5 rounded-full">NEW</span>
+          <span className="ml-2 bg-amber-400/100 text-black text-xs px-2 py-0.5 rounded-full">NEW</span>
         </div>
       </header>
 
@@ -361,7 +362,7 @@ export default function AITrainPage() {
         </div>
 
         {/* Job Selection */}
-        <div className="bg-white rounded-lg shadow-lg p-4 mb-4 border border-gray-200">
+        <div className="glass rounded-xl p-4 mb-4 border border-white/10">
           <h3 className="font-semibold text-sm mb-3">Select Job Type</h3>
           <div className="grid grid-cols-2 gap-2">
             {jobTypes.map((type) => (
@@ -371,7 +372,7 @@ export default function AITrainPage() {
                 className={`p-3 rounded-lg text-sm font-medium text-left transition ${
                   jobType === type
                     ? 'bg-green-100 border-2 border-green-500 text-green-800'
-                    : 'bg-gray-50 border-2 border-gray-200 hover:bg-gray-100'
+                    : 'bg-white/5 border-2 border-white/10 hover:bg-white/10'
                 }`}
               >
                 {type}
@@ -389,9 +390,9 @@ export default function AITrainPage() {
         </button>
 
         {/* Quick Tips */}
-        <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <h3 className="font-semibold text-sm text-blue-800 mb-2">💡 Quick Tips</h3>
-          <ul className="text-xs text-blue-700 space-y-1">
+        <div className="mt-4 bg-cyan-400/10 border border-cyan-400/30 rounded-lg p-4">
+          <h3 className="font-semibold text-sm text-cyan-200 mb-2">💡 Quick Tips</h3>
+          <ul className="text-xs text-cyan-300 space-y-1">
             <li>• Follow each step in order</li>
             <li>• Use the Photo Verify tool for documentation</li>
             <li>• Ask the AI Wizard for help</li>
@@ -400,8 +401,8 @@ export default function AITrainPage() {
         </div>
       </main>
 
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around py-2 px-4">
-        <button onClick={() => router.push('/')} className="flex flex-col items-center text-gray-400">
+      <nav className="fixed bottom-0 left-0 right-0 z-30 flex justify-around border-t border-white/10 bg-[#070b14]/95 py-2 px-4 backdrop-blur lg:hidden">
+        <button onClick={() => router.push('/')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">🏠</span>
           <span className="text-xs">Home</span>
         </button>
@@ -409,15 +410,15 @@ export default function AITrainPage() {
           <span className="text-xl">🎓</span>
           <span className="text-xs">Train</span>
         </button>
-        <button onClick={() => router.push('/pitch-gauge')} className="flex flex-col items-center text-gray-400">
+        <button onClick={() => router.push('/pitch-gauge')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">📐</span>
           <span className="text-xs">Pitch</span>
         </button>
-        <button onClick={() => router.push('/photo-verify')} className="flex flex-col items-center text-gray-400">
+        <button onClick={() => router.push('/photo-verify')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">📸</span>
           <span className="text-xs">Verify</span>
         </button>
-        <button onClick={() => router.push('/settings')} className="flex flex-col items-center text-gray-400">
+        <button onClick={() => router.push('/settings')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">⚙️</span>
           <span className="text-xs">Settings</span>
         </button>

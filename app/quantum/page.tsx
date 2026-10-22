@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { smartBack } from '../../lib/smart-back'
 
 export default function QuantumPage() {
   const router = useRouter()
@@ -17,36 +18,29 @@ export default function QuantumPage() {
   })
 
   const runQuantumCalc = () => {
-    setLoading(true)
-    setTimeout(() => {
-      setResult({
-        lifespan: '22.7 years',
-        optimalReplacement: '2034',
-        costSaving: '$14,200',
-        roi: '187%',
-        sustainabilityScore: 92,
-        quantumProbability: '99.97%',
-        parallelRealities: [
-          { scenario: 'Best Case', outcome: 'Roof lasts 35 years', probability: '18%' },
-          { scenario: 'Expected', outcome: 'Roof lasts 22 years', probability: '62%' },
-          { scenario: 'Worst Case', outcome: 'Roof lasts 15 years', probability: '20%' }
-        ]
-      })
-      setLoading(false)
-    }, 4000)
+    setResult({
+      lifespan: 'Unknown',
+      optimalReplacement: 'Unknown',
+      costSaving: 'Unknown',
+      roi: 'Unknown',
+      sustainabilityScore: null,
+      quantumProbability: 'Unknown',
+      parallelRealities: [],
+      note: 'There is no quantum model in this app. Age and area here are notes only.',
+    })
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-950 to-purple-950 text-white pb-20">
-      <header className="bg-gradient-to-r from-cyan-500 to-purple-600 text-white shadow-lg sticky top-0 z-10">
+      <header className="glass rounded-xl mb-4">
         <div className="px-4 py-3 flex items-center">
-          <button onClick={() => router.back()} className="text-white mr-3 text-xl">←</button>
+          <button onClick={() => smartBack(router)} className="mr-3 text-xl text-cyan-300">←</button>
           <h1 className="text-xl font-bold">⚛️ Quantum AI Calculator</h1>
-          <span className="ml-2 bg-purple-500 text-white text-xs px-2 py-0.5 rounded-full animate-pulse">QUANTUM</span>
+          <span className="ml-2 bg-purple-400/100 text-white text-xs px-2 py-0.5 rounded-full animate-pulse">QUANTUM</span>
         </div>
       </header>
 
-      <main className="p-4"><p className="text-sm bg-white rounded-lg shadow p-4 mb-4">This is not a measurement. A number without a source stays Unknown.</p>
+      <main className="p-4"><p className="text-sm glass rounded-xl p-4 mb-4">This is not a measurement. A number without a source stays Unknown.</p>
         <div className="bg-gradient-to-br from-indigo-900/50 to-purple-900/50 rounded-lg p-4 mb-4 border border-cyan-500">
           <div className="flex items-center mb-3">
             <span className="text-2xl mr-2">⚛️</span>
@@ -142,20 +136,21 @@ export default function QuantumPage() {
               <div className="mt-3 text-center">
                 <p className="text-xs text-cyan-300">Sustainability Score</p>
                 <div className="w-full bg-indigo-800 rounded-full h-2.5">
-                  <div className="bg-gradient-to-r from-cyan-500 to-purple-500 h-2.5 rounded-full" style={{width: `${result.sustainabilityScore}%`}}></div>
+                  <div className="bg-gradient-to-r from-cyan-500 to-purple-500 h-2.5 rounded-full" style={{ width: '0%' }}></div>
                 </div>
-                <p className="text-sm mt-1">{result.sustainabilityScore}/100</p>
+                <p className="text-sm mt-1">Unknown</p>
                 <p className="text-xs text-purple-400">Quantum Probability: {result.quantumProbability}</p>
               </div>
             </div>
 
             <div className="bg-gradient-to-br from-indigo-900 to-purple-900 rounded-lg p-4 border border-purple-500">
               <h3 className="font-semibold text-sm mb-3 text-purple-300">🌌 Parallel Reality Outcomes</h3>
+              <p className="text-xs text-slate-300 mb-2">{result.note}</p>
               {result.parallelRealities.map((reality: any, i: number) => (
                 <div key={i} className="flex justify-between items-center border-b border-indigo-700 py-2 last:border-0">
                   <div>
                     <p className="text-sm font-medium">{reality.scenario}</p>
-                    <p className="text-xs text-gray-400">{reality.outcome}</p>
+                    <p className="text-xs text-slate-400">{reality.outcome}</p>
                   </div>
                   <span className="text-xs px-2 py-1 rounded bg-purple-800">{reality.probability}</span>
                 </div>
@@ -170,15 +165,15 @@ export default function QuantumPage() {
       </main>
 
       <nav className="fixed bottom-0 left-0 right-0 bg-gray-900 border-t border-purple-500 flex justify-around py-2 px-4">
-        <button onClick={() => router.push('/')} className="flex flex-col items-center text-gray-400">
+        <button onClick={() => router.push('/')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">🏠</span>
           <span className="text-xs">Home</span>
         </button>
-        <button onClick={() => router.push('/ar')} className="flex flex-col items-center text-gray-400">
+        <button onClick={() => router.push('/ar')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">🛸</span>
           <span className="text-xs">AR</span>
         </button>
-        <button onClick={() => router.push('/vr')} className="flex flex-col items-center text-gray-400">
+        <button onClick={() => router.push('/vr')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">🥽</span>
           <span className="text-xs">VR</span>
         </button>
@@ -186,7 +181,7 @@ export default function QuantumPage() {
           <span className="text-xl">⚛️</span>
           <span className="text-xs">Quantum</span>
         </button>
-        <button onClick={() => router.push('/settings')} className="flex flex-col items-center text-gray-400">
+        <button onClick={() => router.push('/settings')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">⚙️</span>
           <span className="text-xs">Settings</span>
         </button>

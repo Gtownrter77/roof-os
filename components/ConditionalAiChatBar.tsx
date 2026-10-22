@@ -8,7 +8,7 @@ export default function ConditionalAiChatBar() {
 
   // Authentication screens should stay focused and unobstructed. Keep the
   // copilot available everywhere else in the operations app.
-  if (pathname?.startsWith('/auth')) return null
+  if (pathname?.startsWith('/auth') || pathname?.startsWith('/radar')) return null
 
   return <AiChatBar />
 }

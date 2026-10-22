@@ -1,7 +1,105 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ComponentType } from 'react'
 import { useRouter } from 'next/navigation'
+import {
+  AlignStartHorizontal,
+  AppWindow,
+  ArrowDown,
+  BrickWall,
+  Building2,
+  CircleDot,
+  CloudRain,
+  Construction,
+  DoorOpen,
+  Droplets,
+  Fan,
+  Fence,
+  FileCheck,
+  Grid3x3,
+  Hammer,
+  HardHat,
+  House,
+  Layers,
+  LayoutGrid,
+  Leaf,
+  Lightbulb,
+  Magnet,
+  Mountain,
+  Paintbrush,
+  PanelTop,
+  PanelsTopLeft,
+  Play,
+  Ruler,
+  Satellite,
+  ScanSearch,
+  Shield,
+  Snowflake,
+  Sofa,
+  Sparkles,
+  Spline,
+  SquareStack,
+  Sun,
+  SunMedium,
+  Trash2,
+  Triangle,
+  Truck,
+  Warehouse,
+  Waves,
+  Wind,
+  Wrench,
+  Zap,
+} from 'lucide-react'
+import { smartBack } from '../../lib/smart-back'
+import { OWNER_LABOR_SERVICES, type OwnerLaborIcon } from '../../lib/pricing/owner-labor'
+
+const LABOR_ICONS: Record<OwnerLaborIcon, ComponentType<{ className?: string; strokeWidth?: number }>> = {
+  House,
+  Fence,
+  AppWindow,
+  DoorOpen,
+  CloudRain,
+  Layers,
+  SquareStack,
+  Paintbrush,
+  Zap,
+  Droplets,
+  Fan,
+  Hammer,
+  Sparkles,
+  ScanSearch,
+  Lightbulb,
+  Trash2,
+  Mountain,
+  Building2,
+  Wrench,
+  PanelsTopLeft,
+  LayoutGrid,
+  BrickWall,
+  Grid3x3,
+  Shield,
+  Ruler,
+  Warehouse,
+  Spline,
+  Waves,
+  CircleDot,
+  Sun,
+  AlignStartHorizontal,
+  Snowflake,
+  Play,
+  Triangle,
+  Wind,
+  Leaf,
+  ArrowDown,
+  PanelTop,
+  Satellite,
+  SunMedium,
+  Construction,
+  Sofa,
+  Magnet,
+  Truck,
+  FileCheck,
+}
 
 export default function PricingConfigPage() {
   const router = useRouter()
@@ -10,23 +108,14 @@ export default function PricingConfigPage() {
   const [taxRates, setTaxRates] = useState({ state: 0, county: 0, city: 0, specialDistrict: 0 })
   const [taxSource, setTaxSource] = useState('Owner-entered jurisdiction rates')
   const [selectedState, setSelectedState] = useState('GA')
-  const [laborRates, setLaborRates] = useState({
-    roofing: { rate: 65, unit: 'sq', description: 'Roofing installation per square' },
-    siding: { rate: 55, unit: 'sq', description: 'Siding installation per square' },
-    windows: { rate: 75, unit: 'each', description: 'Window installation per unit' },
-    doors: { rate: 85, unit: 'each', description: 'Door installation per unit' },
-    gutters: { rate: 45, unit: 'ft', description: 'Gutter installation per linear foot' },
-    decking: { rate: 60, unit: 'sq', description: 'Deck installation per square' },
-    drywall: { rate: 40, unit: 'sq', description: 'Drywall installation per square' },
-    painting: { rate: 35, unit: 'sq', description: 'Painting per square' },
-    electrical: { rate: 95, unit: 'hr', description: 'Electrical work per hour' },
-    plumbing: { rate: 90, unit: 'hr', description: 'Plumbing work per hour' },
-    hvac: { rate: 100, unit: 'hr', description: 'HVAC work per hour' },
-    demo: { rate: 50, unit: 'hr', description: 'Demolition work per hour' },
-    cleanup: { rate: 35, unit: 'hr', description: 'Cleanup per hour' },
-    inspection: { rate: 75, unit: 'hr', description: 'Inspection per hour' },
-    consulting: { rate: 120, unit: 'hr', description: 'Consulting per hour' },
-  })
+  const [laborRates, setLaborRates] = useState(() =>
+    Object.fromEntries(
+      OWNER_LABOR_SERVICES.map((service) => [
+        service.key,
+        { rate: service.rate, unit: service.unit, description: service.description, label: service.label, icon: service.icon },
+      ]),
+    ) as Record<string, { rate: number; unit: string; description: string; label: string; icon: string }>,
+  )
 
   const [materialMarkup, setMaterialMarkup] = useState(25)
   const [saveMessage, setSaveMessage] = useState('')
@@ -89,37 +178,6 @@ export default function PricingConfigPage() {
     }
   }
 
-  const getJobTypeLabel = (key: string) => {
-    const labels: Record<string, string> = {
-      roofing: 'Roofing',
-      siding: 'Siding',
-      windows: 'Windows',
-      doors: 'Doors',
-      gutters: 'Gutters',
-      decking: 'Decking',
-      drywall: 'Drywall',
-      painting: 'Painting',
-      electrical: 'Electrical',
-      plumbing: 'Plumbing',
-      hvac: 'HVAC',
-      demo: 'Demolition',
-      cleanup: 'Cleanup',
-      inspection: 'Inspection',
-      consulting: 'Consulting'
-    }
-    return labels[key] || key
-  }
-
-  const getJobTypeIcon = (key: string) => {
-    const icons: Record<string, string> = {
-      roofing: '🏠', siding: '🏠', windows: '🪟', doors: '🚪',
-      gutters: '🌧️', decking: '🪵', drywall: '📋', painting: '🎨',
-      electrical: '⚡', plumbing: '🚰', hvac: '❄️', demo: '🔨',
-      cleanup: '🧹', inspection: '🔍', consulting: '💡'
-    }
-    return icons[key] || '🔧'
-  }
-
   const saveConfiguration = async () => {
     setSaveMessage('Saving owner-managed labor rates and local tax…')
     const response = await fetch('/api/pricing/labor-rates', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ rates: Object.fromEntries(Object.entries(laborRates).map(([key, value]) => [key, value.rate])), market: selectedState, taxRates, taxSource }) })
@@ -133,25 +191,25 @@ export default function PricingConfigPage() {
   }
 
   const getTrendColor = (change: string) => {
-    return parseFloat(change) > 0 ? 'text-green-600' : 'text-red-600'
+    return parseFloat(change) > 0 ? 'text-green-600' : 'text-red-300'
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
-      <header className="bg-gradient-to-r from-blue-600 to-teal-600 text-white shadow-lg sticky top-0 z-10">
+    <div className="space-y-4 pb-4">
+      <header className="glass rounded-xl mb-4">
         <div className="px-4 py-3 flex items-center">
-          <button onClick={() => router.back()} className="text-white mr-3 text-xl">←</button>
+          <button onClick={() => smartBack(router)} className="mr-3 text-xl text-cyan-300">←</button>
           <h1 className="text-xl font-bold">💰 Pricing Configuration</h1>
-          <span className="ml-2 bg-amber-500 text-white text-xs px-2 py-0.5 rounded-full">PROTOTYPE</span>
+          <span className="ml-2 bg-amber-400/100 text-white text-xs px-2 py-0.5 rounded-full">PROTOTYPE</span>
         </div>
       </header>
 
       <main className="p-4">
         {/* Last Update */}
-        <div className="bg-gradient-to-r from-blue-50 to-teal-50 rounded-lg shadow-lg p-3 mb-4 border border-blue-200">
+        <div className="bg-gradient-to-r from-blue-50 to-teal-50 rounded-lg shadow-lg p-3 mb-4 border border-cyan-400/30">
           <div className="flex justify-between items-center">
             <div>
-              <p className="text-xs text-gray-500">Last Price Update</p>
+              <p className="text-xs text-slate-400">Last Price Update</p>
               <p className="font-bold text-sm">{lastUpdate ? lastUpdate.toLocaleString() : 'No saved price-book update yet'}</p>
             </div>
             <button
@@ -164,21 +222,21 @@ export default function PricingConfigPage() {
           </div>
         </div>
 
-        <div className="bg-amber-50 rounded-lg shadow-sm p-4 mb-4 border border-amber-200">
+        <div className="bg-amber-400/10 rounded-lg shadow-sm p-4 mb-4 border border-amber-400/30">
           <h3 className="font-semibold text-sm mb-2">Current claims pricing is not connected</h3>
-          <p className="text-xs text-amber-900 leading-5">
+          <p className="text-xs text-amber-100 leading-5">
             No fabricated prices are shown here. Connect an authorized CapOut/ESX import, licensed provider, verified supplier feed, or owner-managed price book before using this screen for an insurance estimate. Imported values must retain source, market, effective date, and review status.
           </p>
         </div>
 
         {/* Local Tax */}
-        <div className="bg-white rounded-lg shadow-lg p-4 mb-4 border border-purple-200">
+        <div className="glass rounded-xl p-4 mb-4 border border-purple-200">
           <h3 className="font-semibold text-sm mb-3 flex items-center">
             <span className="text-xl mr-2">🧾</span> Local Tax Configuration
           </h3>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-gray-500">State reference</label>
+              <label className="text-xs text-slate-400">State reference</label>
               <select
                 value={selectedState}
                 onChange={(e) => {
@@ -196,14 +254,14 @@ export default function PricingConfigPage() {
               </select>
             </div>
             <div>
-              <label className="text-xs text-gray-500">State tax rate</label>
+              <label className="text-xs text-slate-400">State tax rate</label>
               <input type="number" value={taxRates.state} onChange={e => setTaxRates({ ...taxRates, state: parseFloat(e.target.value) || 0 })} className="w-full p-2 border rounded-lg text-sm" step="0.0001" min="0" max="100" />
             </div>
           </div>
           <div className="grid grid-cols-3 gap-2 mt-3">
-            {([['county','County'],['city','City / municipality'],['specialDistrict','Special district']] as const).map(([key, label]) => <label key={key} className="text-xs text-gray-500">{label}<input type="number" value={taxRates[key]} onChange={e => setTaxRates({ ...taxRates, [key]: parseFloat(e.target.value) || 0 })} className="w-full mt-1 p-2 border rounded-lg text-sm" step="0.0001" min="0" max="100" /></label>)}
+            {([['county','County'],['city','City / municipality'],['specialDistrict','Special district']] as const).map(([key, label]) => <label key={key} className="text-xs text-slate-400">{label}<input type="number" value={taxRates[key]} onChange={e => setTaxRates({ ...taxRates, [key]: parseFloat(e.target.value) || 0 })} className="w-full mt-1 p-2 border rounded-lg text-sm" step="0.0001" min="0" max="100" /></label>)}
           </div>
-          <label className="block mt-3 text-xs text-gray-500">Tax jurisdiction / source
+          <label className="block mt-3 text-xs text-slate-400">Tax jurisdiction / source
             <input
               value={taxSource}
               onChange={(e) => setTaxSource(e.target.value)}
@@ -212,36 +270,45 @@ export default function PricingConfigPage() {
               placeholder="Example: Cobb County, GA — owner-verified combined rate"
             />
           </label>
-          <div className="mt-2 p-2 bg-purple-50 rounded">
+          <div className="mt-2 p-2 bg-purple-400/10 rounded">
             <p className="text-xs text-purple-800">
               Current combined tax: <strong>{Object.values(taxRates).reduce((sum, rate) => sum + rate, 0).toFixed(4)}%</strong> • Saved as separate jurisdiction rates
             </p>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-lg p-4 mb-4 border border-green-200">
+        <div className="glass rounded-xl p-4 mb-4 border border-emerald-400/30">
           <h3 className="font-semibold text-sm mb-2">Expanded material catalog</h3>
-          <p className="text-xs text-gray-500 mb-3">Search GAF, VELUX, fasteners, ventilation, decking, gutters, disposal, and other catalog metadata. Prices remain source-verified reference data.</p>
+          <p className="text-xs text-slate-400 mb-3">Search GAF, VELUX, fasteners, ventilation, decking, gutters, disposal, and other catalog metadata. Prices remain source-verified reference data.</p>
           <input value={materialQuery} onChange={e => setMaterialQuery(e.target.value)} className="w-full p-2 border rounded-lg text-sm" placeholder="Search materials, brands, colors, or sizes" />
-          <div className="mt-3 max-h-64 overflow-y-auto space-y-2">{materials.slice(0, 30).map(material => <div key={material.id} className="border rounded p-2"><div className="flex justify-between gap-2"><span className="text-sm font-medium">{[material.brand, material.product_name, material.variant].filter(Boolean).join(' — ')}</span><span className="text-xs text-gray-500">{material.unit}</span></div><p className="text-xs text-gray-500">{material.category} / {material.subcategory ?? 'general'}{material.color_options?.length ? ` • ${material.color_options.join(', ')}` : ''}</p></div>)}</div>
+          <div className="mt-3 max-h-[40rem] overflow-y-auto space-y-2">{materials.slice(0, 150).map(material => <div key={material.id} className="border border-white/10 rounded p-2"><div className="flex justify-between gap-2"><span className="text-sm font-medium">{[material.brand, material.product_name, material.variant].filter(Boolean).join(' — ')}</span><span className="text-xs text-slate-400">{material.unit}</span></div><p className="text-xs text-slate-400">{material.category} / {material.subcategory ?? 'general'}{material.color_options?.length ? ` • ${material.color_options.join(', ')}` : ''}</p></div>)}{materials.length > 150 && <p className="text-xs text-slate-500">Showing 150 of {materials.length}. Refine search to narrow results.</p>}</div>
         </div>
 
         {/* Labor Rates */}
-        <div className="bg-white rounded-lg shadow-lg p-4 mb-4 border border-orange-200">
-          <h3 className="font-semibold text-sm mb-3 flex items-center">
-            <span className="text-xl mr-2">👷</span> Labor Rate Configuration
+        <div className="glass rounded-xl p-4 mb-4 border border-orange-200">
+          <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-cyan-400/30 bg-cyan-400/10 text-cyan-200">
+              <HardHat className="h-4 w-4" strokeWidth={1.75} />
+            </span>
+            Labor Rate Configuration
           </h3>
-          <p className="text-xs text-gray-400 mb-3">Set custom labor rates for each job type</p>
+          <p className="text-xs text-slate-400 mb-3">
+            {Object.keys(laborRates).length} owner labor services. Rates stay reference-only until you save and activate the price book.
+          </p>
           
-          <div className="grid grid-cols-2 gap-2 max-h-96 overflow-y-auto">
-            {Object.entries(laborRates).map(([key, value]: [string, any]) => (
-              <div key={key} className="bg-gray-50 rounded-lg p-2 border border-gray-200">
-                <div className="flex items-center gap-1">
-                  <span>{getJobTypeIcon(key)}</span>
-                  <span className="text-xs font-medium">{getJobTypeLabel(key)}</span>
+          <div className="grid grid-cols-2 gap-2 max-h-[70vh] overflow-y-auto sm:grid-cols-3">
+            {Object.entries(laborRates).map(([key, value]: [string, any]) => {
+              const Icon = LABOR_ICONS[value.icon as OwnerLaborIcon] ?? Wrench
+              return (
+              <div key={key} className="bg-white/5 rounded-lg p-2 border border-white/10">
+                <div className="flex items-center gap-2">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-cyan-400/25 bg-gradient-to-br from-cyan-400/15 to-slate-950 text-cyan-200">
+                    <Icon className="h-3.5 w-3.5" strokeWidth={1.75} />
+                  </span>
+                  <span className="text-xs font-medium">{value.label}</span>
                 </div>
                 <div className="flex items-center gap-2 mt-1">
-                  <span className="text-xs text-gray-400">$</span>
+                  <span className="text-xs text-slate-400">$</span>
                   <input
                     type="number"
                     value={value.rate}
@@ -249,23 +316,24 @@ export default function PricingConfigPage() {
                     className="w-20 p-1 border rounded text-sm"
                     step="0.5"
                   />
-                  <span className="text-xs text-gray-400">/ {value.unit}</span>
+                  <span className="text-xs text-slate-400">/ {value.unit}</span>
                 </div>
-                <p className="text-[10px] text-gray-400 truncate">{value.description}</p>
+                <p className="text-[10px] text-slate-400 truncate">{value.description}</p>
               </div>
-            ))}
+              )
+            })}
           </div>
-          {saveMessage && <p className="mt-3 text-xs text-blue-800 bg-blue-50 rounded p-2">{saveMessage}</p>}
+          {saveMessage && <p className="mt-3 text-xs text-cyan-200 bg-cyan-400/10 rounded p-2">{saveMessage}</p>}
         </div>
 
         {/* Markup & Summary */}
-        <div className="bg-white rounded-lg shadow-lg p-4 mb-4 border border-blue-200">
+        <div className="glass rounded-xl p-4 mb-4 border border-cyan-400/30">
           <h3 className="font-semibold text-sm mb-3 flex items-center">
             <span className="text-xl mr-2">📊</span> Markup Configuration
           </h3>
           <div className="flex items-center gap-4">
             <div className="flex-1">
-              <label className="text-xs text-gray-500">Material Markup %</label>
+              <label className="text-xs text-slate-400">Material Markup %</label>
               <input
                 type="number"
                 value={materialMarkup}
@@ -275,7 +343,7 @@ export default function PricingConfigPage() {
               />
             </div>
             <div className="flex-1 text-center">
-              <p className="text-xs text-gray-500">Current Margin</p>
+              <p className="text-xs text-slate-400">Current Margin</p>
               <p className="text-xl font-bold text-green-600">{materialMarkup}%</p>
             </div>
           </div>
@@ -292,24 +360,24 @@ export default function PricingConfigPage() {
         </div>
       </main>
 
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around py-2 px-4">
-        <button onClick={() => router.push('/')} className="flex flex-col items-center text-gray-400">
+      <nav className="fixed bottom-0 left-0 right-0 z-30 flex justify-around border-t border-white/10 bg-[#070b14]/95 py-2 px-4 backdrop-blur lg:hidden">
+        <button onClick={() => router.push('/')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">🏠</span>
           <span className="text-xs">Home</span>
         </button>
-        <button onClick={() => router.push('/pricing-config')} className="flex flex-col items-center text-blue-600">
+        <button onClick={() => router.push('/pricing-config')} className="flex flex-col items-center text-cyan-300">
           <span className="text-xl">💰</span>
           <span className="text-xs">Pricing</span>
         </button>
-        <button onClick={() => router.push('/pricing')} className="flex flex-col items-center text-gray-400">
+        <button onClick={() => router.push('/pricing')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">📊</span>
           <span className="text-xs">Estimate</span>
         </button>
-        <button onClick={() => router.push('/insurance-intel')} className="flex flex-col items-center text-gray-400">
+        <button onClick={() => router.push('/insurance-intel')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">📋</span>
           <span className="text-xs">Intel</span>
         </button>
-        <button onClick={() => router.push('/settings')} className="flex flex-col items-center text-gray-400">
+        <button onClick={() => router.push('/settings')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">⚙️</span>
           <span className="text-xs">Settings</span>
         </button>

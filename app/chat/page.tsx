@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { smartBack } from '../../lib/smart-back'
 
 export default function ChatPage() {
   const router = useRouter()
@@ -13,32 +14,61 @@ export default function ChatPage() {
     { id: 'local', name: 'This browser only', icon: '💬', unread: 0 },
   ]
 
-  const sendMessage = (e: React.FormEvent) => {
+  const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!newMessage.trim()) return
-    setMessages([...messages, {
-      id: Date.now(),
-      user: 'You',
-      message: newMessage,
-      time: 'Just now',
-      avatar: '👤'
-    }])
+    const text = newMessage.trim()
+    if (!text) return
+    const mine = { id: Date.now(), user: 'You', message: text, time: 'Just now', avatar: '👤' }
+    setMessages((current) => [...current, mine])
     setNewMessage('')
+    try {
+      const response = await fetch('/api/ai/chat', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          message: text,
+          currentPath: '/chat',
+          history: messages.slice(-6).map((item) => ({
+            role: item.user === 'You' ? 'user' : 'assistant',
+            content: item.message,
+          })),
+        }),
+      })
+      const payload = await response.json()
+      const reply = typeof payload.reply === 'string' && payload.reply.trim()
+        ? payload.reply.trim()
+        : 'The local assistant did not answer. Try storms, leads, or an estimate from the menu.'
+      setMessages((current) => [...current, {
+        id: Date.now() + 1,
+        user: 'ROOF/OS',
+        message: reply,
+        time: 'Just now',
+        avatar: '🛠️',
+      }])
+    } catch {
+      setMessages((current) => [...current, {
+        id: Date.now() + 1,
+        user: 'ROOF/OS',
+        message: 'The assistant could not be reached from this browser.',
+        time: 'Just now',
+        avatar: '🛠️',
+      }])
+    }
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
-      <header className="bg-blue-600 text-white shadow-lg sticky top-0 z-10">
+    <div className="space-y-4 pb-4">
+      <header className="glass rounded-xl mb-4">
         <div className="px-4 py-3 flex items-center">
-          <button onClick={() => router.back()} className="text-white mr-3 text-xl">←</button>
+          <button onClick={() => smartBack(router)} className="mr-3 text-xl text-cyan-300">←</button>
           <h1 className="text-xl font-bold">💬 Chat</h1>
           
         </div>
       </header>
 
-      <main className="p-4"><p className="text-sm bg-white rounded-lg shadow p-4 mb-4">Messages stay in this browser. They are not saved and are not a team chat.</p>
+      <main className="p-4"><p className="text-sm glass rounded-xl p-4 mb-4">This uses the same local assistant as the corner chat. Messages stay in this browser. They are not a team inbox and they do not set a price.</p>
         {/* Chat List */}
-        <div className="bg-white rounded-lg shadow mb-4">
+        <div className="glass rounded-xl mb-4">
           <div className="p-3 border-b">
             <p className="text-sm font-medium">Chats</p>
           </div>
@@ -47,14 +77,14 @@ export default function ChatPage() {
               key={chat.id}
               onClick={() => setActiveChat(chat.id)}
               className={`w-full p-3 flex items-center justify-between border-b last:border-0 ${
-                activeChat === chat.id ? 'bg-blue-50' : ''
+                activeChat === chat.id ? 'bg-cyan-400/10' : ''
               }`}
             >
               <div className="flex items-center space-x-3">
                 <span className="text-2xl">{chat.icon}</span>
                 <div className="text-left">
                   <p className="font-medium">{chat.name}</p>
-                  <p className="text-xs text-gray-500">Click to chat</p>
+                  <p className="text-xs text-slate-400">Click to chat</p>
                 </div>
               </div>
               {chat.unread > 0 && (
@@ -67,8 +97,8 @@ export default function ChatPage() {
         </div>
 
         {/* Messages */}
-        <div className="bg-white rounded-lg shadow p-4 mb-4">
-          <p className="text-xs text-gray-400 text-center mb-3">
+        <div className="glass rounded-xl p-4 mb-4">
+          <p className="text-xs text-slate-400 text-center mb-3">
             {activeChat === 'team' ? 'Team Chat' : `Chat with ${activeChat}`}
           </p>
           <div className="space-y-2 max-h-60 overflow-y-auto">
@@ -78,9 +108,9 @@ export default function ChatPage() {
                 <div className="flex-1">
                   <div className="flex justify-between items-center">
                     <p className="font-medium text-sm">{msg.user}</p>
-                    <p className="text-xs text-gray-400">{msg.time}</p>
+                    <p className="text-xs text-slate-400">{msg.time}</p>
                   </div>
-                  <p className="text-sm text-gray-600">{msg.message}</p>
+                  <p className="text-sm text-slate-300">{msg.message}</p>
                 </div>
               </div>
             ))}
@@ -105,24 +135,24 @@ export default function ChatPage() {
         </form>
       </main>
 
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around py-2 px-4">
-        <button onClick={() => router.push('/')} className="flex flex-col items-center text-gray-400">
+      <nav className="fixed bottom-0 left-0 right-0 z-30 flex justify-around border-t border-white/10 bg-[#070b14]/95 py-2 px-4 backdrop-blur lg:hidden">
+        <button onClick={() => router.push('/')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">🏠</span>
           <span className="text-xs">Home</span>
         </button>
-        <button onClick={() => router.push('/chat')} className="flex flex-col items-center text-blue-600">
+        <button onClick={() => router.push('/chat')} className="flex flex-col items-center text-cyan-300">
           <span className="text-xl">💬</span>
           <span className="text-xs">Chat</span>
         </button>
-        <button onClick={() => router.push('/activity')} className="flex flex-col items-center text-gray-400">
+        <button onClick={() => router.push('/activity')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">📊</span>
           <span className="text-xs">Activity</span>
         </button>
-        <button onClick={() => router.push('/notifications')} className="flex flex-col items-center text-gray-400">
+        <button onClick={() => router.push('/notifications')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">🔔</span>
           <span className="text-xs">Alerts</span>
         </button>
-        <button onClick={() => router.push('/settings')} className="flex flex-col items-center text-gray-400">
+        <button onClick={() => router.push('/settings')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">⚙️</span>
           <span className="text-xs">Settings</span>
         </button>

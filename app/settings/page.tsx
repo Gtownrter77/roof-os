@@ -2,6 +2,16 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { smartBack } from '../../lib/smart-back'
+import {
+  DEFAULT_RADAR_LAYER_PREFS,
+  RADAR_UI_LAYERS,
+  loadRadarLayerPrefs,
+  saveRadarLayerPrefs,
+  type RadarLayerId,
+  type RadarLayerPrefs,
+} from '../../lib/radar/cinema-layers'
+import { applyCinemaTheme, cinemaThemeEnabled } from '../../lib/theme/cinema'
 
 type Settings = {
   price_refresh_frequency: string
@@ -38,7 +48,7 @@ type TaxRates = { state: number; county: number; city: number; specialDistrict: 
 const initialSettings: Settings = {
   price_refresh_frequency: 'weekly',
   default_language: 'en-US',
-  default_zipcode: '30123',
+  default_zipcode: '',
   preferred_brands: { shingles: 'GAF' },
   material_search_mode: 'catalog_and_retailer',
   enable_ai_receptionist: true,
@@ -67,12 +77,16 @@ export default function SettingsPage() {
   const [settings, setSettings] = useState<Settings>(initialSettings)
   const [taxRates, setTaxRates] = useState<TaxRates>(initialTax)
   const [taxSource, setTaxSource] = useState('')
+  const [radarPrefs, setRadarPrefs] = useState<RadarLayerPrefs>(DEFAULT_RADAR_LAYER_PREFS)
+  const [cinemaOn, setCinemaOn] = useState(true)
   const [loaded, setLoaded] = useState(false)
   const [message, setMessage] = useState('')
   const [refreshing, setRefreshing] = useState(false)
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
+    setRadarPrefs(loadRadarLayerPrefs())
+    setCinemaOn(cinemaThemeEnabled())
     Promise.all([fetch('/api/settings'), fetch('/api/pricing/labor-rates')]).then(async ([settingsResponse, pricingResponse]) => {
       const settingsPayload = await settingsResponse.json()
       const pricingPayload = await pricingResponse.json()
@@ -142,11 +156,11 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
-      <header className="bg-gradient-to-r from-blue-700 to-indigo-700 text-white shadow-lg sticky top-0 z-10">
+    <div className="space-y-4 pb-4">
+      <header className="glass rounded-xl mb-4">
         <div className="px-4 py-3 flex items-center justify-between">
           <div className="flex items-center">
-            <button onClick={() => router.back()} className="mr-3 text-xl">←</button>
+            <button onClick={() => smartBack(router)} className="mr-3 text-xl text-cyan-300">←</button>
             <h1 className="text-xl font-bold">⚙️ Workspace Settings & System Toggles</h1>
           </div>
           <span className="bg-emerald-400 text-black text-xs font-bold px-2.5 py-0.5 rounded uppercase">
@@ -157,8 +171,8 @@ export default function SettingsPage() {
 
       <main className="p-4 max-w-2xl mx-auto space-y-4">
         {/* AI & Automation Toggles */}
-        <section className="bg-white rounded-lg shadow p-4 border-l-4 border-indigo-600 space-y-3">
-          <h2 className="font-bold text-sm text-gray-900 flex items-center">
+        <section className="glass rounded-xl p-4 border-l-4 border-indigo-600 space-y-3">
+          <h2 className="font-bold text-sm text-white flex items-center">
             <span className="text-lg mr-1.5">🤖</span> AI & Automation Engine Toggles
           </h2>
           <div className="space-y-2 text-xs">
@@ -190,8 +204,8 @@ export default function SettingsPage() {
         </section>
 
         {/* Pricing & Margin Controls */}
-        <section className="bg-white rounded-lg shadow p-4 border-l-4 border-emerald-600 space-y-3">
-          <h2 className="font-bold text-sm text-gray-900 flex items-center">
+        <section className="glass rounded-xl p-4 border-l-4 border-emerald-600 space-y-3">
+          <h2 className="font-bold text-sm text-white flex items-center">
             <span className="text-lg mr-1.5">💰</span> Pricing, Retailers & Owner Margin Guard
           </h2>
           <div className="space-y-2 text-xs">
@@ -216,7 +230,7 @@ export default function SettingsPage() {
           </div>
 
           <div className="pt-2 border-t text-xs space-y-2">
-            <label className="block text-xs font-bold text-gray-700">Retailer Watchlist Refresh Cadence</label>
+            <label className="block text-xs font-bold text-slate-200">Retailer Watchlist Refresh Cadence</label>
             <select
               value={settings.price_refresh_frequency}
               onChange={e => setSettings({ ...settings, price_refresh_frequency: e.target.value })}
@@ -236,9 +250,96 @@ export default function SettingsPage() {
           </div>
         </section>
 
+        <section className="glass rounded-xl p-4 border-l-4 border-cyan-500 space-y-3">
+          <h2 className="font-bold text-sm text-white">Radar atmosphere</h2>
+          <p className="text-xs text-slate-400">
+            The login screen and page backgrounds use the radar glow. Turn it off for flat black. Saved on this device.
+          </p>
+          <ToggleRow
+            label="Radar atmosphere"
+            desc={cinemaOn ? 'On. Cyan and storm glow behind the pages.' : 'Off. Flat black backgrounds.'}
+            checked={cinemaOn}
+            onToggle={() => {
+              const next = !cinemaOn
+              setCinemaOn(next)
+              applyCinemaTheme(next)
+            }}
+          />
+        </section>
+
+        {/* Radar cinema layers */}
+        <section className="glass rounded-xl p-4 border-l-4 border-cyan-500 space-y-3">
+          <h2 className="font-bold text-sm text-white flex items-center">
+            <span className="text-lg mr-1.5">📡</span> Radar cinema layers
+          </h2>
+          <p className="text-xs text-slate-400">
+            Defaults for <a href="/radar" className="text-cyan-300 underline">Radar cinema</a>. Turn layers off here or with <span className="font-semibold text-slate-200">L</span> on the map. Saved on this device.
+          </p>
+          <div className="space-y-2 text-xs">
+            {RADAR_UI_LAYERS.map((layer) => (
+              <ToggleRow
+                key={layer.id}
+                label={layer.label}
+                desc={layer.detail}
+                checked={Boolean(radarPrefs[layer.id])}
+                onToggle={() => {
+                  const id = layer.id as RadarLayerId
+                  const next = { ...radarPrefs, [id]: !radarPrefs[id] }
+                  setRadarPrefs(next)
+                  saveRadarLayerPrefs(next)
+                }}
+              />
+            ))}
+          </div>
+          <div className="grid gap-3 md:grid-cols-2 text-xs">
+            <label className="block text-slate-300">
+              Radar opacity · {Math.round(radarPrefs.radarOpacity * 100)}%
+              <input
+                type="range"
+                min={0.2}
+                max={1}
+                step={0.05}
+                value={radarPrefs.radarOpacity}
+                onChange={(e) => {
+                  const next = { ...radarPrefs, radarOpacity: Number(e.target.value) }
+                  setRadarPrefs(next)
+                  saveRadarLayerPrefs(next)
+                }}
+                className="mt-1 w-full"
+              />
+            </label>
+            <label className="block text-slate-300">
+              Alert fill opacity · {Math.round(radarPrefs.alertsOpacity * 100)}%
+              <input
+                type="range"
+                min={0.1}
+                max={0.8}
+                step={0.05}
+                value={radarPrefs.alertsOpacity}
+                onChange={(e) => {
+                  const next = { ...radarPrefs, alertsOpacity: Number(e.target.value) }
+                  setRadarPrefs(next)
+                  saveRadarLayerPrefs(next)
+                }}
+                className="mt-1 w-full"
+              />
+            </label>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setRadarPrefs({ ...DEFAULT_RADAR_LAYER_PREFS })
+              saveRadarLayerPrefs({ ...DEFAULT_RADAR_LAYER_PREFS })
+            }}
+            className="rounded-lg border border-white/15 px-3 py-2 text-xs font-semibold text-slate-200 hover:bg-white/5"
+          >
+            Reset radar layers to defaults
+          </button>
+        </section>
+
         {/* Field Canvassing & Mobile Settings */}
-        <section className="bg-white rounded-lg shadow p-4 border-l-4 border-amber-500 space-y-3">
-          <h2 className="font-bold text-sm text-gray-900 flex items-center">
+        <section className="glass rounded-xl p-4 border-l-4 border-amber-500 space-y-3">
+          <h2 className="font-bold text-sm text-white flex items-center">
             <span className="text-lg mr-1.5">🚶</span> Field Canvassing & Mobile App Settings
           </h2>
           <div className="space-y-2 text-xs">
@@ -264,8 +365,8 @@ export default function SettingsPage() {
         </section>
 
         {/* Security & Compliance Gates */}
-        <section className="bg-white rounded-lg shadow p-4 border-l-4 border-red-600 space-y-3">
-          <h2 className="font-bold text-sm text-gray-900 flex items-center">
+        <section className="glass rounded-xl p-4 border-l-4 border-red-600 space-y-3">
+          <h2 className="font-bold text-sm text-white flex items-center">
             <span className="text-lg mr-1.5">🔒</span> Security, Compliance & TCPA Gates
           </h2>
           <div className="space-y-2 text-xs">
@@ -297,8 +398,8 @@ export default function SettingsPage() {
         </section>
 
         {/* Golden Report & Evidence Rules */}
-        <section className="bg-white rounded-lg shadow p-4 border-l-4 border-cyan-600 space-y-3">
-          <h2 className="font-bold text-sm text-gray-900 flex items-center">
+        <section className="glass rounded-xl p-4 border-l-4 border-cyan-600 space-y-3">
+          <h2 className="font-bold text-sm text-white flex items-center">
             <span className="text-lg mr-1.5">📄</span> Golden Report Standards & IRC Code Rules
           </h2>
           <div className="space-y-2 text-xs">
@@ -324,51 +425,51 @@ export default function SettingsPage() {
         </section>
 
         {/* Tax Jurisdiction */}
-        <section className="bg-white rounded-lg shadow p-4 border space-y-3">
-          <h2 className="font-bold text-sm text-gray-900">🏛️ Tax Jurisdiction Rates</h2>
+        <section className="glass rounded-xl p-4 border space-y-3">
+          <h2 className="font-bold text-sm text-white">🏛️ Tax Jurisdiction Rates</h2>
           <div className="grid grid-cols-2 gap-3 text-xs">
             {([['state','State'],['county','County'],['city','City / Municipality'],['specialDistrict','Special District']] as const).map(([key, label]) => (
               <label key={key} className="block">
                 <span className="font-semibold">{label}</span>
                 <div className="flex items-center mt-1">
-                  <input type="number" min="0" max="100" step="0.0001" value={taxRates[key]} onChange={e => updateTax(key, e.target.value)} className="w-full p-2 border rounded" />
+                  <input type="number" min="0" max="100" step="0.0001" value={taxRates[key]} onChange={e => updateTax(key, e.target.value)} className="ops-input" />
                   <span className="ml-1 font-bold">%</span>
                 </div>
               </label>
             ))}
           </div>
-          <p className="text-xs font-bold text-gray-900 pt-1">Combined Tax Rate: {totalTax.toFixed(4)}%</p>
+          <p className="text-xs font-bold text-white pt-1">Combined Tax Rate: {totalTax.toFixed(4)}%</p>
           <label className="block text-xs">
             <span className="font-semibold">Tax Source / Jurisdiction</span>
-            <input value={taxSource} onChange={e => setTaxSource(e.target.value)} maxLength={200} className="w-full mt-1 p-2 border rounded" placeholder="Cobb County, GA — owner verified" />
+            <input value={taxSource} onChange={e => setTaxSource(e.target.value)} maxLength={200} className="ops-input mt-1" placeholder="Cobb County, GA — owner verified" />
           </label>
         </section>
 
         {/* Language and Market Defaults */}
-        <section className="bg-white rounded-lg shadow p-4 border space-y-3">
-          <h2 className="font-bold text-sm text-gray-900">🌐 Language & Market Defaults</h2>
+        <section className="glass rounded-xl p-4 border space-y-3">
+          <h2 className="font-bold text-sm text-white">🌐 Language & Market Defaults</h2>
           <div className="space-y-3 text-xs">
             <label className="block">
               <span className="font-semibold">Default Language</span>
-              <select value={settings.default_language} onChange={e => setSettings({ ...settings, default_language: e.target.value })} className="w-full mt-1 p-2 border rounded">
+              <select value={settings.default_language} onChange={e => setSettings({ ...settings, default_language: e.target.value })} className="ops-input mt-1">
                 <option value="en-US">English (US)</option>
                 <option value="es-US">Spanish (US)</option>
               </select>
             </label>
             <label className="block">
               <span className="font-semibold">Default ZIP Code</span>
-              <input value={settings.default_zipcode} onChange={e => setSettings({ ...settings, default_zipcode: e.target.value })} inputMode="numeric" maxLength={5} className="w-full mt-1 p-2 border rounded" placeholder="30123" />
+              <input value={settings.default_zipcode} onChange={e => setSettings({ ...settings, default_zipcode: e.target.value })} inputMode="numeric" maxLength={5} className="ops-input mt-1" placeholder="30123" />
             </label>
             <label className="block">
               <span className="font-semibold">Material Search Mode</span>
-              <select value={settings.material_search_mode} onChange={e => setSettings({ ...settings, material_search_mode: e.target.value })} className="w-full mt-1 p-2 border rounded">
+              <select value={settings.material_search_mode} onChange={e => setSettings({ ...settings, material_search_mode: e.target.value })} className="ops-input mt-1">
                 <option value="catalog_and_retailer">Catalog plus retailer reference</option>
                 <option value="catalog_only">Catalog only</option>
               </select>
             </label>
             <label className="block">
               <span className="font-semibold">Preferred Shingle Brand</span>
-              <input value={settings.preferred_brands.shingles ?? ''} onChange={e => setSettings({ ...settings, preferred_brands: { ...settings.preferred_brands, shingles: e.target.value } })} className="w-full mt-1 p-2 border rounded" placeholder="GAF" />
+              <input value={settings.preferred_brands.shingles ?? ''} onChange={e => setSettings({ ...settings, preferred_brands: { ...settings.preferred_brands, shingles: e.target.value } })} className="ops-input mt-1" placeholder="GAF" />
             </label>
           </div>
         </section>
@@ -377,13 +478,13 @@ export default function SettingsPage() {
           {saving ? 'Saving Settings…' : '💾 Save All Master Settings & Toggles'}
         </button>
 
-        {message && <p className="text-xs font-bold bg-blue-50 text-blue-900 border border-blue-200 rounded p-3">{message}</p>}
+        {message && <p className="text-xs font-bold bg-cyan-400/10 text-blue-900 border border-cyan-400/30 rounded p-3">{message}</p>}
       </main>
 
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around py-2 px-4">
-        <button onClick={() => router.push('/')} className="text-gray-500 text-sm">🏠 Home</button>
-        <button onClick={() => router.push('/pricing-config')} className="text-gray-500 text-sm">💰 Pricing</button>
-        <button onClick={() => router.push('/settings')} className="text-blue-600 font-bold text-sm">⚙️ Settings</button>
+      <nav className="fixed bottom-0 left-0 right-0 z-30 flex justify-around border-t border-white/10 bg-[#070b14]/95 py-2 px-4 backdrop-blur lg:hidden">
+        <button onClick={() => router.push('/')} className="text-slate-400 text-sm">🏠 Home</button>
+        <button onClick={() => router.push('/pricing-config')} className="text-slate-400 text-sm">💰 Pricing</button>
+        <button onClick={() => router.push('/settings')} className="text-cyan-300 font-bold text-sm">⚙️ Settings</button>
       </nav>
     </div>
   )
@@ -391,15 +492,15 @@ export default function SettingsPage() {
 
 function ToggleRow({ label, desc, checked, onToggle }: { label: string; desc: string; checked: boolean; onToggle: () => void }) {
   return (
-    <div className="flex justify-between items-start p-2 border rounded bg-gray-50/50">
+    <div className="flex justify-between items-start p-2 border rounded bg-white/5">
       <div className="pr-2">
-        <p className="font-bold text-gray-900">{label}</p>
-        <p className="text-[10px] text-gray-500">{desc}</p>
+        <p className="font-bold text-white">{label}</p>
+        <p className="text-[10px] text-slate-400">{desc}</p>
       </div>
       <button
         type="button"
         onClick={onToggle}
-        className={`w-11 h-6 shrink-0 flex items-center rounded-full p-1 transition-colors ${checked ? 'bg-emerald-600' : 'bg-gray-300'}`}
+        className={`w-11 h-6 shrink-0 flex items-center rounded-full p-1 transition-colors ${checked ? 'bg-emerald-600' : 'bg-slate-600'}`}
       >
         <div className={`w-4 h-4 bg-white rounded-full shadow transform transition-transform ${checked ? 'translate-x-5' : 'translate-x-0'}`} />
       </button>

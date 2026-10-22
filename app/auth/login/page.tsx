@@ -1,239 +1,105 @@
 'use client'
 
-import { FormEvent, Suspense, useEffect, useState } from 'react'
+import { FormEvent, Suspense, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { ShieldCheck, Zap } from 'lucide-react'
-import { authCooldownSeconds } from '../../../lib/auth/cooldown'
 import { createClient } from '../../../lib/supabase/client'
+import { authCooldownSeconds } from '../../../lib/auth/cooldown'
 import { safeNextPath } from '../../../lib/safe-next'
-import LoginWeatherPreview, { type LoginPreviewData } from '../../../components/LoginWeatherPreview'
-import WeatherRadarMap from '../../../components/WeatherRadarMap'
 
-type Mode = 'password' | 'link' | 'code'
-const COOLDOWN = 60
-const RESET_COOLDOWN_KEY = 'roof-os-password-reset-cooldown:'
-
-function resetCooldownKey(email: string) {
-  return `${RESET_COOLDOWN_KEY}${email.trim().toLowerCase()}`
+const ERROR_COPY: Record<string, string> = {
+  enter_locked: 'Break-glass is locked. Set OWNER_ENTER_SECRET on the server (16+ chars).',
+  enter_forbidden: 'Wrong or missing break-glass key.',
+  enter_misconfigured: 'Server auth is not configured (service role / Supabase URL).',
+  enter_no_owner: 'No owner email resolved. Set OWNER_ENTER_EMAIL or system_owner.',
+  enter_mint_failed: 'Could not mint owner session. Try again or check service role.',
 }
 
-function storedResetCooldown(email: string) {
-  if (typeof window === 'undefined' || !email.trim()) return 0
-  try {
-    const expiresAt = Number(window.localStorage.getItem(resetCooldownKey(email)))
-    return Math.max(0, Math.ceil((expiresAt - Date.now()) / 1000))
-  } catch {
-    return 0
-  }
-}
-
-function rememberResetCooldown(email: string, seconds: number) {
-  try {
-    window.localStorage.setItem(resetCooldownKey(email), String(Date.now() + seconds * 1000))
-  } catch {
-    // Some privacy modes disable localStorage; the in-memory timer still protects this page.
-  }
-}
-
-function LoginForm() {
+function LoginPageContent() {
   const router = useRouter()
   const search = useSearchParams()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const next = safeNextPath(search.get('next'), typeof window === 'undefined' ? 'https://invalid.local' : window.location.origin)
+  const enterError = search.get('enter_error') || ''
+  const resetSuccess = search.get('reset') === 'success'
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [code, setCode] = useState('')
-  const [mode, setMode] = useState<Mode>('password')
-  const [codeSent, setCodeSent] = useState(false)
-  const [message, setMessage] = useState('')
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [sendCooldown, setSendCooldown] = useState(0)
-  const [verifyCooldown, setVerifyCooldown] = useState(0)
-  const [resetCooldown, setResetCooldown] = useState(0)
-  const [loginWeather, setLoginWeather] = useState<LoginPreviewData | null>(null)
+  const [message, setMessage] = useState(resetSuccess ? 'Password updated. Sign in with your new password.' : '')
+  const [error, setError] = useState(enterError ? ERROR_COPY[enterError] || 'Owner unlock failed.' : '')
+  const [cooldown, setCooldown] = useState(0)
+  const [loading, setLoading] = useState<'password' | 'magic' | 'reset' | 'enter' | null>(null)
+  const [showBreakGlass, setShowBreakGlass] = useState(false)
+  const [key, setKey] = useState('')
 
-  useEffect(() => {
-    if (search.get('error') === 'auth_callback_failed') {
-      setError('That sign-in link could not be verified. Request a new sign-in email and try again.')
-    }
-    if (search.get('reset') === 'success') {
-      setMessage('Your password was updated. Sign in with it below.')
-    }
-  }, [search])
-
-  useEffect(() => {
-    if (!sendCooldown && !verifyCooldown && !resetCooldown) return
-    const timer = window.setInterval(() => {
-      setSendCooldown((seconds) => Math.max(0, seconds - 1))
-      setVerifyCooldown((seconds) => Math.max(0, seconds - 1))
-      setResetCooldown((seconds) => Math.max(0, seconds - 1))
-    }, 1000)
-    return () => window.clearInterval(timer)
-  }, [sendCooldown, verifyCooldown, resetCooldown])
-
-  function changeMode(nextMode: Mode) {
-    setMode(nextMode)
-    setCodeSent(false)
-    setCode('')
-    setMessage('')
-    setError('')
+  function applyCooldown(authError: { status?: number; code?: string; message?: string } | null) {
+    const seconds = authCooldownSeconds(authError)
+    if (!seconds) return
+    setCooldown(seconds)
+    const timer = window.setInterval(() => setCooldown((value) => {
+      if (value <= 1) { window.clearInterval(timer); return 0 }
+      return value - 1
+    }), 1000)
   }
 
-  async function signInWithPassword() {
-    if (!email.trim() || !password) {
-      setError('Enter your email address and password.')
-      return
-    }
-    setLoading(true)
-    setError('')
-    try {
-      const { error: signInError } = await supabase.auth.signInWithPassword({ email: email.trim(), password })
-      if (signInError) {
-        setError('Email or password was not accepted. Use Forgot password? if you need a new password.')
-        return
-      }
-      router.replace(next)
-      router.refresh()
-    } catch {
-      setError('Password sign-in is temporarily unavailable.')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  async function sendPasswordReset() {
-    const normalizedEmail = email.trim().toLowerCase()
-    if (!normalizedEmail) {
-      setError('Enter your email address first, then choose Forgot password?.')
-      return
-    }
-    const rememberedSeconds = storedResetCooldown(normalizedEmail)
-    if (rememberedSeconds) {
-      setResetCooldown(rememberedSeconds)
-      setError(`A reset email may already be on its way. Please wait ${rememberedSeconds} seconds before requesting another.`)
-      return
-    }
-    setLoading(true)
-    setError('')
-    try {
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
-        redirectTo: `${window.location.origin}/auth/reset`,
-      })
-      if (resetError) {
-        const seconds = authCooldownSeconds(resetError)
-        if (seconds) {
-          setResetCooldown(seconds)
-          rememberResetCooldown(normalizedEmail, seconds)
-          setError(`A reset email may already be on its way. Please wait ${seconds} seconds before requesting another.`)
-        }
-        else setError('A password reset email could not be sent.')
-        return
-      }
-      setResetCooldown(COOLDOWN)
-      rememberResetCooldown(normalizedEmail, COOLDOWN)
-      setMessage('Check your email for a password reset link. Open it on this device, then choose a new password.')
-    } catch {
-      setError('A password reset email could not be sent right now.')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  async function sendSignInEmail() {
-    if (sendCooldown || loading) return
-    if (!email.trim()) {
-      setError('Enter your email address first.')
-      return
-    }
-    setLoading(true)
-    setError('')
-    try {
-      const { error: signInError } = await supabase.auth.signInWithOtp({
-        email: email.trim(),
-        options: { emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}` },
-      })
-      if (signInError) {
-        const seconds = authCooldownSeconds(signInError)
-        if (seconds) {
-          setSendCooldown(seconds)
-          setError(`Too many sign-in requests. Please wait ${seconds} seconds.`)
-        } else setError('A sign-in email could not be sent.')
-        return
-      }
-      setSendCooldown(COOLDOWN)
-      if (mode === 'code') {
-        setCodeSent(true)
-        setMessage('A 6-digit email code was requested. Check your inbox.')
-      } else setMessage('Check your email for a secure sign-in link.')
-    } catch {
-      setError('A sign-in email could not be sent right now.')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  async function verifyEmailCode() {
-    if (loading || verifyCooldown) return
-    if (!/^\d{6}$/.test(code)) {
-      setError('Enter the 6-digit code from your email.')
-      return
-    }
-    setLoading(true)
-    setError('')
-    try {
-      const { error: verifyError } = await supabase.auth.verifyOtp({ email: email.trim(), token: code, type: 'email' })
-      if (verifyError) {
-        const seconds = authCooldownSeconds(verifyError)
-        if (seconds) {
-          setVerifyCooldown(seconds)
-          setError(`Too many verification attempts. Please wait ${seconds} seconds.`)
-        } else setError('That code was not accepted or has expired.')
-        return
-      }
-      router.replace(next)
-      router.refresh()
-    } catch {
-      setError('The sign-in code could not be verified right now.')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  function submit(event: FormEvent<HTMLFormElement>) {
+  async function signIn(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (mode === 'password') void signInWithPassword()
-    else if (mode === 'code' && codeSent) void verifyEmailCode()
-    else void sendSignInEmail()
+    setLoading('password'); setError(''); setMessage('')
+    const { error: signInError } = await supabase.auth.signInWithPassword({ email: email.trim(), password })
+    if (signInError) setError('Sign-in failed. Check your email and password, then try again.')
+    else router.replace(next)
+    setLoading(null)
+  }
+
+  async function sendMagicLink() {
+    if (cooldown || !email.trim()) { setError('Enter your email first.'); return }
+    setLoading('magic'); setError(''); setMessage('')
+    const { error: magicError } = await supabase.auth.signInWithOtp({ email: email.trim(), options: { emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}` } })
+    if (magicError) { setError('We could not send the sign-in link.'); applyCooldown(magicError) }
+    else { setMessage('Check your email for a secure sign-in link.'); setCooldown(60) }
+    setLoading(null)
+  }
+
+  async function sendReset() {
+    if (cooldown || !email.trim()) { setError('Enter your email first.'); return }
+    setLoading('reset'); setError(''); setMessage('')
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent('/auth/reset')}` })
+    if (resetError) { setError('We could not send a reset link.'); applyCooldown(resetError) }
+    else { setMessage('If that account exists, a password-reset link is on its way.'); setCooldown(60) }
+    setLoading(null)
+  }
+
+  function enterOwner(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const trimmed = key.trim()
+    if (!trimmed) return
+    setLoading('enter')
+    const enter = new URL('/auth/enter', window.location.origin)
+    enter.searchParams.set('key', trimmed)
+    enter.searchParams.set('next', next)
+    router.replace(enter.pathname + enter.search)
+    router.refresh()
   }
 
   return (
-    <main className="ops-bg flex min-h-screen flex-col items-center justify-center gap-6 px-4 py-10">
-      <div className="absolute left-6 top-6 flex items-center gap-3">
-        <ShieldCheck className="h-10 w-10 text-red-500" />
-        <span><strong className="block text-3xl font-black tracking-[-.08em]">ROOF<span className="text-red-500">/OS</span></strong><small className="text-[10px] tracking-[.2em] text-slate-300">STORM COMMAND CENTER</small></span>
-      </div>
-      <form onSubmit={submit} className="glass w-full max-w-md rounded-2xl p-7">
-        <div className="mb-6 flex items-center gap-3"><div className="rounded-xl border border-red-400/40 bg-red-500/10 p-3 text-red-400"><Zap className="h-6 w-6" /></div><div><p className="ops-label">Operator access</p><h1 className="text-2xl font-black">Welcome to ROOF/OS</h1><p className="mt-1 text-sm text-slate-400">Use your password, or get a secure email link.</p></div></div>
-        <div className="mb-5 grid grid-cols-3 gap-2">{([['password', 'Password'], ['link', 'Email link'], ['code', '6-digit code']] as const).map(([value, label]) => <button key={value} type="button" onClick={() => changeMode(value)} aria-pressed={mode === value} className={`rounded-lg border py-2 text-xs ${mode === value ? 'border-cyan-400 bg-cyan-400/15 text-cyan-300' : 'border-white/15 text-slate-400'}`}>{label}</button>)}</div>
-        <label className="mb-1 block text-sm text-slate-200" htmlFor="email">Work email</label>
-        <input id="email" type="email" required autoComplete="email" value={email} onChange={(event) => { setEmail(event.target.value); setCode(''); setCodeSent(false); setResetCooldown(0) }} className="mb-4 w-full rounded-lg border border-white/15 bg-black/30 p-3 text-white placeholder:text-slate-500" placeholder="you@company.com" />
-        {mode === 'password' && <><label className="mb-1 block text-sm text-slate-200" htmlFor="password">Password</label><input id="password" type="password" required autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} className="w-full rounded-lg border border-white/15 bg-black/30 p-3 text-white placeholder:text-slate-500" placeholder="Enter your password" /><button type="button" onClick={() => void sendPasswordReset()} disabled={loading || resetCooldown > 0} className="mt-2 text-left text-sm text-cyan-300 hover:text-cyan-200 disabled:opacity-60">{resetCooldown ? `Try again in ${resetCooldown}s` : 'Forgot password?'}</button></>}
-        {mode === 'code' && codeSent && <><label className="mb-1 mt-4 block text-sm text-slate-200" htmlFor="code">6-digit email code</label><input id="code" type="text" inputMode="numeric" maxLength={6} pattern="\d{6}" autoComplete="one-time-code" value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, '').slice(0, 6))} className="w-full rounded-lg border border-white/15 bg-black/30 p-3 text-center tracking-[.4em] text-white" placeholder="000000" /> </>}
-        {message && <p className="mb-3 mt-4 rounded-lg border border-emerald-400/30 bg-emerald-400/10 p-3 text-sm text-emerald-300" role="status">{message}</p>}
-        {error && <p className="mb-3 mt-4 rounded-lg border border-red-400/30 bg-red-400/10 p-3 text-sm text-red-300" role="alert">{error}</p>}
-        <button type="submit" disabled={loading || Boolean(mode === 'code' && codeSent ? verifyCooldown : sendCooldown)} className="mt-4 w-full rounded-lg bg-gradient-to-r from-red-600 to-rose-500 py-3 font-bold text-white disabled:opacity-60">{loading ? 'Authenticating…' : mode === 'password' ? 'Enter command center' : mode === 'code' && codeSent ? 'Verify 6-digit code' : mode === 'code' ? 'Send 6-digit code' : 'Send sign-in link'}</button>
-        <button type="button" onClick={() => router.push('/auth/signup')} className="mt-5 w-full text-sm text-slate-400">Create a new workspace</button>
-        <p className="mt-6 text-center text-[10px] uppercase tracking-[.16em] text-slate-500">Protected workspace access · Secure session required</p>
-      </form>
-      <div className="w-full max-w-2xl space-y-3">
-        <LoginWeatherPreview onLocationChange={setLoginWeather} />
-        {loginWeather && <WeatherRadarMap latitude={loginWeather.latitude} longitude={loginWeather.longitude} locationLabel={loginWeather.label} interactive={false} className="h-56" />}
-      </div>
+    <main className="ops-bg cinema-surface flex min-h-screen items-center justify-center p-4">
+      <section className="w-full max-w-md glass rounded-2xl p-6">
+        <div className="mb-5 text-center"><div className="mb-2 text-4xl">⚡</div><h1 className="text-2xl font-bold">Sign in to ROOF/OS</h1><p className="mt-1 text-sm text-slate-400">Use your work email and password, or request a secure email link.</p></div>
+        <form onSubmit={signIn} className="space-y-3">
+          <label className="block text-sm font-medium text-slate-200" htmlFor="email">Work email</label>
+          <input id="email" name="email" type="email" required autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} className="ops-input" placeholder="you@company.com" />
+          <label className="block text-sm font-medium text-slate-200" htmlFor="password">Password</label>
+          <input id="password" name="password" type="password" required autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} className="ops-input" placeholder="Your password" />
+          {message && <p className="text-sm text-emerald-300" role="status">{message}</p>}
+          {error && <p className="text-sm text-red-300" role="alert">{error}</p>}
+          <button type="submit" disabled={Boolean(loading)} className="ops-btn-primary w-full py-3 disabled:opacity-60">{loading === 'password' ? 'Signing in…' : 'Sign in'}</button>
+        </form>
+        <div className="mt-4 grid grid-cols-2 gap-3"><button type="button" onClick={() => void sendMagicLink()} disabled={Boolean(loading) || Boolean(cooldown)} className="rounded-lg border border-cyan-400/30 px-3 py-2 text-sm text-cyan-200 disabled:opacity-50">{loading === 'magic' ? 'Sending…' : cooldown ? `Try again in ${cooldown}s` : 'Email link'}</button><button type="button" onClick={() => void sendReset()} disabled={Boolean(loading) || Boolean(cooldown)} className="rounded-lg border border-white/10 px-3 py-2 text-sm text-slate-300 disabled:opacity-50">Forgot password?</button></div>
+        <button type="button" onClick={() => router.push(`/auth/signup?next=${encodeURIComponent(next)}`)} className="mt-4 w-full text-sm text-cyan-300">Create a new workspace</button>
+        <details open={showBreakGlass} className="mt-6 border-t border-white/10 pt-4" onToggle={(event) => setShowBreakGlass(event.currentTarget.open)}><summary className="cursor-pointer text-xs uppercase tracking-wide text-slate-500">ROOF/OS break-glass fallback</summary><p className="mt-2 text-xs text-slate-500">Use this only for private owner recovery. The key is sent to the server and never stored in the browser.</p><form onSubmit={enterOwner} className="mt-3 space-y-3"><label className="block text-xs text-slate-400" htmlFor="owner-enter-key">Owner enter key</label><input id="owner-enter-key" type="password" autoComplete="off" spellCheck={false} value={key} onChange={(event) => setKey(event.target.value)} className="ops-input" placeholder="OWNER_ENTER_SECRET" /><button type="submit" disabled={loading === 'enter' || !key.trim()} className="w-full rounded-lg border border-amber-400/30 px-3 py-2 text-sm text-amber-200 disabled:opacity-50">{loading === 'enter' ? 'Entering…' : 'Enter as owner'}</button></form></details>
+      </section>
     </main>
   )
 }
 
 export default function LoginPage() {
-  return <Suspense fallback={<main className="ops-shell flex min-h-screen items-center justify-center text-sm text-slate-400">Loading secure access…</main>}><LoginForm /></Suspense>
+  return <Suspense fallback={<main className="min-h-screen flex items-center justify-center p-4 text-sm text-slate-300">Loading sign-in…</main>}><LoginPageContent /></Suspense>
 }

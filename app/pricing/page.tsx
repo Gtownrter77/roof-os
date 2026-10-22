@@ -2,12 +2,14 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { smartBack } from '../../lib/smart-back'
 
 export default function PricingPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [pricing, setPricing] = useState({
     materials: {
+      // Core roofing (original set)
       shingles: { price: 95, unit: 'sq', quantity: 0 },
       underlayment: { price: 45, unit: 'roll', quantity: 0 },
       flashing: { price: 8, unit: 'ft', quantity: 0 },
@@ -16,6 +18,52 @@ export default function PricingPage() {
       iceWaterShield: { price: 65, unit: 'roll', quantity: 0 },
       ridgeVent: { price: 4, unit: 'ft', quantity: 0 },
       starterShingles: { price: 2.5, unit: 'ft', quantity: 0 },
+      // Cap / ridge / hip
+      hipRidgeCap: { price: 55, unit: 'bundle', quantity: 0 },
+      ridgeShingles: { price: 48, unit: 'bundle', quantity: 0 },
+      // Underlayment & weather barrier
+      syntheticUnderlayment: { price: 89, unit: 'roll', quantity: 0 },
+      felt15lb: { price: 28, unit: 'roll', quantity: 0 },
+      felt30lb: { price: 36, unit: 'roll', quantity: 0 },
+      peelStickMembrane: { price: 72, unit: 'roll', quantity: 0 },
+      // Ventilation
+      boxVent: { price: 18, unit: 'ea', quantity: 0 },
+      turbineVent: { price: 42, unit: 'ea', quantity: 0 },
+      soffitVent: { price: 6.5, unit: 'ft', quantity: 0 },
+      powerAtticVent: { price: 185, unit: 'ea', quantity: 0 },
+      // Flashing & metal
+      stepFlashing: { price: 1.85, unit: 'pc', quantity: 0 },
+      pipeBoot: { price: 14, unit: 'ea', quantity: 0 },
+      chimneyCricket: { price: 95, unit: 'ea', quantity: 0 },
+      valleyMetal: { price: 22, unit: 'ft', quantity: 0 },
+      wallFlashing: { price: 9.5, unit: 'ft', quantity: 0 },
+      // Fasteners & adhesives
+      roofingNails: { price: 48, unit: 'box', quantity: 0 },
+      coilNails: { price: 62, unit: 'box', quantity: 0 },
+      roofCement: { price: 16, unit: 'gal', quantity: 0 },
+      caulk: { price: 7.5, unit: 'tube', quantity: 0 },
+      // Decking & substrate
+      osbDecking: { price: 28, unit: 'sheet', quantity: 0 },
+      plywoodDecking: { price: 42, unit: 'sheet', quantity: 0 },
+      deckingScrews: { price: 32, unit: 'box', quantity: 0 },
+      // Gutters & drainage
+      downspouts: { price: 8.5, unit: 'ft', quantity: 0 },
+      gutterGuards: { price: 9, unit: 'ft', quantity: 0 },
+      endCaps: { price: 4.5, unit: 'ea', quantity: 0 },
+      hangers: { price: 1.25, unit: 'ea', quantity: 0 },
+      // Accessories
+      skylightFlashingKit: { price: 165, unit: 'kit', quantity: 0 },
+      satelliteMountPad: { price: 24, unit: 'ea', quantity: 0 },
+      snowGuards: { price: 12, unit: 'ea', quantity: 0 },
+      // Disposal & site
+      dumpsterRental: { price: 450, unit: 'ea', quantity: 0 },
+      trashBags: { price: 28, unit: 'roll', quantity: 0 },
+      magneticNailPickup: { price: 35, unit: 'day', quantity: 0 },
+      // Specialty options
+      architecturalUpgrade: { price: 125, unit: 'sq', quantity: 0 },
+      impactResistantShingles: { price: 145, unit: 'sq', quantity: 0 },
+      metalPanel: { price: 210, unit: 'sq', quantity: 0 },
+      copperFlashing: { price: 28, unit: 'ft', quantity: 0 },
     },
     labor: {
       tearOff: { rate: 55, unit: 'sq', quantity: 0 },
@@ -56,6 +104,18 @@ export default function PricingPage() {
         iceWaterShield: { ...prev.materials.iceWaterShield, quantity: Math.ceil(sq / 3) },
         ridgeVent: { ...prev.materials.ridgeVent, quantity: roofArea * 0.05 },
         starterShingles: { ...prev.materials.starterShingles, quantity: roofArea * 0.1 },
+        hipRidgeCap: { ...prev.materials.hipRidgeCap, quantity: Math.ceil(sq / 10) },
+        ridgeShingles: { ...prev.materials.ridgeShingles, quantity: Math.ceil(sq / 12) },
+        syntheticUnderlayment: { ...prev.materials.syntheticUnderlayment, quantity: Math.ceil(sq / 4) },
+        boxVent: { ...prev.materials.boxVent, quantity: Math.max(2, Math.ceil(sq / 8)) },
+        stepFlashing: { ...prev.materials.stepFlashing, quantity: Math.ceil(roofArea * 0.08) },
+        pipeBoot: { ...prev.materials.pipeBoot, quantity: Math.max(2, Math.ceil(sq / 15)) },
+        valleyMetal: { ...prev.materials.valleyMetal, quantity: roofArea * 0.04 },
+        roofingNails: { ...prev.materials.roofingNails, quantity: Math.ceil(sq / 5) },
+        osbDecking: { ...prev.materials.osbDecking, quantity: Math.ceil(roofArea / 32) },
+        downspouts: { ...prev.materials.downspouts, quantity: roofArea * 0.04 },
+        hangers: { ...prev.materials.hangers, quantity: Math.ceil(roofArea * 0.15 / 3) },
+        dumpsterRental: { ...prev.materials.dumpsterRental, quantity: 1 },
       },
       labor: {
         ...prev.labor,
@@ -122,10 +182,10 @@ export default function PricingPage() {
   }
 
   return (
-    <div className="ops-bg min-h-screen lg:pl-[232px] pb-16">
-      <header className="glass sticky top-0 z-10 border-x-0 border-t-0">
+    <div className="space-y-4 pb-4">
+      <header className="glass rounded-xl mb-4 border-x-0 border-t-0">
         <div className="mx-auto flex max-w-[1240px] items-center px-4 py-3">
-          <button onClick={() => router.back()} className="mr-3 text-xl text-cyan-300">←</button>
+          <button onClick={() => smartBack(router)} className="mr-3 text-xl text-cyan-300">←</button>
           <h1 className="text-xl font-black">💰 Live Retailer Pricing</h1>
           <span className="ml-2 rounded bg-emerald-500 px-2 py-1 text-xs font-bold text-black">LIVE REFERENCE</span>
         </div>
@@ -139,7 +199,7 @@ export default function PricingPage() {
             <input
               type="number"
               placeholder="Roof Area (sq ft)"
-              className="flex-1 p-2 border rounded-lg"
+              className="ops-input flex-1"
               onChange={(e) => updateQuantities(Number(e.target.value))}
             />
             <button className="rounded-lg bg-gradient-to-r from-blue-600 to-cyan-500 px-4 py-2 text-white">
@@ -154,7 +214,11 @@ export default function PricingPage() {
             <span>🧱 Materials</span>
             <span className="text-emerald-300">${totals.materials.toFixed(2)}</span>
           </h3>
-          <div className="space-y-2">
+          <div className="mb-2 flex items-center justify-between text-[11px] text-slate-400">
+            <span>{Object.keys(pricing.materials).length} line items</span>
+            <span>Price · Qty · Line total</span>
+          </div>
+          <div className="max-h-[32rem] space-y-2 overflow-y-auto pr-1">
             {Object.entries(pricing.materials).map(([key, item]) => (
               <div key={key} className="grid grid-cols-4 gap-2 items-center">
                 <span className="text-xs capitalize">{key.replace(/([A-Z])/g, ' $1')}</span>
@@ -263,7 +327,7 @@ export default function PricingPage() {
                 <span>Total Estimate</span>
                 <span className="text-cyan-300">${totals.total.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between text-sm text-gray-500">
+              <div className="flex justify-between text-sm text-slate-400">
                 <span>Per Square</span>
                 <span>${totals.perSquare.toFixed(2)}</span>
               </div>
@@ -281,33 +345,33 @@ export default function PricingPage() {
         </div>
 
         <div className="glass rounded-xl p-3 text-center">
-          <p className="text-xs text-gray-600">
+          <p className="text-xs text-slate-300">
             Live Home Depot and Lowe&apos;s retailer reference pricing • Updated weekly by default • Refresh on demand • Xactimate-friendly workflow formatting
           </p>
-          <p className="text-[11px] text-gray-500 mt-1">
+          <p className="text-[11px] text-slate-400 mt-1">
             Prices retain retailer, market/ZIP, retrieval time, effective date, and owner-review status. They are not licensed Xactimate or carrier rates.
           </p>
         </div>
       </main>
 
-      <nav className="fixed inset-x-0 bottom-0 z-30 hidden border-t border-white/15 bg-[#050914]/95 py-3 px-4 backdrop-blur-xl lg:pl-[252px]">
-        <button onClick={() => router.push('/')} className="flex flex-col items-center text-gray-400">
+      <nav className="hidden">
+        <button onClick={() => router.push('/')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">🏠</span>
           <span className="text-xs">Home</span>
         </button>
-        <button onClick={() => router.push('/pricing')} className="flex flex-col items-center text-blue-600">
+        <button onClick={() => router.push('/pricing')} className="flex flex-col items-center text-cyan-300">
           <span className="text-xl">💰</span>
           <span className="text-xs">Pricing</span>
         </button>
-        <button onClick={() => router.push('/ai')} className="flex flex-col items-center text-gray-400">
+        <button onClick={() => router.push('/ai')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">🤖</span>
           <span className="text-xs">AI</span>
         </button>
-        <button onClick={() => router.push('/invoices')} className="flex flex-col items-center text-gray-400">
+        <button onClick={() => router.push('/invoices')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">📊</span>
           <span className="text-xs">Invoices</span>
         </button>
-        <button onClick={() => router.push('/settings')} className="flex flex-col items-center text-gray-400">
+        <button onClick={() => router.push('/settings')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">⚙️</span>
           <span className="text-xs">Settings</span>
         </button>

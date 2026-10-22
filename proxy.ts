@@ -6,12 +6,19 @@ function isCronPath(pathname: string) {
   return pathname.startsWith('/api/cron/')
 }
 
-function isPublicPath(pathname: string) {
-  return pathname === '/about' || pathname === '/pricing' || pathname.startsWith('/auth')
+function isAuthUtilityPath(pathname: string) {
+  return (
+    pathname.startsWith('/auth')
+    || pathname === '/about'
+    || pathname === '/pricing'
+    || pathname === '/admin'
+    || pathname === '/api/status'
+  )
 }
 
-function isMfaPath(pathname: string) {
-  return pathname === '/auth/mfa'
+function wantsHtml(request: NextRequest) {
+  const accept = request.headers.get('accept') || ''
+  return accept.includes('text/html')
 }
 
 function createCspNonce() {
@@ -24,8 +31,8 @@ function applySecurityPolicy(response: NextResponse, nonce: string) {
     "base-uri 'self'",
     "frame-ancestors 'none'",
     "form-action 'self'",
-    "img-src 'self' data: blob: https://*.supabase.co https://tiles.openfreemap.org https://opengeo.ncep.noaa.gov",
-    "connect-src 'self' https://*.supabase.co https://api.weather.gov https://api.capout.ai https://*.rapidapi.com https://tiles.openfreemap.org https://opengeo.ncep.noaa.gov",
+    "img-src 'self' data: blob: https://*.supabase.co https://tiles.openfreemap.org https://opengeo.ncep.noaa.gov https://mesonet.agron.iastate.edu",
+    "connect-src 'self' https://*.supabase.co https://api.weather.gov https://api.capout.ai https://*.rapidapi.com https://tiles.openfreemap.org https://opengeo.ncep.noaa.gov https://mesonet.agron.iastate.edu",
     "style-src 'self' 'unsafe-inline'",
     `script-src 'self' 'nonce-${nonce}'`,
     "worker-src 'self' blob:",
@@ -61,39 +68,21 @@ export async function proxy(request: NextRequest) {
   })
 
   const { data: { user } } = await supabase.auth.getUser()
-  const isAuthPage = pathname.startsWith('/auth')
 
-  if (!user && !isPublicPath(pathname)) {
+  // Private break-glass: unauthenticated HTML goes to login (key form).
+  // Owner mint only happens at /auth/enter?key=OWNER_ENTER_SECRET — never for every visitor.
+  if (
+    !user
+    && !isAuthUtilityPath(pathname)
+    && wantsHtml(request)
+    && !pathname.startsWith('/api/')
+  ) {
     const login = new URL('/auth/login', request.url)
-    login.searchParams.set('next', pathname)
+    login.searchParams.set('next', pathname + request.nextUrl.search)
     return applySecurityPolicy(NextResponse.redirect(login), nonce)
   }
 
-  if (!user) return applySecurityPolicy(response, nonce)
-
-  if (isMfaPath(pathname)) return applySecurityPolicy(response, nonce)
-
-  if (isAuthPage && pathname !== '/auth/callback' && pathname !== '/auth/reset') {
-    return applySecurityPolicy(NextResponse.redirect(new URL('/', request.url)), nonce)
-  }
-
-  const { data: privilegedMembership } = await supabase
-    .from('workspace_members')
-    .select('workspace_id, role')
-    .eq('user_id', user.id)
-    .in('role', ['owner', 'admin'])
-    .limit(1)
-    .maybeSingle()
-
-  if (privilegedMembership) {
-    const { data: assurance } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
-    if (assurance?.currentLevel !== 'aal2') {
-      const mfa = new URL('/auth/mfa', request.url)
-      mfa.searchParams.set('next', pathname)
-      return applySecurityPolicy(NextResponse.redirect(mfa), nonce)
-    }
-  }
-
+  // MFA remains optional at /auth/mfa.
   return applySecurityPolicy(response, nonce)
 }
 

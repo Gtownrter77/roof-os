@@ -1,5 +1,9 @@
 # Database migration ordering
 
+## Current checkpoint — 2026-10-21
+
+`main` is now `b6520da825cb31cf538894fbfc44c87a38a752c3` after PR #288. Migration `053_agent_action_ledger.sql` is present in source and covered by CI contracts; its target-project application remains unverified. The next new local prefix is `054`. Use the manual, protected staging workflow `.github/workflows/staging-migration-verify.yml` before any production application. A green repository check is not proof of live schema parity.
+
 **Do not rename or renumber an already-released SQL migration without checking the applied production ledger first.** The production Supabase ledger uses timestamp versions; the repo SQL files use shorter numeric prefixes. The project was restored during this release and is now `ACTIVE_HEALTHY`.
 
 > **Evidence freshness:** The live Supabase ledger and schema were queried during the 2026-10-09 audit. The audit found source drift and that repository migrations `051_supplier_account_addons.sql` and `052_mobile_field_measurement_inputs.sql` are not reflected in the live ledger/schema. See [AUDIT-STATUS-2026-10-09.md](AUDIT-STATUS-2026-10-09.md). Do not replay applied migrations; test unapplied changes on staging before production.
@@ -10,7 +14,7 @@ Production lists `035_retailer_quota_hardening` as applied (ledger version `2026
 
 ## Known legacy local-prefix collisions
 
-The current repository has three duplicate numeric prefixes. Migrations 036, 037, and 038 are already present on main; the next new local migration prefix is `053`.
+The current repository has three duplicate numeric prefixes. Migrations 036, 037, 038, and 053 are already present on main; the next new local migration prefix is `054`.
 
 | Prefix | Files |
 | --- | --- |
@@ -34,7 +38,7 @@ Treat this as a repository-history reconciliation task, not permission to delete
 
 1. Before using `supabase migration repair`, renaming a historical file, or changing a production ledger, inspect the recorded production migration versions.
 2. Keep released migration files immutable until the remote history is reconciled.
-3. Give every new local migration a unique prefix greater than the highest released prefix. The next new local migration prefix is `053`.
+3. Give every new local migration a unique prefix greater than the highest released prefix. The next new local migration prefix is `054`.
 4. Run the migration in a staging database first, then run the app/release checks against the migrated schema.
 5. Record the migration name and its production apply status in the release/owner manual.
 

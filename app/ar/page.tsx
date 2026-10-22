@@ -2,35 +2,20 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { smartBack } from '../../lib/smart-back'
 
 export default function ARPage() {
   const router = useRouter()
   const [arMode, setArMode] = useState('scan')
   const [detectedIssues, setDetectedIssues] = useState<any[]>([])
-  const [scanning, setScanning] = useState(false)
-
-  const arIssues = [
-    { id: 1, type: '🌊', label: 'Water Damage', severity: 'High', confidence: '94%' },
-    { id: 2, type: '🔨', label: 'Structural Weakness', severity: 'Critical', confidence: '89%' },
-    { id: 3, type: '💨', label: 'Wind Damage', severity: 'Medium', confidence: '78%' },
-    { id: 4, type: '🔥', label: 'Heat Signature', severity: 'Low', confidence: '82%' },
-  ]
-
-  const startARScan = () => {
-    setScanning(true)
-    setTimeout(() => {
-      setDetectedIssues([])
-      setScanning(false)
-    }, 3000)
-  }
 
   return (
     <div className="min-h-screen bg-black text-white pb-20">
-      <header className="bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg sticky top-0 z-10">
+      <header className="glass rounded-xl mb-4">
         <div className="px-4 py-3 flex items-center">
-          <button onClick={() => router.back()} className="text-white mr-3 text-xl">←</button>
+          <button onClick={() => smartBack(router)} className="mr-3 text-xl text-cyan-300">←</button>
           <h1 className="text-xl font-bold">🛸 AR Roof Scanner</h1>
-          <span className="ml-2 bg-green-500 text-white text-xs px-2 py-0.5 rounded-full animate-pulse">CONCEPT PREVIEW</span>
+          <span className="ml-2 bg-emerald-400/100 text-white text-xs px-2 py-0.5 rounded-full animate-pulse">CONCEPT PREVIEW</span>
         </div>
       </header>
 
@@ -50,13 +35,13 @@ export default function ARPage() {
                   }}
                 >
                   <span className="text-3xl">{issue.type}</span>
-                  <div className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full -mt-1">
+                  <div className="bg-red-400/100 text-white text-xs px-2 py-0.5 rounded-full -mt-1">
                     {issue.confidence}
                   </div>
                 </div>
               ))}
               <div className="absolute bottom-0 left-0 right-0 text-center text-xs text-cyan-300">
-                {scanning ? '🔍 Scanning with LiDAR...' : 'Concept preview only — no inspection findings are generated.'}
+                No camera model is connected. This screen does not detect damage.
               </div>
             </div>
           </div>
@@ -69,7 +54,7 @@ export default function ARPage() {
             disabled={false}
             className="bg-gradient-to-r from-cyan-500 to-blue-600 text-white p-3 rounded-lg font-semibold disabled:opacity-50"
           >
-            {scanning ? '⏳ Scanning' : '🔍 AR Scan'}
+            Open measure
           </button>
           <button className="bg-purple-600 text-white p-3 rounded-lg font-semibold">
             📸 Capture
@@ -89,7 +74,7 @@ export default function ARPage() {
                   <span className="text-2xl mr-2">{issue.type}</span>
                   <div>
                     <p className="text-sm">{issue.label}</p>
-                    <p className="text-xs text-gray-400">Confidence: {issue.confidence}</p>
+                    <p className="text-xs text-slate-400">Confidence: {issue.confidence}</p>
                   </div>
                 </div>
                 <span className={`text-xs px-2 py-1 rounded ${
@@ -109,7 +94,7 @@ export default function ARPage() {
       </main>
 
       <nav className="fixed bottom-0 left-0 right-0 bg-gray-900 border-t border-cyan-500 flex justify-around py-2 px-4">
-        <button onClick={() => router.push('/')} className="flex flex-col items-center text-gray-400">
+        <button onClick={() => router.push('/')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">🏠</span>
           <span className="text-xs">Home</span>
         </button>
@@ -117,15 +102,15 @@ export default function ARPage() {
           <span className="text-xl">🛸</span>
           <span className="text-xs">AR</span>
         </button>
-        <button onClick={() => router.push('/vr')} className="flex flex-col items-center text-gray-400">
+        <button onClick={() => router.push('/vr')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">🥽</span>
           <span className="text-xs">VR</span>
         </button>
-        <button onClick={() => router.push('/quantum')} className="flex flex-col items-center text-gray-400">
+        <button onClick={() => router.push('/quantum')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">⚛️</span>
           <span className="text-xs">Quantum</span>
         </button>
-        <button onClick={() => router.push('/settings')} className="flex flex-col items-center text-gray-400">
+        <button onClick={() => router.push('/settings')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">⚙️</span>
           <span className="text-xs">Settings</span>
         </button>

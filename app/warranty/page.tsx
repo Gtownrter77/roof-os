@@ -68,25 +68,25 @@ export default function WarrantyPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 pb-24">
-      <button onClick={() => router.push('/')} className="text-blue-600 text-sm mb-3">← Dashboard</button>
+    <div className="space-y-4 p-1 pb-4">
+      <button onClick={() => router.push('/')} className="text-cyan-300 text-sm mb-3">← Dashboard</button>
       <h1 className="text-2xl font-bold mb-2">Warranties</h1>
-      <p className="text-sm text-gray-600 mb-4">Registration status, expiration, and missing packet items. This is not just a PDF slot.</p>
-      <form onSubmit={add} className="bg-white rounded-lg shadow p-4 mb-4 space-y-2">
+      <p className="text-sm text-slate-300 mb-4">Registration status, expiration, and missing packet items. This is not just a PDF slot.</p>
+      <form onSubmit={add} className="glass rounded-xl p-4 mb-4 space-y-2">
         <select value={form.leadId} onChange={(e) => setForm({ ...form, leadId: e.target.value })} className="w-full border rounded p-2 text-sm"><option value="">Unlinked property</option>{leads.map((lead) => <option key={lead.id} value={lead.id}>{lead.name}</option>)}</select>
         <input value={form.manufacturer} onChange={(e) => setForm({ ...form, manufacturer: e.target.value })} className="w-full border rounded p-2 text-sm" placeholder="Manufacturer" />
         <input value={form.product_line} onChange={(e) => setForm({ ...form, product_line: e.target.value })} className="w-full border rounded p-2 text-sm" placeholder="Product line" />
         <input type="date" value={form.expires_at} onChange={(e) => setForm({ ...form, expires_at: e.target.value })} className="w-full border rounded p-2 text-sm" />
         <input value={form.missing_items} onChange={(e) => setForm({ ...form, missing_items: e.target.value })} className="w-full border rounded p-2 text-sm" placeholder="Missing: delivery ticket, chimney photo, signed CO" />
-        {error && <p className="text-sm text-red-600">{error}</p>}
-        <button disabled={saving} className="w-full bg-blue-600 text-white py-2 rounded font-semibold disabled:opacity-60">{saving ? 'Saving…' : 'Add warranty record'}</button>
+        {error && <p className="text-sm text-red-300">{error}</p>}
+        <button disabled={saving} className="ops-btn-primary w-full disabled:opacity-60">{saving ? 'Saving…' : 'Add warranty record'}</button>
       </form>
       {rows.map((row) => (
-        <div key={row.id} className="bg-white rounded-lg shadow p-4 mb-3">
+        <div key={row.id} className="glass rounded-xl p-4 mb-3">
           <p className="font-semibold">{row.manufacturer} {row.product_line}</p>
-          <p className="text-sm text-gray-600">{row.registration_status.replaceAll('_', ' ')}{row.expires_at ? ` · expires ${row.expires_at}` : ''}</p>
+          <p className="text-sm text-slate-300">{row.registration_status.replaceAll('_', ' ')}{row.expires_at ? ` · expires ${row.expires_at}` : ''}</p>
           {row.missing_items && <p className="text-xs text-amber-800 mt-1">Missing: {row.missing_items}</p>}
-          {row.lead_id && <button onClick={() => router.push(`/passport/${row.lead_id}`)} className="text-xs text-blue-600 mt-2">Open passport</button>}
+          {row.lead_id && <button onClick={() => router.push(`/passport/${row.lead_id}`)} className="text-xs text-cyan-300 mt-2">Open passport</button>}
         </div>
       ))}
     </div>

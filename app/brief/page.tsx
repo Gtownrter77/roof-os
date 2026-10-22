@@ -44,17 +44,17 @@ export default function BriefPage() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 pb-24">
-      <button onClick={() => router.push('/')} className="text-blue-600 text-sm mb-3">← Dashboard</button>
+    <div className="space-y-4 p-1 pb-4">
+      <button onClick={() => router.push('/')} className="text-cyan-300 text-sm mb-3">← Dashboard</button>
       <h1 className="text-2xl font-bold">Owner brief</h1>
-      <p className="text-sm text-gray-600 mb-4">Exceptions only. Not another dashboard to hunt through.</p>
-      {loading && <p className="text-sm text-gray-500">Building today’s exceptions…</p>}
-      {error && <p className="text-sm text-red-600">{error}</p>}
-      {!loading && !error && items.length === 0 && <p className="text-sm text-gray-500">No blockers in the current records.</p>}
+      <p className="text-sm text-slate-300 mb-4">Exceptions only. Not another dashboard to hunt through.</p>
+      {loading && <p className="text-sm text-slate-400">Building today’s exceptions…</p>}
+      {error && <p className="text-sm text-red-300">{error}</p>}
+      {!loading && !error && items.length === 0 && <p className="text-sm text-slate-400">No blockers in the current records.</p>}
       {items.map((item, index) => (
-        <button key={`${item.href}-${index}`} onClick={() => router.push(item.href)} className="w-full text-left bg-white rounded-lg shadow p-4 mb-3">
+        <button key={`${item.href}-${index}`} onClick={() => router.push(item.href)} className="w-full text-left glass rounded-xl p-4 mb-3">
           <p className="font-semibold">{item.title}</p>
-          <p className="text-sm text-gray-500">{item.why}</p>
+          <p className="text-sm text-slate-400">{item.why}</p>
         </button>
       ))}
     </div>

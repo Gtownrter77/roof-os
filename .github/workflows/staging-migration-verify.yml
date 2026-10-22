@@ -1,0 +1,66 @@
+name: ROOF OS Staging Migration Verify
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_staging:
+        description: Type VERIFY_STAGING_ONLY to authorize a read-only staging check
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify staging migration state
+    runs-on: ubuntu-latest
+    environment: staging-migration
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Require explicit staging confirmation
+        env:
+          CONFIRM: ${{ inputs.confirm_staging }}
+        run: test "$CONFIRM" = "VERIFY_STAGING_ONLY"
+
+      - name: Install Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Verify allowlisted staging target
+        env:
+          STAGING_DB_URL: ${{ secrets.STAGING_DB_URL }}
+          STAGING_PROJECT_REF: ${{ secrets.STAGING_PROJECT_REF }}
+          PRODUCTION_SUPABASE_HOST: ${{ secrets.PRODUCTION_SUPABASE_HOST }}
+        run: |
+          set -euo pipefail
+          test -n "$STAGING_DB_URL"
+          test -n "$STAGING_PROJECT_REF"
+          case "$STAGING_DB_URL" in
+            *"$STAGING_PROJECT_REF"*) ;;
+            *) echo 'STAGING_DB_URL does not contain the allowlisted STAGING_PROJECT_REF' >&2; exit 1 ;;
+          esac
+          if [ -n "${PRODUCTION_SUPABASE_HOST:-}" ] && [[ "$STAGING_DB_URL" == *"$PRODUCTION_SUPABASE_HOST"* ]]; then
+            echo 'Refusing to inspect the configured production Supabase host.' >&2
+            exit 1
+          fi
+
+      - name: Inspect migration ledger without mutation
+        env:
+          STAGING_DB_URL: ${{ secrets.STAGING_DB_URL }}
+        run: |
+          set -euo pipefail
+          supabase migration list --db-url "$STAGING_DB_URL"
+          supabase db diff --db-url "$STAGING_DB_URL" --schema public --file /tmp/staging-schema-diff.sql
+          sha256sum /tmp/staging-schema-diff.sql
+          rm -f /tmp/staging-schema-diff.sql
+          test -f supabase/migrations/053_agent_action_ledger.sql
+          sha256sum supabase/migrations/053_agent_action_ledger.sql
+
+      - name: State the boundary
+        run: |
+          echo 'Read-only staging verification only; no production database or customer data was changed.'
+          echo 'A passing workflow does not prove authenticated two-workspace behavior or provider execution.'

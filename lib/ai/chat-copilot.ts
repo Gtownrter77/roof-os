@@ -37,9 +37,9 @@ const ROOF_OS_NAVIGATION_MAP: { keywords: RegExp; action: ChatAction; defaultRep
   },
   {
     keywords: /photo|damage|vision|detect|hail strike|missing shingle|crack/i,
-    action: { label: 'Run AI Photo Damage Detection', href: '/damage-detection' },
+    action: { label: 'Open Photo Estimate', href: '/photo-estimate' },
     defaultReply:
-      'Upload inspection photos to scan for collateral storm damage, missing shingles, hail impacts, and crease lines.',
+      'Open Photo Estimate to upload inspection photos and build a technician-reviewed report packet. The optional AI observation step requires workspace-admin access.',
   },
   {
     keywords: /estimate|price|pricing|quote|cost|lowes|home depot|labor|catalog/i,
@@ -73,20 +73,24 @@ const ROOF_OS_NAVIGATION_MAP: { keywords: RegExp; action: ChatAction; defaultRep
   },
   {
     keywords: /invite|team|member|workspace|role/i,
-    action: { label: 'Manage Workspace & Team', href: '/team' },
+    action: { label: 'Open Workspace Team', href: '/team' },
     defaultReply:
-      'Invite adjusters, sales reps, and technicians to collaborate in your active workspace.',
+      'Review or send workspace invitations from the Team page. This requires workspace-admin access and configured email delivery.',
   },
 ]
 
 /**
  * Transcribe audio using the open-source faster-whisper worker.
- * Falls back to an explicit Unknown result when the worker is unavailable;
- * it never fabricates transcription text.
+ * Returns null when the worker is unavailable; callers must not report that
+ * as a successful or sourced transcription.
  */
-export async function processAudioTranscription(audioBlob: Blob, language = process.env.WHISPER_LANGUAGE || 'en'): Promise<string> {
-  const workerUrl = process.env.WHISPER_WORKER_URL?.trim()
-  if (!workerUrl) return 'Unknown'
+export async function processAudioTranscription(
+  audioBlob: Blob,
+  language = process.env.WHISPER_LANGUAGE || 'en',
+): Promise<string | null> {
+  const workerUrl =
+    process.env.WHISPER_WORKER_URL?.trim() || process.env.WHISPER_URL?.trim()
+  if (!workerUrl) return null
   try {
     const form = new FormData()
     form.append('audio', audioBlob, 'audio.webm')
@@ -96,11 +100,11 @@ export async function processAudioTranscription(audioBlob: Blob, language = proc
       body: form,
       signal: AbortSignal.timeout(120_000),
     })
-    if (!response.ok) return 'Unknown'
-    const payload = await response.json() as { text?: string }
-    return payload.text?.trim() || 'Unknown'
+    if (!response.ok) return null
+    const payload = (await response.json()) as { text?: string }
+    return payload.text?.trim() || null
   } catch {
-    return 'Unknown'
+    return null
   }
 }
 
@@ -112,21 +116,41 @@ export async function processChatCopilot(input: {
   const query = input.message.trim()
   if (!query) {
     return {
-      reply: 'What would you like to do now? You can ask me to navigate, calculate measurements, review storms, or generate reports.',
+      reply:
+        'What would you like to do now? You can ask me to navigate, calculate measurements, review storms, or generate reports.',
       quickReplies: ['Review Storm Leads', 'Aerial Roof Measure', 'Create Estimate', 'Golden Report'],
     }
   }
 
-  const matchedNav = ROOF_OS_NAVIGATION_MAP.find((item) => item.keywords.test(query))
-  const local = await askOllama([
-    'You are the ROOF/OS operations copilot. Answer in two sentences. Do not invent prices, coverage, or measurements.',
-    matchedNav ? `The matching screen is ${matchedNav.action.href}.` : 'No screen matched.',
-    `User: ${query}`,
-  ].join('\n'))
+  const explicitPhotoIntent = /\b(photo|photos|image|images|vision|damage detection|detect damage|hail strike|missing shingle|crack)\b/i.test(query)
+  const photoMatch = explicitPhotoIntent
+    ? ROOF_OS_NAVIGATION_MAP.find((item) => item.action.href === '/photo-estimate' && item.keywords.test(query))
+    : undefined
+  const matchedNav = photoMatch || ROOF_OS_NAVIGATION_MAP.find((item) => item.keywords.test(query))
+  const historyBlock = (input.history || [])
+    .slice(-6)
+    .map((item) => `${item.role}: ${item.content}`)
+    .join('\n')
 
-  if (local) {
+  const llmReply = await askOllama(
+    [
+      'You are the ROOF/OS operations copilot for a roofing company.',
+      'Answer in at most two short sentences.',
+      'Do not invent prices, coverage decisions, measurements, or claim outcomes.',
+      'If a matching screen is provided, mention it and keep the user oriented.',
+      matchedNav ? `The matching screen is ${matchedNav.action.href} (${matchedNav.action.label}).` : 'No screen matched.',
+      input.currentPath ? `Current path: ${input.currentPath}` : '',
+      historyBlock ? `Recent conversation:\n${historyBlock}` : '',
+      `User: ${query}`,
+    ]
+      .filter(Boolean)
+      .join('\n'),
+    { timeoutMs: 8_000 },
+  )
+
+  if (llmReply) {
     return {
-      reply: local,
+      reply: llmReply,
       suggestedAction: matchedNav?.action,
       quickReplies: getSuggestedQuickReplies(matchedNav?.action.href),
     }
@@ -134,14 +158,15 @@ export async function processChatCopilot(input: {
 
   if (matchedNav) {
     return {
-      reply: `${matchedNav.defaultReply} Would you like to jump right there?`,
+      reply: `${matchedNav.defaultReply} Local Ollama is unavailable, so this reply is rule-based navigation. Would you like to open that screen?`,
       suggestedAction: matchedNav.action,
       quickReplies: getSuggestedQuickReplies(matchedNav.action.href),
     }
   }
 
   return {
-    reply: 'Local Ollama is not reachable. I can still open storm, leads, measure, reports, or invoices from the menu.',
+    reply:
+      'Local Ollama is not reachable. I can still open storms, leads, measurements, estimates, reports, or invoices from here.',
     suggestedAction: { label: 'Go to Command Center', href: '/' },
     quickReplies: ['Track Active Storms', 'Aerial Measurement', 'New Estimate', 'Golden Report'],
   }
@@ -157,5 +182,7 @@ function getSuggestedQuickReplies(currentHref?: string): string[] {
     'Golden Report',
     'Manage Invoices',
   ]
-  return all.filter((item) => !currentHref || !item.toLowerCase().includes(currentHref.replace('/', ''))).slice(0, 4)
+  return all
+    .filter((item) => !currentHref || !item.toLowerCase().includes(currentHref.replace('/', '')))
+    .slice(0, 4)
 }

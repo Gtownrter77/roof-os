@@ -17,7 +17,15 @@ export async function POST(request: Request) {
   }
   try {
     const text = await processAudioTranscription(file, language)
-    return NextResponse.json({ text, engine: 'faster-whisper', sourced: Boolean(text) })
+    if (!text) {
+      return NextResponse.json({
+        error: 'Local Whisper is not configured or did not return a transcript.',
+        text: null,
+        engine: null,
+        sourced: false,
+      }, { status: 503 })
+    }
+    return NextResponse.json({ text, engine: 'faster-whisper', sourced: true })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Transcription failed.'
     return NextResponse.json({ error: message }, { status: 503 })

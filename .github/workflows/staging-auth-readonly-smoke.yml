@@ -1,0 +1,46 @@
+name: ROOF OS Staging Auth Read-only Smoke
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_nonprod:
+        description: Type I_UNDERSTAND_SYNTHETIC_DATA to authorize staging-only authenticated reads
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    name: Authenticated read-only staging smoke
+    runs-on: ubuntu-latest
+    environment: staging-auth
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Require explicit non-production confirmation
+        env:
+          CONFIRM: ${{ inputs.confirm_nonprod }}
+        run: test "$CONFIRM" = "I_UNDERSTAND_SYNTHETIC_DATA"
+      - name: Run bounded authenticated reads
+        env:
+          ROOF_RLS_TEST_NONPROD: 'true'
+          ROOF_RLS_TEST_CONFIRM: I_UNDERSTAND_SYNTHETIC_DATA
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          STAGING_PROJECT_REF: ${{ secrets.STAGING_PROJECT_REF }}
+          ROOF_RLS_USER_A_EMAIL: ${{ secrets.ROOF_RLS_USER_A_EMAIL }}
+          ROOF_RLS_USER_A_PASSWORD: ${{ secrets.ROOF_RLS_USER_A_PASSWORD }}
+          ROOF_RLS_USER_B_EMAIL: ${{ secrets.ROOF_RLS_USER_B_EMAIL }}
+          ROOF_RLS_USER_B_PASSWORD: ${{ secrets.ROOF_RLS_USER_B_PASSWORD }}
+        run: npm run test:authenticated-readonly-smoke
+      - name: State the boundary
+        run: |
+          echo 'No inserts, updates, deletes, uploads, provider calls, or artifacts were allowed.'
+          echo 'A passing read-only smoke does not prove physical-device behavior or production parity.'

@@ -1,3 +1,7 @@
+## 2026-10-21 current repair checkpoint
+
+Current merged main is `b6520da825cb31cf538894fbfc44c87a38a752c3` after PR #288 and passing post-merge CI. The active branch `repair/next-ten-release-evidence` is source-only and adds staging migration verification, invitation recovery, field-app recovery controls, cron heartbeat evidence, and release contracts. Authenticated production CRUD, live schema parity, two-workspace isolation, physical-device behavior, worker runtime, backup/restore, provider execution, and Vercel deployment evidence remain separately unverified. The feature shortlist is documented separately and is not a claim of shipped functionality.
+
 ## 2026-10-05 final synchronized checkpoint
 
 **Runtime source baseline:** `5144836fbc0a949d94cce5e444cd8432dc7c990f`

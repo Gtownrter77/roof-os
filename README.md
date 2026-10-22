@@ -1,12 +1,28 @@
-# Current repository audit — 2026-10-09
+# Current repository audit — 2026-10-22
 
-**Current main baseline:** `a308459182e9a6867fb736240c6dc2af9f3aa6e9`  
-**Main CI evidence:** [run 37974227416](https://github.com/Gtownrter77/roof-os/actions/runs/37974227416) passed for that commit.  
-**Current audit record:** [AUDIT-STATUS-2026-10-09.md](AUDIT-STATUS-2026-10-09.md).
+**Working branch:** `feature/top25-batch-126-150` at `7770594`
+**Open PR:** [#303](https://github.com/Gtownrter77/roof-os/pull/303) (batch 126-150 + multi-trade estimate + differentiators)
+**Merged:** [#302](https://github.com/Gtownrter77/roof-os/pull/302) into main as `ff20c78`
+**Current audit record:** [AUDIT-STATUS-2026-10-21.md](AUDIT-STATUS-2026-10-21.md) (historical). See [CURRENT-STATE.md](CURRENT-STATE.md) and [HANDOFF.md](HANDOFF.md) for the latest field AI and estimate work.
 
-The dated checkpoints below are historical snapshots, not proof that the current main commit is deployed or that every production workflow works. This audit inspected the connected Supabase schema and migration ledger and found migration drift plus missing supplier/mobile schema changes documented in [AUDIT-STATUS-2026-10-09.md](AUDIT-STATUS-2026-10-09.md). No production DDL was applied. Direct Vercel project/log inspection was unavailable, and a physical Pixel 8 workflow was not tested. The migration guide reflects repository files through migration `052`; legacy collisions, duplicate SQL, and recovered-but-not-restored production migration sources remain unreconciled.
+Field AI remains human-gated. Every draft returns `requiresApproval: true`. No authoritative writes from the field app. Desktop approval is required before any estimate or report is sent.
 
 ---
+
+## 2026-10-22 field AI and multi-trade estimate
+
+- 225 human-gated draft functions across batches 1 through 201-225.
+- Multi-trade estimate page covering roofing, repairs, gutters, downspouts, siding, windows, exterior and interior painting, fascia, and soffit.
+- AI assist prefill on the estimate page (tech chooses to apply).
+- Competitive differentiators (Good/Better/Best, pitch labor, material order, portal summary, e-sign readiness, financing, job cost, work order, margin floor, warranty, completeness, next action, color, customer text, office handoff, upsell) wired as draft buttons.
+- AI copilot made translucent and lifted so it does not block the footer.
+- CI web-tests permanently fixed (build before runtime-smoke; job is required).
+
+See [COMPETITIVE-MAP.md](COMPETITIVE-MAP.md) for the AccuLynx / JobNimbus / Roofr comparison.
+
+---
+
+# ROOF/OS
 
 ## 2026-10-08 production release checkpoint
 
@@ -55,6 +71,14 @@ A workspace for one shop.
 - A Roof Passport and warranty checklist so the job does not disappear at final payment
 
 It is built for a small roofing company first. Not a call center. Not a fake Xactimate.
+
+## Free core rules
+
+- Free alternatives first. Always.
+- Use GitHub free, Supabase free, and local Ollama.
+- No Gemini.
+- Paid add-ons stay off until the owner says **go**.
+- Twilio is a paid add-on for the AI receptionist only.
 
 ## What works today
 

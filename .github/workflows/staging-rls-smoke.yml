@@ -1,0 +1,66 @@
+name: ROOF OS Staging RLS Smoke
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_nonprod:
+        description: Type I_UNDERSTAND_SYNTHETIC_DATA to authorize staging-only synthetic rows
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  rls-smoke:
+    name: Two-workspace RLS and private Storage smoke
+    runs-on: ubuntu-latest
+    environment: staging-rls
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      - name: Require explicit synthetic-data confirmation
+        env:
+          CONFIRM: ${{ inputs.confirm_nonprod }}
+        run: test "$CONFIRM" = "I_UNDERSTAND_SYNTHETIC_DATA"
+
+      - name: Validate the staging target
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          STAGING_PROJECT_REF: ${{ secrets.STAGING_PROJECT_REF }}
+          PRODUCTION_SUPABASE_HOST: ${{ secrets.PRODUCTION_SUPABASE_HOST }}
+        run: |
+          set -euo pipefail
+          test -n "$SUPABASE_URL"
+          test -n "$STAGING_PROJECT_REF"
+          case "$SUPABASE_URL" in
+            *"$STAGING_PROJECT_REF"*) ;;
+            *) echo 'SUPABASE_URL does not contain the allowlisted STAGING_PROJECT_REF' >&2; exit 1 ;;
+          esac
+          if [ -n "${PRODUCTION_SUPABASE_HOST:-}" ] && [[ "$SUPABASE_URL" == *"$PRODUCTION_SUPABASE_HOST"* ]]; then
+            echo 'Refusing to run RLS smoke against the configured production host.' >&2
+            exit 1
+          fi
+
+      - name: Run synthetic two-workspace isolation smoke
+        env:
+          ROOF_RLS_TEST_NONPROD: 'true'
+          ROOF_RLS_TEST_CONFIRM: I_UNDERSTAND_SYNTHETIC_DATA
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          ROOF_RLS_USER_A_EMAIL: ${{ secrets.ROOF_RLS_USER_A_EMAIL }}
+          ROOF_RLS_USER_A_PASSWORD: ${{ secrets.ROOF_RLS_USER_A_PASSWORD }}
+          ROOF_RLS_USER_B_EMAIL: ${{ secrets.ROOF_RLS_USER_B_EMAIL }}
+          ROOF_RLS_USER_B_PASSWORD: ${{ secrets.ROOF_RLS_USER_B_PASSWORD }}
+        run: npm run test:two-workspace-isolation
+
+      - name: State the boundary
+        run: |
+          echo 'Synthetic rows and private Storage objects were bounded to the protected staging project and cleanup is owned by the harness.'
+          echo 'A passing smoke test is not proof of production schema parity.'

@@ -3,6 +3,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { smartBack } from '../../lib/smart-back'
 import { createClient } from '../../lib/supabase/client'
 
 type Appointment = { id: string; title: string; appointment_type: string; starts_at: string; status: string }
@@ -41,21 +42,21 @@ export default function SchedulePage() {
   }, [supabase])
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
-      <header className="bg-blue-600 text-white shadow-lg sticky top-0 z-10">
+    <div className="space-y-4 pb-4">
+      <header className="glass rounded-xl mb-4">
         <div className="px-4 py-3 flex items-center">
-          <button onClick={() => router.back()} className="text-white mr-3 text-xl">Back</button>
+          <button onClick={() => smartBack(router)} className="mr-3 text-xl text-cyan-300">Back</button>
           <h1 className="text-xl font-bold">Schedule</h1>
         </div>
       </header>
       <main className="p-4 space-y-3">
-        <p className="text-sm bg-white rounded-lg shadow p-4">{status}</p>
+        <p className="text-sm glass rounded-xl p-4">{status}</p>
         <button onClick={() => router.push('/calendar')} className="w-full bg-blue-600 text-white py-3 rounded font-semibold">Open calendar</button>
         {rows.map((row) => (
-          <div key={row.id} className="bg-white rounded-lg shadow p-4">
+          <div key={row.id} className="glass rounded-xl p-4">
             <p className="font-semibold text-sm">{row.title || 'Unknown'}</p>
-            <p className="text-xs text-gray-500">{row.appointment_type || 'Unknown'} · {row.starts_at ? new Date(row.starts_at).toLocaleString() : 'Unknown'}</p>
-            <p className="text-xs text-gray-500">{row.status || 'Unknown'}</p>
+            <p className="text-xs text-slate-400">{row.appointment_type || 'Unknown'} · {row.starts_at ? new Date(row.starts_at).toLocaleString() : 'Unknown'}</p>
+            <p className="text-xs text-slate-400">{row.status || 'Unknown'}</p>
           </div>
         ))}
       </main>

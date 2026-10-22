@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { smartBack } from '../../lib/smart-back'
 
 type Measurement = { text: string; id: number }
 type Tool = 'pencil' | 'line' | 'rectangle' | 'circle'
@@ -156,22 +157,22 @@ export default function SketchPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
-      <header className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-lg sticky top-0 z-10">
+    <div className="space-y-4 pb-4">
+      <header className="glass rounded-xl mb-4">
         <div className="px-4 py-3 flex items-center">
-          <button type="button" onClick={() => router.back()} className="text-white mr-3 text-xl" aria-label="Go back">←</button>
+          <button type="button" onClick={() => smartBack(router)} className="mr-3 text-xl text-cyan-300" aria-label="Go back">←</button>
           <h1 className="text-xl font-bold">✏️ Sketch Pad</h1>
         </div>
       </header>
       <main className="p-4">
-        <div className="bg-white rounded-lg shadow-lg p-3 mb-4 flex flex-wrap gap-2">
+        <div className="glass rounded-xl p-3 mb-4 flex flex-wrap gap-2">
           {([
             ['pencil', '✏️', 'Pencil'],
             ['line', '📏', 'Line'],
             ['rectangle', '⬜', 'Rectangle'],
             ['circle', '⭕', 'Ellipse'],
           ] as const).map(([value, icon, label]) => (
-            <button key={value} type="button" onClick={() => setTool(value)} aria-label={label} aria-pressed={tool === value} className={`p-2 rounded ${tool === value ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100'}`}>
+            <button key={value} type="button" onClick={() => setTool(value)} aria-label={label} aria-pressed={tool === value} className={`p-2 rounded ${tool === value ? 'bg-blue-100 text-cyan-300' : 'hover:bg-white/10'}`}>
               {icon}
             </button>
           ))}
@@ -180,15 +181,15 @@ export default function SketchPage() {
           <select value={brushSize} aria-label="Brush size" onChange={(e) => setBrushSize(Number(e.target.value))} className="border rounded p-1 text-sm">
             <option value={1}>1</option><option value={3}>3</option><option value={5}>5</option><option value={10}>10</option><option value={15}>15</option>
           </select>
-          <button type="button" onClick={undo} className="p-2 rounded hover:bg-gray-100" aria-label="Undo last stroke">↩️</button>
-          <button type="button" onClick={clearCanvas} className="p-2 rounded text-red-600 hover:bg-red-50" aria-label="Clear sketch">🗑️</button>
+          <button type="button" onClick={undo} className="p-2 rounded hover:bg-white/10" aria-label="Undo last stroke">↩️</button>
+          <button type="button" onClick={clearCanvas} className="p-2 rounded text-red-300 hover:bg-red-400/10" aria-label="Clear sketch">🗑️</button>
           <button type="button" onClick={addMeasurement} className="bg-green-100 text-green-600 p-2 rounded">📐 Add Measurement</button>
         </div>
-        <div className="bg-white rounded-lg shadow-lg overflow-hidden border-2 border-gray-200">
+        <div className="glass rounded-xl overflow-hidden border-2 border-white/10">
           <canvas ref={canvasRef} className="w-full h-80 touch-none" onPointerDown={startDrawing} onPointerMove={draw} onPointerUp={stopDrawing} onPointerCancel={stopDrawing} />
         </div>
         {measurements.length > 0 && (
-          <div className="mt-4 bg-white rounded-lg shadow-lg p-4">
+          <div className="mt-4 glass rounded-xl p-4">
             <h3 className="font-semibold text-sm mb-2">📐 Measurements</h3>
             {measurements.map((measurement) => (
               <div key={measurement.id} className="flex justify-between items-center border-b py-1">
@@ -202,7 +203,7 @@ export default function SketchPage() {
           <button type="button" onClick={downloadSketch} className="bg-blue-600 text-white py-2 rounded-lg text-sm font-semibold">💾 Download PNG</button>
           <button type="button" onClick={() => router.push('/pricing')} className="bg-green-600 text-white py-2 rounded-lg text-sm font-semibold">📄 Open Estimate</button>
         </div>
-        <div className="mt-4 bg-yellow-50 border border-yellow-200 rounded-lg p-3"><p className="text-xs text-yellow-800">💡 Draw roof layout and record field measurements. This sketch is a visual aid; measurements remain field-verified.</p></div>
+        <div className="mt-4 bg-amber-400/10 border border-yellow-200 rounded-lg p-3"><p className="text-xs text-yellow-800">💡 Draw roof layout and record field measurements. This sketch is a visual aid; measurements remain field-verified.</p></div>
       </main>
     </div>
   )

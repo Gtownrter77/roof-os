@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { smartBack } from '../../../lib/smart-back'
 import { createClient } from '../../../lib/supabase/client'
 
 export default function NewLeadPage() {
@@ -39,20 +40,20 @@ export default function NewLeadPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 pb-24">
-      <button onClick={() => router.back()} className="text-blue-600 mb-4">← Back</button>
+    <div className="space-y-4 p-1 pb-4">
+      <button onClick={() => smartBack(router)} className="text-cyan-300 mb-4">← Back</button>
       <h1 className="text-2xl font-bold mb-4">New Lead</h1>
       <form onSubmit={handleSubmit} className="space-y-4">
-        <input type="text" placeholder="Name *" required className="w-full p-3 border rounded-lg" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-        <input type="text" placeholder="Address *" required className="w-full p-3 border rounded-lg" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
-        <input type="tel" placeholder="Phone" className="w-full p-3 border rounded-lg" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
-        <input type="email" placeholder="Email" className="w-full p-3 border rounded-lg" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-        <input type="text" placeholder="Source (storm, referral, website)" className="w-full p-3 border rounded-lg" value={form.source} onChange={(e) => setForm({ ...form, source: e.target.value })} />
-        <input type="text" placeholder="Next action (default: First contact)" className="w-full p-3 border rounded-lg" value={form.nextAction} onChange={(e) => setForm({ ...form, nextAction: e.target.value })} />
-        <input type="datetime-local" aria-label="Next action due" className="w-full p-3 border rounded-lg" value={form.nextActionDue} onChange={(e) => setForm({ ...form, nextActionDue: e.target.value })} />
-        <textarea placeholder="First note" className="w-full p-3 border rounded-lg" rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
-        {error && <p className="text-sm text-red-600">{error}</p>}
-        <button type="submit" disabled={saving} className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold disabled:opacity-60">{saving ? 'Saving…' : 'Save Lead'}</button>
+        <input type="text" placeholder="Name *" required className="ops-input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+        <input type="text" placeholder="Address *" required className="ops-input" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
+        <input type="tel" placeholder="Phone" className="ops-input" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+        <input type="email" placeholder="Email" className="ops-input" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+        <input type="text" placeholder="Source (storm, referral, website)" className="ops-input" value={form.source} onChange={(e) => setForm({ ...form, source: e.target.value })} />
+        <input type="text" placeholder="Next action (default: First contact)" className="ops-input" value={form.nextAction} onChange={(e) => setForm({ ...form, nextAction: e.target.value })} />
+        <input type="datetime-local" aria-label="Next action due" className="ops-input" value={form.nextActionDue} onChange={(e) => setForm({ ...form, nextActionDue: e.target.value })} />
+        <textarea placeholder="First note" className="ops-input" rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+        {error && <p className="text-sm text-red-300">{error}</p>}
+        <button type="submit" disabled={saving} className="ops-btn-primary w-full py-3 disabled:opacity-60">{saving ? 'Saving…' : 'Save Lead'}</button>
       </form>
     </div>
   )

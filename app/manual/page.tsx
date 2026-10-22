@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { smartBack } from '../../lib/smart-back'
 
 export default function ManualPage() {
   const router = useRouter()
@@ -357,18 +358,18 @@ export default function ManualPage() {
   const currentTourStep = allSteps[currentStep]
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
-      <header className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg sticky top-0 z-10">
+    <div className="space-y-4 pb-4">
+      <header className="glass rounded-xl mb-4">
         <div className="px-4 py-3 flex items-center">
-          <button onClick={() => router.back()} className="text-white mr-3 text-xl">←</button>
+          <button onClick={() => smartBack(router)} className="mr-3 text-xl text-cyan-300">←</button>
           <h1 className="text-xl font-bold">📖 Interactive Manual</h1>
-          <span className="ml-2 bg-amber-500 text-white text-xs px-2 py-0.5 rounded-full">LOCAL GUIDE</span>
+          <span className="ml-2 bg-amber-400/100 text-white text-xs px-2 py-0.5 rounded-full">LOCAL GUIDE</span>
         </div>
       </header>
 
-      <main className="p-4"><p className="text-sm bg-white rounded-lg shadow p-4 mb-4">This is a local guide. It is not a saved training record.</p>
+      <main className="p-4"><p className="text-sm glass rounded-xl p-4 mb-4">This is a local guide. It is not a saved training record.</p>
         {/* Search & Filter */}
-        <div className="bg-white rounded-lg shadow-lg p-4 mb-4 border border-blue-200">
+        <div className="glass rounded-xl p-4 mb-4 border border-cyan-400/30">
           <div className="flex gap-2">
             <input
               type="text"
@@ -402,11 +403,11 @@ export default function ManualPage() {
           <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg shadow-lg p-4 mb-4 border-2 border-blue-500 animate-fadeIn">
             <div className="flex justify-between items-center">
               <div>
-                <span className="text-xs text-gray-500">Step {currentStep + 1} of {allSteps.length}</span>
+                <span className="text-xs text-slate-400">Step {currentStep + 1} of {allSteps.length}</span>
                 <h3 className="font-bold text-lg">{currentTourStep.title}</h3>
-                <p className="text-sm text-gray-600 mt-1">{currentTourStep.description}</p>
+                <p className="text-sm text-slate-300 mt-1">{currentTourStep.description}</p>
                 <div className="mt-2 flex items-center gap-2">
-                  <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">⚡ {currentTourStep.action}</span>
+                  <span className="bg-blue-100 text-cyan-200 text-xs px-2 py-1 rounded">⚡ {currentTourStep.action}</span>
                   <span className="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded">💡 {currentTourStep.tip}</span>
                 </div>
               </div>
@@ -416,7 +417,7 @@ export default function ManualPage() {
                   <button
                     onClick={prevTourStep}
                     disabled={currentStep === 0}
-                    className="bg-gray-300 text-gray-700 px-3 py-1 rounded text-sm disabled:opacity-50"
+                    className="bg-gray-300 text-slate-200 px-3 py-1 rounded text-sm disabled:opacity-50"
                   >
                     ←
                   </button>
@@ -429,7 +430,7 @@ export default function ManualPage() {
                 </div>
               </div>
             </div>
-            <div className="mt-3 w-full bg-gray-200 rounded-full h-1.5">
+            <div className="mt-3 w-full bg-white/10 rounded-full h-1.5">
               <div className="bg-blue-600 h-1.5 rounded-full transition-all" style={{ width: `${((currentStep + 1) / allSteps.length) * 100}%` }}></div>
             </div>
           </div>
@@ -437,16 +438,16 @@ export default function ManualPage() {
 
         {/* Manual Sections */}
         {filteredSections.map((section) => (
-          <div key={section.id} className="bg-white rounded-lg shadow-lg mb-4 border border-gray-200 overflow-hidden">
+          <div key={section.id} className="glass rounded-xl mb-4 border border-white/10 overflow-hidden">
             <button
               onClick={() => setExpandedSection(expandedSection === section.id ? null : section.id)}
-              className="w-full p-4 text-left flex justify-between items-center hover:bg-gray-50 transition"
+              className="w-full p-4 text-left flex justify-between items-center hover:bg-white/5 transition"
             >
               <div className="flex items-center gap-3">
                 <span className="text-2xl">{section.icon}</span>
                 <div>
                   <h3 className="font-semibold text-sm">{section.title}</h3>
-                  <p className="text-xs text-gray-400">{section.category} • {section.steps.length} steps</p>
+                  <p className="text-xs text-slate-400">{section.category} • {section.steps.length} steps</p>
                 </div>
               </div>
               <span className={`text-xl transition-transform ${expandedSection === section.id ? 'rotate-180' : ''}`}>
@@ -455,18 +456,18 @@ export default function ManualPage() {
             </button>
             
             {expandedSection === section.id && (
-              <div className="p-4 border-t border-gray-200 animate-fadeIn">
+              <div className="p-4 border-t border-white/10 animate-fadeIn">
                 {section.steps.map((step, index) => (
-                  <div key={index} className="flex gap-3 p-3 hover:bg-blue-50 rounded-lg transition border-b last:border-0">
-                    <div className="flex-shrink-0 w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-bold text-sm">
+                  <div key={index} className="flex gap-3 p-3 hover:bg-cyan-400/10 rounded-lg transition border-b last:border-0">
+                    <div className="flex-shrink-0 w-8 h-8 bg-blue-100 text-cyan-300 rounded-full flex items-center justify-center font-bold text-sm">
                       {step.step}
                     </div>
                     <div className="flex-1">
                       <h4 className="font-medium text-sm">{step.title}</h4>
-                      <p className="text-xs text-gray-500">{step.description}</p>
+                      <p className="text-xs text-slate-400">{step.description}</p>
                       <div className="flex gap-2 mt-1">
-                        <span className="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded">⚡ {step.action}</span>
-                        <span className="text-[10px] bg-yellow-50 text-yellow-600 px-2 py-0.5 rounded">💡 {step.tip}</span>
+                        <span className="text-[10px] bg-cyan-400/10 text-cyan-300 px-2 py-0.5 rounded">⚡ {step.action}</span>
+                        <span className="text-[10px] bg-amber-400/10 text-yellow-600 px-2 py-0.5 rounded">💡 {step.tip}</span>
                       </div>
                     </div>
                     <button 
@@ -514,24 +515,24 @@ export default function ManualPage() {
         ))}
       </main>
 
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around py-2 px-4">
-        <button onClick={() => router.push('/')} className="flex flex-col items-center text-gray-400">
+      <nav className="fixed bottom-0 left-0 right-0 z-30 flex justify-around border-t border-white/10 bg-[#070b14]/95 py-2 px-4 backdrop-blur lg:hidden">
+        <button onClick={() => router.push('/')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">🏠</span>
           <span className="text-xs">Home</span>
         </button>
-        <button onClick={() => router.push('/manual')} className="flex flex-col items-center text-blue-600">
+        <button onClick={() => router.push('/manual')} className="flex flex-col items-center text-cyan-300">
           <span className="text-xl">📖</span>
           <span className="text-xs">Manual</span>
         </button>
-        <button onClick={() => router.push('/ai-train')} className="flex flex-col items-center text-gray-400">
+        <button onClick={() => router.push('/ai-train')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">🎓</span>
           <span className="text-xs">Train</span>
         </button>
-        <button onClick={() => router.push('/help')} className="flex flex-col items-center text-gray-400">
+        <button onClick={() => router.push('/help')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">❓</span>
           <span className="text-xs">Help</span>
         </button>
-        <button onClick={() => router.push('/settings')} className="flex flex-col items-center text-gray-400">
+        <button onClick={() => router.push('/settings')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">⚙️</span>
           <span className="text-xs">Settings</span>
         </button>

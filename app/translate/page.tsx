@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { smartBack } from '../../lib/smart-back'
 
 export default function TranslatePage() {
   const router = useRouter()
@@ -118,28 +119,28 @@ export default function TranslatePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
-      <header className="bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg sticky top-0 z-10">
+    <div className="space-y-4 pb-4">
+      <header className="glass rounded-xl mb-4">
         <div className="px-4 py-3 flex items-center">
-          <button onClick={() => router.back()} className="text-white mr-3 text-xl">←</button>
+          <button onClick={() => smartBack(router)} className="mr-3 text-xl text-cyan-300">←</button>
           <h1 className="text-xl font-bold">🌐 Translate</h1>
         </div>
       </header>
 
       <main className="p-4">
-        <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg shadow-lg p-4 mb-4 border border-blue-200">
+        <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg shadow-lg p-4 mb-4 border border-cyan-400/30">
           <div className="flex items-center">
             <span className="text-3xl mr-3">🌐</span>
             <div>
               <h3 className="font-semibold">Multi-Language Translation</h3>
-              <p className="text-xs text-gray-500">Translate common construction phrases without a remote translation service.</p>
+              <p className="text-xs text-slate-400">Translate common construction phrases without a remote translation service.</p>
             </div>
           </div>
         </div>
 
         <div className="grid grid-cols-2 gap-3 mb-4">
           <div>
-            <label className="text-xs text-gray-500">From</label>
+            <label className="text-xs text-slate-400">From</label>
             <select
               value={fromLang}
               onChange={(e) => setFromLang(e.target.value)}
@@ -153,7 +154,7 @@ export default function TranslatePage() {
             </select>
           </div>
           <div>
-            <label className="text-xs text-gray-500">To</label>
+            <label className="text-xs text-slate-400">To</label>
             <select
               value={toLang}
               onChange={(e) => setToLang(e.target.value)}
@@ -183,11 +184,11 @@ export default function TranslatePage() {
         </button>
 
         {translated && (
-          <div className="mt-4 bg-white rounded-lg shadow-lg p-4 border-2 border-green-500">
+          <div className="mt-4 glass rounded-xl p-4 border-2 border-green-500">
             <h3 className="font-semibold text-sm mb-2 flex items-center">
               <span className="text-xl mr-2">📝</span> Translation
             </h3>
-            <p className="text-gray-700">{translated}</p>
+            <p className="text-slate-200">{translated}</p>
             <div className="mt-3 flex gap-2">
               <button type="button" onClick={() => void copyTranslation()} className="bg-blue-600 text-white text-xs px-3 py-1 rounded">📋 Copy</button>
               <button type="button" onClick={() => void shareTranslation()} className="bg-green-600 text-white text-xs px-3 py-1 rounded">📤 Share</button>
@@ -195,32 +196,32 @@ export default function TranslatePage() {
           </div>
         )}
 
-        {actionMessage && <p className="mt-3 text-sm text-blue-800 bg-blue-50 rounded p-3" role="status">{actionMessage}</p>}
-        <div className="mt-4 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+        {actionMessage && <p className="mt-3 text-sm text-cyan-200 bg-cyan-400/10 rounded p-3" role="status">{actionMessage}</p>}
+        <div className="mt-4 bg-amber-400/10 border border-yellow-200 rounded-lg p-3">
           <p className="text-xs text-yellow-800">
             💡 The built-in phrasebook currently supports English to Spanish, French, and German.
           </p>
         </div>
       </main>
 
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around py-2 px-4">
-        <button onClick={() => router.push('/')} className="flex flex-col items-center text-gray-400">
+      <nav className="fixed bottom-0 left-0 right-0 z-30 flex justify-around border-t border-white/10 bg-[#070b14]/95 py-2 px-4 backdrop-blur lg:hidden">
+        <button onClick={() => router.push('/')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">🏠</span>
           <span className="text-xs">Home</span>
         </button>
-        <button onClick={() => router.push('/translate')} className="flex flex-col items-center text-blue-600">
+        <button onClick={() => router.push('/translate')} className="flex flex-col items-center text-cyan-300">
           <span className="text-xl">🌐</span>
           <span className="text-xs">Translate</span>
         </button>
-        <button onClick={() => router.push('/insurance')} className="flex flex-col items-center text-gray-400">
+        <button onClick={() => router.push('/insurance')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">📞</span>
           <span className="text-xs">Insurance</span>
         </button>
-        <button onClick={() => router.push('/templates')} className="flex flex-col items-center text-gray-400">
+        <button onClick={() => router.push('/templates')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">📄</span>
           <span className="text-xs">Templates</span>
         </button>
-        <button onClick={() => router.push('/settings')} className="flex flex-col items-center text-gray-400">
+        <button onClick={() => router.push('/settings')} className="flex flex-col items-center text-slate-400">
           <span className="text-xl">⚙️</span>
           <span className="text-xs">Settings</span>
         </button>
