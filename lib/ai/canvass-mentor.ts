@@ -19,10 +19,11 @@ export function getCanvassAdvice(input: {
   stormDate?: string
   objection?: ObjectionType
 }): CanvassAdvice {
-  const stormText = input.stormDate ? `following the ${input.stormDate} severe hail storm` : 'doing complimentary roof inspections in the neighborhood'
+  const location = input.address.trim() || 'the area'
+  const stormText = input.stormDate ? `following the ${input.stormDate} storm` : 'about roof inspections and documentation'
 
   const advice: CanvassAdvice = {
-    openerScript: `Hi! My name is [Name] with [Company]. We are inspecting roofs on ${input.address || 'your street'} ${stormText}. We're offering a free 5-minute digital photo report to check for soft-metal hail impacts.`,
+    openerScript: `Hi! My name is [Name] with [Company]. We are speaking with homeowners in ${location} ${stormText}. Would you like information about scheduling a roof inspection? We can explain the scope and any cost before starting.`,
     collateralChecklist: [
       'Downspouts & Gutter Metal Indentations',
       'Window Screen Mesh Tears & Vinyl Bead Denting',
@@ -36,25 +37,25 @@ export function getCanvassAdvice(input: {
   if (input.objection) {
     switch (input.objection) {
       case 'NO_DAMAGE':
-        advice.objectionResponse = 'I completely understand! Hail damage often fractures the asphalt underlayment beneath shingles without causing immediate leaks. Our 5-minute photo inspection checks soft metals to confirm if your roof was affected.'
+        advice.objectionResponse = 'I understand. I cannot determine roof condition from the street. If you are interested, we can explain the scope of an inspection and document only what is actually observed.'
         break
       case 'NEW_ROOF':
-        advice.objectionResponse = 'That’s great that it’s newer! Even architectural shingles can suffer granule loss and seal compromise from 1.25"+ hail. We take quick ground-level photos so you have a baseline record.'
+        advice.objectionResponse = 'That makes sense. A newer roof can still benefit from periodic checks, but I cannot determine damage without an inspection. We can explain the inspection scope before you decide.'
         break
       case 'HAVE_ADJUSTER':
-        advice.objectionResponse = 'That’s smart that you reached out to them! Having an independent contractor photo report ensures you have a detailed line-item record before the adjuster arrives on site.'
+        advice.objectionResponse = 'That is fine. You can wait for the adjuster or ask your insurer what documentation they need. If you want an independent inspection, we can explain its scope and cost before you decide.'
         break
       case 'NO_TIME':
-        advice.objectionResponse = 'No problem at all! You don’t need to stay outside with me. I can take quick photos from the ground and text you the digital photo report in 5 minutes.'
+        advice.objectionResponse = 'No problem. If you would like, we can arrange a time that works for you. We will not inspect or photograph your property without permission.'
         break
       case 'SEND_EMAIL':
-        advice.objectionResponse = 'Absolutely! What is the best cell number or email to send the photo report link to once it’s ready?'
+        advice.objectionResponse = 'Certainly. If you choose to share your contact details, we can explain what information we can provide and any fees before arranging a visit.'
         break
       case 'SPOUSE':
-        advice.objectionResponse = 'Makes total sense! I can prepare the digital photo report today and schedule a quick 5-minute review with both of you whenever it’s convenient.'
+        advice.objectionResponse = 'Of course. Take the time you need. If you would like, we can arrange a time when both of you can be present.'
         break
       case 'RATES_GO_UP':
-        advice.objectionResponse = 'That is a very common concern! Act-of-god storm claims are catastrophe events classified by ZIP code, so individual policyholders are not singled out for rate increases.'
+        advice.objectionResponse = 'I cannot predict whether a claim will affect your premium. Rates and claim handling vary by insurer, policy, and circumstances. Check with your insurer before deciding whether to file.'
         break
     }
   }
