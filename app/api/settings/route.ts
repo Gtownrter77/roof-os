@@ -69,7 +69,8 @@ export async function PUT(request: NextRequest) {
     preferred_brands: body.preferred_brands ?? {},
     material_search_mode: mode,
     updated_by: user.id,
-    updated_at: new Date().toISOString()
+    updated_at: new Date().toISOString(),
+    ...body
   }
 
   // Attempt save to workspace_settings
