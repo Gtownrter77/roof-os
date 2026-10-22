@@ -25,6 +25,7 @@ import {
 } from './ai/batch126to150'
 import { draftGoodBetterBest, draftPitchLabor, draftMaterialOrder, draftPortalSummary, draftESignReady, draftFinancingOffer } from './ai/batch151to175'
 import { draftJobCost, draftWorkOrderTasks, draftMarginFloor, draftWarranty, draftCompleteness, draftNextAction } from './ai/batch176to200'
+import { draftColorMatch, draftCustomerTextShort, draftOfficeHandoff, draftUpsell, draftCompetitiveNote } from './ai/batch201to225'
 
 type LineItem = {
   id: string
@@ -323,6 +324,21 @@ export function EstimatePage({ squares, pitch, notes, laborRate, materialRate, m
           </Pressable>
           <Pressable onPress={() => setDiffDraft(JSON.stringify(draftNextAction('estimated'), null, 2))} style={{ padding: 6, backgroundColor: '#102033', borderRadius: 6 }}>
             <Text style={{ color: '#fff', fontSize: 11 }}>Next action</Text>
+          </Pressable>
+          <Pressable onPress={() => setDiffDraft(JSON.stringify(draftColorMatch(notes), null, 2))} style={{ padding: 6, backgroundColor: '#102033', borderRadius: 6 }}>
+            <Text style={{ color: '#fff', fontSize: 11 }}>Color</Text>
+          </Pressable>
+          <Pressable onPress={() => setDiffDraft(JSON.stringify(draftCustomerTextShort('Customer', total), null, 2))} style={{ padding: 6, backgroundColor: '#102033', borderRadius: 6 }}>
+            <Text style={{ color: '#fff', fontSize: 11 }}>Customer text</Text>
+          </Pressable>
+          <Pressable onPress={() => setDiffDraft(JSON.stringify(draftOfficeHandoff(0, notes, squares), null, 2))} style={{ padding: 6, backgroundColor: '#102033', borderRadius: 6 }}>
+            <Text style={{ color: '#fff', fontSize: 11 }}>Office handoff</Text>
+          </Pressable>
+          <Pressable onPress={() => setDiffDraft(JSON.stringify(draftUpsell(notes), null, 2))} style={{ padding: 6, backgroundColor: '#102033', borderRadius: 6 }}>
+            <Text style={{ color: '#fff', fontSize: 11 }}>Upsell</Text>
+          </Pressable>
+          <Pressable onPress={() => setDiffDraft(JSON.stringify(draftCompetitiveNote(), null, 2))} style={{ padding: 6, backgroundColor: '#102033', borderRadius: 6 }}>
+            <Text style={{ color: '#fff', fontSize: 11 }}>Why us</Text>
           </Pressable>
         </View>
         {diffDraft && (

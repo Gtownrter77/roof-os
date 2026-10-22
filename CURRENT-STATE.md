@@ -125,3 +125,9 @@ All remain human-gated.
 Added apps/field/src/ai/batch176to200.ts covering job cost, supplements, work orders, production day, portal, automation trigger, branded proposal, photo annotation, margin floor, waste override, tax exempt, discount, warranty, insurance claim, permit status, crew schedule, material delivery, change order reason, customer approval, final invoice, review request, follow-up, lead score, next action, and completeness.
 
 Wired job cost, work order, margin floor, warranty, completeness, and next action into the estimate page.
+
+## 2026-10-22 Differentiators 201-225
+
+Added apps/field/src/ai/batch201to225.ts covering color match, shingle weight, ventilation calc, ice dam risk, access difficulty, dumpster size, magnet sweep, customer text, office handoff, photo quality, damage severity, hail impacts, wind uplift, album gaps, structured notes, price book match, labor hours, material lead time, safety checklist, cleanup, warranty registration, referral ask, upsell, and competitive note.
+
+Wired color, customer text, office handoff, upsell, and competitive note into the estimate page.
