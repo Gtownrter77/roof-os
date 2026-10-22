@@ -57,6 +57,17 @@ Added apps/field/src/ai/batch3.ts:
 
 All return requiresApproval: true. No UI, no writes.
 
+## 2026-10-21 Next 25 AI automations (26-50)
+
+Added apps/field/src/ai/batch26to50.ts with human-gated draft stubs for:
+26 damage severity, 27 pitch confidence, 28 waste, 29 labor hours, 30 change-order,
+31 insurance phrases, 32 code upgrades, 33 photo quality, 34 duplicates, 35 voice measurements,
+36 crew match, 37 weather delay, 38 sentiment, 39 proposal note, 40 financing check,
+41 warranty, 42 safety list, 43 tool list, 44 price alert, 45 lead source,
+46 no-show risk, 47 upsell, 48 completeness, 49 translation, 50 daily summary.
+
+No UI, no authoritative writes.
+
 ## 2026-10-21 Automations 76-100 stubs
 
 Added apps/field/src/ai/batch76to100.ts with human-gated draft functions for missing-shingle detection, granule loss, flashing, elevation sort, pitch/squares from photo, structured voice notes, code RAG, supplement lines, Xact codes, photo-to-estimate, margin floor, takeoff opt, supplier order, route, check-in anomaly, portal summary, redaction, audit event, translation, job completeness, warranty pack, capacity, and agent proposal.

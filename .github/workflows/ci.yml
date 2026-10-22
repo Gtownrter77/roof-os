@@ -37,7 +37,6 @@ jobs:
 
   web-tests:
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -45,6 +44,14 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://validation.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: validation-only-key
+          CAPOUT_API_KEY: validation-only-key
+          RAPIDAPI_KEY: validation-only-key
+          SUPABASE_SERVICE_ROLE_KEY: validation-only-key
+          CRON_SECRET: validation-only-key
       - run: npm run test:runtime-smoke
       - run: npm run test:security-definer-migrations
       - run: npm run test:receptionist
