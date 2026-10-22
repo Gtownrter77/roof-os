@@ -1,6 +1,7 @@
 import { DraftActions } from "./src/ai/DraftActions"
 import { DraftCatalog } from "./src/ai/DraftCatalog"
 import { YoloGate } from "./src/ai/YoloGate"
+import { OwnerSettings } from "./src/ai/OwnerSettings"
 import { EstimatePage } from "./src/EstimatePage"
 import { StatusBar } from 'expo-status-bar'
 import * as ImagePicker from 'expo-image-picker'
@@ -150,6 +151,7 @@ export default function App() {
   const [showPassword, setShowPassword] = useState(false)
   const [showRadar, setShowRadar] = useState(false)
   const [showEstimate, setShowEstimate] = useState(false)
+  const [showOwnerSettings, setShowOwnerSettings] = useState(false)
 
   const [address, setAddress] = useState('')
   const [photos, setPhotos] = useState(0)
@@ -759,6 +761,7 @@ export default function App() {
           />
         </View>
       )}
+      <OwnerSettings visible={showOwnerSettings} onClose={() => setShowOwnerSettings(false)} />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={styles.header}>
@@ -800,6 +803,9 @@ export default function App() {
             photoCount={photos}
           />
           <YoloGate />
+          <Pressable style={[styles.secondary, { marginTop: 10 }]} onPress={() => setShowOwnerSettings(true)}>
+            <Text style={styles.secondaryText}>Owner settings</Text>
+          </Pressable>
           <Pressable style={[styles.secondary, { marginTop: 10 }]} onPress={() => setShowEstimate(true)}>
             <Text style={styles.secondaryText}>Open detailed estimate</Text>
           </Pressable>

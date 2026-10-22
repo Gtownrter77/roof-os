@@ -156,3 +156,10 @@ Added apps/field/src/ai/YoloGate.tsx.
 - Owner PIN required to unlock (stored in expo-secure-store).
 - Once unlocked, toggles free specific AI paths: estimate apply, AI prefill, customer text, material order, or all drafts.
 - Locking clears every free toggle.
+
+## 2026-10-22 Owner settings page
+
+Added apps/field/src/ai/OwnerSettings.tsx and an "Owner settings" button on the inspection screen.
+- PIN-gated entry (set, change, or clear)
+- YOLO free toggles: unlock, estimate apply, AI prefill, customer text, material order, free all
+- Stored in expo-secure-store
