@@ -1,3 +1,4 @@
+- Canvass 125: lib/ai/canvass125.ts + live panel on /canvass (feat/canvass-125-automations) [2026-10-22]
 ## 2026-10-22 field AI + multi-trade estimate checkpoint
 
 - Current working branch: `feature/top25-batch-126-150` at `7770594`.

@@ -6,6 +6,32 @@ import { smartBack } from '../../lib/smart-back'
 import { createClient } from '../../lib/supabase/client'
 import { CANVASS_OBJECTIONS, getCanvassAdvice, ObjectionType } from '../../lib/ai/canvass-mentor'
 import {
+  draftBestReturnTime,
+  draftDailySummary,
+  draftFollowUpDate,
+  draftHailOverlay,
+  draftLeadScoreAfter,
+  draftLeadScoreBefore,
+  draftMultiTradeFlag,
+  draftNextDoor,
+  draftOpenerScript,
+  draftPhoneFromNotes,
+  draftPinToEstimate,
+  draftSms,
+  draftStormZoneTurf,
+  draftColorPins,
+  draftCoachingTip,
+  draftEmail,
+  draftGoodBetterBest,
+  draftHardStopHostile,
+  CANVASS_125_CATALOG,
+  CANVASS_OPTIONS,
+  draftDispositionOptions,
+  draftLossReasonOptions,
+  draftYoyoReturn,
+  draftWorkflowStage,
+} from '../../lib/ai/canvass125'
+import {
   CANVASS_LEAD_SOURCE,
   CanvassOutcome,
   canvassOutcomeToLeadFields,
@@ -50,6 +76,12 @@ export default function CanvassPage() {
   const [error, setError] = useState('')
   const [hardStopActive, setHardStopActive] = useState(false)
   const [hardStopReason, setHardStopReason] = useState('')
+  const [aiQuery, setAiQuery] = useState('')
+  const [voiceNote, setVoiceNote] = useState('')
+  const [yoloOpen, setYoloOpen] = useState(false)
+  const [yoloFree, setYoloFree] = useState(false)
+  const [yoloPin, setYoloPin] = useState('')
+  const [yoloReveal, setYoloReveal] = useState(false)
 
   function playHardStopAlarm() {
     try {
@@ -106,6 +138,84 @@ export default function CanvassPage() {
     objection: selectedObjection,
   })
 
+  const scoreBefore = draftLeadScoreBefore({
+    hailInches: /hail|storm/i.test(form.notes) ? 1 : 0,
+    roofAge: /old|aged|15|20/i.test(form.notes) ? 18 : 10,
+    newHomeowner: /new owner|just bought/i.test(form.notes),
+    noSoliciting: /no solicit|do not knock/i.test(form.notes),
+  })
+  const scoreAfter = draftLeadScoreAfter(form.outcome, form.notes)
+  const hail = draftHailOverlay(/hail|storm/i.test(form.notes) ? 1 : 0)
+  const stormTurf = draftStormZoneTurf(hail.inches)
+  const opener = draftOpenerScript(/\d{4}-\d{2}-\d{2}/.exec(form.notes)?.[0])
+  const nextDoor = draftNextDoor(form.address, leads.map((lead) => lead.address).filter(Boolean))
+  const sms = draftSms(form.homeownerName, form.address)
+  const followUp = draftFollowUpDate(form.outcome)
+  const multi = draftMultiTradeFlag(form.notes)
+  const phone = draftPhoneFromNotes(form.notes)
+  const returnWindow = draftBestReturnTime(form.notes)
+  const estimateLink = draftPinToEstimate(form.address || 'address')
+  const summary = draftDailySummary(leads.length, leads.filter((lead) => outcomeFromLead(lead) === 'INTERESTED').length)
+  const pin = draftColorPins(form.outcome)
+  const coach = draftCoachingTip(form.outcome)
+  const email = draftEmail(form.homeownerName, form.address)
+  const tiers = draftGoodBetterBest()
+  const hostile = draftHardStopHostile(form.notes)
+  const dispositions = draftDispositionOptions()
+  const lossReasons = draftLossReasonOptions()
+  const stage = draftWorkflowStage(form.outcome)
+  const yoyo = draftYoyoReturn(leads.filter((lead) => outcomeFromLead(lead) === 'NOT_HOME').map((lead) => lead.address))
+  const catalog = CANVASS_125_CATALOG.filter((item) => item.name.toLowerCase().includes(aiQuery.toLowerCase()) || item.group.toLowerCase().includes(aiQuery.toLowerCase()))
+  const mapPins = leads.slice(0, 12).map((lead, index) => ({
+    lead,
+    color: draftColorPins(outcomeFromLead(lead) || 'INTERESTED').color,
+    x: 18 + (index % 4) * 22,
+    y: 22 + Math.floor(index / 4) * 24,
+  }))
+
+  function startVoice() {
+    const w = window as unknown as { SpeechRecognition?: new () => any; webkitSpeechRecognition?: new () => any }
+    const SpeechRecognition = w.SpeechRecognition || w.webkitSpeechRecognition
+    if (!SpeechRecognition) {
+      setVoiceNote('Voice not available in this browser')
+      return
+    }
+    const rec = new SpeechRecognition()
+    rec.lang = 'en-US'
+    rec.onresult = (event: any) => {
+      const said = event.results[0][0].transcript as string
+      setVoiceNote(said)
+      setForm((current) => ({ ...current, notes: [current.notes, said].filter(Boolean).join(' — ') }))
+    }
+    rec.start()
+  }
+
+  function loadWebYolo() {
+    try {
+      const raw = localStorage.getItem('roofos.yolo.v1')
+      const flags = raw ? JSON.parse(raw) : {}
+      setYoloOpen(Boolean(flags.unlocked))
+      setYoloFree(Boolean(flags.unlocked && (flags.freeCanvass || flags.freeAll)))
+    } catch {
+      setYoloOpen(false)
+      setYoloFree(false)
+    }
+  }
+
+  function unlockWebYolo() {
+    const stored = localStorage.getItem('roofos.yolo.pin') || ''
+    if (!stored) {
+      if (yoloPin.length < 4) return
+      localStorage.setItem('roofos.yolo.pin', yoloPin)
+    } else if (yoloPin !== stored) {
+      setNotice('Wrong owner PIN')
+      return
+    }
+    const flags = { unlocked: true, freeCanvass: true, freeAll: true }
+    localStorage.setItem('roofos.yolo.v1', JSON.stringify(flags))
+    setYoloPin('')
+    loadWebYolo()
+  }
   const loadCanvassLeads = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
@@ -348,6 +458,109 @@ export default function CanvassPage() {
           </div>
         </div>
 
+        {yoloOpen && <section className="glass rounded-xl p-4 border border-red-500/40 space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="font-bold text-sm text-white">YOLO · all AI drafts</h2>
+            <span className="text-[10px] uppercase tracking-wide text-red-300">{yoloFree ? "FREE" : "LOCKED"}</span>
+          </div>
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <div className="rounded border border-white/10 p-2">
+              <p className="text-slate-400">Score before door</p>
+              <p className="font-black text-lg">{scoreBefore.score}</p>
+              <p className="text-[10px] text-slate-300">{scoreBefore.reasons.join(', ') || 'base'}</p>
+              <p className="text-[10px] text-cyan-200">{scoreBefore.next}</p>
+            </div>
+            <div className="rounded border border-white/10 p-2">
+              <p className="text-slate-400">Score after talk</p>
+              <p className="font-black text-lg">{scoreAfter.score}</p>
+              <p className="text-[10px] text-slate-300">{scoreAfter.reasons.join(', ')}</p>
+              <p className="text-[10px] text-cyan-200">{scoreAfter.next}</p>
+            </div>
+            <div className="rounded border border-white/10 p-2">
+              <p className="text-slate-400">Storm turf</p>
+              <p className="font-bold">{stormTurf.priority} · {hail.band}</p>
+              <p className="text-[10px] text-slate-300">{stormTurf.reason}</p>
+            </div>
+            <div className="rounded border border-white/10 p-2">
+              <p className="text-slate-400">Today</p>
+              <p className="font-bold">{summary.doors} doors / {summary.rate}%</p>
+              <p className="text-[10px] text-slate-300">{summary.reason}</p>
+            </div>
+          </div>
+
+          <div className="rounded border border-white/10 p-2">
+            <p className="text-[10px] uppercase text-slate-400 mb-1">Turf pins</p>
+            <svg viewBox="0 0 100 80" className="w-full h-28 bg-slate-900/60 rounded">
+              {mapPins.map((pin) => (
+                <g key={pin.lead.id}>
+                  <circle cx={pin.x} cy={pin.y} r="3.2" fill={pin.color} />
+                  <text x={pin.x + 4} y={pin.y + 1} fontSize="3" fill="#e2e8f0">{pin.lead.address.slice(0, 12)}</text>
+                </g>
+              ))}
+              {mapPins.length === 0 && <text x="8" y="40" fontSize="4" fill="#94a3b8">No knocks yet</text>}
+            </svg>
+            <p className="text-[10px] text-slate-400 mt-1">Current pin: {pin.label}</p>
+          </div>
+
+          <div className="rounded border border-white/10 p-2 space-y-1">
+            <p className="text-[10px] uppercase text-slate-400">At the door</p>
+            <p className="text-xs text-cyan-100">{opener.script}</p>
+            <p className="text-xs text-slate-300">Next: {nextDoor.next || 'none queued'} — {nextDoor.next ? nextDoor.reason : 'add an address'}</p>
+            <p className="text-xs text-slate-300">Return {returnWindow.window} · follow-up in {followUp.inDays}d · multi-trade: {multi.yes ? multi.trades.join(', ') : 'roof only'}</p>
+            <p className="text-xs text-amber-200">{coach.tip}</p>
+            {hostile.stop && <p className="text-xs text-red-300 font-bold">{hostile.reason}. {hostile.next}</p>}
+            {phone.phone && <p className="text-xs text-emerald-200">Phone from notes: {phone.phone}</p>}
+          </div>
+
+          <div className="rounded border border-white/10 p-2 space-y-1">
+            <p className="text-[10px] uppercase text-slate-400">SMS draft</p>
+            <p className="text-xs">{sms.text}</p>
+            <p className="text-[10px] text-slate-400">{sms.next}</p>
+          </div>
+          <div className="rounded border border-white/10 p-2 space-y-1">
+            <p className="text-[10px] uppercase text-slate-400">Email draft</p>
+            <p className="text-xs font-bold">{email.subject}</p>
+            <p className="text-xs whitespace-pre-line">{email.body}</p>
+          </div>
+          <p className="text-xs text-slate-300">Tiers: {tiers.tiers.join(' · ')}</p>
+          <div className="rounded border border-white/10 p-2 space-y-1">
+            <p className="text-[10px] uppercase text-slate-400">REA options — SalesRabbit / SPOTIO / JobNimbus</p>
+            <p className="text-[11px]">Stage: {stage.stage}</p>
+            <p className="text-[11px]">Yo-yo return: {yoyo.doors.length} not-home doors at {yoyo.window}</p>
+            <p className="text-[10px] text-slate-300">Dispositions: {dispositions.options.slice(0, 8).join(', ')}…</p>
+            <p className="text-[10px] text-slate-300">Loss reasons: {lossReasons.options.join(', ')}</p>
+            <p className="text-[10px] text-slate-400">Filters: {CANVASS_OPTIONS.filters.join(' · ')}</p>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <button type="button" onClick={startVoice} className="rounded bg-white text-black text-[11px] font-bold px-2 py-1">Voice log</button>
+            <button type="button" onClick={() => setForm((current) => ({ ...current, notes: [current.notes, sms.text].filter(Boolean).join(' — ') }))} className="rounded bg-cyan-400 text-black text-[11px] font-bold px-2 py-1">Use SMS draft</button>
+            <button type="button" onClick={() => router.push(estimateLink.href)} className="rounded border border-cyan-400/40 text-cyan-100 text-[11px] font-bold px-2 py-1">Pin → estimate</button>
+          </div>
+          {voiceNote && <p className="text-[11px] text-emerald-200">Heard: {voiceNote}</p>}
+
+          <div className="space-y-1">
+            <input value={aiQuery} onChange={(e) => setAiQuery(e.target.value)} placeholder="Search all 125 drafts" className="w-full p-2 border rounded text-xs" />
+            <div className="max-h-36 overflow-auto space-y-1">
+              {catalog.slice(0, 20).map((item) => (
+                <div key={item.id} className="flex justify-between text-[11px] border border-white/10 rounded px-2 py-1">
+                  <span>{item.name}</span>
+                  <span className="text-slate-400">{item.group}</span>
+                </div>
+              ))}
+            </div>
+            <p className="text-[10px] text-slate-500">{catalog.length} of {CANVASS_125_CATALOG.length} drafts. {yoloFree ? "YOLO free — drafts can apply." : "Unlock free canvass to apply."}</p>
+          </div>
+        </section>}
+
+        <button type="button" onDoubleClick={() => { setYoloReveal(true); loadWebYolo() }} className="h-2 w-full" aria-label="owner" />
+        {yoloReveal && !yoloOpen && (
+          <div className="rounded border border-red-500/40 p-2 space-y-2">
+            <p className="text-[10px] uppercase text-red-300">Owner PIN — unlocks all AI</p>
+            <input type="password" value={yoloPin} onChange={(e) => setYoloPin(e.target.value)} placeholder="PIN" className="w-full p-2 border rounded text-xs" />
+            <button type="button" onClick={unlockWebYolo} className="rounded bg-red-700 text-white text-[11px] font-bold px-2 py-1">Unlock YOLO</button>
+          </div>
+        )}
         <form onSubmit={(e) => void logKnock(e)} className="glass rounded-xl p-4 space-y-3 border">
           <h2 className="font-bold text-sm text-slate-100">Log door knock → Leads</h2>
           <button type="button" onClick={() => triggerHardStop()} disabled={hardStopActive || saving} className="w-full rounded-lg border-2 border-red-500 bg-red-700 px-3 py-3 text-sm font-black uppercase tracking-wide text-white disabled:opacity-60">
