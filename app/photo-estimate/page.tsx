@@ -6,10 +6,6 @@ import { smartBack } from '../../lib/smart-back'
 import { createClient } from '../../lib/supabase/client'
 import { createWorker } from 'tesseract.js'
 import { GoldenReport } from '../../components/GoldenReport'
-import { draftPhoto, draftPhotoReport, gatePhotoReport, PHOTO_REPORT_OPTIONS, type PhotoDraft, type ReportDraft } from '../../lib/ai/photo-report'
-import { readJpegGps, chooseAddressFilter, ADDRESS_FILTERS, type OnePhotoPacket, type AddressFilter } from '../../lib/ai/one-photo'
-import { draftEstimate } from '../../lib/ai/estimate-lane'
-import { draftProduction } from '../../lib/ai/production-lane'
 
 type Photo = { file: File; preview: string; id: string }
 type SourcePhoto = { id: string; url: string }
@@ -50,8 +46,8 @@ export default function PhotoEstimatePage() {
   const [pitch, setPitch] = useState('')
   const [roofType, setRoofType] = useState<'hip' | 'gable' | 'other'>('hip')
   const [wasteFactor, setWasteFactor] = useState('0.10')
-  const [soffitWidthFt, setSoffitWidthFt] = useState('12')
-  const [fasciaWidthFt, setFasciaWidthFt] = useState('6')
+  const [soffitWidthFt, setSoffitWidthFt] = useState('1')
+  const [fasciaWidthFt, setFasciaWidthFt] = useState('0.5')
   const [verifiedGutterLf, setVerifiedGutterLf] = useState('')
   const [technicianName, setTechnicianName] = useState('')
   const [technicianLicense, setTechnicianLicense] = useState('')
@@ -59,14 +55,6 @@ export default function PhotoEstimatePage() {
   const [managerName, setManagerName] = useState('')
   const [managerSignature, setManagerSignature] = useState('')
   const [photoReviewNotes, setPhotoReviewNotes] = useState<Record<string, string>>({})
-  const [photoDrafts, setPhotoDrafts] = useState<PhotoDraft[]>([])
-  const [reportDraft, setReportDraft] = useState<ReportDraft | null>(null)
-  const [reportNotes, setReportNotes] = useState('')
-  const [testHits, setTestHits] = useState('')
-  const [onePacket, setOnePacket] = useState<OnePhotoPacket | null>(null)
-  const [aiFilter, setAiFilter] = useState<AddressFilter | null>(null)
-  const [aiFiltersRun, setAiFiltersRun] = useState<AddressFilter[]>([])
-  const [editedPreview, setEditedPreview] = useState('')
 
   useEffect(() => {
     let active = true
@@ -152,18 +140,6 @@ export default function PhotoEstimatePage() {
       next.push({ file, preview: URL.createObjectURL(file), id: crypto.randomUUID() })
     }
     setPhotos(next)
-    void Promise.all(next.map(async (photo) => {
-      const dims = await new Promise<{ width: number; height: number }>((resolve) => {
-        const img = new Image()
-        img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight })
-        img.onerror = () => resolve({ width: 0, height: 0 })
-        img.src = photo.preview
-      })
-      return draftPhoto({ id: photo.id, name: photo.file.name, notes: reportNotes, width: dims.width, height: dims.height, bytes: photo.file.size })
-    })).then((drafts) => {
-      setPhotoDrafts(drafts)
-      setReportDraft(draftPhotoReport(address, drafts, reportNotes, testHits ? Number(testHits) : null))
-    })
     if (unsupportedCount || limitReached) {
       setError(`Only JPEG, PNG, and WebP photos are supported, up to ${MAX_PHOTOS} photos and 30 MB total.`)
     } else {
@@ -242,63 +218,6 @@ export default function PhotoEstimatePage() {
     return { ids, inspectionId: activeInspectionId }
   }
 
-
-
-  async function aiFilterForAddress(photo: Photo, filter: AddressFilter) {
-    const img = new Image()
-    img.src = photo.preview
-    await new Promise((resolve) => { img.onload = resolve })
-    const canvas = document.createElement('canvas')
-    canvas.width = img.naturalWidth
-    canvas.height = img.naturalHeight
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-    ctx.drawImage(img, 0, 0)
-    if (filter === 'none') { setEditedPreview(canvas.toDataURL('image/jpeg', 0.85)); return }
-    const frame = ctx.getImageData(0, 0, canvas.width, canvas.height)
-    const data = frame.data
-    for (let i = 0; i < data.length; i += 4) {
-      let r = data[i], g = data[i + 1], b = data[i + 2]
-      if (filter === 'bright') { r = Math.min(255, r + 30); g = Math.min(255, g + 30); b = Math.min(255, b + 30) }
-      if (filter === 'contrast' || filter === 'sharpen') { r = Math.max(0, Math.min(255, (r - 128) * 1.35 + 128)); g = Math.max(0, Math.min(255, (g - 128) * 1.35 + 128)); b = Math.max(0, Math.min(255, (b - 128) * 1.35 + 128)) }
-      if (filter === 'mono' || filter === 'address') { const y = 0.3 * r + 0.59 * g + 0.11 * b; r = g = b = y }
-      if (filter === 'address') { r = g = b = r > 150 ? 255 : 0 }
-      data[i] = r; data[i + 1] = g; data[i + 2] = b
-    }
-    ctx.putImageData(frame, 0, 0)
-    setEditedPreview(canvas.toDataURL('image/jpeg', 0.85))
-  }
-  async function runOnePhoto() {
-    const photo = photos[0]
-    if (!photo) { setError('Take one photo first.'); return }
-    setWorking(true); setError(''); setMessage('')
-    try {
-      const dims = await new Promise<{ width: number; height: number }>((resolve) => {
-        const img = new Image()
-        img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight })
-        img.onerror = () => resolve({ width: 0, height: 0 })
-        img.src = photo.preview
-      })
-      const filter = chooseAddressFilter(dims.width, dims.height, photo.file.size)
-      setAiFilter(filter)
-      setAiFiltersRun([...ADDRESS_FILTERS])
-      for (const pass of ADDRESS_FILTERS) await aiFilterForAddress(photo, pass)
-      await aiFilterForAddress(photo, filter)
-      const bytes = new Uint8Array(await photo.file.arrayBuffer())
-      const gps = readJpegGps(bytes)
-      if (!gps) throw new Error('This photo has no GPS. Turn on location and retake.')
-      const response = await fetch('/api/one-photo', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(gps) })
-      const payload = await response.json()
-      if (!response.ok) throw new Error(payload.error || 'One-photo lookup failed.')
-      setOnePacket(payload.packet)
-      setAddress(payload.packet.address)
-      setMessage('Packet ready for tech verification. Nothing sent.')
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'One-photo lookup failed.')
-    } finally {
-      setWorking(false)
-    }
-  }
   async function buildPacket() {
     setWorking(true); setError(''); setMessage('')
     try {
@@ -348,7 +267,7 @@ export default function PhotoEstimatePage() {
     setWorking(true); setError(''); setMessage('')
     try {
       const verification = action === 'verify'
-        ? { eaveLf: Number(eaveLf), rafterLf: Number(rafterLf), pitch: Number(pitch), roofType, wasteFactor: Number(wasteFactor), soffitWidthFt: Number(soffitWidthFt) / 12, fasciaWidthFt: Number(fasciaWidthFt) / 12, gutterLf: Number(verifiedGutterLf), technicianName: technicianName.trim() || undefined, technicianLicense: technicianLicense.trim() || undefined, technicianSignature: technicianSignature || undefined }
+        ? { eaveLf: Number(eaveLf), rafterLf: Number(rafterLf), pitch: Number(pitch), roofType, wasteFactor: Number(wasteFactor), soffitWidthFt: Number(soffitWidthFt), fasciaWidthFt: Number(fasciaWidthFt), gutterLf: Number(verifiedGutterLf), technicianName: technicianName.trim() || undefined, technicianLicense: technicianLicense.trim() || undefined, technicianSignature: technicianSignature || undefined }
         : { notes: 'Technician requested a fresh photo set.' }
       const response = await fetch(`/api/photo-estimate/verify?workflowId=${encodeURIComponent(workflow.id)}`, { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action, ...verification }) })
       const payload = await response.json()
@@ -392,7 +311,7 @@ export default function PhotoEstimatePage() {
       const response = await fetch('/api/photo-estimate/report', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ workflowId: workflow.id, photoReportDraft: reportDraft }),
+        body: JSON.stringify({ workflowId: workflow.id }),
       })
       const payload = await response.json().catch(() => null)
       if (!response.ok) throw new Error(payload?.error || 'The full report could not be generated.')
@@ -419,119 +338,7 @@ export default function PhotoEstimatePage() {
     <p className="text-sm text-slate-300 mt-1 mb-4">Upload evidence first. The system assembles address, property, storm, measurement, pricing, and report candidates. A technician must verify the packet before it can be sent.</p>
     <div className="bg-amber-400/10 border border-amber-400/30 rounded-lg p-3 text-sm text-amber-100 mb-4"><b>Important:</b> OCR can read visible address text; it cannot prove a roof photo’s location. Confirm the property and quantities before approval.</div>
     <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp" capture="environment" multiple className="hidden" onChange={chooseFiles} />
-
-    <section className="glass rounded-xl p-4 mt-4 space-y-2 border border-cyan-400/30">
-      <div className="flex items-center justify-between">
-        <h2 className="font-bold text-sm">Photo → report drafts</h2>
-        <span className="text-[10px] uppercase text-cyan-200">Maxed · gated</span>
-      </div>
-      <textarea value={reportNotes} onChange={(e) => { setReportNotes(e.target.value); setReportDraft(draftPhotoReport(address, photoDrafts, e.target.value, testHits ? Number(testHits) : null)) }} placeholder="Damage notes: hail, gutters, siding, windows, fascia..." className="w-full p-2 border rounded text-sm" rows={3} />
-      <label className="block text-xs">Test-square hits
-        <input value={testHits} onChange={(e) => { setTestHits(e.target.value); setReportDraft(draftPhotoReport(address, photoDrafts, reportNotes, e.target.value ? Number(e.target.value) : null)) }} inputMode="numeric" placeholder="Count in the 10x10" className="w-full p-2 border rounded mt-1" />
-      </label>
-      {reportDraft && (
-        <div className="text-xs space-y-2">
-          <p className="font-bold">Coverage {reportDraft.coverageScore}% · test square {reportDraft.testSquare.band}</p>
-          <p>{reportDraft.testSquare.note}</p>
-          <p className="text-cyan-200">{reportDraft.next}</p>
-          <div className="grid grid-cols-2 gap-1">
-            {reportDraft.checklist.map((item) => (
-              <p key={item.id} className={item.done ? 'text-emerald-300' : 'text-amber-200'}>{item.done ? '✓' : '○'} {item.label}</p>
-            ))}
-          </div>
-          {reportDraft.damages.length > 0 && <ul className="list-disc pl-4">{reportDraft.damages.map((d) => <li key={d.id}>{d.id} {d.trade} · {d.category} · {d.severity} · needs {d.shotsNeeded.join('/')}</li>)}</ul>}
-          <div className="border-t border-white/10 pt-2 space-y-1">
-            {reportDraft.sections.map((section) => (
-              <p key={section.id}><span className="font-bold">{section.title}:</span> {section.statements[0]}</p>
-            ))}
-          </div>
-        </div>
-      )}
-      {photoDrafts.length > 0 && (
-        <div className="grid grid-cols-2 gap-2 text-[11px]">
-          {photoDrafts.map((draft) => (
-            <div key={draft.id} className="border border-white/10 rounded p-2">
-              <p className="font-bold">{draft.elevation} · {draft.quality}</p>
-              <p>{draft.width}×{draft.height} · {Math.round(draft.bytes / 1024)} KB</p>
-              <p>{draft.captions.join(' · ')}</p>
-            </div>
-          ))}
-        </div>
-      )}
-      <p className="text-[10px] text-slate-400">Elevations: {PHOTO_REPORT_OPTIONS.elevations.join(', ')}. Trades: {PHOTO_REPORT_OPTIONS.trades.join(', ')}. Drafts only — the verified workflow still gates the packet.</p>
-    </section>
-
-    
-    <section className="glass rounded-xl p-4 mt-4 space-y-2 border border-emerald-400/40">
-      <div className="flex items-center justify-between">
-        <h2 className="font-bold text-sm">One photo → estimate</h2>
-        <span className="text-[10px] uppercase text-emerald-200">Under 10 min · gated</span>
-      </div>
-      <p className="text-xs text-slate-300">Uses the first photo. GPS → address → NOAA storm date → open aerial note → local code. Tech verifies before email or text.</p>
-      {aiFiltersRun.length > 0 && <p className="text-[11px] text-emerald-200">AI ran {aiFiltersRun.join(", ")}. Kept {aiFilter} for the address. Tech does not pick a filter.</p>}
-      {editedPreview && <img src={editedPreview} alt="AI filtered for address" className="w-full max-h-48 object-contain rounded border" />}
-      <button type="button" onClick={() => void runOnePhoto()} disabled={working || photos.length === 0} className="rounded bg-emerald-400 text-black text-xs font-bold px-3 py-2 disabled:opacity-50">Run one-photo packet</button>
-      {onePacket && (
-        <div className="text-xs space-y-1">
-          <p className="font-bold">{onePacket.address}</p>
-          <p className={onePacket.addressCertainty.band === 'high' ? 'text-emerald-300' : onePacket.addressCertainty.band === 'medium' ? 'text-amber-200' : 'text-red-300'}>Address certainty {onePacket.addressCertainty.score}% · {onePacket.addressCertainty.band}</p>
-          <p className="text-[11px] text-slate-400">{onePacket.addressCertainty.reasons.join(' · ')}</p>
-          <p>Storm: {onePacket.storm.event || 'none'} {onePacket.storm.date || ''}</p>
-          <p>Aerial: {onePacket.aerial.note}</p>
-          <p>Code: {onePacket.codes.reference}</p>
-          <p>{onePacket.estimate.next}</p>
-          <div className="grid grid-cols-2 gap-2 mt-2">
-            <label className="text-[11px]">Roof slope (pitch/12)<input value={pitch} onChange={(e) => setPitch(e.target.value)} className="w-full p-2 border rounded mt-1" /></label>
-            <label className="text-[11px]">Waste factor
-              <select value={wasteFactor} onChange={(e) => setWasteFactor(e.target.value)} className="w-full p-2 border rounded mt-1">
-                <option value="0.10">10%</option>
-                <option value="0.15">15%</option>
-                <option value="0.20">20%</option>
-              </select>
-            </label>
-            <label className="text-[11px]">Soffit width (in)<input value={soffitWidthFt} onChange={(e) => setSoffitWidthFt(e.target.value)} className="w-full p-2 border rounded mt-1" /></label>
-            <label className="text-[11px]">Fascia width (in)<input value={fasciaWidthFt} onChange={(e) => setFasciaWidthFt(e.target.value)} className="w-full p-2 border rounded mt-1" /></label>
-          </div>
-          <p className="text-[11px] text-amber-200">Tech verifies slope {pitch || '—'}/12, waste {Math.round(Number(wasteFactor) * 100)}%, soffit {soffitWidthFt || '—'} in, fascia {fasciaWidthFt || '—'} in before send.</p>
-          {(() => {
-            const gate = gatePhotoReport({
-              coverageScore: reportDraft?.coverageScore ?? 0,
-              missing: reportDraft?.missing ?? [],
-              addressBand: onePacket.addressCertainty.band,
-              pitch: pitch ? Number(pitch) : null,
-              wasteFactor: wasteFactor ? Number(wasteFactor) : null,
-              soffitIn: soffitWidthFt ? Number(soffitWidthFt) : null,
-              fasciaIn: fasciaWidthFt ? Number(fasciaWidthFt) : null,
-            })
-            return gate.ready
-              ? <p className="text-[11px] text-emerald-300">Ready for tech approval. Still not sent.</p>
-              : <ul className="text-[11px] text-red-300 list-disc pl-4">{gate.blockers.map((b) => <li key={b}>{b}</li>)}</ul>
-          })()}
-          {(() => {
-            const gate = gatePhotoReport({
-              coverageScore: reportDraft?.coverageScore ?? 0,
-              missing: reportDraft?.missing ?? [],
-              addressBand: onePacket.addressCertainty.band,
-              pitch: pitch ? Number(pitch) : null,
-              wasteFactor: wasteFactor ? Number(wasteFactor) : null,
-              soffitIn: soffitWidthFt ? Number(soffitWidthFt) : null,
-              fasciaIn: fasciaWidthFt ? Number(fasciaWidthFt) : null,
-            })
-            return gate.ready ? (
-              <>
-                <p className="bg-white/5 border border-white/10 rounded p-2">{onePacket.delivery.sms}</p>
-                <p className="bg-white/5 border border-white/10 rounded p-2">{onePacket.delivery.email}</p>
-                <p className="text-[10px] text-slate-400">Drafts only. Tech still approves before send. SLA {onePacket.delivery.slaMinutes} min.</p>
-              </>
-            ) : (
-              <p className="text-[11px] text-slate-400">Email and text stay drafts until the blockers above are clear.</p>
-            )
-          })()}
-        </div>
-      )}
-    </section>
-
-        <button onClick={() => inputRef.current?.click()} className="ops-btn-primary w-full py-3">{photos.length ? `Add photos (${photos.length})` : 'Take or upload photos'}</button>
+    <button onClick={() => inputRef.current?.click()} className="ops-btn-primary w-full py-3">{photos.length ? `Add photos (${photos.length})` : 'Take or upload photos'}</button>
     {photos.length > 0 && <><div className="grid grid-cols-3 gap-2 mt-3">{photos.map((photo) => <img key={photo.id} src={photo.preview} alt="Uploaded roof evidence" className="h-24 w-full object-cover rounded" />)}</div><button onClick={() => void findAddressInPhotos()} disabled={ocrWorking} className="w-full mt-3 bg-purple-600 text-white py-2 rounded-lg disabled:opacity-60">{ocrWorking ? 'Reading photo text…' : 'Find address text in photo'}</button></>}
     <div className="glass rounded-xl p-4 mt-4 space-y-3">
       <h2 className="font-semibold">Property confirmation</h2>
@@ -558,79 +365,9 @@ export default function PhotoEstimatePage() {
         <p className="text-xs text-slate-300">{aiAnalysis.authority_disclaimer}</p>
       </div>}
     </section>}
-    {workflow && <div className="glass rounded-xl p-4 mt-4"><h2 className="font-bold">{workflow.report?.title}</h2><p className="text-sm mt-2">Status: <b>{workflow.status}</b></p><p className="text-sm">Property footprint assist: {workflow.report?.propertyEvidence?.footprintSqFt || 0} sq ft, low confidence</p><p className="text-sm">Storm candidates: {workflow.storm_candidates?.length || 0}; these are corroborating candidates, not a proven loss date.</p><p className="text-sm mt-3">Estimate: {workflow.estimate?.status}; no prices are inserted unless an approved price book is present.</p><div className="mt-3 border-t pt-3"><h3 className="font-semibold">Technician field verification</h3><p className="text-xs text-slate-300 mb-2">Review the packet, then choose exactly one action. The server preserves your measurements and does not decide whether they are plausible.</p><div className="grid grid-cols-2 gap-2"><input value={technicianName} onChange={(e) => setTechnicianName(e.target.value)} placeholder="Technician name" className="ops-input" /><input value={technicianLicense} onChange={(e) => setTechnicianLicense(e.target.value)} placeholder="License / registration" className="ops-input" /><label className="block text-sm col-span-2">Technician signature (PNG)<input type="file" accept="image/png" onChange={(e) => { const file = e.target.files?.[0]; if (!file) return; const reader = new FileReader(); reader.onload = () => setTechnicianSignature(typeof reader.result === 'string' ? reader.result : ''); reader.readAsDataURL(file) }} className="w-full p-2 border rounded mt-1" /></label><input value={eaveLf} onChange={(e) => setEaveLf(e.target.value)} placeholder="Eaves LF" className="ops-input" /><input value={rafterLf} onChange={(e) => setRafterLf(e.target.value)} placeholder="Rafter LF" className="ops-input" /><input value={pitch} onChange={(e) => setPitch(e.target.value)} placeholder="Pitch rise / 12" className="ops-input" /><select value={roofType} onChange={(e) => setRoofType(e.target.value as 'hip' | 'gable' | 'other')} className="ops-input"><option value="hip">Hip</option><option value="gable">Gable</option><option value="other">Other</option></select><input value={soffitWidthFt} onChange={(e) => setSoffitWidthFt(e.target.value)} placeholder="Soffit width (in)" className="ops-input" /><input value={fasciaWidthFt} onChange={(e) => setFasciaWidthFt(e.target.value)} placeholder="Fascia width (in)" className="ops-input" /><label className="block text-sm col-span-2">Technician-measured gutter length (LF; enter 0 if none)<input type="number" min="0" max="10000" step="0.01" inputMode="decimal" value={verifiedGutterLf} onChange={(e) => setVerifiedGutterLf(e.target.value)} placeholder="Required for approval" className="w-full p-2 border rounded mt-1" /></label></div><p className="text-xs text-slate-400 mt-1">The technician owns the measurement decision. Roof dimensions and gutter length are saved with the approver and timestamp; only these approved values can create estimate drafts.</p><select value={wasteFactor} onChange={(e) => setWasteFactor(e.target.value)} className="w-full p-2 border rounded mt-2"><option value="0.10">10% waste</option><option value="0.15">15% waste</option><option value="0">0% waste</option></select><div className="grid grid-cols-2 gap-2 mt-2"><button onClick={() => void saveFieldVerification('refresh')} disabled={working} className="bg-amber-400/100 text-white py-2 rounded disabled:opacity-60">Request photo refresh</button><button onClick={() => void saveFieldVerification('verify')} disabled={working} className="bg-green-600 text-white py-2 rounded disabled:opacity-60">Verify measurements</button></div></div><div className="mt-3 bg-amber-400/10 p-3 rounded text-sm">Verify records the technician, timestamp, roof and gutter measurements, slope multiplier, roof type, waste factor, soffit/fascia widths, and calculated squares. Refresh preserves the existing packet and returns it for new photos.</div></div>}
+    {workflow && <div className="glass rounded-xl p-4 mt-4"><h2 className="font-bold">{workflow.report?.title}</h2><p className="text-sm mt-2">Status: <b>{workflow.status}</b></p><p className="text-sm">Property footprint assist: {workflow.report?.propertyEvidence?.footprintSqFt || 0} sq ft, low confidence</p><p className="text-sm">Storm candidates: {workflow.storm_candidates?.length || 0}; these are corroborating candidates, not a proven loss date.</p><p className="text-sm mt-3">Estimate: {workflow.estimate?.status}; no prices are inserted unless an approved price book is present.</p><div className="mt-3 border-t pt-3"><h3 className="font-semibold">Technician field verification</h3><p className="text-xs text-slate-300 mb-2">Review the packet, then choose exactly one action. The server preserves your measurements and does not decide whether they are plausible.</p><div className="grid grid-cols-2 gap-2"><input value={technicianName} onChange={(e) => setTechnicianName(e.target.value)} placeholder="Technician name" className="ops-input" /><input value={technicianLicense} onChange={(e) => setTechnicianLicense(e.target.value)} placeholder="License / registration" className="ops-input" /><label className="block text-sm col-span-2">Technician signature (PNG)<input type="file" accept="image/png" onChange={(e) => { const file = e.target.files?.[0]; if (!file) return; const reader = new FileReader(); reader.onload = () => setTechnicianSignature(typeof reader.result === 'string' ? reader.result : ''); reader.readAsDataURL(file) }} className="w-full p-2 border rounded mt-1" /></label><input value={eaveLf} onChange={(e) => setEaveLf(e.target.value)} placeholder="Eaves LF" className="ops-input" /><input value={rafterLf} onChange={(e) => setRafterLf(e.target.value)} placeholder="Rafter LF" className="ops-input" /><input value={pitch} onChange={(e) => setPitch(e.target.value)} placeholder="Pitch rise / 12" className="ops-input" /><select value={roofType} onChange={(e) => setRoofType(e.target.value as 'hip' | 'gable' | 'other')} className="ops-input"><option value="hip">Hip</option><option value="gable">Gable</option><option value="other">Other</option></select><input value={soffitWidthFt} onChange={(e) => setSoffitWidthFt(e.target.value)} placeholder="Soffit width (ft)" className="ops-input" /><input value={fasciaWidthFt} onChange={(e) => setFasciaWidthFt(e.target.value)} placeholder="Fascia width (ft)" className="ops-input" /><label className="block text-sm col-span-2">Technician-measured gutter length (LF; enter 0 if none)<input type="number" min="0" max="10000" step="0.01" inputMode="decimal" value={verifiedGutterLf} onChange={(e) => setVerifiedGutterLf(e.target.value)} placeholder="Required for approval" className="w-full p-2 border rounded mt-1" /></label></div><p className="text-xs text-slate-400 mt-1">The technician owns the measurement decision. Roof dimensions and gutter length are saved with the approver and timestamp; only these approved values can create estimate drafts.</p><select value={wasteFactor} onChange={(e) => setWasteFactor(e.target.value)} className="w-full p-2 border rounded mt-2"><option value="0.10">10% waste</option><option value="0.15">15% waste</option><option value="0">0% waste</option></select><div className="grid grid-cols-2 gap-2 mt-2"><button onClick={() => void saveFieldVerification('refresh')} disabled={working} className="bg-amber-400/100 text-white py-2 rounded disabled:opacity-60">Request photo refresh</button><button onClick={() => void saveFieldVerification('verify')} disabled={working} className="bg-green-600 text-white py-2 rounded disabled:opacity-60">Verify measurements</button></div></div><div className="mt-3 bg-amber-400/10 p-3 rounded text-sm">Verify records the technician, timestamp, roof and gutter measurements, slope multiplier, roof type, waste factor, soffit/fascia widths, and calculated squares. Refresh preserves the existing packet and returns it for new photos.</div></div>}
     {workflow && <section className="glass rounded-xl p-4 mt-4"><h2 className="font-semibold">Golden Report evidence review</h2><p className="text-xs text-slate-300 mt-1">Review every source photo before owner or manager approval. These are human evidence decisions, not AI findings.</p><div className="space-y-3 mt-3">{photoIds.map((photoId, index) => <div key={photoId} className="border rounded p-3"><p className="text-sm font-medium">Photo {index + 1} · {photoId}</p><input value={photoReviewNotes[photoId] ?? ''} onChange={(e) => setPhotoReviewNotes((current) => ({ ...current, [photoId]: e.target.value }))} placeholder="Optional coverage note" className="w-full p-2 border rounded mt-2 text-sm" /><div className="flex flex-wrap gap-2 mt-2"><button onClick={() => void reviewPhoto(photoId, 'usable', 'complete')} disabled={working} className="bg-green-600 text-white px-2 py-1 rounded text-xs">Usable · complete</button><button onClick={() => void reviewPhoto(photoId, 'usable', 'partial')} disabled={working} className="bg-amber-600 text-white px-2 py-1 rounded text-xs">Usable · partial</button><button onClick={() => void reviewPhoto(photoId, 'not_usable', 'not_visible')} disabled={working} className="bg-red-600 text-white px-2 py-1 rounded text-xs">Not usable</button></div></div>)}</div><div className="border-t mt-4 pt-4"><h3 className="font-medium">Owner or manager approval</h3><div className="grid grid-cols-2 gap-2 mt-2"><input value={managerName} onChange={(e) => setManagerName(e.target.value)} placeholder="Owner / manager name" className="ops-input" /><label className="text-sm">Signature (PNG)<input type="file" accept="image/png" onChange={(e) => { const file = e.target.files?.[0]; if (!file) return; const reader = new FileReader(); reader.onload = () => setManagerSignature(typeof reader.result === 'string' ? reader.result : ''); reader.readAsDataURL(file) }} className="w-full p-2 border rounded mt-1" /></label></div><button onClick={() => void approveManager()} disabled={working} className="w-full mt-3 bg-indigo-700 text-white py-2 rounded disabled:opacity-60">Record owner / manager approval</button></div></section>}
 {workflow?.status === 'approved' && workflow?.manager_approved_at && !fullReport && <button onClick={() => void generateFullReport()} disabled={working} className="w-full mt-4 bg-indigo-700 text-white py-3 rounded font-semibold disabled:opacity-60">{working ? 'Generating full report…' : 'Generate full report'}</button>}
-    <section className="glass rounded-xl p-4 mt-4 space-y-2 border border-violet-400/40">
-      <div className="flex items-center justify-between">
-        <h2 className="font-bold text-sm">Production → materials</h2>
-        <span className="text-[10px] uppercase text-violet-200">Next lane · gated</span>
-      </div>
-      {(() => {
-        const production = draftProduction({
-          address,
-          squares: roofSquares ? Number(roofSquares) : null,
-          gutterLf: verifiedGutterLf ? Number(verifiedGutterLf) : null,
-          soffitIn: soffitWidthFt ? Number(soffitWidthFt) : null,
-          fasciaIn: fasciaWidthFt ? Number(fasciaWidthFt) : null,
-          estimateApproved: workflow?.status === 'approved',
-        })
-        return (
-          <div className="text-xs space-y-1">
-            {production.ready ? <p className="text-emerald-300">Work order draft ready. No order placed.</p> : <ul className="text-red-300 list-disc pl-4">{production.startBlockers.map((b) => <li key={b}>{b}</li>)}</ul>}
-            <ul className="list-disc pl-4">{production.materials.map((line) => <li key={line.trade}>{line.item}: {line.qty}</li>)}</ul>
-            <p className="text-slate-400">{production.workOrder[1]}</p>
-          </div>
-        )
-      })()}
-    </section>
-
     {fullReport && <GoldenReport report={fullReport} photoUrls={reportPhotoById} onPrint={() => window.print()} />}
-
-
-    <section className="glass rounded-xl p-4 mt-4 space-y-2 border border-amber-400/40">
-      <div className="flex items-center justify-between">
-        <h2 className="font-bold text-sm">Estimate → send</h2>
-        <span className="text-[10px] uppercase text-amber-200">Next lane · gated</span>
-      </div>
-      {(() => {
-        const gate = gatePhotoReport({
-          coverageScore: reportDraft?.coverageScore ?? 0,
-          missing: reportDraft?.missing ?? [],
-          addressBand: onePacket?.addressCertainty.band ?? 'unresolved',
-          pitch: pitch ? Number(pitch) : null,
-          wasteFactor: wasteFactor ? Number(wasteFactor) : null,
-          soffitIn: soffitWidthFt ? Number(soffitWidthFt) : null,
-          fasciaIn: fasciaWidthFt ? Number(fasciaWidthFt) : null,
-        })
-        const estimate = draftEstimate({
-          address,
-          pitch: pitch ? Number(pitch) : null,
-          wasteFactor: wasteFactor ? Number(wasteFactor) : null,
-          soffitIn: soffitWidthFt ? Number(soffitWidthFt) : null,
-          fasciaIn: fasciaWidthFt ? Number(fasciaWidthFt) : null,
-          eaveLf: eaveLf ? Number(eaveLf) : null,
-          rafterLf: rafterLf ? Number(rafterLf) : null,
-          gutterLf: verifiedGutterLf ? Number(verifiedGutterLf) : null,
-          gateReady: gate.ready,
-        })
-        return (
-          <div className="text-xs space-y-1">
-            <p>Squares {estimate.squares ?? 'pending'} · options {estimate.options.join(' / ')}</p>
-            {estimate.readyToSend ? <p className="text-emerald-300">Ready for tech approval. Not sent.</p> : <ul className="text-red-300 list-disc pl-4">{estimate.blockers.map((b) => <li key={b}>{b}</li>)}</ul>}
-            {estimate.readyToSend && <p className="bg-white/5 border border-white/10 rounded p-2">{estimate.sms}</p>}
-            {!estimate.readyToSend && <p className="text-slate-400">Send stays a draft until the gate is clear.</p>}
-          </div>
-        )
-      })()}
-    </section>
-{fullReport && reportDraft && (
-      <section className="glass rounded-xl p-4 mt-4 space-y-2">
-        <h2 className="font-bold text-sm">Photo-report draft riding with this report</h2>
-        <p className="text-[11px] text-amber-200">Draft only. Coverage {reportDraft.coverageScore}%. Does not replace the golden report.</p>
-        {reportDraft.sections.map((section) => <p key={section.id} className="text-xs"><span className="font-bold">{section.title}:</span> {section.statements[0]}</p>)}
-      </section>
-    )}
-
   </div>
 }

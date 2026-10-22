@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
   const parsed = await readJson(request, 8 * 1024)
   if ('error' in parsed) return jsonError(parsed.error, parsed.status)
   const body = parsed.body
-  if (Object.keys(body).some((key) => key !== 'workflowId' && key !== 'photoReportDraft')) return jsonError('Only workflowId and photoReportDraft are supported.', 400)
+  if (Object.keys(body).some((key) => key !== 'workflowId')) return jsonError('Only workflowId is supported.', 400)
   const workflowId = body.workflowId
   if (!isUuid(workflowId)) return jsonError('A valid workflowId is required.', 400)
 
@@ -247,12 +247,7 @@ export async function POST(request: NextRequest) {
     return jsonError('The report did not pass the Golden Report rules and was not saved.', 500)
   }
 
-  const draft = body.photoReportDraft
-  const draftRecord = draft && typeof draft === 'object' && !Array.isArray(draft) ? draft as Record<string, unknown> : null
-  const photoReportDraft = draftRecord && draftRecord.version === 'photo-report-draft-v2' && Array.isArray(draftRecord.sections)
-    ? { version: draftRecord.version, coverageScore: draftRecord.coverageScore ?? 0, missing: draftRecord.missing ?? [], sections: draftRecord.sections, requiresApproval: true as const }
-    : null
-  const nextReport = { ...existingReport, fullReport, photoReportDraft, status: 'full_report_generated' }
+  const nextReport = { ...existingReport, fullReport, status: 'full_report_generated' }
   const { data: updated, error: updateError } = await supabase
     .from('photo_estimate_workflows')
     .update({ report: nextReport, updated_at: generatedAt })
