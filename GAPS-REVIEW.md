@@ -63,3 +63,30 @@ Supabase project on 2026-10-25. The older status paragraph is retained as histor
 - **Still external gates:** production migration application, physical Android/iOS
   verification, and any provider-side (claims/telephony/paid AI) enablement remain
   out of scope for source verification.
+
+## Phase 1 launch-hardening checkpoint — 2026-10-25
+
+Source-only fixes for the private single-shop pilot, verified in a clean clone of
+`b04d33a`:
+
+- **Public passport was unreachable.** `proxy.ts` redirected unauthenticated HTML to
+  `/auth/login`, including `/passport/share/<token>`. The path is now exempt and the
+  response carries `Referrer-Policy: no-referrer` and `X-Robots-Tag: noindex, nofollow`.
+- **Vercel Cron uses GET.** `inspection-quality`, `receptionist-followups`, and
+  `warranty-expiry` now export both `GET` and `POST`. `vercel.json` is reduced to the
+  Hobby limit of two jobs: weekly `retailer-prices` and daily `/api/cron/daily`, which
+  dispatches the three agents and returns `207` when a job fails.
+- **No publish control existed.** The contractor passport page now publishes, copies,
+  and revokes the homeowner link through the existing admin-guarded share route.
+- **Public endpoint hardening.** Migration `056` adds a service-role-only fixed-window
+  rate limiter; the public route returns `429` with `Retry-After` after 30 requests per
+  minute per IP+token and `503` if the limiter is unavailable.
+- **Warranty cron robustness.** Expired registrations are updated in bounded batches of
+  500, alerts remain capped at 200, and `?dryRun=1` reports `wouldCreate` with no writes.
+- **Contract coverage.** Added `test:cron-http` and `test:passport-public-link`, and
+  extended `test:warranty-expiry` for the dispatcher and dry-run behavior.
+
+Still external: apply migrations `054`–`056` to staging/production, verify
+`CRON_SECRET` and `SUPABASE_SERVICE_ROLE_KEY` in Vercel, run authenticated isolation
+with real test users, capture physical Android evidence, rehearse restore, and upgrade
+the plan before adding more cron jobs or retry frequency.
