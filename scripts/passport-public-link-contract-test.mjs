@@ -7,6 +7,11 @@ for (const marker of ['isPublicPassportPath', "'/passport/share'", "'Referrer-Po
 }
 assert.ok(proxy.includes('!isPublicPassportPath(pathname)'), 'unauthenticated HTML redirect must exempt public passport paths')
 
+const nextConfig = readFileSync('next.config.ts', 'utf8')
+for (const marker of ["'/passport/share/:path*'", "'Referrer-Policy'", "'no-referrer'", "'X-Robots-Tag'", "'noindex, nofollow'"]) {
+  assert.ok(nextConfig.includes(marker), `next.config.ts missing passport share header rule: ${marker}`)
+}
+
 const publicRoute = readFileSync('app/api/passport/public/route.ts', 'utf8')
 for (const marker of ['consume_public_rate_limit', 'status: 429', "'Retry-After'", "'Cache-Control': 'no-store'", 'createHash']) {
   assert.ok(publicRoute.includes(marker), `public passport route missing hardening: ${marker}`)
