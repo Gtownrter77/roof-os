@@ -1,10 +1,17 @@
-# Current repository audit — 2026-10-21
+# Current repository audit — 2026-10-25
 
-**Current main baseline:** `9660661221468ca854e1c628f15bb293e50d4d50`
-**Merged repair:** PR #287 passed required checks and post-merge main CI.
-**Current audit record:** [AUDIT-STATUS-2026-10-21.md](AUDIT-STATUS-2026-10-21.md).
+**Current main baseline:** `b04d33a` (PR #319)
+**Current audit record:** [AUDIT-STATUS-2026-10-21.md](AUDIT-STATUS-2026-10-21.md) plus the [GAPS-REVIEW.md](GAPS-REVIEW.md) checkpoint.
 
-The dated checkpoints below are historical snapshots, not proof that every production workflow works. Current source includes the agent approval-binding fix, but production migration application, authenticated two-workspace isolation, real-device mobile behavior, provider execution, and backup/restore rehearsal remain evidence-gated. Migration `053` is present in source; the next new local prefix is `054`.
+The dated checkpoints below are historical snapshots, not proof that every production workflow works. Current source includes the public homeowner passport share flow, consolidated Vercel crons (`GET /api/cron/daily` + weekly `GET /api/cron/retailer-prices`), and migration `056` rate limiting for the token-gated passport endpoint. Production migration application, authenticated two-workspace isolation, real-device mobile behavior, provider execution, and backup/restore rehearsal remain evidence-gated. Migrations `054`–`056` are present in source; the next new local prefix is `057`.
+
+## Vercel Hobby limits
+
+Hobby plans allow at most **2** cron jobs, each running once per day. Daily jobs (`inspection-quality`, `receptionist-followups`, `warranty-expiry`) are dispatched by `GET /api/cron/daily` at 14:00 UTC; the weekly retailer refresh stays on `GET /api/cron/retailer-prices` Monday 04:00 UTC. Each individual route still accepts `POST`/`GET` with `Authorization: Bearer $CRON_SECRET` for manual runs; `warranty-expiry` also accepts `?dryRun=1`. Retries of receptionist follow-ups therefore happen on the next daily run until the plan is upgraded.
+
+## Public passport link
+
+Publishing a passport creates a token URL `/passport/share/<token>` that is reachable without authentication and is exempted in `proxy.ts`. The public API requires both `public_token` and `public_shared = true`, returns only bounded property/system fields, applies `no-store`, `Referrer-Policy: no-referrer`, and `X-Robots-Tag: noindex`, and is rate-limited through `public.consume_public_rate_limit` (migration `056`). Apply migrations `055` and `056` before enabling sharing in production.
 
 ---
 

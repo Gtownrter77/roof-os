@@ -77,3 +77,6 @@ export async function POST(request: NextRequest) {
   await writeWorkerHeartbeats(admin, workspaceIds, 'scheduler', 'healthy')
   return NextResponse.json({ processed: attempts?.length || 0, started, optedOut, failed: 0 })
 }
+
+// Vercel Cron invokes scheduled paths with GET; keep POST for manual runs.
+export const GET = POST

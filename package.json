@@ -63,6 +63,8 @@
     "test:radar-source": "node scripts/radar-source-test.mjs",
     "test:dashboard-weather": "node scripts/dashboard-weather-test.mjs",
     "test:passport-public-share": "node scripts/passport-public-share-contract-test.mjs",
+    "test:passport-public-link": "node scripts/passport-public-link-contract-test.mjs",
+    "test:cron-http": "node scripts/cron-http-contract-test.mjs",
     "test:warranty-expiry": "node scripts/warranty-expiry-contract-test.mjs"
   },
   "dependencies": {

@@ -39,3 +39,19 @@ The application configuration surfaces are protected by `public.is_system_owner(
 ## Weekly Home Depot refresh
 
 Add approved material searches to `retailer_price_watchlist`. Vercel invokes `GET /api/cron/retailer-prices` every Monday at 04:00 UTC using `CRON_SECRET`. The job skips fresh seven-day snapshots, reserves each provider inquiry transactionally, stops at 100 inquiries per workspace per calendar month, and stores retailer reference responses for review. It does not automatically convert retail prices into insurance-approved estimate rates.
+
+## Daily agents and Vercel Hobby limits
+
+Vercel Hobby allows at most two cron jobs, each running once per day. `GET /api/cron/daily` at 14:00 UTC dispatches `inspection-quality`, `receptionist-followups`, and `warranty-expiry`; the retailer refresh remains the second job. Do not add the individual agent paths back to `vercel.json` while on Hobby. Manual execution:
+
+```bash
+curl -fsS -H "Authorization: Bearer $CRON_SECRET" https://<host>/api/cron/warranty-expiry
+curl -fsS -H "Authorization: Bearer $CRON_SECRET" "https://<host>/api/cron/warranty-expiry?dryRun=1"
+curl -fsS -H "Authorization: Bearer $CRON_SECRET" https://<host>/api/cron/daily
+```
+
+`warranty-expiry` expires registrations in bounded batches (500) and creates at most 200 alerts per run; `?dryRun=1` reports `wouldCreate` without writing tasks or heartbeats.
+
+## Public passport share
+
+Apply migrations `055_passport_public_share.sql` and `056_public_passport_rate_limit.sql` before enabling sharing. Publishing requires workspace administrator access and sets `public_shared = true`; unpublishing revokes access immediately. The public endpoint is unauthenticated by design, returns only `property_address`, `homeowner_name`, `material_system`, `manufacturer`, `color`, `install_date`, and `status`, and is rate-limited per IP+token. No additional environment variable is required beyond the existing service-role key and `NEXT_PUBLIC_SUPABASE_*` values.

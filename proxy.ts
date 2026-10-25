@@ -6,6 +6,10 @@ function isCronPath(pathname: string) {
   return pathname.startsWith('/api/cron/')
 }
 
+function isPublicPassportPath(pathname: string) {
+  return pathname === '/passport/share' || pathname.startsWith('/passport/share/')
+}
+
 function isAuthUtilityPath(pathname: string) {
   return (
     pathname.startsWith('/auth')
@@ -74,6 +78,7 @@ export async function proxy(request: NextRequest) {
   if (
     !user
     && !isAuthUtilityPath(pathname)
+    && !isPublicPassportPath(pathname)
     && wantsHtml(request)
     && !pathname.startsWith('/api/')
   ) {
@@ -83,7 +88,12 @@ export async function proxy(request: NextRequest) {
   }
 
   // MFA remains optional at /auth/mfa.
-  return applySecurityPolicy(response, nonce)
+  const finalResponse = applySecurityPolicy(response, nonce)
+  if (isPublicPassportPath(pathname)) {
+    finalResponse.headers.set('Referrer-Policy', 'no-referrer')
+    finalResponse.headers.set('X-Robots-Tag', 'noindex, nofollow')
+  }
+  return finalResponse
 }
 
 export const config = {

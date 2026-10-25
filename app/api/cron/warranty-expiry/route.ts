@@ -11,15 +11,37 @@ export async function POST(request: NextRequest) {
   const supplied = request.headers.get('authorization')?.replace(/^Bearer\s+/i, '')
   if (!secret || supplied !== secret) return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 })
 
+  const dryRun = request.nextUrl.searchParams.get('dryRun') === '1'
   const admin = createAdminClient()
   const now = new Date()
+  const today = now.toISOString().slice(0, 10)
   const windowEnd = new Date(now.getTime() + ALERT_WINDOW_DAYS * 24 * 60 * 60 * 1000)
+
+  // Move already-expired registrations out of the active set in bounded batches.
+  const { data: expiredRows, error: expiredError } = await admin
+    .from('warranties')
+    .select('id')
+    .in('registration_status', ['packet_ready', 'submitted', 'registered'])
+    .not('expires_at', 'is', null)
+    .lt('expires_at', today)
+    .limit(500)
+
+  if (expiredError) return NextResponse.json({ error: 'Could not read expired warranties.', detail: expiredError.message }, { status: 502 })
+
+  const expiredIds = (expiredRows ?? []).map((row) => row.id)
+  if (expiredIds.length && !dryRun) {
+    const { error: updateError } = await admin
+      .from('warranties')
+      .update({ registration_status: 'expired' })
+      .in('id', expiredIds)
+    if (updateError) return NextResponse.json({ error: 'Could not expire warranties.', detail: updateError.message }, { status: 502 })
+  }
 
   const { data: expiring, error } = await admin
     .from('warranties')
     .select('id, workspace_id, lead_id, manufacturer, product_line, registration_status, expires_at')
     .not('expires_at', 'is', null)
-    .gte('expires_at', now.toISOString().slice(0, 10))
+    .gte('expires_at', today)
     .lte('expires_at', windowEnd.toISOString().slice(0, 10))
     .in('registration_status', ['packet_ready', 'submitted', 'registered'])
     .order('expires_at', { ascending: true })
@@ -28,21 +50,6 @@ export async function POST(request: NextRequest) {
   if (error) return NextResponse.json({ error: 'Could not read expiring warranties.', detail: error.message }, { status: 502 })
 
   const workspaceIds = [...new Set((expiring ?? []).map((row) => row.workspace_id).filter(Boolean))]
-
-  // Move already-expired registrations out of the active set.
-  const { count: expiredCount } = await admin
-    .from('warranties')
-    .select('id', { count: 'exact', head: true })
-    .in('registration_status', ['packet_ready', 'submitted', 'registered'])
-    .not('expires_at', 'is', null)
-    .lt('expires_at', now.toISOString().slice(0, 10))
-
-  await admin
-    .from('warranties')
-    .update({ registration_status: 'expired' })
-    .in('registration_status', ['packet_ready', 'submitted', 'registered'])
-    .not('expires_at', 'is', null)
-    .lt('expires_at', now.toISOString().slice(0, 10))
 
   const owners = new Map<string, string>()
   if (workspaceIds.length) {
@@ -55,6 +62,7 @@ export async function POST(request: NextRequest) {
   }
 
   let created = 0
+  let wouldCreate = 0
   let skipped = 0
   for (const warranty of expiring ?? []) {
     const ownerId = owners.get(warranty.workspace_id)
@@ -69,6 +77,7 @@ export async function POST(request: NextRequest) {
       .limit(1)
       .maybeSingle()
     if (existing) { skipped += 1; continue }
+    if (dryRun) { wouldCreate += 1; continue }
 
     const label = [warranty.manufacturer, warranty.product_line].filter(Boolean).join(' ') || 'Manufacturer warranty'
     const daysLeft = Math.max(0, Math.ceil((new Date(warranty.expires_at).getTime() - now.getTime()) / (24 * 60 * 60 * 1000)))
@@ -87,9 +96,20 @@ export async function POST(request: NextRequest) {
     created += 1
   }
 
-  if (workspaceIds.length) {
+  if (!dryRun && workspaceIds.length) {
     await writeWorkerHeartbeats(admin, workspaceIds, 'office_copilot', 'healthy', { probe: 'warranty-expiry', windowDays: ALERT_WINDOW_DAYS })
   }
 
-  return NextResponse.json({ scanned: expiring?.length ?? 0, created, skipped, expiredRegistrations: expiredCount ?? 0, boundary: 'local-task-alerts-only' })
+  return NextResponse.json({
+    dryRun,
+    scanned: expiring?.length ?? 0,
+    created,
+    wouldCreate,
+    skipped,
+    expiredRegistrations: expiredIds.length,
+    boundary: 'local-task-alerts-only',
+  })
 }
+
+// Vercel Cron invokes scheduled paths with GET; keep POST for manual runs.
+export const GET = POST

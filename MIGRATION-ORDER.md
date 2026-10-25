@@ -1,8 +1,8 @@
 # Database migration ordering
 
-## Current checkpoint — 2026-10-21
+## Current checkpoint — 2026-10-25
 
-`main` is now `b6520da825cb31cf538894fbfc44c87a38a752c3` after PR #288. Migration `053_agent_action_ledger.sql` is present in source and covered by CI contracts; its target-project application remains unverified. The next new local prefix is `054`. Use the manual, protected staging workflow `.github/workflows/staging-migration-verify.yml` before any production application. A green repository check is not proof of live schema parity.
+`main` is now `b04d33a` after PR #319. Migrations `054_mobile_ai_observations.sql`, `055_passport_public_share.sql`, and `056_public_passport_rate_limit.sql` are present in source and covered by CI contracts; their target-project application remains unverified. The next new local prefix is `057`. Use the manual, protected staging workflow `.github/workflows/staging-migration-verify.yml` before any production application. A green repository check is not proof of live schema parity.
 
 **Do not rename or renumber an already-released SQL migration without checking the applied production ledger first.** The production Supabase ledger uses timestamp versions; the repo SQL files use shorter numeric prefixes. The project was restored during this release and is now `ACTIVE_HEALTHY`.
 
@@ -14,7 +14,7 @@ Production lists `035_retailer_quota_hardening` as applied (ledger version `2026
 
 ## Known legacy local-prefix collisions
 
-The current repository has three duplicate numeric prefixes. Migrations 036, 037, 038, and 053 are already present on main; the next new local migration prefix is `054`.
+The current repository has three duplicate numeric prefixes. Migrations 036, 037, 038, 053, 054, 055, and 056 are already present on main; the next new local migration prefix is `057`.
 
 | Prefix | Files |
 | --- | --- |
@@ -32,13 +32,13 @@ In addition to the numeric-prefix collisions above, these pairs have identical S
 - `022_soffit_measurement_fields.sql` and `023_soffit_measurement_fields.sql`
 - `023_photo_refresh_decisions.sql` and `024_photo_refresh_decisions.sql`
 
-Treat this as a repository-history reconciliation task, not permission to delete or renumber files. Before any cleanup, compare the actual production migration ledger and the SQL state already applied. New work must use a unique prefix greater than `052`.
+Treat this as a repository-history reconciliation task, not permission to delete or renumber files. Before any cleanup, compare the actual production migration ledger and the SQL state already applied. New work must use a unique prefix greater than `056`.
 
 ## Safe forward path
 
 1. Before using `supabase migration repair`, renaming a historical file, or changing a production ledger, inspect the recorded production migration versions.
 2. Keep released migration files immutable until the remote history is reconciled.
-3. Give every new local migration a unique prefix greater than the highest released prefix. The next new local migration prefix is `054`.
+3. Give every new local migration a unique prefix greater than the highest released prefix. The next new local migration prefix is `057`.
 4. Run the migration in a staging database first, then run the app/release checks against the migrated schema.
 5. Record the migration name and its production apply status in the release/owner manual.
 
