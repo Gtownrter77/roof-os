@@ -40,3 +40,26 @@ Generic chatbot, Scout-clone CRM editor, lead-rank copy, AI website builder.
 2. Human-reviewed supplement gap list from uploaded carrier PDFs.
 3. Production-ready score (contract, deposit, color, permit, materials, crew, weather).
 4. Homeowner-visible passport link with signed URLs only.
+
+## Verified checkpoint — 2026-10-25 (supersedes the "current status" paragraph above)
+
+This checkpoint records what was re-verified against the source and a non-production
+Supabase project on 2026-10-25. The older status paragraph is retained as history.
+
+- **Standard authentication is restored.** `/auth/login` ships password sign-in,
+  magic-link request, password reset, and signup navigation. Break-glass remains a
+  collapsed, owner-only fallback. The earlier "owner-only break-glass is the only
+  path" statement is no longer accurate.
+- **Multi-tenant RLS verified live.** The repository's own
+  `scripts/two-workspace-isolation-test.mjs` ran against a non-production project with
+  two synthetic users and passed: cross-workspace lead reads, updates, and deletes were
+  denied, and a private inspection photo could not be read across workspaces.
+- **Full suite green.** All test scripts pass, along with `typecheck`, `release-check`,
+  and the production `runtime-smoke` server boot. One real source fix was required:
+  `next.config.ts` now emits immutable `Cache-Control` for `/_next/static/(.*)`.
+- **Newly closed gaps:** public read-only Roof Passport share links (unguessable
+  token, server-only read, admin publish/unpublish) and a daily warranty-expiry cron
+  that creates owner tasks and transitions expired registrations.
+- **Still external gates:** production migration application, physical Android/iOS
+  verification, and any provider-side (claims/telephony/paid AI) enablement remain
+  out of scope for source verification.

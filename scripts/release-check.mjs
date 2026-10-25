@@ -92,7 +92,11 @@ for (const route of routes) {
   const hasStripeSignatureGuard = source.includes("stripe-signature") && source.includes('constructEvent')
   const hasTwilioSignatureGuard = source.includes('assertTwilioRequest')
   const isPublicStatusRoute = route === join(root, 'app', 'api', 'status', 'route.ts')
-  if (!hasSessionGuard && !hasCronGuard && !hasStripeSignatureGuard && !hasTwilioSignatureGuard && !isPublicStatusRoute) {
+  const isTokenScopedPublicRoute = route === join(root, 'app', 'api', 'passport', 'public', 'route.ts')
+    && source.includes(".eq('public_token', token)")
+    && source.includes(".eq('public_shared', true)")
+    && !/\bexport\s+(async\s+)?function\s+(POST|PUT|PATCH|DELETE)\b/.test(source)
+  if (!hasSessionGuard && !hasCronGuard && !hasStripeSignatureGuard && !hasTwilioSignatureGuard && !isPublicStatusRoute && !isTokenScopedPublicRoute) {
     throw new Error(`API route has no visible session, cron, or verified provider webhook authentication guard: ${route}`)
   }
   if (source.includes('request.json()')) {
