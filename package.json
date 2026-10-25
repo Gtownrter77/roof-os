@@ -61,7 +61,9 @@
     "test:owner-labor": "node scripts/owner-labor-catalog-test.mjs",
     "test:camera-audio": "node scripts/inspection-camera-audio-test.mjs",
     "test:radar-source": "node scripts/radar-source-test.mjs",
-    "test:dashboard-weather": "node scripts/dashboard-weather-test.mjs"
+    "test:dashboard-weather": "node scripts/dashboard-weather-test.mjs",
+    "test:passport-public-share": "node scripts/passport-public-share-contract-test.mjs",
+    "test:warranty-expiry": "node scripts/warranty-expiry-contract-test.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.2",
