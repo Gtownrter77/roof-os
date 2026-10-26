@@ -2,7 +2,7 @@
 
 ## Current checkpoint — 2026-10-25
 
-`main` is now `b04d33a` after PR #319. Migrations `054_mobile_ai_observations.sql`, `055_passport_public_share.sql`, and `056_public_passport_rate_limit.sql` are present in source and covered by CI contracts; their target-project application remains unverified. The next new local prefix is `057`. Use the manual, protected staging workflow `.github/workflows/staging-migration-verify.yml` before any production application. A green repository check is not proof of live schema parity.
+`main` is now `cc2e718` after PRs #321/#322. Migrations `054_mobile_ai_observations.sql`, `055_passport_public_share.sql`, and `056_public_passport_rate_limit.sql` are present in source and covered by CI contracts. On 2026-10-25, `055` and `056` were applied to production project `xksumagfbegdlapwysps` and verified: the three passport columns and both indexes exist, `public_access_rate_limits` has RLS enabled, `consume_public_rate_limit` is `SECURITY DEFINER` with `search_path=public`, the fixed-window limit returns `false` after the threshold, and the live public endpoint returns `404` for an unknown token. `054` remains unapplied. The next new local prefix is `057`. Use the manual, protected staging workflow `.github/workflows/staging-migration-verify.yml` for future migrations; the production ledger for `055`/`056` is applied but staging parity is still unverified.
 
 **Do not rename or renumber an already-released SQL migration without checking the applied production ledger first.** The production Supabase ledger uses timestamp versions; the repo SQL files use shorter numeric prefixes. The project was restored during this release and is now `ACTIVE_HEALTHY`.
 
