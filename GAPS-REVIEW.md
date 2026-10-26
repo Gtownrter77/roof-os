@@ -86,7 +86,12 @@ Source-only fixes for the private single-shop pilot, verified in a clean clone o
 - **Contract coverage.** Added `test:cron-http` and `test:passport-public-link`, and
   extended `test:warranty-expiry` for the dispatcher and dry-run behavior.
 
-Still external: apply migrations `054`–`056` to staging/production, verify
-`CRON_SECRET` and `SUPABASE_SERVICE_ROLE_KEY` in Vercel, run authenticated isolation
-with real test users, capture physical Android evidence, rehearse restore, and upgrade
-the plan before adding more cron jobs or retry frequency.
+**Applied to production 2026-10-25:** migrations `055` and `056`, verified through the
+schema, the rate-limit RPC, and the live endpoint (`404` for an unknown token). The
+public link now works end to end once a workspace publishes a passport.
+
+Still external: apply `054` when mobile AI observations are enabled, verify staging
+parity, confirm `CRON_SECRET` and `SUPABASE_SERVICE_ROLE_KEY` in Vercel and trigger
+`GET /api/cron/daily` manually, run authenticated isolation with real test users,
+capture physical Android evidence, rehearse restore, and upgrade the plan before
+adding more cron jobs or retry frequency.

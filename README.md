@@ -11,7 +11,7 @@ Hobby plans allow at most **2** cron jobs, each running once per day. Daily jobs
 
 ## Public passport link
 
-Publishing a passport creates a token URL `/passport/share/<token>` that is reachable without authentication and is exempted in `proxy.ts`. The public API requires both `public_token` and `public_shared = true`, returns only bounded property/system fields, applies `no-store`, `Referrer-Policy: no-referrer`, and `X-Robots-Tag: noindex`, and is rate-limited through `public.consume_public_rate_limit` (migration `056`). Apply migrations `055` and `056` before enabling sharing in production.
+Publishing a passport creates a token URL `/passport/share/<token>` that is reachable without authentication and is exempted in `proxy.ts`. The public API requires both `public_token` and `public_shared = true`, returns only bounded property/system fields, applies `no-store`, `Referrer-Policy: no-referrer`, and `X-Robots-Tag: noindex`, and is rate-limited through `public.consume_public_rate_limit` (migration `056`). Migrations `055` and `056` were applied and verified on the production project on 2026-10-25; apply them to any new environment before enabling sharing.
 
 ---
 
