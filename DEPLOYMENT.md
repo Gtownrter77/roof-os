@@ -1,6 +1,6 @@
 # Deployment
 
-**Current checkpoint — 2026-10-21:** `main` is `b6520da825cb31cf538894fbfc44c87a38a752c3`; post-merge CI passed. Production migration parity, authenticated two-workspace checks, physical-device behavior, and provider execution remain unverified. Run `.github/workflows/staging-migration-verify.yml` only against an owner-designated protected staging environment; never use it as a production deploy mechanism.
+**Current checkpoint — 2026-10-26:** `main` is `03d8cddd0047b2a2530301c8a3e136ad8eaf1481`; post-merge CI passed. Production migrations `053`–`056` are applied and recorded. Authenticated two-workspace checks, physical-device behavior, passport positive-path, provider execution, backup/restore, and staging parity remain unverified. Run `.github/workflows/staging-migration-verify.yml` only against an owner-designated protected staging environment; never use it as a production deploy mechanism.
 
 ROOF/OS is connected to the free Vercel Hobby project `roof-os`.
 
@@ -55,3 +55,5 @@ curl -fsS -H "Authorization: Bearer $CRON_SECRET" https://<host>/api/cron/daily
 ## Public passport share
 
 Migrations `055_passport_public_share.sql` and `056_public_passport_rate_limit.sql` are applied on production as of 2026-10-25; apply them to any new environment before enabling sharing. Publishing requires workspace administrator access and sets `public_shared = true`; unpublishing revokes access immediately. The public endpoint is unauthenticated by design, returns only `property_address`, `homeowner_name`, `material_system`, `manufacturer`, `color`, `install_date`, and `status`, and is rate-limited per IP+token. No additional environment variable is required beyond the existing service-role key and `NEXT_PUBLIC_SUPABASE_*` values.
+
+As of 2026-10-26, migrations `053_agent_action_ledger.sql` and `054_mobile_ai_observations.sql` are also applied and recorded in production. Do not enable Agent Action approval or mobile observation workflows in a new environment until migrations `053`–`056` have been applied and their RLS checks have passed.
