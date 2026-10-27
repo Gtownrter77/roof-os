@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '../../../lib/supabase/server'
 import { readJson, requireWorkspaceMember } from '../../../lib/api-security'
-import { getDefaultEstimateTemplate, estimateStatusSchema } from '../../../lib/estimates/estimate-types'
+import { getDefaultEstimateTemplate } from '../../../lib/estimates/estimate-types'
 
 const ESTIMATE_STATUSES = ['draft', 'pending_approval', 'approved', 'rejected', 'superseded'] as const
 
@@ -143,7 +143,6 @@ export async function POST(request: NextRequest) {
           customer: body.notes_customer,
         },
       },
-      created_by: user.id,
     })
     .select('id,status,subtotal,tax,total,created_at,estimate_snapshot')
     .single()
