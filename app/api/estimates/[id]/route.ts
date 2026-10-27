@@ -12,16 +12,6 @@ async function getWorkspaceContext() {
   return { supabase, user, workspaceId }
 }
 
-function computeTotals(lineItems: { quantity: number; unit_cost: number; category: string }[]) {
-  const material = lineItems.filter(i => i.category === 'material').reduce((sum, i) => sum + i.quantity * i.unit_cost, 0)
-  const labor = lineItems.filter(i => i.category === 'labor').reduce((sum, i) => sum + i.quantity * i.unit_cost, 0)
-  const allowance = lineItems.filter(i => i.category === 'allowance').reduce((sum, i) => sum + i.quantity * i.unit_cost, 0)
-  const fee = lineItems.filter(i => i.category === 'fee').reduce((sum, i) => sum + i.quantity * i.unit_cost, 0)
-  const taxItems = lineItems.filter(i => i.category === 'tax').reduce((sum, i) => sum + i.quantity * i.unit_cost, 0)
-  const subtotal = material + labor + allowance + fee
-  return { material, labor, tax: taxItems, subtotal, total: subtotal + taxItems }
-}
-
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -116,7 +106,6 @@ export async function PUT(
     approved_at = null
   }
 
-  let subtotal = 0, tax = 0, total = 0
   const lineItems = body.line_items
   if (lineItems !== undefined) {
     // One database transaction: an insert failure rolls back deletions and totals.
