@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Settings } from 'lucide-react'
 import { APP_NAV_ITEMS, APP_SHELL_HIDDEN } from '../lib/nav'
+import DashboardSkinToggle from './DashboardSkinToggle'
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() || '/'
@@ -11,8 +12,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   if (hidden) return <>{children}</>
 
   return (
-    <div className="ops-bg min-h-screen pb-24 text-slate-100 lg:pb-8">
-      <header className="sticky top-0 z-20 border-b border-white/10 bg-[#070b14]/95 backdrop-blur">
+    <div className="ops-bg roof-app-shell min-h-screen pb-24 text-slate-100 lg:pb-8">
+      <header className="roof-app-header sticky top-0 z-20 border-b border-white/10 bg-[#070b14]/95 backdrop-blur">
         <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-4 px-4 py-3 md:px-6">
           <Link href="/" className="text-xl font-black tracking-tight text-white">
             ROOF<span className="text-red-500">/</span>OS
@@ -20,6 +21,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               ROOFING OPERATIONS
             </span>
           </Link>
+          <div className="flex items-center gap-2">
+          <DashboardSkinToggle compact className="dashboard-skin-header-toggle" />
           <Link
             href="/settings"
             aria-label="Workspace settings"
@@ -27,6 +30,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           >
             <Settings className="h-4 w-4" />
           </Link>
+          </div>
         </div>
       </header>
 
@@ -34,7 +38,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         <aside className="hidden lg:block">
           <nav
             aria-label="ROOF/OS features"
-            className="sticky top-20 space-y-1 rounded-2xl border border-white/10 bg-slate-950/70 p-3"
+            className="roof-app-nav sticky top-20 space-y-1 rounded-2xl border border-white/10 bg-slate-950/70 p-3"
           >
             {APP_NAV_ITEMS.map(({ href, label, icon: Icon, pilot }) => {
               const active = href === '/' ? pathname === '/' : pathname === href || pathname.startsWith(`${href}/`)
@@ -59,7 +63,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             })}
           </nav>
         </aside>
-        <div className="min-w-0">{children}</div>
+        <div className="roof-main-content min-w-0">{children}</div>
       </div>
     </div>
   )
