@@ -39,7 +39,7 @@ export async function GET() {
 
   const { data, error } = await supabase
     .from('estimates')
-    .select('id,lead_id,template_version_id,price_book_id,status,formula_version,subtotal,tax,total,created_by,approved_by,approved_at,created_at,updated_at,estimate_line_items(*)')
+    .select('id,lead_id,template_version_id,price_book_id,status,formula_version,subtotal,tax,total,created_by,approved_by,approved_at,created_at,updated_at,estimate_snapshot,estimate_line_items(*)')
     .eq('workspace_id', workspaceId)
     .order('created_at', { ascending: false })
     .limit(200)
