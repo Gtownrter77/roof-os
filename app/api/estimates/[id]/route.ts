@@ -39,7 +39,7 @@ export async function GET(
     .maybeSingle()
 
   if (error) return NextResponse.json({ error: 'Could not load estimate.', detail: error.message }, { status: 502 })
-  if (!data) return NextResponse.json({ error: 'Estimate not found.' }, { status: 404 })
+  if (!existing) return NextResponse.json({ error: 'Estimate not found.' }, { status: 404 })
 
   return NextResponse.json({ estimate: { ...data, line_items: data.estimate_line_items ?? [], _estimate_line_items: undefined } })
 }
@@ -87,7 +87,7 @@ export async function PUT(
 
   const { data: existing, error: loadError } = await supabase
     .from('estimates')
-    .select('id,status,created_by,approved_by,approved_at,estimate_snapshot')
+    .select('id,status,created_by,approved_by,approved_at,estimate_snapshot,formula_version')
     .eq('id', id)
     .eq('workspace_id', workspaceId)
     .maybeSingle()
