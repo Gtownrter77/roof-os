@@ -1,3 +1,12 @@
+-- The original estimates schema has no estimate_snapshot column or DELETE policies.
+alter table public.estimates add column if not exists estimate_snapshot jsonb not null default '{}'::jsonb;
+create policy estimate_line_items_delete on public.estimate_line_items for delete
+  using (exists (select 1 from public.estimates e where e.id=estimate_id
+    and public.is_workspace_member(e.workspace_id) and e.status not in ('approved','superseded')));
+create policy estimates_delete on public.estimates for delete
+  using (public.is_workspace_member(workspace_id) and status not in ('approved','superseded')
+    and (created_by=auth.uid() or public.is_workspace_admin(workspace_id)));
+
 -- Atomic replacement: all changes commit together or none do.
 create or replace function public.replace_estimate_line_items(
   p_estimate_id uuid, p_workspace_id uuid, p_items jsonb,
