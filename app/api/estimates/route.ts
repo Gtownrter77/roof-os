@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '../../../../../lib/supabase/server'
-import { readJson, requireWorkspaceMember } from '../../../../../lib/api-security'
-import { getDefaultEstimateTemplate, estimateStatusSchema } from '../../../../../lib/estimates/estimate-types'
+import { createClient } from '../../../lib/supabase/server'
+import { readJson, requireWorkspaceMember } from '../../../lib/api-security'
+import { getDefaultEstimateTemplate, estimateStatusSchema } from '../../../lib/estimates/estimate-types'
 
 const ESTIMATE_STATUSES = ['draft', 'pending_approval', 'approved', 'rejected', 'superseded'] as const
 
