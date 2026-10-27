@@ -39,7 +39,7 @@ export async function GET(
     .maybeSingle()
 
   if (error) return NextResponse.json({ error: 'Could not load estimate.', detail: error.message }, { status: 502 })
-  if (!existing) return NextResponse.json({ error: 'Estimate not found.' }, { status: 404 })
+  if (!data) return NextResponse.json({ error: 'Estimate not found.' }, { status: 404 })
 
   return NextResponse.json({ estimate: { ...data, line_items: data.estimate_line_items ?? [], _estimate_line_items: undefined } })
 }
@@ -93,7 +93,7 @@ export async function PUT(
     .maybeSingle()
 
   if (loadError) return NextResponse.json({ error: 'Could not load estimate.' }, { status: 502 })
-  if (!data) return NextResponse.json({ error: 'Estimate not found.' }, { status: 404 })
+  if (!existing) return NextResponse.json({ error: 'Estimate not found.' }, { status: 404 })
 
   const status = body.status ?? existing.status
   if (!['draft', 'pending_approval', 'approved', 'rejected', 'superseded'].includes(status)) {
