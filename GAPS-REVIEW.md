@@ -95,3 +95,13 @@ parity, confirm `CRON_SECRET` and `SUPABASE_SERVICE_ROLE_KEY` in Vercel and trig
 `GET /api/cron/daily` manually, run authenticated isolation with real test users,
 capture physical Android evidence, rehearse restore, and upgrade the plan before
 adding more cron jobs or retry frequency.
+
+## Production schema repair checkpoint — 2026-10-26
+
+The live Supabase project `xksumagfbegdlapwysps` was repaired through the protected migration tool. Migrations `053_agent_action_ledger`, `054_mobile_ai_observations`, `055_passport_public_share`, and `056_public_passport_rate_limit` are now recorded in the production migration ledger. The Agent Action Ledger tables and approval RPC exist, the mobile observation table and review triggers exist, and the passport/rate-limit schema is ledger-aligned.
+
+The remaining gaps are evidence gates rather than missing source schema: run the disposable two-user RLS/Storage harness, exercise Agent Action approval with a synthetic non-production proposal, verify the passport publish/read/revoke lifecycle with a disposable passport, invoke the authenticated daily cron once, capture physical-device evidence, verify provider execution, and rehearse backup/restore.
+
+## Live integration evidence — 2026-10-26
+
+A reversible production check passed for the public passport lifecycle: a clearly marked temporary passport returned the bounded public projection while published, returned HTTP 404 immediately after revocation, and was deleted successfully. A clearly marked temporary Agent Action batch was approved through the live `approve_agent_action_batch` RPC using the existing workspace-owner context and exact payload hashes; the batch, action, and approval event were then deleted, with zero synthetic rows remaining. The RPC-level approval path is verified; a browser-authenticated HTTP session test remains separate evidence.
