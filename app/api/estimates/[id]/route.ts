@@ -126,7 +126,7 @@ export async function PUT(
     // update estimate totals
     const { error: updateError } = await supabase
       .from('estimates')
-      .update({ status, formula_version: body.formula_version ?? 'v1', subtotal: lineItems.reduce((sum, i) => sum + i.quantity * i.unit_cost, 0) - 0, tax: lineItems.filter(i => i.category === 'tax').reduce((sum, i) => sum + i.quantity * i.unit_cost, 0), total: lineItems.reduce((sum, i) => sum + i.quantity * i.unit_cost, 0), approved_by: approved_by, approved_at: approved_at, updated_at: new Date().toISOString() })
+      .update({ status, formula_version: body.formula_version ?? 'v1', subtotal: lineItems.reduce((sum, i) => sum + i.quantity * i.unit_cost, 0) - 0, tax: lineItems.filter(i => i.category === 'tax').reduce((sum, i) => sum + i.quantity * i.unit_cost, 0), total: lineItems.reduce((sum, i) => sum + i.quantity * i.unit_cost, 0) + lineItems.filter(i => i.category === 'tax').reduce((sum, i) => sum + i.quantity * i.unit_cost, 0), approved_by: approved_by, approved_at: approved_at, updated_at: new Date().toISOString() })
       .eq('id', id)
       .eq('workspace_id', workspaceId)
 
