@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createClient } from '../../../../../lib/supabase/server'
 import { readJson } from '../../../../../lib/read-json'
+import { loadWorkspaceSettings } from '../../../../../lib/workspace-settings'
+
+const STRIPE_MAX_LINK_WINDOW_SECONDS = 24 * 60 * 60
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient()
@@ -24,12 +27,19 @@ export async function POST(request: NextRequest) {
 
   const { data: existing, error: existingError } = await supabase
     .from('receptionist_payment_links')
-    .select('id,url,status,provider_link_id,amount_cents,currency')
+    .select('id,url,status,provider_link_id,amount_cents,currency,expires_at')
     .eq('workspace_id', workspaceId)
     .eq('idempotency_key', body.idempotencyKey)
     .maybeSingle()
   if (existingError) return NextResponse.json({ error: 'Could not check the payment-link ledger.' }, { status: 503 })
-  if (existing) return NextResponse.json({ paymentLink: existing, reused: true })
+  if (existing) {
+    const settings = await loadWorkspaceSettings(supabase, workspaceId)
+    if (settings.enforce_stripe_24hr_link_expiration && existing.expires_at && new Date(existing.expires_at).getTime() <= Date.now()) {
+      await supabase.from('receptionist_payment_links').update({ status: 'expired', updated_at: new Date().toISOString() }).eq('id', existing.id).eq('workspace_id', workspaceId)
+      return NextResponse.json({ error: 'That payment link expired. Create a new link for this invoice.' }, { status: 409 })
+    }
+    return NextResponse.json({ paymentLink: existing, reused: true })
+  }
 
   const { data: invoice, error: invoiceError } = await supabase
     .from('invoices')
@@ -40,11 +50,14 @@ export async function POST(request: NextRequest) {
     .single()
   if (invoiceError || !invoice) return NextResponse.json({ error: 'Only an issued invoice in the active workspace can receive a payment link.' }, { status: 409 })
 
+  const settings = await loadWorkspaceSettings(supabase, workspaceId)
   const stripe = new Stripe(stripeKey)
-  const expiresAtSeconds = Math.floor(Date.now() / 1000) + 24 * 60 * 60 // 24-hour expiration time window
+  const expiresAtSeconds = settings.enforce_stripe_24hr_link_expiration
+    ? Math.floor(Date.now() / 1000) + STRIPE_MAX_LINK_WINDOW_SECONDS
+    : null
   const session = await stripe.checkout.sessions.create({
     mode: 'payment',
-    expires_at: expiresAtSeconds,
+    ...(expiresAtSeconds ? { expires_at: expiresAtSeconds } : {}),
     line_items: [{ price_data: { currency: invoice.currency, product_data: { name: `ROOF/OS invoice ${invoice.invoice_number}` }, unit_amount: invoice.amount_cents }, quantity: 1 }],
     success_url: `${appUrl}/payment?status=success&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${appUrl}/payment?status=cancelled`,
@@ -67,8 +80,9 @@ export async function POST(request: NextRequest) {
       url: session.url,
       idempotency_key: body.idempotencyKey,
       created_by: user.id,
+      expires_at: expiresAtSeconds ? new Date(expiresAtSeconds * 1000).toISOString() : null,
     })
-    .select('id,url,status,provider_link_id,amount_cents,currency')
+    .select('id,url,status,provider_link_id,amount_cents,currency,expires_at')
     .single()
   if (saveError) return NextResponse.json({ error: 'Could not persist the Stripe payment link.', detail: saveError.message }, { status: 502 })
   return NextResponse.json({ paymentLink })

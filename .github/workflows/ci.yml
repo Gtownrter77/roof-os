@@ -79,6 +79,7 @@ jobs:
       - run: npm run test:measurement-estimate-authority
       - run: npm run test:ai-vision-contract
       - run: npm run test:ai-vision-endpoint
+      - run: npm run test:workspace-settings
       - run: npm run audit
 
   mobile:
@@ -199,6 +200,10 @@ jobs:
           test -f supabase/migrations/050_mobile_technician_verification.sql
           test -f supabase/migrations/052_mobile_field_measurement_inputs.sql
           test -f supabase/migrations/054_mobile_ai_observations.sql
+          test -f supabase/migrations/057_workspace_feature_flags.sql
+          grep -q "enable_auto_followup_tasks" supabase/migrations/057_workspace_feature_flags.sql
+          grep -q "enable_ai_receptionist" supabase/migrations/057_workspace_feature_flags.sql
+          grep -q "receptionist_payment_links add column if not exists expires_at" supabase/migrations/057_workspace_feature_flags.sql
           grep -q "enable row level security" supabase/migrations/054_mobile_ai_observations.sql
           grep -q "AI observation provenance is immutable after insertion" supabase/migrations/054_mobile_ai_observations.sql
           grep -q "AI observation and inspection must belong to the same workspace" supabase/migrations/054_mobile_ai_observations.sql

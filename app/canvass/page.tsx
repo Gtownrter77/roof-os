@@ -50,6 +50,8 @@ export default function CanvassPage() {
   const [error, setError] = useState('')
   const [selectedObjection, setSelectedObjection] = useState<ObjectionType>('NO_DAMAGE')
   const [showVCard, setShowVCard] = useState(false)
+  const [leadConversionEnabled, setLeadConversionEnabled] = useState(true)
+  const [vCardEnabled, setVCardEnabled] = useState(true)
   const [form, setForm] = useState({
     address: '',
     homeownerName: '',
@@ -84,10 +86,29 @@ export default function CanvassPage() {
     void loadCanvassLeads()
   }, [loadCanvassLeads])
 
+  useEffect(() => {
+    let active = true
+    fetch('/api/settings')
+      .then(async (response) => {
+        const payload = await response.json().catch(() => ({}))
+        if (!response.ok || !payload.settings) return
+        if (!active) return
+        setLeadConversionEnabled(payload.settings.enable_canvassing_lead_auto_convert !== false)
+        setVCardEnabled(payload.settings.enable_vcard_digital_business_card !== false)
+      })
+      .catch(() => undefined)
+    return () => { active = false }
+  }, [])
+
   async function logKnock(e: FormEvent) {
     e.preventDefault()
     const address = form.address.trim()
     if (!address) return
+
+    if (!leadConversionEnabled) {
+      setError('Canvass lead conversion is turned off for this workspace. Change it in workspace settings before saving leads.')
+      return
+    }
 
     setSaving(true)
     setError('')
@@ -205,13 +226,15 @@ export default function CanvassPage() {
             >
               Canvass leads
             </button>
-            <button
-              type="button"
-              onClick={() => setShowVCard(!showVCard)}
-              className="bg-emerald-400 text-black text-xs font-bold px-2.5 py-1 rounded uppercase hover:bg-emerald-300"
-            >
-              VCard
-            </button>
+            {vCardEnabled && (
+              <button
+                type="button"
+                onClick={() => setShowVCard(!showVCard)}
+                className="bg-emerald-400 text-black text-xs font-bold px-2.5 py-1 rounded uppercase hover:bg-emerald-300"
+              >
+                VCard
+              </button>
+            )}
           </div>
         </div>
       </header>
@@ -321,11 +344,16 @@ export default function CanvassPage() {
           </div>
           <button
             type="submit"
-            disabled={saving}
+            disabled={saving || !leadConversionEnabled}
             className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg text-sm disabled:opacity-50"
           >
             {saving ? 'Saving…' : 'Save to Leads'}
           </button>
+          {!leadConversionEnabled && (
+            <p className="text-[11px] text-amber-200 -mt-2">
+              Canvass lead conversion is turned off for this workspace. Change it in workspace settings before saving leads.
+            </p>
+          )}
         </form>
 
         <div className="glass rounded-xl p-4 space-y-3">

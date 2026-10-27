@@ -12,6 +12,7 @@ import {
   type RadarLayerPrefs,
 } from '../../lib/radar/cinema-layers'
 import { applyCinemaTheme, cinemaThemeEnabled } from '../../lib/theme/cinema'
+import { FEATURE_FLAG_ENFORCEMENT, type WorkspaceFeatureFlag } from '../../lib/workspace-settings'
 
 type Settings = {
   price_refresh_frequency: string
@@ -77,6 +78,7 @@ export default function SettingsPage() {
   const [settings, setSettings] = useState<Settings>(initialSettings)
   const [taxRates, setTaxRates] = useState<TaxRates>(initialTax)
   const [taxSource, setTaxSource] = useState('')
+  const [laborRates, setLaborRates] = useState<Record<string, number>>({})
   const [radarPrefs, setRadarPrefs] = useState<RadarLayerPrefs>(DEFAULT_RADAR_LAYER_PREFS)
   const [cinemaOn, setCinemaOn] = useState(true)
   const [loaded, setLoaded] = useState(false)
@@ -96,6 +98,7 @@ export default function SettingsPage() {
       if (pricingResponse.ok) {
         setTaxRates({ ...initialTax, ...(pricingPayload.taxRates ?? {}) })
         setTaxSource(pricingPayload.taxSource ?? '')
+        if (pricingPayload.rates) setLaborRates(pricingPayload.rates as Record<string, number>)
       }
       setLoaded(true)
     }).catch(() => {
@@ -123,7 +126,7 @@ export default function SettingsPage() {
         return
       }
 
-      const pricingResponse = await fetch('/api/pricing/labor-rates', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ rates: {}, market: settings.default_zipcode || 'owner-defined market', taxRates, taxSource }) })
+      const pricingResponse = await fetch('/api/pricing/labor-rates', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ rates: laborRates, market: settings.default_zipcode || 'owner-defined market', taxRates, taxSource }) })
       const pricingPayload = await pricingResponse.json().catch(() => ({}))
       if (!pricingResponse.ok) {
         setMessage(`Workspace settings saved, but pricing could not be saved: ${pricingPayload.error ?? 'unknown error'}`)
@@ -181,24 +184,28 @@ export default function SettingsPage() {
               desc="OpenWhisper STT & Ollama local inference dialogue engine"
               checked={settings.enable_ai_receptionist}
               onToggle={() => toggleSetting('enable_ai_receptionist')}
+              flag="enable_ai_receptionist"
             />
             <ToggleRow
               label="Inspection Quality Agent (Agent 3)"
               desc="Automated photo completeness checks & review task generation"
               checked={settings.enable_inspection_quality_agent}
               onToggle={() => toggleSetting('enable_inspection_quality_agent')}
+              flag="enable_inspection_quality_agent"
             />
             <ToggleRow
               label="Voice Command Copilot (OpenWhisper STT)"
               desc="Hands-free dictation & voice intent navigation router"
               checked={settings.enable_voice_copilot_whisper}
               onToggle={() => toggleSetting('enable_voice_copilot_whisper')}
+              flag="enable_voice_copilot_whisper"
             />
             <ToggleRow
               label="Auto Follow-up Task Creation"
               desc="Automatically schedule follow-up tasks on lead state changes"
               checked={settings.enable_auto_followup_tasks}
               onToggle={() => toggleSetting('enable_auto_followup_tasks')}
+              flag="enable_auto_followup_tasks"
             />
           </div>
         </section>
@@ -214,18 +221,21 @@ export default function SettingsPage() {
               desc="Block unapproved bids or discounts falling under 35% gross margin"
               checked={settings.enable_margin_guard_35}
               onToggle={() => toggleSetting('enable_margin_guard_35')}
+              flag="enable_margin_guard_35"
             />
             <ToggleRow
               label="Retailer Price Surge Alerts"
               desc="Flag material cost increases across watchlist items"
               checked={settings.enable_retailer_surge_alerts}
               onToggle={() => toggleSetting('enable_retailer_surge_alerts')}
+              flag="enable_retailer_surge_alerts"
             />
             <ToggleRow
               label="Dual Retailer Watchlist (Home Depot + Lowe's)"
               desc="Enable side-by-side contractor material price feeds"
               checked={settings.enable_dual_retailer_watchlist}
               onToggle={() => toggleSetting('enable_dual_retailer_watchlist')}
+              flag="enable_dual_retailer_watchlist"
             />
           </div>
 
@@ -348,18 +358,21 @@ export default function SettingsPage() {
               desc="Allow field reps to convert interested pins directly into CRM leads"
               checked={settings.enable_canvassing_lead_auto_convert}
               onToggle={() => toggleSetting('enable_canvassing_lead_auto_convert')}
+              flag="enable_canvassing_lead_auto_convert"
             />
             <ToggleRow
               label="Digital Business Card (vCard) Module"
               desc="Enable contractor license badges & QR contact sharing in field"
               checked={settings.enable_vcard_digital_business_card}
               onToggle={() => toggleSetting('enable_vcard_digital_business_card')}
+              flag="enable_vcard_digital_business_card"
             />
             <ToggleRow
               label="Offline Local SQLite Sync Queue"
               desc="Persist field photo evidence and pins offline until connection restores"
               checked={settings.enable_offline_sqlite_queue}
               onToggle={() => toggleSetting('enable_offline_sqlite_queue')}
+              flag="enable_offline_sqlite_queue"
             />
           </div>
         </section>
@@ -375,24 +388,28 @@ export default function SettingsPage() {
               desc="Enforce Supabase Auth AAL2 TOTP verification on login"
               checked={settings.require_mfa_privileged_users}
               onToggle={() => toggleSetting('require_mfa_privileged_users')}
+              flag="require_mfa_privileged_users"
             />
             <ToggleRow
               label="Strict E.164 Phone Normalization (+1NXXNXXXXXX)"
               desc="Normalize all lead & caller phone numbers to prevent duplicates"
               checked={settings.require_strict_e164_phone_format}
               onToggle={() => toggleSetting('require_strict_e164_phone_format')}
+              flag="require_strict_e164_phone_format"
             />
             <ToggleRow
               label="TCPA Outbound Quiet Hours (8:00 AM – 8:00 PM)"
               desc="Restrict automated outbound calls and SMS outside local daytime hours"
               checked={settings.enforce_tcpa_quiet_hours_outbound}
               onToggle={() => toggleSetting('enforce_tcpa_quiet_hours_outbound')}
+              flag="enforce_tcpa_quiet_hours_outbound"
             />
             <ToggleRow
               label="24-Hour Stripe Payment Link Expiration"
               desc="Set strict expiration windows on generated invoice Checkout links"
               checked={settings.enforce_stripe_24hr_link_expiration}
               onToggle={() => toggleSetting('enforce_stripe_24hr_link_expiration')}
+              flag="enforce_stripe_24hr_link_expiration"
             />
           </div>
         </section>
@@ -408,18 +425,21 @@ export default function SettingsPage() {
               desc="Block report generation until all required photo categories are captured"
               checked={settings.require_photo_completeness_report_gate}
               onToggle={() => toggleSetting('require_photo_completeness_report_gate')}
+              flag="require_photo_completeness_report_gate"
             />
             <ToggleRow
               label="Mandatory Technician Signature Sign-off"
               desc="Require signed verification in Section 7 before report release"
               checked={settings.require_technician_signature_signoff}
               onToggle={() => toggleSetting('require_technician_signature_signoff')}
+              flag="require_technician_signature_signoff"
             />
             <ToggleRow
               label="2021 IRC Statutory Building Code Suggestions"
               desc="Suggest drip edge (R905.2.8.5) and ice barrier (R905.1.2) upgrades"
               checked={settings.enable_2021_irc_statutory_code_suggestions}
               onToggle={() => toggleSetting('enable_2021_irc_statutory_code_suggestions')}
+              flag="enable_2021_irc_statutory_code_suggestions"
             />
           </div>
         </section>
@@ -490,16 +510,27 @@ export default function SettingsPage() {
   )
 }
 
-function ToggleRow({ label, desc, checked, onToggle }: { label: string; desc: string; checked: boolean; onToggle: () => void }) {
+function ToggleRow({ label, desc, checked, onToggle, flag }: { label: string; desc: string; checked: boolean; onToggle: () => void; flag?: WorkspaceFeatureFlag }) {
+  const enforcement = flag ? FEATURE_FLAG_ENFORCEMENT[flag] : null
   return (
-    <div className="flex justify-between items-start p-2 border rounded bg-white/5">
+    <div className="flex justify-between items-start p-2 border rounded bg-white/5 gap-3">
       <div className="pr-2">
         <p className="font-bold text-white">{label}</p>
         <p className="text-[10px] text-slate-400">{desc}</p>
+        {enforcement && (
+          <p className="text-[10px] mt-1 flex flex-wrap items-center gap-1">
+            <span className={`px-1.5 py-0.5 rounded border font-bold uppercase ${enforcement.enforced ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' : 'bg-amber-500/20 text-amber-200 border-amber-500/40'}`}>
+              {enforcement.enforced ? 'Enforced' : 'Saved only'}
+            </span>
+            <span className="text-slate-400">{enforcement.note}</span>
+          </p>
+        )}
       </div>
       <button
         type="button"
         onClick={onToggle}
+        aria-pressed={checked}
+        aria-label={label}
         className={`w-11 h-6 shrink-0 flex items-center rounded-full p-1 transition-colors ${checked ? 'bg-emerald-600' : 'bg-slate-600'}`}
       >
         <div className={`w-4 h-4 bg-white rounded-full shadow transform transition-transform ${checked ? 'translate-x-5' : 'translate-x-0'}`} />

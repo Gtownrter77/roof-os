@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { smartBack } from '../../lib/smart-back'
 
@@ -10,8 +10,25 @@ export default function VoiceAI() {
   const [command, setCommand] = useState('')
   const [response, setResponse] = useState('')
   const [history, setHistory] = useState<{ command: string; response: string; time: string }[]>([])
+  const [copilotEnabled, setCopilotEnabled] = useState(true)
+
+  useEffect(() => {
+    let active = true
+    fetch('/api/settings')
+      .then(async (response) => {
+        const payload = await response.json().catch(() => ({}))
+        if (!response.ok || !payload.settings) return
+        if (active) setCopilotEnabled(payload.settings.enable_voice_copilot_whisper !== false)
+      })
+      .catch(() => undefined)
+    return () => { active = false }
+  }, [])
 
   const startVoiceRecognition = async () => {
+    if (!copilotEnabled) {
+      setResponse('The voice copilot is turned off for this workspace.')
+      return
+    }
     if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
       setResponse('This browser cannot record audio. Local Whisper was not called.')
       return
@@ -90,8 +107,8 @@ export default function VoiceAI() {
           <p className="font-bold text-white">Speak a command</p>
           <p className="text-xs text-slate-300 mt-1">Records up to 8 seconds, then local Whisper and local Ollama.</p>
         </div>
-        <button onClick={() => void startVoiceRecognition()} disabled={isListening} className={`w-full py-4 rounded-lg font-bold text-lg shadow ${isListening ? 'bg-red-600 text-white' : 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white'}`}>
-          {isListening ? 'Recording for local Whisper…' : 'Start voice command'}
+        <button onClick={() => void startVoiceRecognition()} disabled={isListening || !copilotEnabled} className={`w-full py-4 rounded-lg font-bold text-lg shadow disabled:opacity-50 ${isListening ? 'bg-red-600 text-white' : 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white'}`}>
+          {isListening ? 'Recording for local Whisper…' : copilotEnabled ? 'Start voice command' : 'Voice copilot is off for this workspace'}
         </button>
         {command && <div className="glass rounded-xl p-4 border-l-4 border-blue-600"><p className="text-xs text-slate-400 font-bold uppercase">Transcript</p><p className="font-bold text-white mt-0.5">"{command}"</p></div>}
         {response && <div className="glass rounded-xl p-4 border-l-4 border-emerald-500"><p className="text-xs text-slate-400 font-bold uppercase">Response</p><p className="text-slate-100 text-sm mt-0.5">{response}</p></div>}

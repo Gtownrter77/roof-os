@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '../../../../lib/supabase/server'
 import { getLowesAccessToken, LOWES_PRODUCT_SEARCH_URL } from '../../../../lib/lowes'
 import { fetchWithTimeout, parseProviderBody, requireWorkspaceMember } from '../../../../lib/api-security'
+import { loadWorkspaceSettings } from '../../../../lib/workspace-settings'
 
 const MONTHLY_LIMIT = 100
 
@@ -15,6 +16,10 @@ export async function GET(request: NextRequest) {
   if (!workspaceId) return NextResponse.json({ error: 'No workspace is configured.' }, { status: 400 })
   const membership = await requireWorkspaceMember(supabase, user.id, workspaceId)
   if (membership.response) return membership.response
+  const settings = await loadWorkspaceSettings(supabase, workspaceId)
+  if (!settings.enable_dual_retailer_watchlist) {
+    return NextResponse.json({ error: 'The Lowe\'s retailer feed is disabled for this workspace.' }, { status: 501 })
+  }
 
   const params = request.nextUrl.searchParams
   const query = params.get('query')?.trim()

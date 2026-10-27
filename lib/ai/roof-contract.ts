@@ -452,7 +452,7 @@ export function validateRoofAIObservationPacket(data: unknown, photoCount?: numb
   }
 
   assertString(root.model_id, 'model_id', 64)
-  if (!/^[a-zA-Z0-9.-]+$/.test(root.model_id)) {
+  if (!/^[a-zA-Z0-9.:/-]+$/.test(root.model_id)) {
     throw new AIContractValidationError('model_id', 'Invalid characters in model_id')
   }
 

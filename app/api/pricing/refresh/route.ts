@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '../../../../lib/supabase/server'
 import { fetchWithTimeout, parseProviderBody, requireWorkspaceMember } from '../../../../lib/api-security'
 import { getLowesAccessToken, LOWES_PRODUCT_SEARCH_URL } from '../../../../lib/lowes'
+import { loadWorkspaceSettings } from '../../../../lib/workspace-settings'
 
 const HOST = 'real-time-home-depot-data.p.rapidapi.com'
 const LIMIT = 100
@@ -23,6 +24,15 @@ export async function POST() {
   const membership = await requireWorkspaceMember(supabase, user.id, workspaceId)
   if (membership.response) return membership.response
 
+  const { data: isAdmin, error: roleError } = await supabase.rpc('is_workspace_admin', { target_workspace: workspaceId })
+  if (roleError) return NextResponse.json({ error: 'Workspace authorization could not be verified.' }, { status: 503 })
+  if (!isAdmin) return NextResponse.json({ error: 'Workspace administrator access is required to refresh retailer prices.' }, { status: 403 })
+
+  const settings = await loadWorkspaceSettings(supabase, workspaceId)
+  if (settings.price_refresh_frequency === 'disabled') {
+    return NextResponse.json({ error: 'Retailer price refresh is disabled for this workspace. Change the refresh cadence in workspace settings.' }, { status: 403 })
+  }
+
   const { data: watchlist, error } = await supabase
     .from('retailer_price_watchlist')
     .select('id,provider,query,zipcode,store_id')
@@ -39,6 +49,10 @@ export async function POST() {
     const provider = item.provider === 'lowes' ? 'lowes' : 'home_depot'
 
     if (provider === 'lowes') {
+      if (!settings.enable_dual_retailer_watchlist) {
+        results.push({ query: item.query, provider, status: 'provider_disabled' })
+        continue
+      }
       if (!lowesClientId) {
         results.push({ query: item.query, provider, status: 'provider_not_configured' })
         continue

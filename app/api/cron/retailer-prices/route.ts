@@ -27,8 +27,9 @@ export async function GET(request: NextRequest) {
   if ((watchlist ?? []).length > MAX_WATCHLIST_ITEMS) return NextResponse.json({ error: `Weekly refresh is capped at ${MAX_WATCHLIST_ITEMS} active watchlist items per run. Reduce the list before retrying.` }, { status: 503 })
   const workspaceIds = [...new Set((watchlist ?? []).map(item => item.workspace_id))]
   await writeWorkerHeartbeats(supabase, workspaceIds, 'scheduler', 'starting')
-  const { data: settings } = workspaceIds.length ? await supabase.from('workspace_settings').select('workspace_id,price_refresh_frequency').in('workspace_id', workspaceIds) : { data: [] }
+  const { data: settings } = workspaceIds.length ? await supabase.from('workspace_settings').select('workspace_id,price_refresh_frequency,enable_dual_retailer_watchlist').in('workspace_id', workspaceIds) : { data: [] }
   const frequencyByWorkspace = new Map((settings ?? []).map(item => [item.workspace_id, item.price_refresh_frequency]))
+  const dualRetailerByWorkspace = new Map((settings ?? []).map(item => [item.workspace_id, item.enable_dual_retailer_watchlist !== false]))
 
   const month = `${new Date().toISOString().slice(0, 7)}-01`
   const results: Array<Record<string, unknown>> = []
@@ -36,6 +37,7 @@ export async function GET(request: NextRequest) {
   for (const item of (watchlist ?? []) as WatchlistItem[]) {
     const frequency = frequencyByWorkspace.get(item.workspace_id) ?? 'weekly'
     if (frequency !== 'weekly') { results.push({ watchlistId: item.id, status: frequency === 'manual' ? 'manual_only' : 'disabled' }); continue }
+    if (item.provider === 'lowes' && !dualRetailerByWorkspace.get(item.workspace_id)) { results.push({ watchlistId: item.id, provider: item.provider, status: 'provider_disabled' }); continue }
     if (item.provider === 'home_depot' && !rapidApiKey) { results.push({ watchlistId: item.id, provider: item.provider, status: 'provider_not_configured' }); continue }
     if (item.provider === 'lowes' && !lowesToken) {
       const oauth = await getLowesAccessToken().catch(() => ({ token: null, error: 'Lowe\'s OAuth token request timed out or failed.' }))

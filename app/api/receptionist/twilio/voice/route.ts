@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { createAdminClient } from '../../../../../lib/supabase/admin'
 import { receptionistConfig } from '../../../../../lib/receptionist-actions'
 import { assertTwilioRequest, speechGather, twiml } from '../../../../../lib/receptionist-twilio'
+import { loadWorkspaceSettings } from '../../../../../lib/workspace-settings'
 
 export async function POST(request: NextRequest) {
   const params = Object.fromEntries((await request.formData()).entries()) as Record<string, string>
@@ -9,6 +10,10 @@ export async function POST(request: NextRequest) {
     assertTwilioRequest(request, params)
     const { workspaceId, publicUrl } = receptionistConfig()
     const supabase = createAdminClient()
+    const settings = await loadWorkspaceSettings(supabase, workspaceId)
+    if (!settings.enable_ai_receptionist) {
+      return twiml('<Say>This office has turned off the automated assistant. Please call back during business hours. Goodbye.</Say><Hangup/>')
+    }
     const callSid = params.CallSid
     const from = params.From || ''
     if (!callSid || !from) return new Response('Missing call identity', { status: 400 })

@@ -3,6 +3,8 @@ import twilio from 'twilio'
 import { createClient } from '../../../../../lib/supabase/server'
 import { createAdminClient } from '../../../../../lib/supabase/admin'
 import { readJson } from '../../../../../lib/read-json'
+import { loadWorkspaceSettings } from '../../../../../lib/workspace-settings'
+import { isWithinQuietHours, normalizeStrictE164, quietHoursMessage, strictPhoneMessage } from '../../../../../lib/outbound-policy'
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient()
@@ -13,6 +15,8 @@ export async function POST(request: NextRequest) {
   const { data: isAdmin, error: roleError } = await supabase.rpc('is_workspace_admin', { target_workspace: workspaceId })
   if (roleError) return NextResponse.json({ error: 'Workspace authorization could not be verified.' }, { status: 503 })
   if (!isAdmin) return NextResponse.json({ error: 'Workspace administrator access is required to place outbound calls.' }, { status: 403 })
+  const settings = await loadWorkspaceSettings(supabase, workspaceId)
+  if (!settings.enable_ai_receptionist) return NextResponse.json({ error: 'The AI receptionist is disabled for this workspace.' }, { status: 403 })
   const accountSid = process.env.TWILIO_ACCOUNT_SID?.trim()
   const authToken = process.env.TWILIO_AUTH_TOKEN?.trim()
   const from = process.env.TWILIO_PHONE_NUMBER?.trim()
@@ -21,8 +25,10 @@ export async function POST(request: NextRequest) {
   const parsed = await readJson(request)
   if ('error' in parsed) return NextResponse.json({ error: parsed.error }, { status: parsed.status })
   const body = parsed.body as { leadId?: string; phone?: string; message?: string }
-  const phone = body.phone?.trim()
-  if (!phone || !body.message?.trim()) return NextResponse.json({ error: 'phone and message are required.' }, { status: 400 })
+  const requestedPhone = body.phone?.trim()
+  if (!requestedPhone || !body.message?.trim()) return NextResponse.json({ error: 'phone and message are required.' }, { status: 400 })
+  const phone = settings.require_strict_e164_phone_format ? normalizeStrictE164(requestedPhone) : requestedPhone
+  if (!phone) return NextResponse.json({ error: strictPhoneMessage() }, { status: 400 })
   if (body.leadId) {
     const { data: lead, error: leadError } = await supabase.from('leads').select('id').eq('id', body.leadId).eq('workspace_id', workspaceId).maybeSingle()
     if (leadError) return NextResponse.json({ error: 'Lead access could not be verified.' }, { status: 503 })
@@ -31,8 +37,7 @@ export async function POST(request: NextRequest) {
   const admin = createAdminClient()
   const { data: optOut } = await admin.from('receptionist_consents').select('id').eq('workspace_id', workspaceId).eq('phone', phone).eq('channel', 'voice').eq('state', 'revoked').order('captured_at', { ascending: false }).limit(1).maybeSingle()
   if (optOut) return NextResponse.json({ error: 'This phone number has opted out of voice follow-up.' }, { status: 409 })
-  const hour = new Date().getHours()
-  if (hour < 8 || hour >= 20) return NextResponse.json({ error: 'Outbound calls are restricted to local quiet hours.' }, { status: 409 })
+  if (settings.enforce_tcpa_quiet_hours_outbound && !isWithinQuietHours()) return NextResponse.json({ error: quietHoursMessage('call') }, { status: 409 })
   const client = twilio(accountSid, authToken)
   const call = await client.calls.create({ to: phone, from, url: `${publicUrl}/api/receptionist/twilio/outbound/twiml?message=${encodeURIComponent(body.message.trim())}`, statusCallback: `${publicUrl}/api/receptionist/twilio/status`, statusCallbackMethod: 'POST' })
   await admin.from('receptionist_call_attempts').insert({ workspace_id: workspaceId, lead_id: body.leadId || null, phone, direction: 'outbound', attempt_number: 1, status: 'ringing', provider_call_id: call.sid })
