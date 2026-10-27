@@ -5,6 +5,9 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '../../../lib/supabase/client'
 import { authCooldownSeconds } from '../../../lib/auth/cooldown'
 import { safeNextPath } from '../../../lib/safe-next'
+import DashboardSkinToggle from '../../../components/DashboardSkinToggle'
+import { useDashboardSkin } from '../../../components/useDashboardSkin'
+import LoginWeatherPreview from '../../../components/LoginWeatherPreview'
 
 const ERROR_COPY: Record<string, string> = {
   enter_locked: 'Break-glass is locked. Set OWNER_ENTER_SECRET on the server (16+ chars).',
@@ -16,6 +19,7 @@ const ERROR_COPY: Record<string, string> = {
 
 function LoginPageContent() {
   const router = useRouter()
+  const stormOn = useDashboardSkin()
   const search = useSearchParams()
   const supabase = useMemo(() => createClient(), [])
   const next = safeNextPath(search.get('next'), typeof window === 'undefined' ? 'https://invalid.local' : window.location.origin)
@@ -80,9 +84,32 @@ function LoginPageContent() {
   }
 
   return (
-    <main className="ops-bg cinema-surface flex min-h-screen items-center justify-center p-4">
-      <section className="w-full max-w-md glass rounded-2xl p-6">
-        <div className="mb-5 text-center"><div className="mb-2 text-4xl">⚡</div><h1 className="text-2xl font-bold">Sign in to ROOF/OS</h1><p className="mt-1 text-sm text-slate-400">Use your work email and password, or request a secure email link.</p></div>
+    <main className={`ops-bg cinema-surface roof-login-page flex min-h-screen items-center justify-center p-4 ${stormOn ? 'roof-login-storm' : ''}`}>
+      <div className={`roof-login-layout relative z-10 w-full max-w-6xl ${stormOn ? 'roof-login-layout-storm' : ''}`}>
+        {stormOn && (
+          <aside className="roof-login-story" aria-label="Storm Mode introduction">
+            <p className="storm-live-indicator inline-flex items-center gap-2 text-xs font-extrabold tracking-[0.18em]">
+              <span className="h-2 w-2 rounded-full bg-emerald-400" /> ROOF/OS · STORM COMMAND
+            </p>
+            <h2 className="mt-6 text-4xl font-black leading-[1.05] tracking-tight text-white md:text-6xl">
+              REAL STORMS.<br />REAL DAMAGE.<br /><span className="text-red-500">REAL JOBS.</span>
+            </h2>
+            <p className="mt-5 max-w-lg text-base leading-7 text-slate-200">
+              Official weather intelligence meets inspection, measurement, estimates, and field operations.
+              Your records stay real, your workflow stays in control.
+            </p>
+            <div className="roof-login-weather mt-7">
+              <LoginWeatherPreview />
+            </div>
+          </aside>
+        )}
+      <section className="roof-login-form glass w-full max-w-md rounded-2xl p-6">
+        <div className="mb-5 flex justify-end"><DashboardSkinToggle /></div>
+        <div className="mb-5 text-center">
+          <div className="mb-2 text-3xl font-black tracking-tight">ROOF<span className="text-red-500">/</span>OS</div>
+          <h1 className="text-2xl font-bold">Sign in to ROOF/OS</h1>
+          <p className="mt-1 text-sm text-slate-400">Use your work email and password, or request a secure email link.</p>
+        </div>
         <form onSubmit={signIn} className="space-y-3">
           <label className="block text-sm font-medium text-slate-200" htmlFor="email">Work email</label>
           <input id="email" name="email" type="email" required autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} className="ops-input" placeholder="you@company.com" />
@@ -96,6 +123,7 @@ function LoginPageContent() {
         <button type="button" onClick={() => router.push(`/auth/signup?next=${encodeURIComponent(next)}`)} className="mt-4 w-full text-sm text-cyan-300">Create a new workspace</button>
         <details open={showBreakGlass} className="mt-6 border-t border-white/10 pt-4" onToggle={(event) => setShowBreakGlass(event.currentTarget.open)}><summary className="cursor-pointer text-xs uppercase tracking-wide text-slate-500">ROOF/OS break-glass fallback</summary><p className="mt-2 text-xs text-slate-500">Use this only for private owner recovery. The key is sent to the server and never stored in the browser.</p><form onSubmit={enterOwner} className="mt-3 space-y-3"><label className="block text-xs text-slate-400" htmlFor="owner-enter-key">Owner enter key</label><input id="owner-enter-key" type="password" autoComplete="off" spellCheck={false} value={key} onChange={(event) => setKey(event.target.value)} className="ops-input" placeholder="OWNER_ENTER_SECRET" /><button type="submit" disabled={loading === 'enter' || !key.trim()} className="w-full rounded-lg border border-amber-400/30 px-3 py-2 text-sm text-amber-200 disabled:opacity-50">{loading === 'enter' ? 'Entering…' : 'Enter as owner'}</button></form></details>
       </section>
+      </div>
     </main>
   )
 }
