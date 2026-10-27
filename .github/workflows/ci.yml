@@ -59,6 +59,7 @@ jobs:
       - run: npm run test:field-coach
       - run: npm run test:stale-screens
       - run: npm run test:cinema-theme
+      - run: npm run test:dashboard-skin
       - run: npm run test:agent-runtime
       - run: npm run test:agent-action-policy
       - run: npm run test:inspection-quality-agent
