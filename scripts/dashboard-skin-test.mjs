@@ -38,7 +38,7 @@ assert.deepEqual(events, ['storm', 'professional'])
 window.localStorage.setItem = () => { throw new Error('Blocked storage') }
 applyDashboardSkin(true)
 assert.equal(document.documentElement.dataset.dashboardSkin, 'storm', 'still switches when storage access is blocked')
-assert.equal(dashboardSkinEnabled(), false, 'saved preference continues to reflect available storage')
+assert.equal(dashboardSkinEnabled(), true, 'active skin stays synchronized when storage writes fail')
 window.localStorage.getItem = () => { throw new Error('Blocked storage') }
 assert.equal(dashboardSkinEnabled(), true, 'blocked reads fall back to active DOM skin')
 
