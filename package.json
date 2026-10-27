@@ -62,6 +62,7 @@
     "test:camera-audio": "node scripts/inspection-camera-audio-test.mjs",
     "test:radar-source": "node scripts/radar-source-test.mjs",
     "test:dashboard-weather": "node scripts/dashboard-weather-test.mjs",
+    "test:workspace-settings": "node --experimental-strip-types scripts/workspace-settings-test.mjs",
     "test:passport-public-share": "node scripts/passport-public-share-contract-test.mjs",
     "test:passport-public-link": "node scripts/passport-public-link-contract-test.mjs",
     "test:cron-http": "node scripts/cron-http-contract-test.mjs",

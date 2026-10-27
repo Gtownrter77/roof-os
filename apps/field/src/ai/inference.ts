@@ -61,7 +61,15 @@ export function validateInferenceResult(result: AiInferenceResult): void {
   }
 }
 
-/** Disabled until a reviewed native runtime and checksum-verified model are bundled. */
+/**
+ * Disabled until a reviewed native runtime and checksum-verified model are bundled.
+ *
+ * The workspace `enable_inspection_quality_agent` switch governs the web
+ * inspection-quality cron. It does not reach this adapter: the field app does
+ * not read workspace settings, and no on-device inference runtime is wired.
+ * When one ships, set runtimeAvailable/modelLoaded from the bundled artifact and
+ * re-enable inferPhoto.
+ */
 export function createInferenceAdapter(): AiInferenceAdapter {
   const env = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env ?? {}
   const requestedEnabled = env.EXPO_PUBLIC_ON_DEVICE_AI_ENABLED === 'true'

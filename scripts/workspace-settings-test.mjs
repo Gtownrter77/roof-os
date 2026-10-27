@@ -16,7 +16,7 @@ const read = (path) => readFileSync(join(root, path), 'utf8')
 // 1. Every owner toggle is persisted on the workspace settings row.
 const migration = read('supabase/migrations/057_workspace_feature_flags.sql')
 for (const flag of WORKSPACE_FEATURE_FLAG_KEYS) {
-  assert.ok(migration.includes(`${flag} boolean not null default true`), `migration 055 must persist ${flag}`)
+  assert.ok(migration.includes(`${flag} boolean not null default true`), `migration 057 must persist ${flag}`)
 }
 assert.ok(migration.includes('receptionist_payment_links add column if not exists expires_at'), 'payment link expiry must be recorded on the ledger')
 

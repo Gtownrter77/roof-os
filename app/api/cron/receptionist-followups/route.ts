@@ -3,7 +3,7 @@ import twilio from 'twilio'
 import { createAdminClient } from '../../../../lib/supabase/admin'
 import { writeWorkerHeartbeats } from '../../../../workers/heartbeat'
 import { defaultWorkspaceSettings, loadWorkspaceSettings } from '../../../../lib/workspace-settings'
-import { isWithinQuietHours } from '../../../../lib/outbound-policy'
+import { isWithinQuietHours, normalizeStrictE164 } from '../../../../lib/outbound-policy'
 
 export async function POST(request: NextRequest) {
   const secret = process.env.CRON_SECRET?.trim()
@@ -34,16 +34,17 @@ export async function POST(request: NextRequest) {
     const settings = settingsByWorkspace.get(attempt.workspace_id) ?? defaultWorkspaceSettings()
     if (!settings.enable_ai_receptionist) { skipped += 1; continue }
     if (settings.enforce_tcpa_quiet_hours_outbound && !isWithinQuietHours()) { skipped += 1; continue }
+    const phone = settings.require_strict_e164_phone_format ? (normalizeStrictE164(attempt.phone) ?? attempt.phone) : attempt.phone
     const { data: claimed } = await admin.from('receptionist_call_attempts').update({ status: 'ringing' }).eq('id', attempt.id).eq('status', 'queued').select('id').maybeSingle()
     if (!claimed) continue
-    const { data: optOut } = await admin.from('receptionist_consents').select('id').eq('workspace_id', attempt.workspace_id).eq('phone', attempt.phone).eq('channel', 'voice').eq('state', 'revoked').order('captured_at', { ascending: false }).limit(1).maybeSingle()
+    const { data: optOut } = await admin.from('receptionist_consents').select('id').eq('workspace_id', attempt.workspace_id).eq('phone', phone).eq('channel', 'voice').eq('state', 'revoked').order('captured_at', { ascending: false }).limit(1).maybeSingle()
     if (optOut) {
       await admin.from('receptionist_call_attempts').update({ status: 'opted_out' }).eq('id', attempt.id)
       optedOut += 1
       continue
     }
     try {
-      const call = await client.calls.create({ to: attempt.phone, from, url: `${publicUrl}/api/receptionist/twilio/outbound/twiml?message=${encodeURIComponent('This is a follow-up from Roof OS. Please tell me how I can help.')}`, statusCallback: `${publicUrl}/api/receptionist/twilio/status`, statusCallbackMethod: 'POST' })
+      const call = await client.calls.create({ to: phone, from, url: `${publicUrl}/api/receptionist/twilio/outbound/twiml?message=${encodeURIComponent('This is a follow-up from Roof OS. Please tell me how I can help.')}`, statusCallback: `${publicUrl}/api/receptionist/twilio/status`, statusCallbackMethod: 'POST' })
       await admin.from('receptionist_call_attempts').update({ provider_call_id: call.sid }).eq('id', attempt.id).eq('status', 'ringing')
       started += 1
     } catch (callError) {

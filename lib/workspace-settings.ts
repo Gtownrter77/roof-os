@@ -55,7 +55,7 @@ export const FEATURE_FLAG_ENFORCEMENT: Record<WorkspaceFeatureFlag, FeatureFlagE
   enable_inspection_quality_agent: {
     enforced: true,
     surfaces: ['app/api/cron/inspection-quality/route.ts'],
-    note: 'Skips the photo completeness agent for this workspace.',
+    note: 'Skips the web inspection quality agent for this workspace. The mobile on-device inference runtime is not implemented yet, so this switch does not affect it.',
   },
   enable_voice_copilot_whisper: {
     enforced: true,
@@ -107,7 +107,7 @@ export const FEATURE_FLAG_ENFORCEMENT: Record<WorkspaceFeatureFlag, FeatureFlagE
     surfaces: [
       'app/api/receptionist/twilio/outbound/route.ts',
       'app/api/receptionist/twilio/sms/route.ts',
-      'app/api/field/sms/route.ts',
+      'app/api/cron/receptionist-followups/route.ts',
     ],
     note: 'Normalizes outbound numbers to +1NXXNXXXXXX and rejects anything else.',
   },
@@ -116,7 +116,6 @@ export const FEATURE_FLAG_ENFORCEMENT: Record<WorkspaceFeatureFlag, FeatureFlagE
     surfaces: [
       'app/api/receptionist/twilio/outbound/route.ts',
       'app/api/receptionist/twilio/sms/route.ts',
-      'app/api/field/sms/route.ts',
       'app/api/cron/receptionist-followups/route.ts',
     ],
     note: 'Blocks automated calls and texts outside 8:00 AM to 8:00 PM.',
