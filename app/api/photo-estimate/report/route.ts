@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getApprovedPhotoWorkflowQuantities } from '../../../../lib/estimates/verified-photo-workflow.mjs'
-import { getGoldenReportContractErrors } from '../../../../lib/reports/golden-report.mjs'
+import { getGoldenReportContractErrors, isTechnicianSignature } from '../../../../lib/reports/golden-report.mjs'
 import { isUuid, readJson, requireWorkspaceMember } from '../../../../lib/api-security'
 import { createClient } from '../../../../lib/supabase/server'
+import { loadWorkspaceSettings } from '../../../../lib/workspace-settings'
 
 type Workflow = {
   id: string
@@ -71,6 +72,10 @@ export async function POST(request: NextRequest) {
   const row = workflow as Workflow
   if (row.status !== 'approved' || !row.approved_by || !row.approved_at) return jsonError('Technician approval is required before a report can be generated.', 409)
   if (!row.manager_approval_name || !row.manager_approval_signature || !row.manager_approved_at) return jsonError('Owner or manager approval is required before a Golden Report can be generated.', 409)
+  const settings = await loadWorkspaceSettings(supabase, workspaceId)
+  if (settings.require_technician_signature_signoff && (!row.technician_name?.trim() || !isTechnicianSignature(row.technician_signature))) {
+    return jsonError('A captured technician signature is required before a Golden Report can be generated.', 409)
+  }
   if (!row.address?.trim() || !isUuid(row.inspection_id)) {
     return jsonError('The approved workflow must include a property address and inspection.', 409)
   }
@@ -95,6 +100,13 @@ export async function POST(request: NextRequest) {
   const photos = photoRows as PhotoRow[]
   const photoReviews = Array.isArray(row.photo_reviews) ? row.photo_reviews as Array<{ photoId?: string; usability?: string; coverage?: string; notes?: string | null }> : []
   if (sourcePhotoIds.some((id) => !photoReviews.some((review) => review.photoId === id))) return jsonError('Every source photo requires a usability and coverage review before the report can be generated.', 409)
+  if (settings.require_photo_completeness_report_gate) {
+    const incomplete = photoReviews.filter((review) => review.usability !== 'usable' || review.coverage !== 'complete')
+    if (incomplete.length > 0) {
+      const photoIds = incomplete.map((review) => review.photoId).filter((id): id is string => typeof id === 'string')
+      return jsonError(`Every source photo must be reviewed usable with complete coverage before the report can be generated. Incomplete photos: ${photoIds.join(', ')}`, 409)
+    }
+  }
   if (photos.some((photo) => photo.upload_status !== 'uploaded')) {
     return jsonError('Every source photo must finish uploading before the report can be generated.', 409)
   }

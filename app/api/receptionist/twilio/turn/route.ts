@@ -3,6 +3,7 @@ import { createAdminClient } from '../../../../../lib/supabase/admin'
 import { generateReceptionistTurn } from '../../../../../lib/receptionist-ai'
 import { bookAppointment, receptionistConfig, resolveLead, recordConsent } from '../../../../../lib/receptionist-actions'
 import { assertTwilioRequest, speechGather, twiml, xmlEscape } from '../../../../../lib/receptionist-twilio'
+import { loadWorkspaceSettings } from '../../../../../lib/workspace-settings'
 
 export async function POST(request: NextRequest) {
   const params = Object.fromEntries((await request.formData()).entries()) as Record<string, string>
@@ -10,6 +11,12 @@ export async function POST(request: NextRequest) {
     assertTwilioRequest(request, params)
     const { workspaceId, ownerId, publicUrl } = receptionistConfig()
     const supabase = createAdminClient()
+    const settings = await loadWorkspaceSettings(supabase, workspaceId)
+    if (!settings.enable_ai_receptionist) {
+      const transferNumber = process.env.RECEPTIONIST_TRANSFER_NUMBER?.trim()
+      if (transferNumber) return twiml(`<Say>The automated assistant is turned off. Connecting you with a team member now. Please hold.</Say><Dial>${xmlEscape(transferNumber)}</Dial>`)
+      return twiml('<Say>This office has turned off the automated assistant. Please call back during business hours. Goodbye.</Say><Hangup/>')
+    }
     const callSid = params.CallSid
     const speech = params.SpeechResult?.trim()
 
@@ -87,7 +94,9 @@ export async function POST(request: NextRequest) {
     }
 
     if (turn.intent === 'follow_up') {
-      await supabase.from('tasks').insert({ workspace_id: workspaceId, lead_id: lead.id, title: 'AI receptionist follow-up', notes: speech, created_by: ownerId, status: 'open' })
+      if (settings.enable_auto_followup_tasks) {
+        await supabase.from('tasks').insert({ workspace_id: workspaceId, lead_id: lead.id, title: 'AI receptionist follow-up', notes: speech, created_by: ownerId, status: 'open' })
+      }
       if (session.caller_phone) {
         const nextAttemptAt = new Date(Date.now() + 60 * 60 * 1000).toISOString()
         await supabase.from('receptionist_call_attempts').upsert({ workspace_id: workspaceId, lead_id: lead.id, phone: session.caller_phone, direction: 'outbound', attempt_number: 1, status: 'queued', next_attempt_at: nextAttemptAt }, { onConflict: 'workspace_id,lead_id,phone,direction,attempt_number' })

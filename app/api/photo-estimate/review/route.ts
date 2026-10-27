@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { isUuid, readJson } from '../../../../lib/api-security'
 import { createClient } from '../../../../lib/supabase/server'
+import { isTechnicianSignature } from '../../../../lib/reports/golden-report.mjs'
 
 type PhotoReview = { photoId: string; usability: 'usable' | 'not_usable'; coverage: 'complete' | 'partial' | 'not_visible'; notes: string | null; reviewedBy: string; reviewedAt: string }
 type ReviewBody = {
@@ -15,7 +16,6 @@ type ReviewBody = {
 }
 function error(message: string, status: number) { return NextResponse.json({ error: message }, { status }) }
 function isRecord(value: unknown): value is Record<string, unknown> { return value !== null && typeof value === 'object' && !Array.isArray(value) }
-function isSignature(value: unknown): value is string { return typeof value === 'string' && /^data:image\/png;base64,[A-Za-z0-9+/=]{1,240000}$/.test(value) }
 
 export async function PATCH(request: NextRequest) {
   const supabase = await createClient()
@@ -63,7 +63,7 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ workflow: updated, action: body.action })
   }
 
-  if (!workflow.technician_name || !workflow.technician_license || !isSignature(workflow.technician_signature)) {
+  if (!workflow.technician_name || !workflow.technician_license || !isTechnicianSignature(workflow.technician_signature)) {
     return error('Technician name, license, and signature are required before manager approval.', 409)
   }
   if (photoIds.length < 1 || photoIds.some((id: unknown) => !reviews.some((review) => review.photoId === id))) {
@@ -71,7 +71,7 @@ export async function PATCH(request: NextRequest) {
   }
   const managerName = body.managerName?.trim() ?? ''
   if (!managerName || managerName.length > 160) return error('Enter the owner or manager name.', 400)
-  if (!isSignature(body.managerSignature)) return error('Capture the owner or manager signature before approval.', 400)
+  if (!isTechnicianSignature(body.managerSignature)) return error('Capture the owner or manager signature before approval.', 400)
 
   const managerApproval = { approvedBy: user.id, approvedAt: now, managerName, managerSignature: body.managerSignature }
   const report = isRecord(workflow.report) ? workflow.report : {}

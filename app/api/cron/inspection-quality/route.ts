@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '../../../../lib/supabase/admin'
 import { runInspectionQuality } from '../../../../workers/inspection-quality'
 import { writeWorkerHeartbeats } from '../../../../workers/heartbeat'
+import { defaultWorkspaceSettings, loadWorkspaceSettings } from '../../../../lib/workspace-settings'
 
 export async function POST(request: NextRequest) {
   const secret = process.env.CRON_SECRET?.trim()
@@ -25,12 +26,19 @@ export async function POST(request: NextRequest) {
   if (error) return NextResponse.json({ error: 'Could not read completed inspections.', detail: error.message }, { status: 502 })
   const workspaceIds = (inspections ?? []).map((inspection) => inspection.workspace_id)
   await writeWorkerHeartbeats(admin, workspaceIds, 'inspection_quality', 'starting')
+  const settingsByWorkspace = new Map<string, Awaited<ReturnType<typeof loadWorkspaceSettings>>>()
+  for (const workspaceId of [...new Set(workspaceIds)]) {
+    settingsByWorkspace.set(workspaceId, await loadWorkspaceSettings(admin, workspaceId))
+  }
 
   let processed = 0
   let failed = 0
+  let skipped = 0
   const failures: Array<{ inspectionId: string; error: string }> = []
 
   for (const inspection of inspections ?? []) {
+    const settings = settingsByWorkspace.get(inspection.workspace_id) ?? defaultWorkspaceSettings()
+    if (!settings.enable_inspection_quality_agent) { skipped += 1; continue }
     try {
       const { data: latestPhoto } = await admin
         .from('inspection_photos')
@@ -61,11 +69,11 @@ export async function POST(request: NextRequest) {
 
   if (failed > 0) {
     await writeWorkerHeartbeats(admin, workspaceIds, 'inspection_quality', 'degraded', { lastError: failures[0]?.error })
-    return NextResponse.json({ processed, failed, failures }, { status: 500 })
+    return NextResponse.json({ processed, skipped, failed, failures }, { status: 500 })
   }
 
   await writeWorkerHeartbeats(admin, workspaceIds, 'inspection_quality', 'healthy')
-  return NextResponse.json({ processed, failed: 0 })
+  return NextResponse.json({ processed, skipped, failed: 0 })
 }
 
 // Vercel Cron invokes scheduled paths with GET; keep POST for manual runs.

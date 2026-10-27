@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import twilio from 'twilio'
 import { createAdminClient } from '../../../../lib/supabase/admin'
 import { writeWorkerHeartbeats } from '../../../../workers/heartbeat'
+import { defaultWorkspaceSettings, loadWorkspaceSettings } from '../../../../lib/workspace-settings'
+import { isWithinQuietHours } from '../../../../lib/outbound-policy'
 
 export async function POST(request: NextRequest) {
   const secret = process.env.CRON_SECRET?.trim()
@@ -12,20 +14,26 @@ export async function POST(request: NextRequest) {
   const from = process.env.TWILIO_PHONE_NUMBER?.trim()
   const publicUrl = process.env.RECEPTIONIST_PUBLIC_URL?.trim()
   if (!accountSid || !authToken || !from || !publicUrl) return NextResponse.json({ error: 'Twilio and receptionist configuration is incomplete.' }, { status: 503 })
-  const hour = new Date().getHours()
-  if (hour < 8 || hour >= 20) return NextResponse.json({ processed: 0, skipped: 'quiet_hours' })
   const admin = createAdminClient()
   const { data: attempts, error } = await admin.from('receptionist_call_attempts').select('id,workspace_id,lead_id,phone,attempt_number').eq('direction', 'outbound').eq('status', 'queued').not('next_attempt_at', 'is', null).lte('next_attempt_at', new Date().toISOString()).order('created_at', { ascending: true }).limit(25)
   if (error) return NextResponse.json({ error: 'Could not read follow-up queue.', detail: error.message }, { status: 502 })
   const workspaceIds = (attempts ?? []).map((attempt) => attempt.workspace_id)
   await writeWorkerHeartbeats(admin, workspaceIds, 'scheduler', 'starting')
+  const settingsByWorkspace = new Map<string, Awaited<ReturnType<typeof loadWorkspaceSettings>>>()
+  for (const workspaceId of [...new Set(workspaceIds)]) {
+    settingsByWorkspace.set(workspaceId, await loadWorkspaceSettings(admin, workspaceId))
+  }
   const client = twilio(accountSid, authToken)
   let started = 0
   let failed = 0
   let optedOut = 0
+  let skipped = 0
   const failures: Array<{ attemptId: string; error: string }> = []
 
   for (const attempt of attempts || []) {
+    const settings = settingsByWorkspace.get(attempt.workspace_id) ?? defaultWorkspaceSettings()
+    if (!settings.enable_ai_receptionist) { skipped += 1; continue }
+    if (settings.enforce_tcpa_quiet_hours_outbound && !isWithinQuietHours()) { skipped += 1; continue }
     const { data: claimed } = await admin.from('receptionist_call_attempts').update({ status: 'ringing' }).eq('id', attempt.id).eq('status', 'queued').select('id').maybeSingle()
     if (!claimed) continue
     const { data: optOut } = await admin.from('receptionist_consents').select('id').eq('workspace_id', attempt.workspace_id).eq('phone', attempt.phone).eq('channel', 'voice').eq('state', 'revoked').order('captured_at', { ascending: false }).limit(1).maybeSingle()
@@ -75,7 +83,7 @@ export async function POST(request: NextRequest) {
   }
 
   await writeWorkerHeartbeats(admin, workspaceIds, 'scheduler', 'healthy')
-  return NextResponse.json({ processed: attempts?.length || 0, started, optedOut, failed: 0 })
+  return NextResponse.json({ processed: attempts?.length || 0, started, optedOut, skipped, failed: 0 })
 }
 
 // Vercel Cron invokes scheduled paths with GET; keep POST for manual runs.

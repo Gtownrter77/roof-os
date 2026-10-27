@@ -123,13 +123,7 @@ export default function WorkspaceWeather({ variant = 'full', tickerMetrics = [] 
       const settingsResponse = await fetch('/api/settings', {
         method: 'PUT',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          price_refresh_frequency: 'weekly',
-          default_language: 'en-US',
-          default_zipcode: zip,
-          preferred_brands: {},
-          material_search_mode: 'catalog_and_retailer',
-        }),
+        body: JSON.stringify({ default_zipcode: zip }),
       })
       const settingsPayload = await settingsResponse.json() as { error?: string }
       if (!settingsResponse.ok) throw new Error(settingsPayload.error ?? 'Could not save the service ZIP.')

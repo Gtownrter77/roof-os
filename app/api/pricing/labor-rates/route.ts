@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '../../../../lib/supabase/server'
 import { readJson, requireWorkspaceMember } from '../../../../lib/api-security'
+import type { SupabaseClient } from '@supabase/supabase-js'
 
 import { DEFAULT_OWNER_LABOR_RATES, OWNER_LABOR_BY_KEY, ownerLaborUnitCode } from '../../../../lib/pricing/owner-labor'
 
@@ -14,6 +15,21 @@ async function ownerClient() {
   if (!user) return { supabase, user: null, workspaceId: null }
   const { data: workspaceId } = await supabase.rpc('current_workspace_id')
   return { supabase, user, workspaceId }
+}
+
+async function currentLaborItems(supabase: SupabaseClient, workspaceId: string) {
+  const { data } = await supabase
+    .from('price_books')
+    .select('price_book_items(sku,description,unit,unit_price)')
+    .eq('workspace_id', workspaceId)
+    .eq('source', 'owner-managed')
+    .in('status', ['draft', 'active'])
+    .order('effective_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  return (data?.price_book_items ?? [])
+    .filter((item) => item.sku.startsWith('LABOR-'))
+    .map((item) => ({ sku: item.sku, description: item.description, unit: item.unit, unit_price: Number(item.unit_price) }))
 }
 
 export async function GET() {
@@ -51,7 +67,8 @@ export async function PUT(request: NextRequest) {
     const service = OWNER_LABOR_BY_KEY[key]
     return { sku: `LABOR-${key}`, description: service?.description ?? `${key} labor`, unit: ownerLaborUnitCode(service?.unit ?? 'hr'), unit_price: Number(value) }
   })
-  const { data: priceBookId, error } = await supabase.rpc('save_owner_price_book_with_tax', { p_workspace_id: workspaceId, p_name: 'ROOF/OS Owner Labor Rates and Jurisdiction Tax', p_market: body.market ?? 'owner-defined market', p_effective_at: body.effectiveAt ?? new Date().toISOString(), p_state_tax_rate: taxRates.state, p_county_tax_rate: taxRates.county, p_city_tax_rate: taxRates.city, p_special_district_tax_rate: taxRates.specialDistrict, p_tax_source: taxSource || 'owner-entered jurisdiction rates', p_created_by: user.id, p_items: items })
+  const priceBookItems = items.length > 0 ? items : await currentLaborItems(supabase, workspaceId)
+  const { data: priceBookId, error } = await supabase.rpc('save_owner_price_book_with_tax', { p_workspace_id: workspaceId, p_name: 'ROOF/OS Owner Labor Rates and Jurisdiction Tax', p_market: body.market ?? 'owner-defined market', p_effective_at: body.effectiveAt ?? new Date().toISOString(), p_state_tax_rate: taxRates.state, p_county_tax_rate: taxRates.county, p_city_tax_rate: taxRates.city, p_special_district_tax_rate: taxRates.specialDistrict, p_tax_source: taxSource || 'owner-entered jurisdiction rates', p_created_by: user.id, p_items: priceBookItems })
   if (error) return NextResponse.json({ error: 'Price-book save blocked. Apply migration 019 and confirm Ryan is the system owner.', detail: error.message }, { status: 403 })
   return NextResponse.json({ saved: true, priceBookId, status: 'draft', taxRates, localTaxRate: combinedTaxRate, taxSource: taxSource || 'owner-entered jurisdiction rates', warning: 'This owner-managed price book remains draft until reviewed and activated.' })
 }
