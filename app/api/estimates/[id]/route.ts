@@ -12,16 +12,6 @@ async function getWorkspaceContext() {
   return { supabase, user, workspaceId }
 }
 
-function computeTotals(lineItems: { quantity: number; unit_cost: number; category: string }[]) {
-  const material = lineItems.filter(i => i.category === 'material').reduce((sum, i) => sum + i.quantity * i.unit_cost, 0)
-  const labor = lineItems.filter(i => i.category === 'labor').reduce((sum, i) => sum + i.quantity * i.unit_cost, 0)
-  const allowance = lineItems.filter(i => i.category === 'allowance').reduce((sum, i) => sum + i.quantity * i.unit_cost, 0)
-  const fee = lineItems.filter(i => i.category === 'fee').reduce((sum, i) => sum + i.quantity * i.unit_cost, 0)
-  const taxItems = lineItems.filter(i => i.category === 'tax').reduce((sum, i) => sum + i.quantity * i.unit_cost, 0)
-  const subtotal = material + labor + allowance + fee
-  return { material, labor, tax: taxItems, subtotal, total: subtotal + taxItems }
-}
-
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -116,36 +106,18 @@ export async function PUT(
     approved_at = null
   }
 
-  let subtotal = 0, tax = 0, total = 0
   const lineItems = body.line_items
   if (lineItems !== undefined) {
-    const { subtotal, tax, total } = computeTotals(lineItems)
-    // update estimate totals
-    const { error: updateError } = await supabase
-      .from('estimates')
-      .update({ status, formula_version: body.formula_version ?? existing.formula_version, subtotal, tax, total, approved_by, approved_at, updated_at: new Date().toISOString() })
-      .eq('id', id)
-      .eq('workspace_id', workspaceId)
-
-    if (updateError) return NextResponse.json({ error: 'Could not update estimate.' }, { status: 502 })
-
-    // replace line items
-    const { error: deleteError } = await supabase.from('estimate_line_items').delete().eq('estimate_id', id)
-    if (deleteError) return NextResponse.json({ error: 'Could not replace estimate line items.', detail: deleteError.message }, { status: 502 })
-    if (body.line_items.length) {
-      const lineItemRows = body.line_items.map((item, idx) => ({
-        estimate_id: id,
-        item_code: item.item_code?.trim() ?? `ITEM-${idx + 1}`,
-        description: item.description.trim(),
-        category: item.category,
-        unit: item.unit.trim(),
-        quantity: item.quantity,
-        unit_cost: item.unit_cost,
-        line_total: item.quantity * item.unit_cost,
-        source_snapshot: { waste_factor: item.waste_factor ?? 0, sort_order: item.sort_order ?? idx },
-      }))
-      const { error: lineError } = await supabase.from('estimate_line_items').insert(lineItemRows)
-      if (lineError) return NextResponse.json({ error: 'Could not update line items.', detail: lineError.message }, { status: 502 })
+    // One database transaction: an insert failure rolls back deletions and totals.
+    const { error: replacementError } = await supabase.rpc('replace_estimate_line_items', {
+      p_estimate_id: id,
+      p_workspace_id: workspaceId,
+      p_items: lineItems,
+      p_status: status,
+      p_formula_version: body.formula_version ?? existing.formula_version,
+    })
+    if (replacementError) {
+      return NextResponse.json({ error: 'Could not replace estimate line items.', detail: replacementError.message }, { status: 502 })
     }
 
   } else if (body.status !== undefined || body.formula_version !== undefined || body.customer_name !== undefined || body.customer_email !== undefined || body.customer_phone !== undefined || body.property_address !== undefined || body.property_city !== undefined || body.property_state !== undefined || body.property_zip !== undefined || body.insurance_company !== undefined || body.claim_number !== undefined || body.adjuster_name !== undefined || body.adjuster_phone !== undefined || body.adjuster_email !== undefined || body.notes_internal !== undefined || body.notes_customer !== undefined) {
