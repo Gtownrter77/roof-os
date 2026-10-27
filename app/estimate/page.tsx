@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { smartBack } from '@/lib/smart-back'
 
 const STATUS_COLORS: Record<string, string> = {
   draft: 'bg-slate-500/30 text-slate-200',
