@@ -1,0 +1,265 @@
+/* Storm Mode is a reversible, per-device visual skin. Professional Mode inherits
+   existing application styles; no database, weather, or pipeline values are replaced. */
+
+.dashboard-skin-switch {
+  background: rgba(13, 25, 47, .88);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .06);
+}
+.dashboard-skin-switch:hover { background: rgba(30, 55, 83, .95); border-color: rgba(100, 205, 255, .55); }
+.dashboard-skin-knob { display: inline-flex; flex: 0 0 auto; align-items: center; width: 32px; height: 18px; padding: 2px; border-radius: 99px; background: #48516a; transition: background .2s; }
+.dashboard-skin-knob > span { width: 14px; height: 14px; border-radius: 50%; background: white; transition: transform .2s; }
+.dashboard-skin-knob-on { background: #00c57a; }
+.dashboard-skin-knob-on > span { transform: translateX(14px); }
+
+html[data-dashboard-skin='storm'] body {
+  background:
+    linear-gradient(110deg, rgba(2, 7, 20, .94), rgba(3, 10, 24, .68) 47%, rgba(3, 7, 18, .82)),
+    url('/storm-dashboard-bg.png') center top / cover fixed no-repeat,
+    #030712 !important;
+  color: #f8fbff;
+}
+html[data-dashboard-skin='storm'] .ops-bg,
+html[data-dashboard-skin='storm'] .cinema-surface {
+  background: transparent !important;
+}
+html[data-dashboard-skin='storm'] .roof-app-header {
+  background: linear-gradient(100deg, rgba(3, 9, 24, .98), rgba(14, 26, 55, .94) 55%, rgba(26, 7, 19, .94)) !important;
+  border-color: rgba(81, 158, 231, .38) !important;
+  box-shadow: 0 7px 28px rgba(0, 0, 0, .55), 0 1px 15px rgba(19, 115, 230, .12);
+}
+html[data-dashboard-skin='storm'] .roof-app-nav,
+html[data-dashboard-skin='storm'] .glass,
+html[data-dashboard-skin='storm'] .ops-card {
+  background: linear-gradient(138deg, rgba(6, 15, 34, .94), rgba(6, 11, 25, .88)) !important;
+  border-color: rgba(94, 149, 217, .38) !important;
+  box-shadow: 0 14px 35px rgba(0, 0, 0, .34), inset 0 1px 0 rgba(153, 204, 255, .06);
+}
+html[data-dashboard-skin='storm'] .roof-app-nav a[aria-current='page'] {
+  background: linear-gradient(105deg, #0968c6, #0c244c) !important;
+  box-shadow: inset 3px 0 #1fc6ff, 0 0 16px rgba(14, 126, 245, .2);
+}
+html[data-dashboard-skin='storm'] .roof-main-content {
+  position: relative;
+  isolation: isolate;
+}
+html[data-dashboard-skin='storm'] .roof-main-content:before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  top: 0;
+  left: -2rem;
+  width: calc(100% + 4rem);
+  height: 350px;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 35% 0%, rgba(21, 108, 239, .13), transparent 65%);
+}
+html[data-dashboard-skin='storm'] .ops-btn-primary {
+  background: linear-gradient(90deg, #a60819, #f32335);
+  box-shadow: 0 0 19px rgba(247, 24, 49, .23);
+}
+html[data-dashboard-skin='storm'] .ops-input {
+  background: rgba(2, 8, 20, .78);
+  border-color: rgba(128, 168, 220, .35);
+}
+html[data-dashboard-skin='storm'] .dashboard-skin-switch {
+  background: linear-gradient(100deg, rgba(131, 13, 34, .45), rgba(9, 32, 67, .94));
+  border-color: rgba(247, 65, 82, .52);
+}
+html[data-dashboard-skin='storm'] .dashboard-skin-switch:hover {
+  border-color: rgba(254, 123, 129, .92);
+}
+html[data-dashboard-skin='storm'] .roof-login-page {
+  min-height: 100vh;
+  background:
+    linear-gradient(90deg, rgba(2, 7, 20, .86), rgba(3, 8, 21, .52) 48%, rgba(2, 7, 19, .8)),
+    url('/storm-dashboard-bg.png') center / cover no-repeat !important;
+}
+.roof-login-layout { display: flex; justify-content: center; }
+.roof-login-layout-storm {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(350px, .85fr);
+  align-items: center;
+  gap: clamp(1rem, 5vw, 4rem);
+  padding: clamp(.5rem, 2.5vw, 2.2rem);
+}
+.roof-login-story { min-width: 0; }
+.roof-login-form { margin: auto; }
+.roof-login-layout-storm .roof-login-form {
+  max-width: 460px;
+  width: 100%;
+  background: linear-gradient(145deg, rgba(7, 17, 37, .96), rgba(3, 10, 26, .9)) !important;
+  border: 1px solid rgba(116, 163, 233, .42);
+  box-shadow: 0 25px 65px rgba(0, 0, 0, .55), 0 0 28px rgba(32, 95, 221, .16);
+}
+.roof-login-story h2 { text-shadow: 0 4px 28px rgba(0, 0, 0, .7); }
+.roof-login-weather > section {
+  background: rgba(3, 11, 25, .78) !important;
+  border-color: rgba(103, 176, 232, .36) !important;
+  max-width: 600px;
+}
+
+.storm-dashboard { color: #f7faff; }
+.storm-dashboard-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .65rem;
+  padding: .75rem 1rem;
+  border: 1px solid rgba(71, 122, 191, .42);
+  border-radius: .75rem;
+  background: rgba(3, 10, 25, .78);
+}
+.storm-live-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: .55rem;
+  color: #f4f8ff;
+  font-weight: 900;
+  font-size: .7rem;
+  letter-spacing: .13em;
+}
+.storm-live-indicator > span { box-shadow: 0 0 12px rgba(40, 240, 133, .65); }
+.storm-command-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.06fr) minmax(0, .94fr);
+  gap: clamp(1rem, 2vw, 2rem);
+  min-height: 410px;
+  padding: clamp(1.1rem, 2.6vw, 2rem);
+  border: 1px solid rgba(89, 153, 237, .43);
+  border-radius: 1rem;
+  background:
+    linear-gradient(93deg, rgba(2, 6, 17, .73), rgba(3, 9, 24, .61) 52%, rgba(5, 11, 24, .82)),
+    url('/storm-dashboard-bg.png') center 46% / cover no-repeat,
+    #071124;
+  box-shadow: 0 18px 44px rgba(0, 0, 0, .42), inset 0 1px rgba(184, 222, 255, .15);
+}
+.storm-command-copy { align-self: center; }
+.storm-command-copy h1 {
+  margin-top: 1rem;
+  font-size: clamp(2.2rem, 4vw, 4.6rem);
+  line-height: 1.01;
+  letter-spacing: -.045em;
+  font-weight: 950;
+  color: white;
+  text-shadow: 0 3px 20px rgba(0, 0, 0, .8);
+}
+.storm-command-copy h1 span { color: #ff2c3f; text-shadow: 0 0 18px rgba(245, 23, 51, .35); }
+.storm-hero-cta {
+  color: white;
+  background: linear-gradient(110deg, #ac0015, #ed1730);
+  border: 1px solid rgba(255, 92, 113, .54);
+  box-shadow: 0 0 25px rgba(239, 14, 44, .26);
+}
+.storm-hero-cta:hover { background: #f32339; }
+.storm-command-weather { min-width: 0; align-self: stretch; }
+.storm-command-weather > section {
+  height: 100%;
+  background: rgba(4, 12, 29, .86);
+  border-color: rgba(115, 185, 242, .5);
+  box-shadow: 0 0 25px rgba(8, 39, 97, .45);
+}
+.storm-command-panel {
+  overflow: hidden;
+  border: 1px solid rgba(93, 142, 213, .36);
+  border-radius: .9rem;
+  background: linear-gradient(155deg, rgba(5, 15, 32, .93), rgba(3, 9, 23, .91));
+  box-shadow: 0 12px 34px rgba(0, 0, 0, .32), inset 0 1px rgba(156, 206, 255, .06);
+}
+.storm-panel-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: .65rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid rgba(103, 148, 208, .29);
+}
+.storm-label {
+  font-weight: 850;
+  color: #6bd1ff;
+  letter-spacing: .16em;
+  font-size: .68rem;
+}
+.storm-stage-track {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(112px, 1fr));
+  gap: 0;
+  padding: 1.4rem .65rem 1.1rem;
+  overflow-x: auto;
+}
+.storm-stage {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  justify-content: flex-start;
+  min-width: 110px;
+  padding: .3rem .25rem .6rem;
+  text-align: center;
+  border-right: 1px solid rgba(104, 140, 193, .24);
+  color: var(--stage-color);
+}
+.storm-stage:last-child { border-right: 0; }
+.storm-stage:hover .storm-stage-orb { transform: translateY(-3px); }
+.storm-stage-orb {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  background: rgba(3, 10, 27, .98);
+  box-shadow: 0 0 18px color-mix(in srgb, currentColor 34%, transparent), inset 0 0 14px color-mix(in srgb, currentColor 17%, transparent);
+  transition: transform .2s;
+}
+.storm-stage-arrow {
+  position: absolute;
+  top: 28px;
+  right: -8px;
+  z-index: 1;
+  color: #c9dcfa;
+  filter: drop-shadow(0 0 5px currentColor);
+}
+.storm-stage-red { --stage-color: #fb3c50; }
+.storm-stage-amber { --stage-color: #ffc33e; }
+.storm-stage-blue { --stage-color: #28b6ff; }
+.storm-stage-purple { --stage-color: #bc77ff; }
+.storm-stage-cyan { --stage-color: #00eadb; }
+.storm-stage-orange { --stage-color: #ffa632; }
+.storm-stage-green { --stage-color: #18ed85; }
+.storm-live-metric {
+  display: block;
+  padding: 1.1rem;
+  border: 1px solid rgba(96, 153, 232, .4);
+  border-radius: .85rem;
+  background: linear-gradient(145deg, rgba(6, 17, 37, .94), rgba(4, 10, 24, .89));
+  box-shadow: 0 0 16px rgba(20, 88, 185, .11);
+}
+.storm-live-metric:hover {
+  border-color: rgba(60, 198, 255, .75);
+  background: rgba(11, 33, 67, .95);
+}
+@media (max-width: 1100px) {
+  .storm-command-hero { grid-template-columns: 1fr; }
+  .storm-stage-track { grid-template-columns: repeat(7, 126px); }
+  .roof-login-layout-storm { grid-template-columns: 1fr; max-width: 660px; }
+  .roof-login-story { order: 1; }
+  .roof-login-form { order: 2; }
+}
+@media (max-width: 640px) {
+  .storm-command-hero { padding: 1.2rem; }
+  .storm-command-copy h1 { font-size: clamp(2.2rem, 9vw, 3.5rem); }
+  .roof-login-weather { display: none; }
+  .roof-login-story h2 { font-size: 2.6rem; }
+  .roof-login-layout-storm { padding: 0; }
+  .dashboard-skin-header-toggle { padding: .5rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .storm-stage-orb, .dashboard-skin-knob, .dashboard-skin-knob > span { transition: none !important; }
+}
+@media print {
+  html[data-dashboard-skin='storm'] body { background: #fff !important; }
+  html[data-dashboard-skin='storm'] .roof-app-shell,
+  html[data-dashboard-skin='storm'] .ops-bg { background: transparent !important; }
+}
