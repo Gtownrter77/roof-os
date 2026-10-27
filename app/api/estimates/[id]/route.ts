@@ -18,7 +18,7 @@ function computeTotals(lineItems: { quantity: number; unit_cost: number; categor
   const allowance = lineItems.filter(i => i.category === 'allowance').reduce((sum, i) => sum + i.quantity * i.unit_cost, 0)
   const fee = lineItems.filter(i => i.category === 'fee').reduce((sum, i) => sum + i.quantity * i.unit_cost, 0)
   const taxItems = lineItems.filter(i => i.category === 'tax').reduce((sum, i) => sum + i.quantity * i.unit_cost, 0)
-  const subtotal = lineItems.reduce((sum, i) => sum + i.quantity * i.unit_cost, 0)
+  const subtotal = material + labor + allowance + fee
   return { material, labor, tax: taxItems, subtotal, total: subtotal + taxItems }
 }
 
@@ -119,21 +119,19 @@ export async function PUT(
   let subtotal = 0, tax = 0, total = 0
   const lineItems = body.line_items
   if (lineItems !== undefined) {
-    const totals = lineItems.reduce((sum, i) => sum + i.quantity * i.unit_cost, 0)
-    // tax handling - items with category 'tax' are separate
-    const taxItems = lineItems.filter(i => i.category === 'tax').reduce((sum, i) => sum + i.quantity * i.unit_cost, 0)
-    const subtotal = lineItems.reduce((sum, i) => sum + i.quantity * i.unit_cost, 0)
+    const { subtotal, tax, total } = computeTotals(lineItems)
     // update estimate totals
     const { error: updateError } = await supabase
       .from('estimates')
-      .update({ status, formula_version: body.formula_version ?? 'v1', subtotal: lineItems.reduce((sum, i) => sum + i.quantity * i.unit_cost, 0) - 0, tax: lineItems.filter(i => i.category === 'tax').reduce((sum, i) => sum + i.quantity * i.unit_cost, 0), total: lineItems.reduce((sum, i) => sum + i.quantity * i.unit_cost, 0) + lineItems.filter(i => i.category === 'tax').reduce((sum, i) => sum + i.quantity * i.unit_cost, 0), approved_by: approved_by, approved_at: approved_at, updated_at: new Date().toISOString() })
+      .update({ status, formula_version: body.formula_version ?? existing.formula_version, subtotal, tax, total, approved_by, approved_at, updated_at: new Date().toISOString() })
       .eq('id', id)
       .eq('workspace_id', workspaceId)
 
     if (updateError) return NextResponse.json({ error: 'Could not update estimate.' }, { status: 502 })
 
     // replace line items
-    await supabase.from('estimate_line_items').delete().eq('estimate_id', id)
+    const { error: deleteError } = await supabase.from('estimate_line_items').delete().eq('estimate_id', id)
+    if (deleteError) return NextResponse.json({ error: 'Could not replace estimate line items.', detail: deleteError.message }, { status: 502 })
     if (body.line_items.length) {
       const lineItemRows = body.line_items.map((item, idx) => ({
         estimate_id: id,
