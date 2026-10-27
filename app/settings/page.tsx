@@ -12,6 +12,7 @@ import {
   type RadarLayerPrefs,
 } from '../../lib/radar/cinema-layers'
 import { applyCinemaTheme, cinemaThemeEnabled } from '../../lib/theme/cinema'
+import DashboardSkinToggle from '../../components/DashboardSkinToggle'
 import { FEATURE_FLAG_ENFORCEMENT, type WorkspaceFeatureFlag } from '../../lib/workspace-settings'
 
 type Settings = {
@@ -258,6 +259,16 @@ export default function SettingsPage() {
               {refreshing ? 'Refreshing Retailers…' : '🔄 Refresh Retailer Prices Now'}
             </button>
           </div>
+        </section>
+
+        <section className="glass rounded-xl p-4 border-l-4 border-red-500 space-y-3" aria-labelledby="dashboard-skin-settings-title">
+          <h2 id="dashboard-skin-settings-title" className="font-bold text-sm text-white">Dashboard skin</h2>
+          <p className="text-xs leading-5 text-slate-300">
+            Choose <strong>Storm Mode</strong> for the dramatic weather command-center design across the dashboard,
+            login, and app pages. Switch back to <strong>Professional Mode</strong> for the clean workspace layout.
+            This setting is saved on this device and never changes customer, estimate, or weather data.
+          </p>
+          <DashboardSkinToggle className="w-full justify-between sm:w-auto" />
         </section>
 
         <section className="glass rounded-xl p-4 border-l-4 border-cyan-500 space-y-3">
