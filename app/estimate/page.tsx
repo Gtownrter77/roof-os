@@ -25,6 +25,8 @@ export default function EstimateListPage() {
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'draft' | 'pending_approval' | 'approved' | 'rejected'>('all')
   const [search, setSearch] = useState('')
+  const [errorMessage, setErrorMessage] = useState('')
+  const [creating, setCreating] = useState(false)
 
   useEffect(() => {
     setLoading(true)
@@ -32,8 +34,9 @@ export default function EstimateListPage() {
       .then(async res => {
         const data = await res.json()
         if (res.ok && data.estimates) setEstimates(data.estimates)
+        else setErrorMessage(data.error || 'Could not load estimates.')
       })
-      .catch(() => {})
+      .catch(() => setErrorMessage('Could not load estimates. Check your connection.'))
       .finally(() => setLoading(false))
   }, [])
 
@@ -49,6 +52,10 @@ export default function EstimateListPage() {
   const formatCurrency = (n: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n)
 
   const handleNew = async () => {
+    if (creating) return
+    setCreating(true)
+    setErrorMessage('')
+    try {
     const res = await fetch('/api/estimates', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -57,6 +64,14 @@ export default function EstimateListPage() {
     if (res.ok) {
       const { estimate } = await res.json()
       router.push(`/estimate/${estimate.id}`)
+    } else {
+      const payload = await res.json().catch(() => ({}))
+      setErrorMessage(payload.error || 'Could not create estimate.')
+    }
+    } catch {
+      setErrorMessage('Could not create estimate. Check your connection.')
+    } finally {
+      setCreating(false)
     }
   }
 
@@ -67,6 +82,7 @@ export default function EstimateListPage() {
           <h1 className="text-xl font-bold text-slate-50">Estimates</h1>
           <button
             onClick={handleNew}
+            disabled={creating}
             className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2 rounded-lg flex items-center gap-2"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
@@ -100,6 +116,7 @@ export default function EstimateListPage() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 py-6">
+        {errorMessage && <p role="alert" className="mb-4 rounded border border-red-500 p-3 text-red-200">{errorMessage}</p>}
         {loading ? (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {[...Array(8)].map((_, i) => (
@@ -140,7 +157,7 @@ export default function EstimateListPage() {
                 <div className="mt-4 pt-3 border-t border-slate-700/50 flex items-center justify-between">
                   <div>
                     <p className="text-xs text-slate-500">Total</p>
-                    <p className="text-lg font-bold text-emerald-400">${(e.total || 0).toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 })}</p>
+                    <p className="text-lg font-bold text-emerald-400">{formatCurrency(Number(e.total ?? 0))}</p>
                   </div>
                   <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
@@ -154,8 +171,18 @@ export default function EstimateListPage() {
                       onClick={async event => {
                         event.stopPropagation()
                         if (confirm('Delete this estimate?')) {
-                          await fetch(`/api/estimates/${e.id}`, { method: 'DELETE' })
-                          setEstimates(prev => prev.filter(est => est.id !== e.id))
+                          try {
+                            const response = await fetch(`/api/estimates/${e.id}`, { method: 'DELETE' })
+                            if (!response.ok) {
+                              const payload = await response.json().catch(() => ({}))
+                              setErrorMessage(payload.error || 'Could not delete estimate.')
+                              return
+                            }
+                            setEstimates(prev => prev.filter(est => est.id !== e.id))
+                            setErrorMessage('')
+                          } catch {
+                            setErrorMessage('Could not delete estimate. Check your connection.')
+                          }
                         }
                       }}
                       className="p-2 glass rounded hover:bg-red-500/20 text-red-400 hover:text-red-300"
