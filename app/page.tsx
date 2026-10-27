@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import QuickActions from '../components/QuickActions'
+import StormDashboard, { type StormCounts } from '../components/StormDashboard'
+import { useDashboardSkin } from '../components/useDashboardSkin'
 import WorkspaceWeather from '../components/WorkspaceWeather'
 import { createClient } from '../lib/supabase/client'
 import {
@@ -10,7 +12,7 @@ import {
 } from 'lucide-react'
 
 type Lead = { id: string; name: string | null; address: string | null; status: string | null }
-type Counts = { leads: number | null; inspections: number | null; openTasks: number | null; warrantiesDue: number | null }
+type Counts = StormCounts
 type MetricProps = { label: string; value: number | null; detail: string; href: string; icon: React.ComponentType<{ className?: string }> }
 
 const FEATURES = [
@@ -38,9 +40,10 @@ function Metric({ label, value, detail, href, icon: Icon }: MetricProps) {
 }
 
 export default function Home() {
+  const stormOn = useDashboardSkin()
   const [recentLeads, setRecentLeads] = useState<Lead[]>([])
   const [recentError, setRecentError] = useState(false)
-  const [counts, setCounts] = useState<Counts>({ leads: null, inspections: null, openTasks: null, warrantiesDue: null })
+  const [counts, setCounts] = useState<Counts>({ leads: null, inspections: null, openTasks: null, warrantiesDue: null, estimates: null, measurements: null, stormEvidence: null })
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -48,13 +51,15 @@ export default function Home() {
     async function load() {
       try {
         const supabase = createClient()
-        const [leads, recent, inspections, tasks, warranties, user] = await Promise.all([
+        const [leads, recent, inspections, tasks, warranties, estimates, measurements, stormEvidence] = await Promise.all([
           supabase.from('leads').select('id', { count: 'exact', head: true }),
           supabase.from('leads').select('id,name,address,status').order('created_at', { ascending: false }).limit(5),
           supabase.from('inspection_sessions').select('id', { count: 'exact', head: true }),
           supabase.from('tasks').select('id', { count: 'exact', head: true }).eq('status', 'open'),
           supabase.from('warranties').select('id', { count: 'exact', head: true }).in('registration_status', ['not_started', 'packet_ready']),
-          supabase.auth.getUser(),
+          supabase.from('estimates').select('id', { count: 'exact', head: true }),
+          supabase.from('inspection_measurements').select('id', { count: 'exact', head: true }),
+          supabase.from('storm_evidence').select('id', { count: 'exact', head: true }),
         ])
         if (cancelled) return
         setCounts({
@@ -62,6 +67,9 @@ export default function Home() {
           inspections: inspections.error ? null : (inspections.count ?? 0),
           openTasks: tasks.error ? null : (tasks.count ?? 0),
           warrantiesDue: warranties.error ? null : (warranties.count ?? 0),
+          estimates: estimates.error ? null : (estimates.count ?? 0),
+          measurements: measurements.error ? null : (measurements.count ?? 0),
+          stormEvidence: stormEvidence.error ? null : (stormEvidence.count ?? 0),
         })
         setRecentError(Boolean(recent.error))
         setRecentLeads(recent.error ? [] : (recent.data ?? []))
@@ -75,6 +83,8 @@ export default function Home() {
     const timer = window.setInterval(() => { void load() }, 10 * 60 * 1000)
     return () => { cancelled = true; window.clearInterval(timer) }
   }, [])
+
+  if (stormOn) return <StormDashboard counts={counts} recentLeads={recentLeads} recentError={recentError} loading={loading} />
 
   return (
     <div className="space-y-5 pb-4">
