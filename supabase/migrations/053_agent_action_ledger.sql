@@ -1,5 +1,6 @@
 -- ROOF/OS Agent Action Ledger
 -- Agents may propose work; only approved, exact action payloads may execute.
+create schema if not exists extensions;
 create extension if not exists pgcrypto with schema extensions;
 
 create table if not exists public.agent_action_batches (
