@@ -86,6 +86,9 @@ without rewriting history.
 - Not a permit, weather, or readiness decision.
 - Not an insurer submission or an ESX document.
 - Field updates do not approve scope. Only an owner decision does.
+- QC defects and the supervisor closeout are separate records; see
+  [qc-closeout.md](./qc-closeout.md). A change order is not a punch item, and a
+  punch item is not a change order.
 
 ## Evidence boundaries
 
