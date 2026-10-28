@@ -9,6 +9,7 @@ const route = read('../app/api/estimates/[id]/acceptance/route.ts')
 const page = read('../app/estimate/[id]/page.tsx')
 const assertions = read('../scripts/ci/estimate-acceptance-assertions.sql')
 const runner = read('../scripts/ci/verify-estimate-acceptance-postgres.sh')
+const orderFix = read('../supabase/migrations/065_deposit_ledger_order.sql')
 
 const event = (event_type, amount, occurred_at, extra = {}) => ({ id: `${event_type}-${occurred_at}`, event_type, amount, occurred_at, ...extra })
 
@@ -126,10 +127,17 @@ assert.ok(assertions.includes('cannot exceed the accepted total'), 'assertions c
 assert.ok(assertions.includes('cannot receive new events'), 'assertions check the refund terminal state')
 assert.ok(assertions.includes('RLS'), 'assertions check row level security')
 
-// 12. Runner is local-only and uses a dedicated disposable database.
+// 12. Deposit order is deterministic even when events share one timestamp.
+assert.ok(orderFix.includes('create or replace function public.enforce_estimate_deposit_event'), '065 replaces the trigger function')
+assert.ok(orderFix.includes('if v_refunded_count > 0'), 'terminal state is derived from event presence')
+assert.ok(orderFix.includes('v_requested_count <> 1 or v_received_count <> 0'), 'receipt order is derived from counts')
+assert.ok(!orderFix.includes('order by created_at desc, id desc'), '065 does not depend on random UUID order')
+
+// 13. Runner is local-only and uses a dedicated disposable database.
 assert.ok(runner.includes('test "$PGHOST" = 127.0.0.1'), 'runner refuses non-local host')
 assert.ok(runner.includes('roofos_acceptance_ci'), 'runner uses a dedicated disposable database')
 assert.ok(runner.includes('063_estimate_acceptance_deposit.sql'), 'runner applies migration 063')
+assert.ok(runner.includes('065_deposit_ledger_order.sql'), 'runner applies migration 065')
 assert.ok(runner.includes('estimate-acceptance-assertions.sql'), 'runner executes the assertions')
 
 console.log('estimate-acceptance-test: PASS (approved-only acceptance, server-owned amounts and times, immutable evidence, append-only deposit state machine, workspace isolation, no signature or payment claim)')

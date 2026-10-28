@@ -23,9 +23,11 @@ fi
 
 psql_db "$ACCEPTANCE_DB" -f scripts/ci/estimate-acceptance-baseline.sql
 psql_db "$ACCEPTANCE_DB" -f supabase/migrations/063_estimate_acceptance_deposit.sql
+# 065 makes the deposit terminal state deterministic when events share a timestamp.
+psql_db "$ACCEPTANCE_DB" -f supabase/migrations/065_deposit_ledger_order.sql
 # Tables created by 063 need the same test role grants the baseline gave the existing tables.
 psql_db "$ACCEPTANCE_DB" -c "grant select,insert,update,delete on all tables in schema public to authenticated"
 psql_db "$ACCEPTANCE_DB" -f scripts/ci/estimate-acceptance-assertions.sql
 
-echo 'ESTIMATE ACCEPTANCE MIGRATION 063: isolated SQL-role/RLS/trigger tests passed. Supabase Auth/Storage remains untested.'
-echo '**Estimate acceptance migration 063: real isolated PostgreSQL trigger/RLS tests PASSED. Supabase Auth/Storage not exercised.**' >> "$GITHUB_STEP_SUMMARY"
+echo 'ESTIMATE ACCEPTANCE MIGRATIONS 063/065: isolated SQL-role/RLS/trigger tests passed. Supabase Auth/Storage remains untested.'
+echo '**Estimate acceptance migrations 063/065: real isolated PostgreSQL trigger/RLS tests PASSED. Supabase Auth/Storage not exercised.**' >> "$GITHUB_STEP_SUMMARY"

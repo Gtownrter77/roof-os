@@ -266,6 +266,8 @@ jobs:
           grep -q "A recorded estimate acceptance is immutable" supabase/migrations/063_estimate_acceptance_deposit.sql
           grep -q "estimate_deposit_events" supabase/migrations/063_estimate_acceptance_deposit.sql
           grep -q "Not an electronic signature" supabase/migrations/063_estimate_acceptance_deposit.sql
+          grep -q "v_refunded_count > 0" supabase/migrations/065_deposit_ledger_order.sql
+          grep -q "never from UUID ordering" supabase/migrations/065_deposit_ledger_order.sql
           grep -q "create extension if not exists pgcrypto" supabase/migrations/053_agent_action_ledger.sql
           grep -q "approval hashes do not match the current action batch" supabase/migrations/053_agent_action_ledger.sql
           grep -q "get diagnostics updated_count = row_count" supabase/migrations/053_agent_action_ledger.sql
