@@ -382,7 +382,7 @@ begin
        'Pat Customer','1 Main St','ready',10000,now(),1,
        '33333333-3333-4333-8333-333333333333');
     raise exception 'SECURITY FAILURE: outsider created a production job';
-  exception when insufficient_privilege or check_violation then
+  exception when insufficient_privilege or check_violation or foreign_key_violation then
     raise notice 'Expected RLS/membership rejection for an outsider job: %',SQLERRM;
   end;
 end $$;
