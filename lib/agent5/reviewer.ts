@@ -42,6 +42,10 @@ export function buildReviewPacket(args: {
       missing_price: args.carrier.filter((line) => line.unit_cost === null && line.line_total === null).length,
       unresolved_proposals: proposals.filter((proposal) => proposal.kind === 'question').length,
     },
+    excluded: {
+      alternate_rows: args.carrier.filter((line) => !line.enabled).length,
+      paid_when_incurred_rows: args.carrier.filter((line) => line.paid_when_incurred).length,
+    },
     export_blocked: true,
     capout_required: false,
     note: 'Human review required. No automatic insurer submission or export.',

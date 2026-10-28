@@ -40,6 +40,20 @@ function parseNumber(value: unknown): number | null {
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : null
 }
 
+const TRUE_FLAGS = new Set(['true', 'yes', '1'])
+const FALSE_FLAGS = new Set(['false', 'no', '0'])
+
+/** Strict flag parsing. An unrecognized value returns null so the caller keeps its documented default. */
+function parseFlag(value: unknown): boolean | null {
+  if (typeof value === 'boolean') return value
+  if (typeof value === 'number') return value === 1 ? true : value === 0 ? false : null
+  if (typeof value !== 'string') return null
+  const normalized = value.trim().toLowerCase()
+  if (TRUE_FLAGS.has(normalized)) return true
+  if (FALSE_FLAGS.has(normalized)) return false
+  return null
+}
+
 function inferCategory(description: string): { category: SupplementCategory | null; confidence: number } {
   const lower = description.toLowerCase()
   for (const hint of CATEGORY_HINTS) {
@@ -108,6 +122,8 @@ function textLineToLine(
     unit,
     unit_cost: unitCost,
     line_total: lineTotal,
+    enabled: true,
+    paid_when_incurred: false,
     provenance,
     confidence: provenance === 'source' ? 0.85 : provenance === 'inferred' ? 0.6 : 0.2,
     issues,
@@ -169,6 +185,8 @@ export function parseStructuredLines(
     const issues: string[] = []
     if (quantity === null) issues.push('quantity not stated in source')
     if (unitCost === null && providedTotal === null) issues.push('unit price not stated in source')
+    const enabled = parseFlag(row.enabled) ?? true
+    if (!enabled) issues.push('alternate row excluded from totals and deltas')
     lines.push({
       item_code: cleanText(row.item_code) || null,
       description,
@@ -177,6 +195,8 @@ export function parseStructuredLines(
       unit: cleanText(row.unit).toUpperCase() || null,
       unit_cost: unitCost,
       line_total: lineTotal,
+      enabled,
+      paid_when_incurred: parseFlag(row.paid_when_incurred) ?? false,
       provenance: quantity !== null && (unitCost !== null || providedTotal !== null) ? 'source' : 'unknown',
       confidence: quantity !== null && (unitCost !== null || providedTotal !== null) ? 0.9 : 0.3,
       issues,
@@ -192,7 +212,7 @@ export function parseStructuredLines(
 }
 
 export function summarizeTotals(lines: ExtractedLine[]): number | null {
-  const priced = lines.filter((line) => line.line_total !== null)
+  const priced = lines.filter((line) => line.enabled && line.line_total !== null)
   if (priced.length === 0) return null
   return Math.round(priced.reduce((sum, line) => sum + (line.line_total ?? 0), 0) * 100) / 100
 }

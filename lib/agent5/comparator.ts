@@ -56,11 +56,15 @@ export interface CompareInput {
 export function compareScope(input: CompareInput): GapProposal[] {
   const proposals: GapProposal[] = []
   const usedCarrier = new Set<number>()
+  // Alternate/disabled rows stay in the packet for review, but they never
+  // produce deltas or "missing scope" claims.
+  const carrier = input.carrier.filter((line) => line.enabled)
+  const contractor = input.contractor.filter((line) => line.enabled)
 
-  for (const contractorLine of input.contractor) {
+  for (const contractorLine of contractor) {
     let matchIndex = -1
     let bestScore = 0
-    input.carrier.forEach((carrierLine, index) => {
+    carrier.forEach((carrierLine, index) => {
       if (usedCarrier.has(index)) return
       if (sameLine(carrierLine, contractorLine)) {
         const score = carrierLine.item_code && contractorLine.item_code ? 1 : similarity(carrierLine, contractorLine)
@@ -85,7 +89,7 @@ export function compareScope(input: CompareInput): GapProposal[] {
       continue
     }
 
-    const carrierLine = input.carrier[matchIndex]
+    const carrierLine = carrier[matchIndex]
     usedCarrier.add(matchIndex)
 
     if (carrierLine.item_code && contractorLine.item_code && carrierLine.item_code !== contractorLine.item_code) {
@@ -131,7 +135,7 @@ export function compareScope(input: CompareInput): GapProposal[] {
     }
   }
 
-  input.carrier.forEach((carrierLine, index) => {
+  carrier.forEach((carrierLine, index) => {
     if (usedCarrier.has(index)) return
     if (carrierLine.provenance === 'unknown' || carrierLine.quantity === null || carrierLine.line_total === null) {
       proposals.push({
