@@ -145,6 +145,7 @@ assert.ok(worker.includes('"authority": "document extraction only; human review 
 
 const smoke = read('../scripts/ci/docling-worker-smoke.sh')
 assert.ok(smoke.includes('extract_pages'), 'CI smoke test exercises structured page extraction')
+assert.ok(smoke.includes('pages, structured_truncated = extract_pages('), 'CI smoke test unpacks the pages/truncated tuple')
 assert.ok(smoke.includes('page_no') || smoke.includes('page'), 'CI smoke test asserts page provenance')
 
 // 8. The review route consumes the normalizer without changing its guarantees.

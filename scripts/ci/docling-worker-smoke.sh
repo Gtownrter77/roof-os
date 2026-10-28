@@ -62,7 +62,7 @@ from server import converter, extract_pages
 result = converter().convert("/tmp/roofos-synthetic-claim.pdf")
 markdown = result.document.export_to_markdown()
 assert "synthetic claim scope" in markdown.lower(), f"Unexpected Docling text: {markdown[:400]!r}"
-pages = extract_pages(result.document)
+pages, structured_truncated = extract_pages(result.document)
 assert pages, f"Structured pages empty: {pages!r}"
 assert all(page["page"] >= 1 for page in pages), pages
 structured_text = " ".join(block["text"] for page in pages for block in page["blocks"]).lower()
