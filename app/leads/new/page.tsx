@@ -10,6 +10,7 @@ export default function NewLeadPage() {
   const supabase = createClient()
   const [form, setForm] = useState({ name: '', address: '', phone: '', email: '', source: '', notes: '', nextAction: '', nextActionDue: '' })
   const [error, setError] = useState('')
+  const [duplicate, setDuplicate] = useState(false)
   const [saving, setSaving] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -34,7 +35,15 @@ export default function NewLeadPage() {
       next_action_due: nextDue,
       next_action_owner_id: user.id,
     }).select('id').single()
-    if (insertError || !data) { setError(insertError?.message ?? 'Lead was not created.'); setSaving(false); return }
+    if (insertError || !data) {
+      const isDuplicate = /already exists/i.test(insertError?.message ?? '')
+      setDuplicate(isDuplicate)
+      setError(isDuplicate
+        ? 'A lead with this phone number already exists in this workspace. Open Leads to update the existing record instead of creating a second one.'
+        : insertError?.message ?? 'Lead was not created.')
+      setSaving(false)
+      return
+    }
     await supabase.from('lead_activity').insert({ lead_id: data.id, workspace_id: workspaceId, user_id: user.id, kind: 'created', body: form.notes || `Lead created from ${form.source || 'manual'}` })
     router.push(`/leads/${data.id}`)
   }
@@ -52,7 +61,8 @@ export default function NewLeadPage() {
         <input type="text" placeholder="Next action (default: First contact)" className="ops-input" value={form.nextAction} onChange={(e) => setForm({ ...form, nextAction: e.target.value })} />
         <input type="datetime-local" aria-label="Next action due" className="ops-input" value={form.nextActionDue} onChange={(e) => setForm({ ...form, nextActionDue: e.target.value })} />
         <textarea placeholder="First note" className="ops-input" rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
-        {error && <p className="text-sm text-red-300">{error}</p>}
+        {error && <p className="text-sm text-red-300" role="alert">{error}</p>}
+        {duplicate && <button type="button" onClick={() => router.push('/leads')} className="ops-btn-secondary w-full py-2">Open existing leads</button>}
         <button type="submit" disabled={saving} className="ops-btn-primary w-full py-3 disabled:opacity-60">{saving ? 'Saving…' : 'Save Lead'}</button>
       </form>
     </div>
