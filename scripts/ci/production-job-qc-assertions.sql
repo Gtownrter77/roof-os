@@ -225,7 +225,7 @@ insert into public.production_job_closeouts
 values
   ('2a000000-0000-4000-8000-000000000001','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
    '1c000000-0000-4000-8000-000000000001','11111111-1111-4111-8111-111111111111',
-   'Supervisor walk complete','forged',99,99);
+   'Supervisor walk complete',99,99);
 
 do $$
 declare v public.production_job_closeouts%rowtype;
