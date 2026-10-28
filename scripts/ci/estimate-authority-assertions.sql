@@ -10,7 +10,7 @@ insert into public.workspaces(id) values
 insert into public.workspace_members(workspace_id,user_id,role) values
  ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','11111111-1111-4111-8111-111111111111','owner'),
  ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','22222222-2222-4222-8222-222222222222','member'),
- ('bbbbbbbb-bbbb-4bbb-8bbb-bbbb-bbbbbbbbbbbb','33333333-3333-4333-8333-333333333333','owner');
+ ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb','33333333-3333-4333-8333-333333333333','owner');
 insert into public.estimates(id,workspace_id,status,created_by) values
  ('aaaaaaaa-1111-4111-8111-111111111111','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','draft','11111111-1111-4111-8111-111111111111'),
  ('bbbbbbbb-2222-4222-8222-222222222222','bbbbbbbb-bbbb-4bbb-8bbb-bbbb-bbbbbbbbbbbb','draft','33333333-3333-4333-8333-333333333333');
