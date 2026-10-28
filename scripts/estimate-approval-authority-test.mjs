@@ -32,6 +32,31 @@ const postRoute = read('../app/api/estimates/route.ts')
 assert.ok(postRoute.includes("status === 'approved'"), 'POST defends approved creation')
 assert.ok(postRoute.includes('is_workspace_admin'), 'POST uses admin check')
 
+// A failed authority RPC must surface as 502, never as a misleading 403.
+const allAuthorityCallers = [putRoute, postRoute]
+for (const [label, source] of [['PUT approve', putRoute], ['PUT delete', putRoute], ['POST create', postRoute]]) {
+  assert.ok(/'is_workspace_admin'[^\n]*error:/.test(source) || /error:[^\n]*'is_workspace_admin'/.test(source), `${label} destructures the RPC error`)
+}
+assert.equal((putRoute.match(/error: adminCheckError/g) || []).length, 1, 'PUT approval destructures admin RPC error')
+assert.ok(putRoute.includes('error: deleteAdminError'), 'PUT delete destructures admin RPC error')
+assert.ok(postRoute.includes('error: adminCheckError'), 'POST creation destructures admin RPC error')
+for (const source of allAuthorityCallers) {
+  assert.ok(source.includes('Workspace authorization could not be verified.'), 'RPC failure returns an operator-visible message')
+  assert.ok(/status: 502/.test(source), 'RPC failure returns 502')
+}
+assert.ok(
+  putRoute.indexOf('if (adminCheckError)') < putRoute.indexOf('if (!isAdminData)'),
+  'PUT approve reports the RPC failure before the 403',
+)
+assert.ok(
+  putRoute.indexOf('if (deleteAdminError)') < putRoute.indexOf('if (!isAdmin)'),
+  'PUT delete reports the RPC failure before the 403',
+)
+assert.ok(
+  postRoute.indexOf('if (adminCheckError)') < postRoute.indexOf('if (!isAdminData)'),
+  'POST reports the RPC failure before the 403',
+)
+
 // Draft endpoint preserved (normal member editing).
 const draftRoute = read('../app/api/estimates/draft/route.ts')
 assert.ok(draftRoute.includes('allowedKeys'), 'draft restricts keys')

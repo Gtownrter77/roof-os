@@ -100,7 +100,8 @@ export async function PUT(
   let approved_at = existing.approved_at
   // Production estimate approval requires workspace-admin authority.
   if (status === 'approved' && existing.status !== 'approved') {
-    const { data: isAdminData } = await supabase.rpc('is_workspace_admin', { target_workspace: workspaceId })
+    const { data: isAdminData, error: adminCheckError } = await supabase.rpc('is_workspace_admin', { target_workspace: workspaceId })
+    if (adminCheckError) return NextResponse.json({ error: 'Workspace authorization could not be verified.' }, { status: 502 })
     if (!isAdminData) return NextResponse.json({ error: 'Workspace administrator authority is required to approve this estimate.' }, { status: 403 })
     approved_by = user.id
     approved_at = new Date().toISOString()
@@ -198,7 +199,8 @@ export async function DELETE(
 
   // Only creator or admin can delete
   if (existing.created_by !== user.id) {
-    const { data: isAdmin } = await supabase.rpc('is_workspace_admin', { target_workspace: workspaceId })
+    const { data: isAdmin, error: deleteAdminError } = await supabase.rpc('is_workspace_admin', { target_workspace: workspaceId })
+    if (deleteAdminError) return NextResponse.json({ error: 'Workspace authorization could not be verified.' }, { status: 502 })
     if (!isAdmin) return NextResponse.json({ error: 'Only the creator or a workspace admin can delete this estimate.' }, { status: 403 })
   }
 

@@ -102,7 +102,8 @@ export async function POST(request: NextRequest) {
   }
   // Production approval via create also requires workspace-admin authority.
   if (status === 'approved') {
-    const { data: isAdminData } = await supabase.rpc('is_workspace_admin', { target_workspace: workspaceId })
+    const { data: isAdminData, error: adminCheckError } = await supabase.rpc('is_workspace_admin', { target_workspace: workspaceId })
+    if (adminCheckError) return NextResponse.json({ error: 'Workspace authorization could not be verified.' }, { status: 502 })
     if (!isAdminData) return NextResponse.json({ error: 'Workspace administrator authority is required to approve this estimate.' }, { status: 403 })
   }
 
