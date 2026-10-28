@@ -18,6 +18,12 @@ import {
   describePermitStatus,
   describeWeatherDecision,
 } from '../../../lib/jobs/readiness'
+import {
+  CHANGE_ORDER_DECISIONS,
+  describeAmountDelta,
+  describeChangeOrderStatus,
+  nextChangeOrderDecisions,
+} from '../../../lib/jobs/fieldwork'
 
 type Job = {
   id: string
@@ -99,6 +105,51 @@ type PrebuildPayload = {
   can_edit: boolean
 }
 
+type FieldUpdate = {
+  id: string
+  work_date: string
+  note: string
+  percent_complete: number | null
+  blockers: string
+  created_by: string
+  created_at: string
+}
+
+type ChangeOrder = {
+  id: string
+  requested_by: string
+  description: string
+  reason: string
+  amount_delta: number | string
+  status: string
+  decided_by: string | null
+  decided_at: string | null
+  decision_note: string
+  created_at: string
+  updated_at: string
+}
+
+type ChangeOrderSummary = {
+  requested_count: number
+  approved_count: number
+  declined_count: number
+  approved_delta_total: number
+  requested_delta_total: number
+  has_pending: boolean
+}
+
+type UpdatesPayload = {
+  updates: FieldUpdate[]
+  note: string
+}
+
+type ChangeOrdersPayload = {
+  change_orders: ChangeOrder[]
+  summary: ChangeOrderSummary
+  can_decide: boolean
+  note: string
+}
+
 function money(value: number): string {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value)
 }
@@ -108,6 +159,10 @@ export default function JobSchedulePage() {
   const jobId = typeof params.id === 'string' ? params.id : ''
   const [data, setData] = useState<SchedulePayload | null>(null)
   const [prebuild, setPrebuild] = useState<PrebuildPayload | null>(null)
+  const [updates, setUpdates] = useState<FieldUpdate[]>([])
+  const [changeOrders, setChangeOrders] = useState<ChangeOrder[]>([])
+  const [changeSummary, setChangeSummary] = useState<ChangeOrderSummary | null>(null)
+  const [canDecide, setCanDecide] = useState(false)
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState(false)
   const [memberId, setMemberId] = useState('')
@@ -126,15 +181,27 @@ export default function JobSchedulePage() {
   const [permitReference, setPermitReference] = useState('')
   const [weatherDecision, setWeatherDecision] = useState('unknown')
   const [weatherSource, setWeatherSource] = useState('')
+  const [workDate, setWorkDate] = useState(new Date().toISOString().slice(0, 10))
+  const [updateNote, setUpdateNote] = useState('')
+  const [percentComplete, setPercentComplete] = useState('')
+  const [updateBlockers, setUpdateBlockers] = useState('')
+  const [coDescription, setCoDescription] = useState('')
+  const [coReason, setCoReason] = useState('')
+  const [coAmount, setCoAmount] = useState('')
+  const [coNote, setCoNote] = useState('')
 
   const load = useCallback(async (signal?: AbortSignal) => {
     try {
-      const [scheduleResponse, prebuildResponse] = await Promise.all([
+      const [scheduleResponse, prebuildResponse, updatesResponse, changeOrderResponse] = await Promise.all([
         fetch(`/api/production-jobs/${jobId}/schedule`, { signal }),
         fetch(`/api/production-jobs/${jobId}/readiness`, { signal }),
+        fetch(`/api/production-jobs/${jobId}/updates`, { signal }),
+        fetch(`/api/production-jobs/${jobId}/change-orders`, { signal }),
       ])
       const scheduleResult = await scheduleResponse.json().catch(() => ({}))
       const prebuildResult = await prebuildResponse.json().catch(() => ({}))
+      const updatesResult = await updatesResponse.json().catch(() => ({}))
+      const changeOrderResult = await changeOrderResponse.json().catch(() => ({}))
       if (signal?.aborted) return
       if (!scheduleResponse.ok) {
         setMessage(scheduleResult.error ?? 'Could not load the schedule.')
@@ -144,8 +211,21 @@ export default function JobSchedulePage() {
         setMessage(prebuildResult.error ?? 'Could not load the prebuild readiness.')
         return
       }
+      if (!updatesResponse.ok) {
+        setMessage(updatesResult.error ?? 'Could not load the field updates.')
+        return
+      }
+      if (!changeOrderResponse.ok) {
+        setMessage(changeOrderResult.error ?? 'Could not load the change orders.')
+        return
+      }
       setData(scheduleResult as SchedulePayload)
       setPrebuild(prebuildResult as PrebuildPayload)
+      setUpdates((updatesResult as UpdatesPayload).updates ?? [])
+      const changePayload = changeOrderResult as ChangeOrdersPayload
+      setChangeOrders(changePayload.change_orders ?? [])
+      setChangeSummary(changePayload.summary ?? null)
+      setCanDecide(changePayload.can_decide === true)
       const record = (prebuildResult as PrebuildPayload).record
       if (record) {
         setPermitStatus(record.permit_status)
@@ -208,6 +288,99 @@ export default function JobSchedulePage() {
     } catch {
       setMessage('The readiness decision could not be sent.')
       return false
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const addFieldUpdate = async () => {
+    if (!workDate || !updateNote.trim()) {
+      setMessage('Choose a work date and write what happened.')
+      return
+    }
+    setBusy(true)
+    setMessage('')
+    try {
+      const response = await fetch(`/api/production-jobs/${jobId}/updates`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          work_date: workDate,
+          note: updateNote,
+          percent_complete: percentComplete === '' ? null : Number(percentComplete),
+          blockers: updateBlockers,
+        }),
+      })
+      const result = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        setMessage(result.error ?? 'The field update was refused.')
+        return
+      }
+      setUpdateNote('')
+      setPercentComplete('')
+      setUpdateBlockers('')
+      await load()
+      setMessage('Field update recorded. It is append-only and did not change the handoff.')
+    } catch {
+      setMessage('The field update could not be sent.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const requestChangeOrder = async () => {
+    if (!coDescription.trim() || !coAmount) {
+      setMessage('Describe the change and enter a nonzero amount.')
+      return
+    }
+    setBusy(true)
+    setMessage('')
+    try {
+      const response = await fetch(`/api/production-jobs/${jobId}/change-orders`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          description: coDescription,
+          reason: coReason,
+          amount_delta: Number(coAmount),
+        }),
+      })
+      const result = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        setMessage(result.error ?? 'The change order was refused.')
+        return
+      }
+      setCoDescription('')
+      setCoReason('')
+      setCoAmount('')
+      await load()
+      setMessage('Change order requested. An owner or administrator must decide it.')
+    } catch {
+      setMessage('The change order could not be sent.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const decideChangeOrder = async (changeOrderId: string, decision: 'approved' | 'declined') => {
+    setBusy(true)
+    setMessage('')
+    try {
+      const response = await fetch(`/api/production-jobs/${jobId}/change-orders`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'decide', change_order_id: changeOrderId, decision, decision_note: coNote }),
+      })
+      const result = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        setMessage(result.error ?? 'The decision was refused.')
+        return
+      }
+      setCoNote('')
+      await load()
+      setMessage('Decision recorded. The handoff snapshot did not change.')
+    } catch {
+      setMessage('The decision could not be sent.')
     } finally {
       setBusy(false)
     }
@@ -277,6 +450,7 @@ export default function JobSchedulePage() {
   const { job, assignments, materials, members, readiness, can_edit: canEdit } = data
   const activeAssignments = assignments.filter((row) => row.status !== 'cancelled')
   const activeMaterials = materials.filter((row) => row.status !== 'cancelled')
+  const jobActive = job.status !== 'completed' && job.status !== 'cancelled'
 
   return (
     <main className="mx-auto max-w-4xl space-y-4 p-6">
@@ -528,6 +702,126 @@ export default function JobSchedulePage() {
             <button disabled={busy} onClick={() => void addMaterial()} className="rounded bg-cyan-600 px-3 py-2 text-sm font-semibold hover:bg-cyan-500 disabled:opacity-60">Add material line</button>
           </div>
         )}
+      </section>
+
+      <section className="rounded-xl border border-white/10 bg-slate-900 p-5">
+        <h2 className="font-semibold">Field updates</h2>
+        <p className="mt-1 text-xs text-slate-500">
+          Append-only daily evidence. A correction is a new update, not an edit.
+        </p>
+        {updates.length === 0 ? (
+          <p className="mt-2 text-sm text-slate-400">No field updates yet.</p>
+        ) : (
+          <ul className="mt-2 space-y-2">
+            {updates.map((row) => (
+              <li key={row.id} className="rounded border border-white/10 bg-black/20 p-3 text-sm">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="font-semibold">{row.work_date}</span>
+                  <span className="text-xs text-slate-400">
+                    {row.percent_complete === null ? 'No percent reported' : `${row.percent_complete}% complete`}
+                  </span>
+                </div>
+                <p className="mt-1 text-slate-200">{row.note}</p>
+                {row.blockers && <p className="mt-1 text-xs text-amber-200">Blockers: {row.blockers}</p>}
+                <p className="mt-1 text-xs text-slate-500">Recorded {new Date(row.created_at).toLocaleString()}</p>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {jobActive && (
+          <div className="mt-4 space-y-2 border-t border-white/10 pt-3">
+            <h3 className="text-sm font-semibold">Add daily update</h3>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <label className="text-xs text-slate-300">Work date
+                <input type="date" value={workDate} max={new Date().toISOString().slice(0, 10)} onChange={(event) => setWorkDate(event.target.value)} className="mt-1 w-full rounded border border-white/15 bg-black/25 p-2 text-sm" />
+              </label>
+              <label className="text-xs text-slate-300">Percent complete (optional)
+                <input type="number" min="0" max="100" step="1" value={percentComplete} onChange={(event) => setPercentComplete(event.target.value)} className="mt-1 w-full rounded border border-white/15 bg-black/25 p-2 text-sm" />
+              </label>
+            </div>
+            <label className="block text-xs text-slate-300">What happened
+              <textarea value={updateNote} maxLength={2000} onChange={(event) => setUpdateNote(event.target.value)} className="mt-1 h-20 w-full rounded border border-white/15 bg-black/25 p-2 text-sm" />
+            </label>
+            <label className="block text-xs text-slate-300">Blockers (optional)
+              <input value={updateBlockers} maxLength={1000} onChange={(event) => setUpdateBlockers(event.target.value)} className="mt-1 w-full rounded border border-white/15 bg-black/25 p-2 text-sm" />
+            </label>
+            <button disabled={busy} onClick={() => void addFieldUpdate()} className="rounded bg-cyan-600 px-3 py-2 text-sm font-semibold hover:bg-cyan-500 disabled:opacity-60">Record field update</button>
+          </div>
+        )}
+      </section>
+
+      <section className="rounded-xl border border-white/10 bg-slate-900 p-5">
+        <h2 className="font-semibold">Change orders</h2>
+        {changeSummary && (
+          <p className="mt-1 text-xs text-slate-400">
+            {changeSummary.approved_count} approved · {changeSummary.requested_count} awaiting review · approved delta{' '}
+            <span className="font-mono text-slate-200">{describeAmountDelta(changeSummary.approved_delta_total)}</span>
+            {changeSummary.has_pending ? ` · ${describeAmountDelta(changeSummary.requested_delta_total)} pending, not invoiced` : ''}
+          </p>
+        )}
+        {changeOrders.length === 0 ? (
+          <p className="mt-2 text-sm text-slate-400">No change orders. Field updates alone never change scope or price.</p>
+        ) : (
+          <ul className="mt-2 space-y-2">
+            {changeOrders.map((row) => (
+              <li key={row.id} className="rounded border border-white/10 bg-black/20 p-3 text-sm">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="font-semibold">{row.description}</span>
+                  <span className={row.status === 'approved' ? 'text-emerald-300' : row.status === 'declined' ? 'text-slate-400' : 'text-amber-300'}>
+                    {describeChangeOrderStatus(row.status)}
+                  </span>
+                </div>
+                <p className="font-mono text-xs text-slate-300">{describeAmountDelta(row.amount_delta)}</p>
+                {row.reason && <p className="mt-1 text-xs text-slate-400">{row.reason}</p>}
+                {row.decided_at && (
+                  <p className="mt-1 text-xs text-slate-500">
+                    Decided {new Date(row.decided_at).toLocaleString()}
+                    {row.decision_note ? ` · ${row.decision_note}` : ''}
+                  </p>
+                )}
+                {canDecide && jobActive && nextChangeOrderDecisions(row.status).length > 0 && (
+                  <div className="mt-2 space-y-2">
+                    <input value={coNote} maxLength={1000} onChange={(event) => setCoNote(event.target.value)} placeholder="Decision note (optional)" className="w-full rounded border border-white/15 bg-black/25 p-2 text-xs" />
+                    <div className="flex flex-wrap gap-2">
+                      {CHANGE_ORDER_DECISIONS.map((decision) => (
+                        <button
+                          key={decision}
+                          disabled={busy}
+                          onClick={() => void decideChangeOrder(row.id, decision)}
+                          className="rounded border border-cyan-500/60 px-2 py-1 text-xs text-cyan-200 hover:bg-cyan-500/10 disabled:opacity-60"
+                        >
+                          {describeChangeOrderStatus(decision)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {jobActive && (
+          <div className="mt-4 space-y-2 border-t border-white/10 pt-3">
+            <h3 className="text-sm font-semibold">Request a change order</h3>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <label className="text-xs text-slate-300">Description
+                <input value={coDescription} maxLength={1000} onChange={(event) => setCoDescription(event.target.value)} className="mt-1 w-full rounded border border-white/15 bg-black/25 p-2 text-sm" />
+              </label>
+              <label className="text-xs text-slate-300">Amount delta (negative is a credit)
+                <input type="number" step="0.01" value={coAmount} onChange={(event) => setCoAmount(event.target.value)} className="mt-1 w-full rounded border border-white/15 bg-black/25 p-2 text-sm" />
+              </label>
+            </div>
+            <label className="block text-xs text-slate-300">Reason (optional)
+              <input value={coReason} maxLength={1000} onChange={(event) => setCoReason(event.target.value)} className="mt-1 w-full rounded border border-white/15 bg-black/25 p-2 text-sm" />
+            </label>
+            <button disabled={busy} onClick={() => void requestChangeOrder()} className="rounded bg-cyan-600 px-3 py-2 text-sm font-semibold hover:bg-cyan-500 disabled:opacity-60">Request change order</button>
+          </div>
+        )}
+        <p className="mt-3 text-xs text-slate-500">
+          Approval is an owner or administrator decision inside Roof OS. It is not a customer signature, a contract amendment sent to the customer, or a payment. An approved delta is a separate invoice input and never rewrites the accepted total or approved scope.
+        </p>
       </section>
 
       <p className="text-xs text-slate-500">
