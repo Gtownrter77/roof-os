@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import {execFileSync} from "node:child_process";
 import fs from "node:fs";
-const REMEDIATIONS={"GHSA-86w9-cpqp-85rv":{packageName:"node-forge",requiredResolved:"github:Krysthyan/forge#ceba34402e329f0365134f23fe19898756527d65"}};
+const REMEDIATIONS={"GHSA-86w9-cpqp-85rv":{packageName:"node-forge",requiredResolved:"github:Krysthyan/forge#ceba34402e329f0365134f23fe19898756527d65"},"GHSA-gcqx-w48m-w2h4":{packageName:"deepmerge",requiredResolved:"vendor/deepmerge"}};
 // Advisory is build/dev-only: zod is a transitive dependency of @expo/cli and is not
 // bundled into the shipped web or React Native app. No patched 3.x exists and both
 // Expo SDK 57 and 58 still require zod ^3.25.76, so force-upgrading to zod 4 would break

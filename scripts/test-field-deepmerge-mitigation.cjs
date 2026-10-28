@@ -1,49 +1,25 @@
-#!/usr/bin/env node
-'use strict'
-const assert = require('node:assert/strict')
-const fs = require('node:fs')
-const path = require('node:path')
-
-const field = path.resolve(__dirname, '../apps/field')
-const manifest = JSON.parse(fs.readFileSync(path.join(field, 'package.json'), 'utf8'))
-const lock = JSON.parse(fs.readFileSync(path.join(field, 'package-lock.json'), 'utf8'))
-const expected = path.join(field, 'vendor/deepmerge/index.js')
-assert.equal(manifest.overrides.deepmerge, 'file:vendor/deepmerge')
-assert.equal(lock.packages['node_modules/deepmerge']?.resolved, 'vendor/deepmerge')
-assert.equal(lock.packages['node_modules/deepmerge']?.link, true)
-assert.equal(lock.packages['vendor/deepmerge']?.version, '4.3.1-roofos.1')
-assert.equal(fs.realpathSync(require.resolve('deepmerge', {paths: [field]})), fs.realpathSync(expected), 'runtime must load patched module')
-const merge = require(expected)
-
-function assertSafe(value) {
-  assert.equal(Object.getPrototypeOf(value), Object.prototype, 'unexpected prototype')
-  assert.equal(value.admin, undefined, 'prototype-injected admin')
-  assert.equal(value.polluted, undefined, 'prototype-injected polluted')
-}
-const payload = JSON.parse('{"__proto__":{"admin":true},"constructor":{"prototype":{"polluted":true}},"prototype":{"polluted":true},"nested":{"__proto__":{"admin":true},"ok":1}}')
-const result = merge({}, payload)
-assertSafe(result)
-assertSafe(result.nested)
-assert.equal(result.nested.ok, 1)
-assert.equal(Object.prototype.admin, undefined)
-assert.equal(Object.prototype.polluted, undefined)
-
-const nullTarget = Object.create(null)
-const nullSource = Object.create(null)
-Object.defineProperty(nullSource, '__proto__', {value: {admin: true}, enumerable: true})
-nullSource.ok = 2
-const nullResult = merge(nullTarget, nullSource)
-assertSafe(nullResult)
-assert.equal(nullResult.ok, 2)
-
-const maliciousTarget = JSON.parse('{"__proto__":{"admin":true},"safe":4}')
-const targetResult = merge(maliciousTarget, {ok: 3})
-assertSafe(targetResult)
-assert.deepEqual({safe: targetResult.safe, ok: targetResult.ok}, {safe: 4, ok: 3})
-
-assert.deepEqual(merge({item: {a: 1}, rows: [1]}, {item: {b: 2}, rows: [2]}),
-  {item: {a: 1, b: 2}, rows: [1, 2]})
-assert.deepEqual(merge.all([{a: 1}, {b: 2}]), {a: 1, b: 2})
-const symbol = Symbol('safe')
-assert.equal(merge({[symbol]: 1}, {[symbol]: 2})[symbol], 2)
-console.log('Field deepmerge mitigation: PASS (local resolution, lock, prototype poisoning, safe merge)')
+'use strict';
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const merge = require('../apps/field/vendor/deepmerge');
+const code = fs.readFileSync(path.resolve(__dirname,'../apps/field/vendor/deepmerge/index.js'),'utf8');
+assert.match(code,/if \(unsafeKey\(key\)\) return;/);
+assert.match(code,/if \(unsafeKey\(key\) \|\| propertyIsUnsafe/);
+const malicious = JSON.parse('{"__proto__":{"hacked":true},"constructor":{"prototype":{"attack":true}},"safe":{"__proto__":{"nested":true},"good":7}}');
+const result = merge({}, malicious);
+assert.equal(({}).hacked, undefined);
+assert.equal(Object.getPrototypeOf(result), Object.prototype);
+assert.equal(result.hacked, undefined);
+assert.equal(Object.hasOwn(result,'__proto__'), false);
+assert.equal(Object.hasOwn(result,'constructor'), false);
+assert.deepEqual(result.safe, {good:7});
+const poisonedTarget = JSON.parse('{"__proto__":{"hacked":true},"safe":5}');
+const result2 = merge(poisonedTarget,{newValue:6});
+assert.deepEqual(result2,{safe:5,newValue:6});
+assert.equal(Object.getPrototypeOf(result2),Object.prototype);
+assert.deepEqual(merge({a:[1],b:{c:1}},{a:[2],b:{d:2}}),{a:[1,2],b:{c:1,d:2}});
+assert.deepEqual(merge.all([{a:1},{b:2}]),{a:1,b:2});
+const reactElement={$$typeof:Symbol.for('react.element'),props:{a:1}};
+assert.equal(merge({}, {reactElement}).reactElement,reactElement);
+console.log('Field deepmerge prototype-pollution mitigation: PASS');

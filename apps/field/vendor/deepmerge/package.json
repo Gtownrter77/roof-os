@@ -1,9 +1,1 @@
-{
-  "name": "deepmerge",
-  "version": "4.3.1-roofos.1",
-  "description": "Locally patched deepmerge 4.3.1 against CVE-2026-93753",
-  "main": "index.js",
-  "types": "index.d.ts",
-  "license": "MIT",
-  "private": true
-}
+{"name":"deepmerge","version":"4.3.1-roofos.1","main":"index.js","license":"MIT","private":true}
