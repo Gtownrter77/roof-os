@@ -9,6 +9,8 @@ export async function POST(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
+  if (!user) return NextResponse.json({ error: 'Authentication required.' }, { status: 401 })
+
   // Bounded JSON reading per security standards
   const parsed = await readJson(request)
   if ('error' in parsed) {
