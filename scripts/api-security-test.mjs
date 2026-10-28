@@ -1,4 +1,5 @@
 import assert from "node:assert/strict"
+import './ai-chat-auth-contract-test.mjs'
 import { readFileSync } from "node:fs"
 
 const source = readFileSync(new URL("../lib/read-json.ts", import.meta.url), "utf8")
