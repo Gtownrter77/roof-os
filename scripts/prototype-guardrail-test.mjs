@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
+import './signing-release-guard.mjs'
+import './estimate-navigation-contract-test.mjs'
 const notice = readFileSync('components/PrototypeNotice.tsx', 'utf8')
 const layout = readFileSync('app/layout.tsx', 'utf8')
 const canvass = readFileSync('app/canvass/page.tsx', 'utf8')
