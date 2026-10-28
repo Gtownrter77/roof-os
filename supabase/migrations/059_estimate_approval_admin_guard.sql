@@ -125,6 +125,14 @@ begin
       end if;
     end if;
   end if;
+  if tg_op = 'INSERT' then
+    -- Approval metadata on insert also requires workspace admin authority.
+    if NEW.approved_by IS NOT NULL or NEW.approved_at IS NOT NULL then
+      if not public.is_estimate_admin(NEW.workspace_id) then
+        raise exception 'Workspace administrator authority is required to set estimate approval metadata';
+      end if;
+    end if;
+  end if;
   return NEW;
 end;
 $$;
