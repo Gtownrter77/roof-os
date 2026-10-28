@@ -1,0 +1,28 @@
+name: ROOF OS Claims Docling Runtime
+
+on:
+  pull_request:
+    paths:
+      - 'workers/claims/**'
+      - 'scripts/ci/docling-worker-smoke.sh'
+      - '.github/workflows/claims-worker-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  docling-synthetic-runtime:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v5
+      - name: Build and execute Docling in isolated GitHub worker
+        shell: bash
+        run: bash scripts/ci/docling-worker-smoke.sh
+      - name: Document evidence boundary
+        if: always()
+        shell: bash
+        run: |
+          echo 'Uses only synthetic PDF, no CapOut key and no production/private customer documents.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'A passing build/parse proves a disposable CI worker, NOT a persistent deployed claims service.' >> "$GITHUB_STEP_SUMMARY"
