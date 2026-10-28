@@ -12,7 +12,7 @@
 
 ## Executive conclusion
 
-ROOF/OS should become a two-surface roofing operations product. The **desktop application** should remain the system of record for company administration, production scheduling, estimating configuration, reporting, financial visibility, integrations, and team oversight. A dedicated **field application for phones and tablets** should optimize the fast, intermittent, camera-heavy work performed at a property or job site.
+ROOF/OS should become a two-surface roofing operations product. The **shared backend** is the system of record for company administration, production scheduling, estimating configuration, reporting, financial visibility, integrations, and team oversight. Authorized users must be able to make decisions from phone, tablet, or desktop; permissions and approval checks are role-based, never device-based. A dedicated **field application for phones and tablets** should optimize the fast, intermittent, camera-heavy work performed at a property or job site.
 
 This split follows the strongest pattern in AccuLynx’s current product description. Its Field App emphasizes leads, tasks, appointments, job files, estimates, communications, calls, notes, milestones, and photo workflows. Its web application retains the production calendar and detailed company reporting.[1]
 
