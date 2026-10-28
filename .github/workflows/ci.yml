@@ -88,6 +88,7 @@ jobs:
       - run: npm run test:owner-break-glass
       - run: npm run test:lead-dedup
       - run: npm run test:inspection-appointment
+      - run: npm run test:inspection-packet
       - run: npm run test:ai-vision-contract
       - run: npm run test:ai-vision-endpoint
       - run: npm run test:workspace-settings
@@ -257,6 +258,9 @@ jobs:
           grep -q "lead_phone_digits" supabase/migrations/061_lead_deduplication.sql
           grep -q "enforce_inspection_appointment" supabase/migrations/062_inspection_appointment_gate.sql
           grep -q "An inspection must be assigned to a workspace member" supabase/migrations/062_inspection_appointment_gate.sql
+          test -f app/api/inspections/\[id\]/packet/route.ts
+          grep -q "urlsIncluded: false" lib/inspection/packet.ts
+          grep -q "Agent 3 has not reviewed this inspection yet" app/inspections/\[id\]/page.tsx
           grep -q "create extension if not exists pgcrypto" supabase/migrations/053_agent_action_ledger.sql
           grep -q "approval hashes do not match the current action batch" supabase/migrations/053_agent_action_ledger.sql
           grep -q "get diagnostics updated_count = row_count" supabase/migrations/053_agent_action_ledger.sql
