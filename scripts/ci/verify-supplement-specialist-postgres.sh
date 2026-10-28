@@ -14,7 +14,11 @@ sql() {
       -d roofos_authority_ci "$@"
 }
 
-sql -f scripts/ci/estimate-authority-baseline.sql
+# The estimate-authority suite may already have created the synthetic baseline
+# in this disposable database. Create it only when absent.
+if [ -z "$(sql -tAc "select to_regclass('public.workspaces')")" ]; then
+  sql -f scripts/ci/estimate-authority-baseline.sql
+fi
 sql -f supabase/migrations/060_supplement_specialist_agent5.sql
 sql -f scripts/ci/supplement-specialist-assertions.sql
 echo 'AGENT 5 MIGRATION 060: isolated SQL-role/RLS/trigger tests passed. Supabase Auth/Storage remains untested.'
