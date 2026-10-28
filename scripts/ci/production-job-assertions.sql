@@ -63,12 +63,12 @@ set role authenticated;
 -- Record acceptances for the estimates that should reach the handoff gate.
 set request.jwt.claim.sub = '22222222-2222-4222-8222-222222222222';
 insert into public.estimate_acceptances
-  (workspace_id,estimate_id,accepted_by_name,acceptance_method,recorded_by)
+  (id,workspace_id,estimate_id,accepted_by_name,acceptance_method,recorded_by)
 values
- ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','e1000000-0000-4000-8000-000000000001','Pat Customer','phone','22222222-2222-4222-8222-222222222222'),
- ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','e1000000-0000-4000-8000-000000000003','Lost Customer','phone','22222222-2222-4222-8222-222222222222'),
- ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','e1000000-0000-4000-8000-000000000005','Pat Customer','text','22222222-2222-4222-8222-222222222222'),
- ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','e1000000-0000-4000-8000-000000000007','Pat Customer','email','22222222-2222-4222-8222-222222222222');
+ ('ac100000-0000-4000-8000-000000000001','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','e1000000-0000-4000-8000-000000000001','Pat Customer','phone','22222222-2222-4222-8222-222222222222'),
+ ('ac100000-0000-4000-8000-000000000003','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','e1000000-0000-4000-8000-000000000003','Lost Customer','phone','22222222-2222-4222-8222-222222222222'),
+ ('ac100000-0000-4000-8000-000000000005','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','e1000000-0000-4000-8000-000000000005','Pat Customer','text','22222222-2222-4222-8222-222222222222'),
+ ('ac100000-0000-4000-8000-000000000007','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','e1000000-0000-4000-8000-000000000007','Pat Customer','email','22222222-2222-4222-8222-222222222222');
 
 -- 1. A member creates the handoff. Every source field is overwritten from the database.
 insert into public.production_jobs
@@ -378,11 +378,11 @@ begin
     values
       ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','OUTSIDER',
        '1a000000-0000-4000-8000-000000000001','e1000000-0000-4000-8000-000000000001',
-       (select id from public.estimate_acceptances where estimate_id='e1000000-0000-4000-8000-000000000001'),
+       'ac100000-0000-4000-8000-000000000001',
        'Pat Customer','1 Main St','ready',10000,now(),1,
        '33333333-3333-4333-8333-333333333333');
     raise exception 'SECURITY FAILURE: outsider created a production job';
-  exception when insufficient_privilege or check_violation or foreign_key_violation then
+  exception when insufficient_privilege or check_violation then
     raise notice 'Expected RLS/membership rejection for an outsider job: %',SQLERRM;
   end;
 end $$;
