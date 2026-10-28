@@ -245,6 +245,7 @@ assert.ok(detailPage.includes('Record weather decision'))
 assert.ok(detailPage.includes('PERMIT_STATUSES.map'))
 assert.ok(detailPage.includes('WEATHER_DECISIONS.map'))
 assert.ok(detailPage.includes('Clear weather is stale after 24 hours'))
+assert.ok(detailPage.includes('weather_age_hours.toFixed(1)'), 'the fraction is shown consistently')
 assert.ok(detailPage.includes('not a live permit-office or weather-provider check'))
 assert.ok(!/Gate 3 (is )?closed|insurer (will|approved)|guarantee/i.test(detailPage))
 

@@ -21,6 +21,21 @@ const PERMIT_COLUMNS =
 
 const DEPOSIT_COLUMNS = 'id,event_type,amount,occurred_at,method,reference,note'
 
+type ReadinessRecordRow = {
+  id: string
+  workspace_id: string
+  job_id: string
+  permit_status: PermitStatus
+  permit_reference: string
+  permit_checked_at: string | null
+  permit_checked_by: string | null
+  weather_decision: WeatherDecision
+  weather_source: string
+  weather_checked_at: string | null
+  weather_checked_by: string | null
+  updated_at: string
+}
+
 function failureStatus(code: string | undefined): number {
   if (code === '23505') return 409
   if (code === '23514' || code === '23503' || code === '42501' || code === '22P02') return 400
@@ -195,7 +210,7 @@ export async function PATCH(
     return NextResponse.json({ error: 'Unknown action.' }, { status: 400 })
   }
 
-  let saved: unknown = null
+  let saved: ReadinessRecordRow | null = null
   if (existing) {
     const { data, error } = await supabase
       .from('production_job_readiness')

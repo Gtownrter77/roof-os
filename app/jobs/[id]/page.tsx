@@ -377,7 +377,7 @@ export default function JobSchedulePage() {
                 {prebuild.record?.weather_checked_at && (
                   <p className="text-xs text-slate-500">
                     Checked {new Date(prebuild.record.weather_checked_at).toLocaleString()}
-                    {prebuild.readiness.weather_age_hours !== null ? ` · ${prebuild.readiness.weather_age_hours}h ago` : ''}
+                    {prebuild.readiness.weather_age_hours !== null ? ` · ${prebuild.readiness.weather_age_hours.toFixed(1)}h ago` : ''}
                   </p>
                 )}
               </div>
