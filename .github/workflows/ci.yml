@@ -89,6 +89,7 @@ jobs:
       - run: npm run test:lead-dedup
       - run: npm run test:inspection-appointment
       - run: npm run test:inspection-packet
+      - run: npm run test:estimate-acceptance
       - run: npm run test:ai-vision-contract
       - run: npm run test:ai-vision-endpoint
       - run: npm run test:workspace-settings
@@ -261,6 +262,10 @@ jobs:
           test -f app/api/inspections/\[id\]/packet/route.ts
           grep -q "urlsIncluded: false" lib/inspection/packet.ts
           grep -q "Agent 3 has not reviewed this inspection yet" app/inspections/\[id\]/page.tsx
+          grep -q "estimate_acceptances" supabase/migrations/063_estimate_acceptance_deposit.sql
+          grep -q "A recorded estimate acceptance is immutable" supabase/migrations/063_estimate_acceptance_deposit.sql
+          grep -q "estimate_deposit_events" supabase/migrations/063_estimate_acceptance_deposit.sql
+          grep -q "Not an electronic signature" supabase/migrations/063_estimate_acceptance_deposit.sql
           grep -q "create extension if not exists pgcrypto" supabase/migrations/053_agent_action_ledger.sql
           grep -q "approval hashes do not match the current action batch" supabase/migrations/053_agent_action_ledger.sql
           grep -q "get diagnostics updated_count = row_count" supabase/migrations/053_agent_action_ledger.sql
@@ -315,3 +320,12 @@ jobs:
           PGUSER: postgres
           PGPASSWORD: ci-synthetic-only
         run: bash scripts/ci/verify-inspection-appointment-postgres.sh
+      - name: Run real PostgreSQL estimate acceptance and deposit tests
+        shell: bash
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGDATABASE: roofos_authority_ci
+          PGUSER: postgres
+          PGPASSWORD: ci-synthetic-only
+        run: bash scripts/ci/verify-estimate-acceptance-postgres.sh
