@@ -83,6 +83,7 @@ jobs:
       - run: npm run test:photo-full-report-flow
       - run: npm run test:measurement-estimate-authority
       - run: npm run test:estimate-approval-authority
+      - run: npm run test:reliability
       - run: npm run test:ai-vision-contract
       - run: npm run test:ai-vision-endpoint
       - run: npm run test:workspace-settings
