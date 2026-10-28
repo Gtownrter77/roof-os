@@ -19,6 +19,9 @@ from pydantic import BaseModel, HttpUrl
 
 MAX_SOURCE_BYTES = 25 * 1024 * 1024
 MAX_OUTPUT_CHARS = 180_000
+MAX_STRUCTURED_PAGES = 200
+MAX_BLOCKS_PER_PAGE = 500
+MAX_STRUCTURED_CHARS = 2_000_000
 ALLOWED_SOURCE_ORIGIN = os.environ.get("ALLOWED_SOURCE_ORIGIN", "").rstrip("/")
 
 app = FastAPI(title="ROOF/OS local claims parser", version="0.1.0")
@@ -32,6 +35,64 @@ class ParseRequest(BaseModel):
 @lru_cache(maxsize=1)
 def converter() -> DocumentConverter:
     return DocumentConverter()
+
+
+def _page_number(item: object) -> int | None:
+    """Read Docling's own page provenance. Never invent a page number."""
+    for provenance in getattr(item, "prov", None) or []:
+        page = getattr(provenance, "page_no", None)
+        if isinstance(page, int) and page > 0:
+            return page
+    return None
+
+
+def _block_text(item: object) -> tuple[str, str]:
+    text = getattr(item, "text", None)
+    if isinstance(text, str) and text.strip():
+        return "text", text.strip()
+    exporter = getattr(item, "export_to_markdown", None)
+    if callable(exporter):
+        try:
+            markdown = exporter()
+        except Exception:
+            return "table", ""
+        if isinstance(markdown, str) and markdown.strip():
+            return "table", markdown.strip()
+    return "text", ""
+
+
+def extract_pages(document: object) -> tuple[list[dict], bool]:
+    """Group Docling items by page, bounded. Returns (pages, truncated)."""
+    grouped: dict[int, list[dict]] = {}
+    chars = 0
+    truncated = False
+    try:
+        items = document.iterate_items()
+    except Exception:
+        return [], True
+    try:
+        for item, _level in items:
+            page = _page_number(item)
+            if page is None:
+                continue
+            if page > MAX_STRUCTURED_PAGES:
+                truncated = True
+                continue
+            kind, text = _block_text(item)
+            if not text:
+                continue
+            page_blocks = grouped.setdefault(page, [])
+            if len(page_blocks) >= MAX_BLOCKS_PER_PAGE:
+                truncated = True
+                continue
+            if chars + len(text) > MAX_STRUCTURED_CHARS:
+                truncated = True
+                break
+            page_blocks.append({"kind": kind, "text": text})
+            chars += len(text)
+    except Exception:
+        return [{"page": page, "blocks": blocks} for page, blocks in sorted(grouped.items())], True
+    return [{"page": page, "blocks": blocks} for page, blocks in sorted(grouped.items())], truncated
 
 
 def validate_source(url: str) -> None:
@@ -78,6 +139,7 @@ async def parse_document(payload: ParseRequest) -> dict:
             path = handle.name
         result = converter().convert(path)
         markdown = result.document.export_to_markdown()
+        pages, structured_truncated = extract_pages(result.document)
         return {
             "parser": "docling",
             "license": "MIT",
@@ -87,6 +149,11 @@ async def parse_document(payload: ParseRequest) -> dict:
             "market": payload.market,
             "markdown": markdown[:MAX_OUTPUT_CHARS],
             "truncated": len(markdown) > MAX_OUTPUT_CHARS,
+            "pages": pages,
+            "pageCount": len(pages),
+            "blockCount": sum(len(page["blocks"]) for page in pages),
+            "structured": len(pages) > 0,
+            "structuredTruncated": structured_truncated,
             "reviewRequired": True,
             "authority": "document extraction only; human review required",
         }
