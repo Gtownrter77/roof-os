@@ -1,0 +1,260 @@
+{
+  "issue": 336,
+  "day": 15,
+  "generated_at": "2026-10-28T16:16:55-04:00",
+  "environment": {
+    "host_os": "debian 13",
+    "node": "24.22.1",
+    "client": "opencode",
+    "rea_version": "6.8.0",
+    "rea_skill": "reverse-engineer-anything",
+    "rea_skill_version": 49,
+    "workspace": "/mnt/shared/removable/SD3/roof-os-current"
+  },
+  "boundaries": [
+    "Only public documentation, the public marketing site, and public documentation JavaScript were studied.",
+    "No CapOut account, API key, trial, dashboard, carrier PDF, pricing catalog, or authenticated request was used.",
+    "No CapOut source, UI copy, branding, or private data format was copied.",
+    "Automatic screenshots and runtime browser capture were unavailable in this environment; they are recorded as unavailable, not as done."
+  ],
+  "executions": [
+    {
+      "id": "rea-doctor",
+      "tool": "rea doctor --client opencode --json",
+      "status": "completed",
+      "started_at": null,
+      "finished_at": null,
+      "exit_code": 0,
+      "result": {
+        "healthy": true,
+        "environment_healthy": false,
+        "registration": "healthy",
+        "registration_path": "/home/rlongmbox/.config/opencode/opencode.jsonc",
+        "missing_engines": [
+          "hopper",
+          "ghidra",
+          "ida-registration",
+          "jadx",
+          "kuna"
+        ]
+      },
+      "conclusion": "REA CLI and OpenCode registration are healthy. Native analysis engines and browser tooling are absent. Only the JavaScript analyzer route was usable for this target.",
+      "artifacts": [],
+      "started_at_note": "not recorded"
+    },
+    {
+      "id": "public-docs-retrieval",
+      "tool": "curl --compressed https://docs.capout.ai/<page>.md",
+      "status": "completed",
+      "started_at": "2026-10-28T16:12:21-04:00",
+      "finished_at": "2026-10-28T16:12:36-04:00",
+      "exit_code": 0,
+      "result": {
+        "pages": 10,
+        "all_http_200": true
+      },
+      "conclusion": "Public documentation retrieved without authentication. Saved copies are audit artifacts outside the repository; hashes below identify the exact text used.",
+      "artifacts": [
+        {
+          "path": "/tmp/opencode/capout-docs-md/quickstart.md",
+          "bytes": 1944,
+          "sha256": "43937098b46af27ac91db4862e14c49a90821bd409443c14515e705802c6bedd",
+          "source_url": "https://docs.capout.ai/quickstart.md"
+        },
+        {
+          "path": "/tmp/opencode/capout-docs-md/guides_upload-a-document.md",
+          "bytes": 2518,
+          "sha256": "04c066a9ff05c83c12d187410663a574760a1790208ef2674e86372809c39711",
+          "source_url": "https://docs.capout.ai/guides/upload-a-document.md"
+        },
+        {
+          "path": "/tmp/opencode/capout-docs-md/guides_structured-estimate-imports.md",
+          "bytes": 6562,
+          "sha256": "fe75d4fdd315f35a18780476f886065d07336a41fc573c7c78385493ba762384",
+          "source_url": "https://docs.capout.ai/guides/structured-estimate-imports.md"
+        },
+        {
+          "path": "/tmp/opencode/capout-docs-md/guides_download-esx.md",
+          "bytes": 2075,
+          "sha256": "424926b86afbdead78a8740b23c0d93f8c4cdf59e6a0c1bc9c57c9d91e67e922",
+          "source_url": "https://docs.capout.ai/guides/download-esx.md"
+        },
+        {
+          "path": "/tmp/opencode/capout-docs-md/guides_realtime-updates.md",
+          "bytes": 1643,
+          "sha256": "d27f8bf583baa038581da4f8c15d0bfedfcc4de17da5257502947adee50064ee",
+          "source_url": "https://docs.capout.ai/guides/realtime-updates.md"
+        },
+        {
+          "path": "/tmp/opencode/capout-docs-md/guides_claims-and-usage.md",
+          "bytes": 1157,
+          "sha256": "daf2817d18f870ea4683f3a02712d59c78059a745e8873c6c7468de638249bcd",
+          "source_url": "https://docs.capout.ai/guides/claims-and-usage.md"
+        },
+        {
+          "path": "/tmp/opencode/capout-docs-md/mcp_overview.md",
+          "bytes": 1479,
+          "sha256": "7f67dc4bf9da36377dcf908e37adaa31fa4f4a279ffab511bb5a6de9faaeaec0",
+          "source_url": "https://docs.capout.ai/mcp/overview.md"
+        },
+        {
+          "path": "/tmp/opencode/capout-docs-md/api-reference_overview.md",
+          "bytes": 1238,
+          "sha256": "7709c5d77a44647c40b7bcac2c91c4701200611ea1fb6ee86590da212aa7dd3c",
+          "source_url": "https://docs.capout.ai/api-reference/overview.md"
+        },
+        {
+          "path": "/tmp/opencode/capout-docs-md/status.md",
+          "bytes": 1574,
+          "sha256": "55130ef0f0c4841cb12f6dd96f0b636d9002c5ec425af38dea658f823f1ab9c5",
+          "source_url": "https://docs.capout.ai/api-reference/status/get-document-status.md"
+        },
+        {
+          "path": "/tmp/opencode/capout-docs-md/index.md",
+          "bytes": 1744,
+          "sha256": "1231cf6ef568a2f7fb5f29f61987986e54b73c3542fd5e8359ca4e832139ceb3",
+          "source_url": "https://docs.capout.ai/llms.txt"
+        }
+      ]
+    },
+    {
+      "id": "rea-runtime-bundle",
+      "tool": "rea analyze-javascript-application /tmp/opencode/rea-capout-runtime --detail summary --evidence_output /tmp/opencode/rea-runtime-evidence.json --json",
+      "status": "completed",
+      "started_at": null,
+      "finished_at": "2026-10-28T16:11:00-04:00",
+      "exit_code": 0,
+      "result": {
+        "evidence_id": "ev_73175a99a3fb8c5e03aa83cce08550901abc2d60a557d1341ac3593b96e2bfae",
+        "authority": "shipped-artifact",
+        "confidence": "derived",
+        "parsed_javascript_files": 1,
+        "text_bytes_read": 1358,
+        "visited_ast_nodes": 433,
+        "findings": 8,
+        "graph_nodes": 11,
+        "graph_edges": 10,
+        "routes": 0,
+        "limitations": 6
+      },
+      "conclusion": "The Mintlify runtime bootstrap is inert glue. It contains no routes and no CapOut product behavior. REA parsed it as text and did not execute it.",
+      "artifacts": [
+        {
+          "path": "/tmp/opencode/rea-runtime-evidence.json",
+          "bytes": 675388,
+          "sha256": "c9bd4b3b96294b1a7f6b83c0e0100e4a768c37892acf3d4cdd4832191e4f8923",
+          "note": "sha256 of the evidence bundle at write time"
+        },
+        {
+          "path": "/tmp/opencode/rea-capout-runtime/rolldown-runtime-Bjp52BOI.js",
+          "bytes": 1358,
+          "sha256": "4fa65d90d5b36637097b868930531bc2cfc6337f7c9a756a48db2e56340df7a2",
+          "source_url": "https://docs.capout.ai/_mintlify/assets/rolldown-runtime-Bjp52BOI.js"
+        }
+      ],
+      "started_at_note": "not recorded; finished time from evidence file mtime"
+    },
+    {
+      "id": "rea-docs-index-bundle",
+      "tool": "rea analyze-javascript-application /tmp/opencode/rea-capout-index --detail summary --evidence_output /tmp/opencode/rea-index-evidence.json --analysis-timeout-ms 900000 --json",
+      "status": "completed",
+      "started_at": "2026-10-28T16:11:13-04:00",
+      "finished_at": "2026-10-28T16:15:43-04:00",
+      "exit_code": 0,
+      "result": {
+        "evidence_id": "ev_bcababac417cf81892b8ad59a37b9ae429463f7a86a96194fd68cf2911a623a9",
+        "authority": "shipped-artifact",
+        "confidence": "derived",
+        "parsed_javascript_files": 1,
+        "text_bytes_read": 748194,
+        "visited_ast_nodes": 171250,
+        "findings": 905,
+        "semantic_nodes": 20000,
+        "semantic_relations": 16187,
+        "semantic_unknowns": 20000,
+        "routes": 0,
+        "limitations": 6,
+        "caps_hit": [
+          "max_semantic_nodes_per_file=20000",
+          "max_semantic_unknowns_per_file=20000"
+        ]
+      },
+      "conclusion": "The main docs bundle is a documentation application. REA found no application routes and no CapOut API endpoint literals. Both semantic caps were reached, so absence inside the bundle must not be read as absence in the product.",
+      "artifacts": [
+        {
+          "path": "/tmp/opencode/rea-index-evidence.json",
+          "bytes": 48465788,
+          "note": "bundle retained outside the repository; evidence id and hash identify it",
+          "sha256": "2565175962db28a2c614188d47507e38cb4728223f921b149c3efe13c18e4db9"
+        },
+        {
+          "path": "/tmp/opencode/rea-index-output.json",
+          "bytes": 895,
+          "note": "progress/summary stream"
+        },
+        {
+          "path": "/tmp/opencode/rea-capout-index/index-ChARrxI-.js",
+          "bytes": 748194,
+          "sha256": "eed2f08a6027028b6f07db50c8ba8299781dad7f4bbb5184b5a9bba3e0bad39f",
+          "source_url": "https://docs.capout.ai/_mintlify/assets/index-ChARrxI-.js"
+        },
+        {
+          "path": "/tmp/opencode/rea-capout-docs/scripts/initial-vendor-DmN2-u7l.js",
+          "bytes": 466794,
+          "sha256": "d5dccd3f64a12be328fa036b9d2a3c480f2ff96128566438ccc3584d951b90c0",
+          "source_url": "https://docs.capout.ai/_mintlify/assets/initial-vendor-DmN2-u7l.js",
+          "note": "retained for provenance; not analyzed separately"
+        }
+      ],
+      "started_at_note": "derived from process elapsed time"
+    },
+    {
+      "id": "rea-first-combined-attempt",
+      "tool": "rea analyze-javascript-application /tmp/opencode/rea-capout-docs --detail summary --evidence_output /tmp/opencode/rea-capout-docs-evidence.json --json",
+      "status": "failed",
+      "started_at": null,
+      "finished_at": null,
+      "exit_code": null,
+      "result": {
+        "reason": "Caller timeout at 300000 ms before the CLI finished. No evidence bundle was written.",
+        "remediation": "Split each bundle into its own input directory and set --analysis-timeout-ms 900000."
+      },
+      "conclusion": "Recorded as a failed attempt. Its result is not used as evidence.",
+      "artifacts": [],
+      "started_at_note": "not recorded; caller timeout observed at 300000 ms"
+    }
+  ],
+  "unavailable": [
+    {
+      "capability": "rea capture-browser-scenario",
+      "reason": "No usable browser binary. Playwright Chromium headless shell 141.0.7390.37 was downloaded, but ldd reports libnspr4.so, libnss3.so, and libnssutil3.so missing. Installing system packages needs root, which this task forbids.",
+      "attempted": true,
+      "remediation": "Install NSS/NSPR runtime libraries or supply a working browser, then run a declared scenario against public docs pages."
+    },
+    {
+      "capability": "rea analyze-web-bundle / rea inspect-web-page",
+      "reason": "Both require a loopback CDP endpoint and target id from a running browser. No browser can launch in this environment.",
+      "attempted": false,
+      "remediation": "Same browser prerequisite as above."
+    },
+    {
+      "capability": "Authenticated CapOut API observation",
+      "reason": "Out of scope by owner instruction. No account or API key was used, and no request was sent to api.capout.ai.",
+      "attempted": false,
+      "remediation": "Requires separate owner authorization and a test key; would still be limited to documented endpoints."
+    },
+    {
+      "capability": "Private CapOut product internals",
+      "reason": "Proprietary source, private endpoints, pricing catalog, and ESX byte layout are excluded by the clean-room boundary.",
+      "attempted": false,
+      "remediation": "None. Not a goal."
+    }
+  ],
+  "observations": [
+    "Static text search of the three public docs assets found zero occurrences of api.capout.ai, capout-api-key, upload/json, ws/token, esx, or mcp.capout.",
+    "The docs bundle exposes documentation routes only; REA route inventory is empty.",
+    "The marketing accuracy statement is a vendor claim. It was not tested and is not repeated as fact.",
+    "Every CapOut behavior in the study comes from public prose, not from execution."
+  ],
+  "retention": "Large evidence bundles and downloaded assets live under /tmp/opencode and are not committed. Hashing plus evidence ids lets a reviewer detect whether a later study used the same bytes."
+}

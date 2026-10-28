@@ -119,4 +119,51 @@ assert.ok(migration.includes('public.is_workspace_admin'), 'approval requires ad
 assert.ok(!/for delete/i.test(migration), 'review history is append-only (no delete policy)')
 assert.ok(migration.includes('assign_supplement_review_revision'), 'server assigns revisions')
 
-console.log('agent5-supplement-specialist-test: PASS (parser provenance, no invented values, comparator deltas, review-only packet, revisions, RLS source)')
+// 7. Alternate and paid-when-incurred flags follow the documented review semantics:
+// retained in the packet, excluded from totals and deltas, never priced here.
+const alternates = parseStructuredLines([
+  { item_code: 'A1', description: 'Architectural shingles', quantity: 10, unit: 'SQ', unit_cost: 100, enabled: 'yes' },
+  { item_code: 'A2', description: 'Gutter apron alternate', quantity: 40, unit: 'LF', unit_cost: 5, enabled: '0' },
+  { item_code: 'A3', description: 'Tarp and dry-in', quantity: 1, unit: 'EA', unit_cost: 250, paid_when_incurred: 'true' },
+], 'carrier-alt')
+assert.equal(alternates[0].enabled, true)
+assert.equal(alternates[1].enabled, false)
+assert.equal(alternates[2].paid_when_incurred, true)
+const altPacket = buildReviewPacket({
+  documentId: 'carrier-alt',
+  carrier: alternates,
+  contractor: parseStructuredLines([
+    { item_code: 'A1', description: 'Architectural shingles', quantity: 10, unit: 'SQ', unit_cost: 100 },
+  ], 'contractor-alt'),
+  measurements: ['roof 10 SQ'],
+})
+assert.equal(altPacket.totals.carrier_source_total, 1250, 'alternate row stays out of the total')
+assert.equal(altPacket.excluded.alternate_rows, 1)
+assert.equal(altPacket.excluded.paid_when_incurred_rows, 1)
+assert.ok(altPacket.lines.some((line) => line.item_code === 'A2'), 'alternate row is retained for review')
+assert.ok(!altPacket.proposals.some((line) => line.description.includes('Gutter apron')),
+  'an alternate carrier row never becomes a delta')
+
+// A disabled contractor alternate must not look like missing scope.
+const alternateContractor = buildReviewPacket({
+  documentId: 'carrier-alt-2',
+  carrier: parseStructuredLines([
+    { item_code: 'A1', description: 'Architectural shingles', quantity: 10, unit: 'SQ', unit_cost: 100 },
+  ], 'carrier-alt-2'),
+  contractor: parseStructuredLines([
+    { item_code: 'A1', description: 'Architectural shingles', quantity: 10, unit: 'SQ', unit_cost: 100 },
+    { item_code: 'X9', description: 'Optional ridge upgrade', quantity: 2, unit: 'SQ', unit_cost: 10, enabled: false },
+  ], 'contractor-alt-2'),
+  measurements: ['roof 10 SQ'],
+})
+assert.ok(!alternateContractor.proposals.some((line) => line.description.includes('Optional ridge upgrade')),
+  'a disabled contractor alternate never becomes missing scope')
+
+// Omitted price stays unknown. It is never rewritten to $0.00.
+const unpriced = parseStructuredLines([{ description: 'Roofing felt 15 lb', quantity: 10, unit: 'SQ' }], 'unpriced')
+assert.equal(unpriced[0].unit_cost, null)
+assert.equal(unpriced[0].line_total, null)
+assert.equal(unpriced[0].provenance, 'unknown')
+assert.ok(unpriced[0].issues.includes('unit price not stated in source'))
+
+console.log('agent5-supplement-specialist-test: PASS (parser provenance, no invented values, comparator deltas, alternate/PWI flags, review-only packet, revisions, RLS source)')

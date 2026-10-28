@@ -12,6 +12,10 @@ export interface ExtractedLine {
   unit: string | null
   unit_cost: number | null
   line_total: number | null
+  /** Alternate rows stay in the review packet but never enter totals or deltas. */
+  enabled: boolean
+  /** Paid-when-incurred is retained as a flag only. The engine never prices it. */
+  paid_when_incurred: boolean
   provenance: Provenance
   confidence: number
   issues: string[]
@@ -45,6 +49,8 @@ export interface StructuredLineInput {
   unit?: string | null
   unit_cost?: number | string | null
   line_total?: number | string | null
+  enabled?: boolean | number | string | null
+  paid_when_incurred?: boolean | number | string | null
   page?: number | null
   block?: string | null
 }
@@ -76,6 +82,12 @@ export interface ReviewPacket {
     missing_quantity: number
     missing_price: number
     unresolved_proposals: number
+  }
+  excluded: {
+    /** Alternate/disabled rows retained for review but left out of totals and deltas. */
+    alternate_rows: number
+    /** Paid-when-incurred rows; flags only, never priced by this engine. */
+    paid_when_incurred_rows: number
   }
   export_blocked: true
   capout_required: false
