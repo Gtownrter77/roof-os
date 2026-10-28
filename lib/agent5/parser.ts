@@ -119,6 +119,7 @@ function textLineToLine(
     item_code: itemCode,
     description,
     category: inferred.category,
+    category_provenance: inferred.category === null ? 'unknown' : 'inferred',
     quantity,
     unit,
     unit_cost: unitCost,
@@ -174,9 +175,13 @@ export function parseStructuredLines(
     const row = raw as StructuredLineInput
     const description = cleanText(row.description)
     if (!description) return
-    const category = typeof row.category === 'string' && CATEGORY_VALUES.has(row.category as SupplementCategory)
+    const statedCategory = typeof row.category === 'string' && CATEGORY_VALUES.has(row.category as SupplementCategory)
       ? row.category as SupplementCategory
-      : inferCategory(description).category
+      : null
+    const category = statedCategory ?? inferCategory(description).category
+    const categoryProvenance = statedCategory !== null
+      ? 'stated' as const
+      : category !== null ? 'inferred' as const : 'unknown' as const
     const quantity = parseNumber(row.quantity)
     const unitCost = parseNumber(row.unit_cost)
     const providedTotal = parseNumber(row.line_total)
@@ -192,6 +197,7 @@ export function parseStructuredLines(
       item_code: cleanText(row.item_code) || null,
       description,
       category,
+      category_provenance: categoryProvenance,
       quantity,
       unit: cleanText(row.unit).toUpperCase() || null,
       unit_cost: unitCost,

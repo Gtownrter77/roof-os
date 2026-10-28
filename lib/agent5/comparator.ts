@@ -83,6 +83,7 @@ export function compareScope(input: CompareInput): GapProposal[] {
         contractor_evidence: [evidence(contractorLine)],
         quantity_delta: contractorLine.quantity,
         amount_delta: contractorLine.line_total,
+        trade_delta: null,
         confidence: 0.6,
         requires_human_review: true,
       })
@@ -100,12 +101,38 @@ export function compareScope(input: CompareInput): GapProposal[] {
         contractor_evidence: [evidence(contractorLine)],
         quantity_delta: null,
         amount_delta: null,
+        trade_delta: null,
         confidence: 0.5,
         requires_human_review: true,
       })
     }
 
-    if (carrierLine.quantity !== null && contractorLine.quantity !== null) {
+    // A trade delta is evidence-backed only when both sources state a category.
+    // Inferred hints differ too easily to raise a proposal on their own.
+    if (
+      carrierLine.category !== null &&
+      contractorLine.category !== null &&
+      carrierLine.category_provenance === 'stated' &&
+      contractorLine.category_provenance === 'stated' &&
+      carrierLine.category !== contractorLine.category
+    ) {
+      proposals.push({
+        kind: 'trade_mismatch',
+        description: `Category differs for "${carrierLine.description}": carrier ${carrierLine.category} vs contractor ${contractorLine.category}.`,
+        carrier_evidence: [evidence(carrierLine)],
+        contractor_evidence: [evidence(contractorLine)],
+        quantity_delta: null,
+        amount_delta: null,
+        trade_delta: { carrier: carrierLine.category, contractor: contractorLine.category },
+        confidence: 0.75,
+        requires_human_review: true,
+      })
+    }
+
+    const unitsComparable = carrierLine.unit !== null
+      && contractorLine.unit !== null
+      && carrierLine.unit === contractorLine.unit
+    if (carrierLine.quantity !== null && contractorLine.quantity !== null && unitsComparable) {
       const delta = round(contractorLine.quantity - carrierLine.quantity)
       const tolerance = Math.max(0.01, Math.abs(carrierLine.quantity) * 0.02)
       if (Math.abs(delta) > tolerance) {
@@ -117,10 +144,25 @@ export function compareScope(input: CompareInput): GapProposal[] {
           contractor_evidence: [evidence(contractorLine)],
           quantity_delta: delta,
           amount_delta: amountDelta,
+          trade_delta: null,
           confidence: 0.7,
           requires_human_review: true,
         })
       }
+    } else if (carrierLine.quantity !== null && contractorLine.quantity !== null) {
+      // Quantities exist but units do not agree. A delta across SQ/SF or LF/EA
+      // is a false positive, so it is surfaced as a question instead.
+      proposals.push({
+        kind: 'question',
+        description: `Quantity comparison unavailable for "${carrierLine.description}"; units are not comparable (${carrierLine.unit ?? 'missing'} vs ${contractorLine.unit ?? 'missing'}).`,
+        carrier_evidence: [evidence(carrierLine)],
+        contractor_evidence: [evidence(contractorLine)],
+        quantity_delta: null,
+        amount_delta: null,
+        trade_delta: null,
+        confidence: 0.4,
+        requires_human_review: true,
+      })
     } else {
       proposals.push({
         kind: 'question',
@@ -129,6 +171,7 @@ export function compareScope(input: CompareInput): GapProposal[] {
         contractor_evidence: [evidence(contractorLine)],
         quantity_delta: null,
         amount_delta: null,
+        trade_delta: null,
         confidence: 0.4,
         requires_human_review: true,
       })
@@ -145,6 +188,7 @@ export function compareScope(input: CompareInput): GapProposal[] {
         contractor_evidence: null,
         quantity_delta: null,
         amount_delta: null,
+        trade_delta: null,
         confidence: 0.4,
         requires_human_review: true,
       })
@@ -160,6 +204,7 @@ export function compareScope(input: CompareInput): GapProposal[] {
       contractor_evidence: null,
       quantity_delta: null,
       amount_delta: null,
+      trade_delta: null,
       confidence: 1,
       requires_human_review: true,
     })
