@@ -111,4 +111,57 @@ begin
 end $$;
 reset role;
 
-select 'PASS: member draft creation, server revision, member approval denial, admin approval, approved immutability, cross-workspace isolation' as result;
+-- Idempotency: one key per workspace, bounded length, reusable in another workspace.
+set role authenticated;
+set request.jwt.claim.sub = '55555555-5555-4555-8555-555555555555';
+insert into public.supplement_review_drafts
+  (workspace_id,document_id,packet,created_by,idempotency_key,request_fingerprint)
+values
+  ('cccccccc-cccc-4ccc-8ccc-cccccccccccc','carrier-3','{}',
+   '55555555-5555-4555-8555-555555555555','idem-workspace-a-0001',repeat('a',64));
+
+do $$
+begin
+  -- Reusing the key for another document in the same workspace is rejected.
+  begin
+    insert into public.supplement_review_drafts
+      (workspace_id,document_id,packet,created_by,idempotency_key,request_fingerprint)
+    values
+      ('cccccccc-cccc-4ccc-8ccc-cccccccccccc','carrier-4','{}',
+       '55555555-5555-4555-8555-555555555555','idem-workspace-a-0001',repeat('b',64));
+    raise exception 'FAILURE: duplicate idempotency key accepted in one workspace';
+  exception when unique_violation then
+    raise notice 'Expected duplicate idempotency key rejection';
+  end;
+
+  -- Short keys are rejected by the check constraint.
+  begin
+    insert into public.supplement_review_drafts
+      (workspace_id,document_id,packet,created_by,idempotency_key,request_fingerprint)
+    values
+      ('cccccccc-cccc-4ccc-8ccc-cccccccccccc','carrier-5','{}',
+       '55555555-5555-4555-8555-555555555555','short',repeat('c',64));
+    raise exception 'FAILURE: short idempotency key accepted';
+  exception when check_violation then
+    raise notice 'Expected short idempotency key rejection';
+  end;
+end $$;
+
+-- The same key is a separate namespace in another workspace.
+set request.jwt.claim.sub = '66666666-6666-4666-8666-666666666666';
+insert into public.supplement_review_drafts
+  (workspace_id,document_id,packet,created_by,idempotency_key,request_fingerprint)
+values
+  ('dddddddd-dddd-4ddd-8ddd-dddddddddddd','carrier-9','{}',
+   '66666666-6666-4666-8666-666666666666','idem-workspace-a-0001',repeat('d',64));
+reset role;
+
+do $$
+begin
+  if (select count(*) from public.supplement_review_drafts
+      where idempotency_key='idem-workspace-a-0001') <> 2 then
+    raise exception 'FAILURE: idempotency key did not stay scoped per workspace';
+  end if;
+end $$;
+
+select 'PASS: member draft creation, server revision, member approval denial, admin approval, approved immutability, cross-workspace isolation, per-workspace idempotency key' as result;

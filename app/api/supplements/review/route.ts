@@ -10,6 +10,8 @@ import { readJson, requireWorkspaceMember } from '../../../../lib/api-security'
 import { parseStructuredLines } from '../../../../lib/agent5/parser'
 import { buildReviewPacket, compareRevisions } from '../../../../lib/agent5/reviewer'
 import { normalizeDoclingDocument } from '../../../../lib/documents/normalizer'
+import { fingerprintRequest, normalizeIdempotencyKey } from '../../../../lib/agent5/idempotency'
+import { classifyPersistenceError } from '../../../../lib/agent5/retry'
 
 const MAX_ROWS = 500
 const MAX_PAGES = 50
@@ -109,6 +111,23 @@ export async function POST(request: NextRequest) {
     ? body.measurements.filter((value): value is string => typeof value === 'string').slice(0, 200)
     : []
 
+  // A caller retry carries the same key. The key is scoped to the workspace and
+  // the fingerprint decides replay versus conflict.
+  const idempotency = normalizeIdempotencyKey(request.headers.get('idempotency-key'))
+  if (idempotency.error) {
+    return NextResponse.json({ error: idempotency.error, code: 'invalid_idempotency_key' }, { status: 400 })
+  }
+  const requestFingerprint = idempotency.key
+    ? fingerprintRequest({
+        document_id: body.document_id,
+        carrier_rows: body.carrier_rows,
+        contractor_rows: body.contractor_rows,
+        docling: body.docling,
+        measurements: body.measurements,
+        previous_draft_id: body.previous_draft_id,
+      })
+    : null
+
   const normalized = carrierRows.length === 0
     ? normalizeDoclingDocument({ ...docling, document_id: body.document_id })
     : null
@@ -136,11 +155,68 @@ export async function POST(request: NextRequest) {
       status: packet.status,
       packet,
       created_by: user.id,
+      idempotency_key: idempotency.key,
+      request_fingerprint: requestFingerprint,
     })
     .select('id,created_at')
     .single()
 
   if (error) {
+    const code = typeof error.code === 'string' ? error.code : null
+
+    if (code === '23505' && idempotency.key) {
+      // A retry with the same key. If the stored fingerprint matches, return the
+      // original draft; if it differs, the caller reused the key for new work.
+      const { data: existing, error: replayError } = await supabase
+        .from('supplement_review_drafts')
+        .select('id,created_at,packet,request_fingerprint')
+        .eq('workspace_id', workspaceId)
+        .eq('idempotency_key', idempotency.key)
+        .maybeSingle()
+
+      if (replayError) {
+        return NextResponse.json({ error: 'Could not resolve the idempotent retry.' }, { status: 502 })
+      }
+      if (existing) {
+        if (existing.request_fingerprint !== requestFingerprint) {
+          return NextResponse.json({
+            error: 'This Idempotency-Key was already used with a different payload.',
+            code: 'idempotency_conflict',
+          }, { status: 409 })
+        }
+        return NextResponse.json({
+          draft_id: existing.id,
+          created_at: existing.created_at,
+          packet: existing.packet,
+          normalization: null,
+          revision: null,
+          idempotent_replay: true,
+          review_required: true,
+          export_blocked: true,
+          external_submission: false,
+        })
+      }
+      return NextResponse.json({
+        error: 'A concurrent review draft write was not resolved. Retry the request.',
+        code: 'revision_conflict',
+        retryable: true,
+        retry_after_seconds: 1,
+      }, { status: 409, headers: { 'Retry-After': '1' } })
+    }
+
+    const retry = classifyPersistenceError(code)
+    if (retry.retryable) {
+      return NextResponse.json({
+        error: 'The review draft could not be persisted yet. Retry the request.',
+        code: retry.reason,
+        retryable: true,
+        retry_after_seconds: retry.retry_after_seconds,
+      }, {
+        status: 503,
+        headers: { 'Retry-After': String(retry.retry_after_seconds ?? 1) },
+      })
+    }
+
     return NextResponse.json({ error: 'Could not persist the review draft.' }, { status: 502 })
   }
 
@@ -170,6 +246,7 @@ export async function POST(request: NextRequest) {
         }
       : null,
     revision,
+    idempotent_replay: false,
     review_required: true,
     export_blocked: true,
   })

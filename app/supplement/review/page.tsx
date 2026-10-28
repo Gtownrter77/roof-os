@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { smartBack } from '../../../lib/smart-back'
+import { buildReviewExportFile } from '../../../lib/agent5/export'
+import type { ReviewPacket } from '../../../lib/agent5/types'
 
 type DraftSummary = {
   id: string
@@ -121,8 +123,19 @@ export default function SupplementReviewPage() {
     }
   }
 
-  const review = async (status: 'approved' | 'rejected') => {
+  const downloadReviewCopy = (format: 'json' | 'csv') => {
     if (!selected) return
+    const file = buildReviewExportFile(selected.packet as unknown as ReviewPacket, format)
+    const url = URL.createObjectURL(new Blob([file.content], { type: file.content_type }))
+    const link = document.createElement('a')
+    link.href = url
+    link.download = file.filename
+    link.click()
+    URL.revokeObjectURL(url)
+    setMessage('Downloaded an internal review copy. It is not an insurer file and nothing was sent.')
+  }
+
+  const review = async (status: 'approved' | 'rejected') => {    if (!selected) return
     setBusy(true)
     setMessage(status === 'approved' ? 'Recording owner approval…' : 'Recording rejection…')
     try {
@@ -222,6 +235,24 @@ export default function SupplementReviewPage() {
                 </span>
               )}
             </div>
+
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => downloadReviewCopy('json')}
+                className="border border-cyan-500/60 text-cyan-200 text-xs px-3 py-2 rounded"
+              >
+                Download review JSON
+              </button>
+              <button
+                onClick={() => downloadReviewCopy('csv')}
+                className="border border-cyan-500/60 text-cyan-200 text-xs px-3 py-2 rounded"
+              >
+                Download review CSV
+              </button>
+            </div>
+            <p className="text-xs text-slate-400">
+              Internal review copy only. The file is not an ESX structure and is never sent to an insurer.
+            </p>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm">
               <div className="border border-white/10 rounded-lg p-2"><p className="text-xs text-slate-400">Carrier total</p><p>{money(selected.packet.totals?.carrier_source_total)}</p></div>
