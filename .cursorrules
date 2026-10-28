@@ -1,0 +1,12 @@
+# Roof OS Agent Reliability Framework
+
+This repository uses `.agents/skills/` for persistent reliability, verification, and optional God Mode (sandbox only, disabled by default). See `.agents/AGENTS.md`.
+
+Mandatory for all agent tasks:
+- Challenge every fix (systematic-debugging Phase 1-4).
+- Source-tested vs database-tested distinction in every report.
+- Unresolved risks listed; never hidden.
+- RLS authorization preserved; new migrations only (`059_...` pattern).
+- Experimental work uses a `feat/` branch; push/merge only under explicit owner directive; deployment needs separate authorization.
+
+God Mode (`scripts/god-mode-activate.mjs`) is disabled by default; requires system-owner authorization; never bypasses production security.
