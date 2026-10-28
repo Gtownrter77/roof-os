@@ -171,6 +171,21 @@ jobs:
 
   migration-safety:
     runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: roofos_authority_ci
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ci-synthetic-only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d roofos_authority_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 15
     steps:
       - uses: actions/checkout@v5
       - name: Check migration order and required policies
@@ -246,3 +261,12 @@ jobs:
           test -f app/team/invitations/accept/page.tsx
           grep -q "accept_workspace_invitation" app/api/team/invitations/accept/route.ts
           if grep -RInE 'CAPOUT_API_KEY=|RAPIDAPI_KEY=|SUPABASE_SERVICE_ROLE_KEY=' --exclude=.env.example --exclude-dir=.git --exclude-dir=.github .; then exit 1; fi
+      - name: Run real PostgreSQL estimate authority SQL/RLS tests
+        shell: bash
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGDATABASE: roofos_authority_ci
+          PGUSER: postgres
+          PGPASSWORD: ci-synthetic-only
+        run: bash scripts/ci/verify-estimate-authority-postgres.sh
