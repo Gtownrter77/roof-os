@@ -85,6 +85,7 @@ jobs:
       - run: npm run test:estimate-approval-authority
       - run: npm run test:reliability
       - run: npm run test:agent5-supplement
+      - run: npm run test:agent5-capout-study
       - run: npm run test:owner-break-glass
       - run: npm run test:lead-dedup
       - run: npm run test:inspection-appointment
