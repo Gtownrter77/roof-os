@@ -30,6 +30,10 @@ import {
   describeChangeOrderStatus,
   nextChangeOrderDecisions,
 } from '../../../lib/jobs/fieldwork'
+import {
+  describeInvoiceStatus,
+  nextInvoiceStatuses,
+} from '../../../lib/jobs/invoicing'
 
 type Job = {
   id: string
@@ -202,6 +206,50 @@ type CloseoutPayload = {
   note: string
 }
 
+type InvoiceLine = {
+  kind: string
+  description: string
+  line_total: number | string
+  item_code?: string
+  change_order_id?: string
+}
+
+type ProductionInvoice = {
+  id: string
+  invoice_number: string
+  status: string
+  subtotal: number | string
+  tax: number | string
+  total: number | string
+  deposit_credit: number | string
+  balance_due: number | string
+  change_order_total: number | string
+  line_items: InvoiceLine[]
+  issued_at: string | null
+  voided_at: string | null
+  void_reason: string
+  created_at: string
+}
+
+type InvoicePreview = {
+  subtotal: number
+  tax: number
+  total: number
+  deposit_credit: number
+  balance_due: number
+  change_order_total: number
+  scope_item_count: number
+  reconciles: boolean
+  blockers: string[]
+}
+
+type InvoicePayload = {
+  invoices: ProductionInvoice[]
+  draft_preview: InvoicePreview
+  can_manage: boolean
+  note: string
+}
+
 function money(value: number): string {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value)
 }
@@ -248,16 +296,21 @@ export default function JobSchedulePage() {
   const [punchDescription, setPunchDescription] = useState('')
   const [resolutionNote, setResolutionNote] = useState('')
   const [closeoutNote, setCloseoutNote] = useState('')
+  const [invoices, setInvoices] = useState<ProductionInvoice[]>([])
+  const [invoicePreview, setInvoicePreview] = useState<InvoicePreview | null>(null)
+  const [canManageInvoices, setCanManageInvoices] = useState(false)
+  const [invoiceVoidReason, setInvoiceVoidReason] = useState('')
 
   const load = useCallback(async (signal?: AbortSignal) => {
     try {
-      const [scheduleResponse, prebuildResponse, updatesResponse, changeOrderResponse, punchResponse, closeoutResponse] = await Promise.all([
+      const [scheduleResponse, prebuildResponse, updatesResponse, changeOrderResponse, punchResponse, closeoutResponse, invoiceResponse] = await Promise.all([
         fetch(`/api/production-jobs/${jobId}/schedule`, { signal }),
         fetch(`/api/production-jobs/${jobId}/readiness`, { signal }),
         fetch(`/api/production-jobs/${jobId}/updates`, { signal }),
         fetch(`/api/production-jobs/${jobId}/change-orders`, { signal }),
         fetch(`/api/production-jobs/${jobId}/punch-items`, { signal }),
         fetch(`/api/production-jobs/${jobId}/closeout`, { signal }),
+        fetch(`/api/production-jobs/${jobId}/invoices`, { signal }),
       ])
       const scheduleResult = await scheduleResponse.json().catch(() => ({}))
       const prebuildResult = await prebuildResponse.json().catch(() => ({}))
@@ -265,6 +318,7 @@ export default function JobSchedulePage() {
       const changeOrderResult = await changeOrderResponse.json().catch(() => ({}))
       const punchResult = await punchResponse.json().catch(() => ({}))
       const closeoutResult = await closeoutResponse.json().catch(() => ({}))
+      const invoiceResult = await invoiceResponse.json().catch(() => ({}))
       if (signal?.aborted) return
       if (!scheduleResponse.ok) {
         setMessage(scheduleResult.error ?? 'Could not load the schedule.')
@@ -290,6 +344,10 @@ export default function JobSchedulePage() {
         setMessage(closeoutResult.error ?? 'Could not load the closeout.')
         return
       }
+      if (!invoiceResponse.ok) {
+        setMessage(invoiceResult.error ?? 'Could not load the invoices.')
+        return
+      }
       setData(scheduleResult as SchedulePayload)
       setPrebuild(prebuildResult as PrebuildPayload)
       setUpdates((updatesResult as UpdatesPayload).updates ?? [])
@@ -299,6 +357,10 @@ export default function JobSchedulePage() {
       setCanDecide(changePayload.can_decide === true)
       setPunchItems((punchResult as PunchPayload).punch_items ?? [])
       setCloseout(closeoutResult as CloseoutPayload)
+      const invoicePayload = invoiceResult as InvoicePayload
+      setInvoices(invoicePayload.invoices ?? [])
+      setInvoicePreview(invoicePayload.draft_preview ?? null)
+      setCanManageInvoices(invoicePayload.can_manage === true)
       const record = (prebuildResult as PrebuildPayload).record
       if (record) {
         setPermitStatus(record.permit_status)
@@ -554,6 +616,53 @@ export default function JobSchedulePage() {
       setMessage('Status updated. The handoff snapshot did not change.')
     } catch {
       setMessage('The status move could not be sent.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const createInvoice = async () => {
+    setBusy(true)
+    setMessage('')
+    try {
+      const response = await fetch(`/api/production-jobs/${jobId}/invoices`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      })
+      const result = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        setMessage(result.error ?? 'The invoice draft was refused.')
+        return
+      }
+      await load()
+      setMessage('Draft invoice created from the approved scope. Issuing is a separate owner decision.')
+    } catch {
+      setMessage('The invoice could not be created.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const moveInvoice = async (invoiceId: string, action: 'issue' | 'void') => {
+    setBusy(true)
+    setMessage('')
+    try {
+      const response = await fetch(`/api/production-jobs/${jobId}/invoices`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, invoice_id: invoiceId, void_reason: invoiceVoidReason }),
+      })
+      const result = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        setMessage(result.error ?? 'The invoice status move was refused.')
+        return
+      }
+      setInvoiceVoidReason('')
+      await load()
+      setMessage(action === 'issue' ? 'Invoice issued. No payment was taken.' : 'Invoice voided.')
+    } catch {
+      setMessage('The invoice status move could not be sent.')
     } finally {
       setBusy(false)
     }
@@ -994,6 +1103,107 @@ export default function JobSchedulePage() {
         )}
         <p className="mt-3 text-xs text-slate-500">
           Approval is an owner or administrator decision inside Roof OS. It is not a customer signature, a contract amendment sent to the customer, or a payment. An approved delta is a separate invoice input and never rewrites the accepted total or approved scope.
+        </p>
+      </section>
+
+      <section className="rounded-xl border border-white/10 bg-slate-900 p-5">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="font-semibold">Invoice</h2>
+          <span className="text-xs text-slate-400">{invoices.length === 0 ? 'No invoice yet' : `${invoices.length} record${invoices.length === 1 ? '' : 's'}`}</span>
+        </div>
+        <p className="mt-1 text-xs text-slate-500">
+          The database builds the invoice from the approved scope, the recorded tax, approved change orders, and the deposit received. It never accepts an amount from this page.
+        </p>
+
+        {invoicePreview && (
+          <dl className="mt-3 grid gap-1 text-sm sm:grid-cols-2">
+            <div className="flex justify-between rounded border border-white/10 bg-black/20 px-3 py-1">
+              <dt className="text-slate-400">Approved scope</dt>
+              <dd>{money(Number(invoicePreview.subtotal) - Number(invoicePreview.change_order_total))}</dd>
+            </div>
+            <div className="flex justify-between rounded border border-white/10 bg-black/20 px-3 py-1">
+              <dt className="text-slate-400">Approved change orders</dt>
+              <dd>{money(Number(invoicePreview.change_order_total))}</dd>
+            </div>
+            <div className="flex justify-between rounded border border-white/10 bg-black/20 px-3 py-1">
+              <dt className="text-slate-400">Tax</dt>
+              <dd>{money(Number(invoicePreview.tax))}</dd>
+            </div>
+            <div className="flex justify-between rounded border border-white/10 bg-black/20 px-3 py-1">
+              <dt className="text-slate-400">Deposit credit</dt>
+              <dd>-{money(Number(invoicePreview.deposit_credit))}</dd>
+            </div>
+            <div className="flex justify-between rounded border border-cyan-500/30 bg-cyan-400/5 px-3 py-1 font-semibold">
+              <dt>Invoice total</dt>
+              <dd>{money(Number(invoicePreview.total))}</dd>
+            </div>
+            <div className="flex justify-between rounded border border-emerald-500/30 bg-emerald-400/5 px-3 py-1 font-semibold">
+              <dt>Balance after deposit</dt>
+              <dd>{money(Number(invoicePreview.balance_due))}</dd>
+            </div>
+          </dl>
+        )}
+
+        {invoicePreview && !invoicePreview.reconciles && (
+          <div className="mt-2 space-y-1">
+            {invoicePreview.blockers.map((blocker) => (
+              <p key={blocker} className="text-xs text-amber-200">{blocker}</p>
+            ))}
+          </div>
+        )}
+
+        {invoices.length > 0 && (
+          <ul className="mt-3 space-y-2">
+            {invoices.map((invoice) => (
+              <li key={invoice.id} className="rounded border border-white/10 bg-black/20 p-3 text-sm">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="font-semibold">{invoice.invoice_number}</span>
+                  <span className={invoice.status === 'issued' ? 'text-cyan-300' : invoice.status === 'void' ? 'text-slate-500' : 'text-amber-300'}>
+                    {describeInvoiceStatus(invoice.status)}
+                  </span>
+                </div>
+                <p className="mt-1 text-xs text-slate-400">
+                  Subtotal {money(Number(invoice.subtotal))} · tax {money(Number(invoice.tax))} · total {money(Number(invoice.total))} · deposit {money(Number(invoice.deposit_credit))} · balance {money(Number(invoice.balance_due))}
+                </p>
+                {Number(invoice.change_order_total) !== 0 && (
+                  <p className="text-xs text-slate-400">Includes approved change orders of {money(Number(invoice.change_order_total))}.</p>
+                )}
+                {invoice.issued_at && <p className="text-xs text-slate-500">Issued {new Date(invoice.issued_at).toLocaleString()}</p>}
+                {invoice.voided_at && (
+                  <p className="text-xs text-slate-500">Voided {new Date(invoice.voided_at).toLocaleString()}{invoice.void_reason ? ` · ${invoice.void_reason}` : ''}</p>
+                )}
+                {canManageInvoices && nextInvoiceStatuses(invoice.status).length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {nextInvoiceStatuses(invoice.status).map((status) => (
+                      <button
+                        key={status}
+                        disabled={busy}
+                        onClick={() => void moveInvoice(invoice.id, status === 'issued' ? 'issue' : 'void')}
+                        className="rounded border border-cyan-500/60 px-2 py-1 text-xs text-cyan-200 hover:bg-cyan-500/10 disabled:opacity-60"
+                      >
+                        {status === 'issued' ? 'Issue invoice' : 'Void invoice'}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {canManageInvoices && jobActive && !invoices.some((invoice) => invoice.status !== 'void') && (
+          <div className="mt-3 space-y-2 border-t border-white/10 pt-3">
+            <button disabled={busy || invoicePreview?.reconciles === false} onClick={() => void createInvoice()} className="rounded bg-cyan-600 px-3 py-2 text-sm font-semibold hover:bg-cyan-500 disabled:opacity-60">
+              Create draft invoice
+            </button>
+            <label className="block text-xs text-slate-300">Void reason (used only when voiding)
+              <input value={invoiceVoidReason} maxLength={1000} onChange={(event) => setInvoiceVoidReason(event.target.value)} className="mt-1 w-full rounded border border-white/15 bg-black/25 p-2 text-sm" />
+            </label>
+          </div>
+        )}
+
+        <p className="mt-3 text-xs text-slate-500">
+          An invoice records what the customer accepted plus any approved change orders. It is not a payment, a receipt, a card charge, a carrier submission, or a promise that money was received.
         </p>
       </section>
 

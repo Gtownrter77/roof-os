@@ -39,6 +39,9 @@ psql_db "$JOB_DB" -f scripts/ci/production-job-fieldwork-assertions.sql
 psql_db "$JOB_DB" -f supabase/migrations/070_qc_punch_closeout.sql
 psql_db "$JOB_DB" -c "grant select,insert,update,delete on all tables in schema public to authenticated"
 psql_db "$JOB_DB" -f scripts/ci/production-job-qc-assertions.sql
+psql_db "$JOB_DB" -f supabase/migrations/071_production_invoice.sql
+psql_db "$JOB_DB" -c "grant select,insert,update,delete on all tables in schema public to authenticated"
+psql_db "$JOB_DB" -f scripts/ci/production-job-invoice-assertions.sql
 
-echo 'PRODUCTION JOB SCHEDULE, READINESS, FIELD, CHANGE-ORDER AND QC MIGRATIONS 067-070: isolated SQL-role/RLS/trigger tests passed. Supabase Auth/Storage remains untested.'
-echo '**Production job migrations 067-070: real isolated PostgreSQL trigger/RLS tests PASSED. Supabase Auth/Storage not exercised.**' >> "$GITHUB_STEP_SUMMARY"
+echo 'PRODUCTION JOB SCHEDULE, READINESS, FIELD, CHANGE-ORDER, QC AND INVOICE MIGRATIONS 067-071: isolated SQL-role/RLS/trigger tests passed. Supabase Auth/Storage remains untested.'
+echo '**Production job migrations 067-071: real isolated PostgreSQL trigger/RLS tests PASSED. Supabase Auth/Storage not exercised.**' >> "$GITHUB_STEP_SUMMARY"
