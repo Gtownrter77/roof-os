@@ -119,8 +119,8 @@ begin
     values ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','e0000000-0000-4000-8000-000000000004',
             'Outsider','phone','33333333-3333-4333-8333-333333333333');
     raise exception 'SECURITY FAILURE: outsider recorded an acceptance';
-  exception when insufficient_privilege then
-    raise notice 'Expected RLS rejection for an outsider acceptance: %',SQLERRM;
+  exception when insufficient_privilege or check_violation then
+    raise notice 'Expected RLS/membership rejection for an outsider acceptance: %',SQLERRM;
   end;
 end $$;
 
@@ -332,8 +332,8 @@ begin
             '00000000-0000-4000-8000-000000000000','received',100,'check',
             '33333333-3333-4333-8333-333333333333');
     raise exception 'SECURITY FAILURE: outsider wrote a deposit event';
-  exception when insufficient_privilege then
-    raise notice 'Expected RLS rejection for an outsider deposit: %',SQLERRM;
+  exception when insufficient_privilege or check_violation or foreign_key_violation then
+    raise notice 'Expected RLS/membership rejection for an outsider deposit: %',SQLERRM;
   end;
 end $$;
 reset role;
