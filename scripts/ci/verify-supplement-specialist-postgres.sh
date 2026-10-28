@@ -20,6 +20,7 @@ if [ -z "$(sql -tAc "select to_regclass('public.workspaces')")" ]; then
   sql -f scripts/ci/estimate-authority-baseline.sql
 fi
 sql -f supabase/migrations/060_supplement_specialist_agent5.sql
+sql -f supabase/migrations/066_supplement_review_idempotency.sql
 sql -f scripts/ci/supplement-specialist-assertions.sql
-echo 'AGENT 5 MIGRATION 060: isolated SQL-role/RLS/trigger tests passed. Supabase Auth/Storage remains untested.'
-echo '**Agent 5 migration 060: real isolated PostgreSQL RLS/trigger tests PASSED. Supabase Auth/Storage not exercised.**' >> "$GITHUB_STEP_SUMMARY"
+echo 'AGENT 5 MIGRATIONS 060/066: isolated SQL-role/RLS/trigger/idempotency tests passed. Supabase Auth/Storage remains untested.'
+echo '**Agent 5 migrations 060/066: real isolated PostgreSQL RLS/trigger/idempotency tests PASSED. Supabase Auth/Storage not exercised.**' >> "$GITHUB_STEP_SUMMARY"

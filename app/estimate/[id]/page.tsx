@@ -454,6 +454,9 @@ export default function EstimateDetailPage() {
                     <p className="text-xs text-slate-500">
                       This handoff keeps the customer, amount and scope that were true at acceptance. Later estimate edits do not change it.
                     </p>
+                    <Link href={`/jobs/${job.id}`} className="inline-block rounded border border-cyan-500/60 px-3 py-2 text-sm font-semibold text-cyan-200 hover:bg-cyan-500/10">
+                      Open crew and material schedule →
+                    </Link>
                   </>
                 ) : (
                   <>

@@ -35,9 +35,10 @@ A foreign draft returns the same `404` as a missing draft. The API does not conf
 6. The packet is never rewritten by the review endpoint. Migration `060` keeps approved packets immutable.
 7. There is no delete route. History stays append-only.
 
-## No automatic sending or export
+## Review decisions only, no automatic sending or ESX export
 
 - The page fetches only `/api/supplements/review` URLs.
+- A reviewer can download an internal JSON or CSV review copy. That file is generated in the browser from the already-authorized packet. It is not an ESX structure and is not sent to an insurer. See [export-revisions-idempotency.md](./export-revisions-idempotency.md).
 - The API makes no outbound call (`fetch`, `axios`, or HTTP URL) and has no insurer, email, SMS, CapOut, or ESX path.
 - Every response states `external_submission: false` and `export_blocked: true`.
 - The UI says approval does not contact an insurer, submit a claim, export ESX, or change a carrier file.
@@ -49,6 +50,7 @@ A foreign draft returns the same `404` as a missing draft. The API does not conf
 | --- | --- | --- |
 | UI and API source contracts | `npm run test:supplement-review-ui` | PASS — workspace scoping, 404 for foreign drafts, admin-only decisions, terminal-state guard, no insurer/export path, CI wiring |
 | Agent 5 engine | `npm run test:agent5-supplement` | PASS — evidence-backed deltas, review-only packet |
+| Review export and idempotence | `npm run test:agent5-export-idempotency` | PASS — internal JSON/CSV copy only, no ESX claim, workspace-scoped retry key |
 | PostgreSQL RLS, approval, immutability | `migration-safety` job runs `scripts/ci/supplement-specialist-assertions.sql` | Assertions exist for member approval denial, admin approval, approved immutability, and cross-workspace denial; the PR check reports the real result |
 | Browser rendering | Not run in this environment | **Not tested** |
 | Supabase Auth with two live users | Not run | **Not tested**; Gate 1 still needs credentials |
