@@ -79,7 +79,9 @@ returns `404`.
 
 These are planning signals. They do **not** close the Day 21 prebuild readiness
 gate. A crew can be scheduled and material can be delivered while a deposit,
-permit, or weather check still blocks the job.
+permit, or weather check still blocks the job. See
+[prebuild-readiness.md](./prebuild-readiness.md) for the checklist that does
+block it.
 
 ## What this is not
 

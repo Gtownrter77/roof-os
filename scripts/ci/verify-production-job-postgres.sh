@@ -30,6 +30,9 @@ psql_db "$JOB_DB" -f scripts/ci/production-job-assertions.sql
 psql_db "$JOB_DB" -f supabase/migrations/067_production_job_schedule.sql
 psql_db "$JOB_DB" -c "grant select,insert,update,delete on all tables in schema public to authenticated"
 psql_db "$JOB_DB" -f scripts/ci/production-job-schedule-assertions.sql
+psql_db "$JOB_DB" -f supabase/migrations/068_production_job_readiness.sql
+psql_db "$JOB_DB" -c "grant select,insert,update,delete on all tables in schema public to authenticated"
+psql_db "$JOB_DB" -f scripts/ci/production-job-readiness-assertions.sql
 
-echo 'PRODUCTION JOB SCHEDULE MIGRATION 067: isolated SQL-role/RLS/trigger tests passed. Supabase Auth/Storage remains untested.'
-echo '**Production job schedule migration 067: real isolated PostgreSQL trigger/RLS tests PASSED. Supabase Auth/Storage not exercised.**' >> "$GITHUB_STEP_SUMMARY"
+echo 'PRODUCTION JOB SCHEDULE AND READINESS MIGRATIONS 067-068: isolated SQL-role/RLS/trigger tests passed. Supabase Auth/Storage remains untested.'
+echo '**Production job schedule and readiness migrations 067-068: real isolated PostgreSQL trigger/RLS tests PASSED. Supabase Auth/Storage not exercised.**' >> "$GITHUB_STEP_SUMMARY"
