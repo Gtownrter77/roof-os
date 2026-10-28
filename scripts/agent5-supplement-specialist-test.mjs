@@ -161,6 +161,85 @@ const alternateContractor = buildReviewPacket({
 assert.ok(!alternateContractor.proposals.some((line) => line.description.includes('Optional ridge upgrade')),
   'a disabled contractor alternate never becomes missing scope')
 
+// 8. Quantity and trade deltas require comparable, stated evidence.
+// 8a. Units must agree. 10 SQ vs 100 SF is not a 90-unit delta.
+const unitCarrier = parseStructuredLines([
+  { item_code: 'U1', description: 'Architectural shingles', category: 'material', quantity: 10, unit: 'SQ', unit_cost: 100 },
+], 'unit-carrier')
+const unitContractor = parseStructuredLines([
+  { item_code: 'U1', description: 'Architectural shingles', category: 'material', quantity: 100, unit: 'SF', unit_cost: 1 },
+], 'unit-contractor')
+const unitProposals = compareScope({ carrier: unitCarrier, contractor: unitContractor, measurements: ['roof 10 SQ'] })
+assert.ok(!unitProposals.some((proposal) => proposal.kind === 'quantity_delta'),
+  'quantities in different units never produce a delta')
+assert.ok(unitProposals.some((proposal) => proposal.kind === 'question' && proposal.description.includes('not comparable')),
+  'a unit mismatch becomes an explicit question')
+
+// 8b. Missing units are not treated as matching.
+const noUnit = compareScope({
+  carrier: parseStructuredLines([{ item_code: 'U2', description: 'Ridge vent', quantity: 10 }], 'no-unit-a'),
+  contractor: parseStructuredLines([{ item_code: 'U2', description: 'Ridge vent', quantity: 12 }], 'no-unit-b'),
+  measurements: ['ridge 12 LF'],
+})
+assert.ok(!noUnit.some((proposal) => proposal.kind === 'quantity_delta'), 'missing units never produce a delta')
+assert.ok(noUnit.some((proposal) => proposal.kind === 'question' && proposal.description.includes('not comparable')))
+
+// 8c. Rounding noise inside the 2% tolerance is not a supplement.
+const tolerate = compareScope({
+  carrier: parseStructuredLines([{ item_code: 'U3', description: 'Underlayment', category: 'material', quantity: 10, unit: 'SQ', unit_cost: 35 }], 'tol-a'),
+  contractor: parseStructuredLines([{ item_code: 'U3', description: 'Underlayment', category: 'material', quantity: 10.1, unit: 'SQ', unit_cost: 35 }], 'tol-b'),
+  measurements: ['roof 10 SQ'],
+})
+assert.ok(!tolerate.some((proposal) => proposal.kind === 'quantity_delta'), 'within-tolerance noise never produces a delta')
+
+// 8d. A stated category difference is a trade delta, with both sources attached.
+const tradeCarrier = parseStructuredLines([
+  { item_code: 'T1', description: 'Architectural shingles', category: 'material', quantity: 10, unit: 'SQ', unit_cost: 100 },
+], 'trade-carrier')
+const tradeContractor = parseStructuredLines([
+  { item_code: 'T1', description: 'Architectural shingles', category: 'labor', quantity: 10, unit: 'SQ', unit_cost: 100 },
+], 'trade-contractor')
+const tradeProposals = compareScope({ carrier: tradeCarrier, contractor: tradeContractor, measurements: ['roof 10 SQ'] })
+const trade = tradeProposals.find((proposal) => proposal.kind === 'trade_mismatch')
+assert.ok(trade, 'a stated category difference produces a trade delta')
+assert.deepEqual(trade.trade_delta, { carrier: 'material', contractor: 'labor' })
+assert.equal(trade.carrier_evidence.length, 1)
+assert.equal(trade.contractor_evidence.length, 1)
+assert.equal(trade.quantity_delta, null)
+assert.equal(trade.amount_delta, null)
+assert.equal(trade.requires_human_review, true)
+
+// 8e. Same stated category is not a trade delta.
+const sameTrade = compareScope({
+  carrier: tradeCarrier,
+  contractor: parseStructuredLines([{ item_code: 'T1', description: 'Architectural shingles', category: 'material', quantity: 10, unit: 'SQ', unit_cost: 100 }], 'same-trade'),
+  measurements: ['roof 10 SQ'],
+})
+assert.ok(!sameTrade.some((proposal) => proposal.kind === 'trade_mismatch'))
+
+// 8f. Inferred categories are hints, not evidence. Conflicting hints stay silent.
+const inferredCarrier = parseStructuredLines([{ item_code: 'I1', description: 'Shingle removal', quantity: 10, unit: 'SQ', unit_cost: 50 }], 'inferred-a')
+const inferredContractor = parseStructuredLines([{ item_code: 'I1', description: 'Labor for shingle removal', quantity: 10, unit: 'SQ', unit_cost: 50 }], 'inferred-b')
+assert.equal(inferredCarrier[0].category_provenance, 'inferred')
+assert.equal(inferredContractor[0].category_provenance, 'inferred')
+assert.notEqual(inferredCarrier[0].category, inferredContractor[0].category)
+const inferredProposals = compareScope({ carrier: inferredCarrier, contractor: inferredContractor, measurements: ['roof 10 SQ'] })
+assert.ok(!inferredProposals.some((proposal) => proposal.kind === 'trade_mismatch'),
+  'inferred categories never produce a trade delta')
+
+// 8g. Category provenance is explicit and survives the parser.
+assert.equal(parseStructuredLines([{ description: 'Architectural shingles', category: 'material' }], 'p')[0].category_provenance, 'stated')
+assert.equal(parseStructuredLines([{ description: 'Architectural shingles' }], 'p')[0].category_provenance, 'inferred')
+assert.equal(parseStructuredLines([{ description: 'Miscellaneous scope' }], 'p')[0].category_provenance, 'unknown')
+
+// 8h. The guards and their documentation stay in the tree.
+const comparatorSource = read('../lib/agent5/comparator.ts')
+assert.ok(comparatorSource.includes('unitsComparable'), 'quantity delta requires comparable units')
+assert.ok(comparatorSource.includes("category_provenance === 'stated'"), 'trade delta requires stated categories')
+const deltaDoc = read('../docs/agent-5/trade-and-quantity-deltas.md')
+assert.ok(deltaDoc.includes('## False-positive matrix'))
+assert.ok(deltaDoc.includes('10 SQ vs 100 SF'))
+
 // Omitted price stays unknown. It is never rewritten to $0.00.
 const unpriced = parseStructuredLines([{ description: 'Roofing felt 15 lb', quantity: 10, unit: 'SQ' }], 'unpriced')
 assert.equal(unpriced[0].unit_cost, null)

@@ -8,6 +8,8 @@ export interface ExtractedLine {
   item_code: string | null
   description: string
   category: SupplementCategory | null
+  /** 'stated' only when the source supplied the category. Inferred hints are never treated as evidence. */
+  category_provenance: 'stated' | 'inferred' | 'unknown'
   quantity: number | null
   unit: string | null
   unit_cost: number | null
@@ -56,12 +58,14 @@ export interface StructuredLineInput {
 }
 
 export interface GapProposal {
-  kind: 'missing_scope' | 'quantity_delta' | 'unsupported_line' | 'code_mismatch' | 'question'
+  kind: 'missing_scope' | 'quantity_delta' | 'unsupported_line' | 'code_mismatch' | 'trade_mismatch' | 'question'
   description: string
   carrier_evidence: string[] | null
   contractor_evidence: string[] | null
   quantity_delta: number | null
   amount_delta: number | null
+  /** Populated only when both sides state a category and the categories differ. */
+  trade_delta: { carrier: SupplementCategory; contractor: SupplementCategory } | null
   confidence: number
   requires_human_review: true
 }
