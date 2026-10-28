@@ -85,7 +85,8 @@
     "test:passport-public-link": "node scripts/passport-public-link-contract-test.mjs",
     "test:cron-http": "node scripts/cron-http-contract-test.mjs",
     "test:warranty-expiry": "node scripts/warranty-expiry-contract-test.mjs",
-    "test:production-job-invoice": "node --experimental-strip-types --no-warnings scripts/production-job-invoice-test.mjs"
+    "test:production-job-invoice": "node --experimental-strip-types --no-warnings scripts/production-job-invoice-test.mjs",
+    "test:production-job-payment": "node --experimental-strip-types --no-warnings scripts/production-job-payment-test.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.2",

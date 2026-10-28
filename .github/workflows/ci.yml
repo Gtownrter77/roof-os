@@ -100,6 +100,7 @@ jobs:
       - run: npm run test:production-job-fieldwork
       - run: npm run test:production-job-qc
       - run: npm run test:production-job-invoice
+      - run: npm run test:production-job-payment
       - run: npm run test:ai-vision-contract
       - run: npm run test:ai-vision-endpoint
       - run: npm run test:workspace-settings
