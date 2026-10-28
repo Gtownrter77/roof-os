@@ -38,4 +38,11 @@ assert.ok(web.includes('node --experimental-strip-types scripts/worker-heartbeat
 assert.ok(web.includes('node scripts/release-foreman-check.mjs'), 'Required CI job must run foreman contract')
 assert.ok(job('mobile').includes('npx tsc --noEmit'), 'Mobile TS gate must remain')
 assert.ok(job('migration-safety').includes('Check migration order'), 'Migration gate must remain')
+// CI must keep all four independently required branch-protection jobs.
+for (const required of ['web', 'mobile', 'field-security', 'migration-safety']) {
+  assert.ok(job(required).length > 0, 'Required branch-protection job must not be empty: ' + required)
+}
+// A merge is not a deployment or proof of live Supabase integration.
+const preflight = readFileSync('scripts/live-release-preflight.mjs', 'utf8')
+assert.ok(preflight.includes('No network request, provider call, secret value read, or database write was performed.'), 'Release preflight must explicitly disclose its verification limits')
 console.log('release-foreman-check: PASS (nonduplicated steps, security gate, worker behavior gate)')
