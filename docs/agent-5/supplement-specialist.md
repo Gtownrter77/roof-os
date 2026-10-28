@@ -28,6 +28,7 @@ Issue: #336. Status: merged in PR #343; review-only. CapOut public-behavior stud
 | Source / behavior | `node --experimental-strip-types --no-warnings scripts/agent5-supplement-specialist-test.mjs` | PASS — parser provenance, stated-values-only extraction, comparator deltas and tolerance, unit/trade false-positive guards, alternate/PWI flags, missing-price provenance, review-only packet, revision diff, API/RLS source contracts |
 | Study contract | `node scripts/agent5-capout-study-test.mjs` | PASS — sourced public study, vendor claims labelled, honest REA ledger, alternate/PWI parity flags, local-first preserved, CI wiring |
 | PDF normalizer | `node --experimental-strip-types --no-warnings scripts/pdf-normalizer-test.mjs` | PASS — typed rows, page provenance, header-based table mapping, caps, unknown stays unknown, deterministic, offline worker and route contracts |
+| Owner review UI | `node scripts/supplement-review-ui-test.mjs` | PASS — owner/admin-only decision, workspace-scoped API, foreign draft 404, no insurer/export path. See [owner-review-ui.md](./owner-review-ui.md) |
 | API route | `app/api/supplements/review/route.ts` — membership check, 256 KB body cap, 500-row / 50-page caps | Source-verified by the same test |
 | Real PostgreSQL (RLS/triggers) | `scripts/ci/verify-supplement-specialist-postgres.sh` in the `migration-safety` job | Wired; result is reported by the PR check, not assumed |
 | Supabase Auth / Storage | Not exercised | **Not tested** |

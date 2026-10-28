@@ -87,6 +87,7 @@ jobs:
       - run: npm run test:agent5-supplement
       - run: npm run test:agent5-capout-study
       - run: npm run test:pdf-normalizer
+      - run: npm run test:supplement-review-ui
       - run: npm run test:owner-break-glass
       - run: npm run test:lead-dedup
       - run: npm run test:inspection-appointment
