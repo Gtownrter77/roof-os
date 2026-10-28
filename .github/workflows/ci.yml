@@ -84,6 +84,7 @@ jobs:
       - run: npm run test:measurement-estimate-authority
       - run: npm run test:estimate-approval-authority
       - run: npm run test:reliability
+      - run: npm run test:agent5-supplement
       - run: npm run test:ai-vision-contract
       - run: npm run test:ai-vision-endpoint
       - run: npm run test:workspace-settings
@@ -247,6 +248,8 @@ jobs:
           test -f supabase/migrations/053_agent_action_ledger.sql
           grep -q "is_estimate_admin" supabase/migrations/059_estimate_approval_admin_guard.sql
           grep -q "An approved estimate is immutable" supabase/migrations/059_estimate_approval_admin_guard.sql
+          grep -q "supplement_review_drafts" supabase/migrations/060_supplement_specialist_agent5.sql
+          grep -q "enable row level security" supabase/migrations/060_supplement_specialist_agent5.sql
           grep -q "create extension if not exists pgcrypto" supabase/migrations/053_agent_action_ledger.sql
           grep -q "approval hashes do not match the current action batch" supabase/migrations/053_agent_action_ledger.sql
           grep -q "get diagnostics updated_count = row_count" supabase/migrations/053_agent_action_ledger.sql
@@ -274,3 +277,12 @@ jobs:
           PGUSER: postgres
           PGPASSWORD: ci-synthetic-only
         run: bash scripts/ci/verify-estimate-authority-postgres.sh
+      - name: Run real PostgreSQL Agent 5 supplement RLS/trigger tests
+        shell: bash
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGDATABASE: roofos_authority_ci
+          PGUSER: postgres
+          PGPASSWORD: ci-synthetic-only
+        run: bash scripts/ci/verify-supplement-specialist-postgres.sh
