@@ -21,6 +21,8 @@ jobs:
       - run: npm ci
       - run: npm ci
         working-directory: apps/field
+      - run: node scripts/test-field-deepmerge-mitigation.cjs
+      - run: node scripts/test-field-deepmerge-mitigation.cjs
       - run: node scripts/audit-field-deps.mjs
       - run: npm run test:braces-mitigation --prefix apps/field
       - run: npm run build

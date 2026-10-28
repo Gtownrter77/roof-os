@@ -42,10 +42,16 @@ const ROOF_OS_NAVIGATION_MAP: { keywords: RegExp; action: ChatAction; defaultRep
       'Open Photo Estimate to upload inspection photos and build a technician-reviewed report packet. The optional AI observation step requires workspace-admin access.',
   },
   {
-    keywords: /estimate|price|pricing|quote|cost|lowes|home depot|labor|catalog/i,
-    action: { label: 'Open Estimate & Price Book', href: '/pricing' },
+    keywords: /estimate|quote|bid/i,
+    action: { label: 'Open Estimates', href: '/estimate' },
     defaultReply:
-      'Review your material catalogs, retailer price feeds (Lowe’s & Home Depot), labor rates, and create verified estimate drafts.',
+      'Open saved estimates or create a new draft. Review measurements and pricing before approval.',
+  },
+  {
+    keywords: /price|pricing|cost|lowes|home depot|labor|catalog/i,
+    action: { label: 'Open Price Book', href: '/pricing-config' },
+    defaultReply:
+      'Review material catalogs, retailer reference prices, and labor rates in the price book.',
   },
   {
     keywords: /report|golden|pdf|packet|evidence|inspection review/i,

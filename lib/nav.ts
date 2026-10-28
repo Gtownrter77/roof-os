@@ -35,6 +35,7 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
   { href: '/inspections', label: 'Inspections', icon: ClipboardList },
   { href: '/measure', label: 'Measurements', icon: Gauge },
   { href: '/photo-estimate', label: 'Photo reports', icon: Camera },
+  { href: '/estimate', label: 'Estimates', icon: FileText },
   { href: '/reports', label: 'Reports', icon: FileText },
   { href: '/pricing-config', label: 'Price book', icon: Wallet },
   { href: '/tasks', label: 'Tasks', icon: ListChecks },

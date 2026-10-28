@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import {execFileSync} from "node:child_process";
 import fs from "node:fs";
-const REMEDIATIONS={"GHSA-86w9-cpqp-85rv":{packageName:"node-forge",requiredResolved:"github:Krysthyan/forge#ceba34402e329f0365134f23fe19898756527d65"}};
+const REMEDIATIONS={"GHSA-86w9-cpqp-85rv":{packageName:"node-forge",requiredResolved:"github:Krysthyan/forge#ceba34402e329f0365134f23fe19898756527d65"},"GHSA-gcqx-w48m-w2h4":{packageName:"deepmerge",requiredResolved:"vendor/deepmerge"}};
 // Advisory is build/dev-only: zod is a transitive dependency of @expo/cli and is not
 // bundled into the shipped web or React Native app. No patched 3.x exists and both
 // Expo SDK 57 and 58 still require zod ^3.25.76, so force-upgrading to zod 4 would break
@@ -13,7 +13,15 @@ catch(error){const stdout=error.stdout?.toString?.()??"";if(!stdout.trim()){proc
 const vulnerabilities=report.vulnerabilities??{},lock=JSON.parse(fs.readFileSync("apps/field/package-lock.json","utf8")),packages=lock.packages??{},cache=new Map();
 function source(v){if(!v||typeof v!=="object")return null;if(typeof v.source==="string")return v.source;if(typeof v.url==="string")return v.url.split("/").filter(Boolean).at(-1)??null;return null}
 function advisories(name,visiting=new Set()){if(cache.has(name))return cache.get(name);if(visiting.has(name))return new Set();const vuln=vulnerabilities[name];if(!vuln)return new Set();const next=new Set(visiting);next.add(name);let found=new Set();for(const via of vuln.via??[]){if(typeof via==="string"){for(const x of advisories(via,next))found.add(x)}else{const x=source(via);if(x)found.add(x)}}cache.set(name,found);return found}
-function remediated(id){const r=REMEDIATIONS[id],e=r&&packages["node_modules/"+r.packageName];return !!(e?.resolved&&e.resolved.includes(r.requiredResolved))}
+let deepmergeMitigationPassed;
+function deepmergeMitigationValid() {
+  if (deepmergeMitigationPassed !== undefined) return deepmergeMitigationPassed;
+  const entry = packages["node_modules/deepmerge"];
+  if (entry?.resolved !== "vendor/deepmerge" || entry?.link !== true || packages["vendor/deepmerge"]?.version !== "4.3.1-roofos.1") return (deepmergeMitigationPassed = false);
+  try { execFileSync(process.execPath, ["scripts/test-field-deepmerge-mitigation.cjs"], {stdio:"ignore"}); return (deepmergeMitigationPassed = true); }
+  catch { return (deepmergeMitigationPassed = false); }
+}
+function remediated(id){if(id==="GHSA-gcqx-w48m-w2h4")return deepmergeMitigationValid();const r=REMEDIATIONS[id],e=r&&packages["node_modules/"+r.packageName];return !!(e?.resolved&&e.resolved.includes(r.requiredResolved))}
 function accepted(id){const a=ACCEPTED[id],e=a&&packages["node_modules/"+a.packageName];return !!(e?.resolved&&e.resolved.includes(a.requiredResolved))}
 const blocking=[],fixed=[],excepted=[];
 for(const [name,vuln] of Object.entries(vulnerabilities)){if(!["moderate","high","critical"].includes(vuln.severity))continue;const ids=[...advisories(name)],unresolved=ids.filter(id=>!remediated(id)&&!accepted(id)),okIds=ids.filter(id=>remediated(id)||accepted(id));if(ids.length&&!unresolved.length)(okIds.every(id=>accepted(id))?excepted:fixed).push(name+" ("+vuln.severity+"): "+ids.join(", "));else blocking.push([name,vuln.severity,unresolved])}

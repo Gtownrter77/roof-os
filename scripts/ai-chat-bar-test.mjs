@@ -103,7 +103,10 @@ const measureResult = await processChatCopilot({ message: 'calculate roof pitch 
 assert.equal(measureResult.suggestedAction?.href, '/measure')
 
 const estimateResult = await processChatCopilot({ message: 'create pricing estimate with lowes' })
-assert.equal(estimateResult.suggestedAction?.href, '/pricing')
+assert.equal(estimateResult.suggestedAction?.href, '/estimate')
+
+const priceBookResult = await processChatCopilot({ message: 'review lowes material pricing and labor rates' })
+assert.equal(priceBookResult.suggestedAction?.href, '/pricing-config')
 
 const reportResult = await processChatCopilot({ message: 'generate golden inspection report' })
 assert.equal(reportResult.suggestedAction?.href, '/reports')
