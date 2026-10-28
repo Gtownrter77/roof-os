@@ -352,12 +352,12 @@ begin
     raise notice 'Expected terminal status rejection: %',SQLERRM;
   end;
 
-  begin
-    delete from public.production_jobs where id=v_job;
+  delete from public.production_jobs where id=v_job;
+  if exists (select 1 from public.production_jobs where id=v_job) then
+    raise notice 'Expected handoff delete to be refused by the absent delete policy';
+  else
     raise exception 'SECURITY FAILURE: a production handoff was deleted';
-  exception when check_violation then
-    raise notice 'Expected handoff delete rejection: %',SQLERRM;
-  end;
+  end if;
 end $$;
 
 -- 11. Outsiders neither see nor create workspace jobs.
