@@ -90,6 +90,7 @@ export function countProposals(proposals: GapProposal[]): Record<GapProposal['ki
     quantity_delta: 0,
     unsupported_line: 0,
     code_mismatch: 0,
+    trade_mismatch: 0,
     question: 0,
   }
   for (const proposal of proposals) counts[proposal.kind] += 1
