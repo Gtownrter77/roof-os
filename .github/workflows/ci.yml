@@ -97,6 +97,7 @@ jobs:
       - run: npm run test:production-job
       - run: npm run test:production-job-schedule
       - run: npm run test:production-job-readiness
+      - run: npm run test:production-job-fieldwork
       - run: npm run test:ai-vision-contract
       - run: npm run test:ai-vision-endpoint
       - run: npm run test:workspace-settings
@@ -293,6 +294,13 @@ jobs:
           grep -q "permit_checked_by" supabase/migrations/068_production_job_readiness.sql
           grep -q "weather_checked_at" supabase/migrations/068_production_job_readiness.sql
           grep -q "Never supplied by the browser" supabase/migrations/068_production_job_readiness.sql
+          grep -q "production_job_updates" supabase/migrations/069_field_work_change_orders.sql
+          grep -q "production_job_change_orders" supabase/migrations/069_field_work_change_orders.sql
+          grep -q "A field update cannot be deleted; add a correcting update instead" supabase/migrations/069_field_work_change_orders.sql
+          grep -q "A field update is append-only; add a correcting update instead" supabase/migrations/069_field_work_change_orders.sql
+          grep -q "A decided change order is immutable" supabase/migrations/069_field_work_change_orders.sql
+          grep -q "The change order request fields are immutable; only the decision may change" supabase/migrations/069_field_work_change_orders.sql
+          grep -q "A change order cannot be deleted; decline it instead" supabase/migrations/069_field_work_change_orders.sql
           grep -q "create extension if not exists pgcrypto" supabase/migrations/053_agent_action_ledger.sql
           grep -q "approval hashes do not match the current action batch" supabase/migrations/053_agent_action_ledger.sql
           grep -q "get diagnostics updated_count = row_count" supabase/migrations/053_agent_action_ledger.sql
