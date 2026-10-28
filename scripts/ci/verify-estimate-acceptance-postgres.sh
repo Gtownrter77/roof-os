@@ -23,6 +23,8 @@ fi
 
 psql_db "$ACCEPTANCE_DB" -f scripts/ci/estimate-acceptance-baseline.sql
 psql_db "$ACCEPTANCE_DB" -f supabase/migrations/063_estimate_acceptance_deposit.sql
+# Tables created by 063 need the same test role grants the baseline gave the existing tables.
+psql_db "$ACCEPTANCE_DB" -c "grant select,insert,update,delete on all tables in schema public to authenticated"
 psql_db "$ACCEPTANCE_DB" -f scripts/ci/estimate-acceptance-assertions.sql
 
 echo 'ESTIMATE ACCEPTANCE MIGRATION 063: isolated SQL-role/RLS/trigger tests passed. Supabase Auth/Storage remains untested.'
