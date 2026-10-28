@@ -27,6 +27,12 @@ returns boolean language sql stable security definer set search_path=public
 as $$ select exists(select 1 from public.workspace_members
   where workspace_id=target_workspace and user_id=auth.uid()) $$;
 
+create function public.is_workspace_admin(target_workspace uuid)
+returns boolean language sql stable security definer set search_path=public
+as $$ select exists(select 1 from public.workspace_members
+  where workspace_id=target_workspace and user_id=auth.uid()
+    and role in ('owner','admin')) $$;
+
 -- Only the columns migration 063/064 read or reference.
 create table public.leads (
   id uuid primary key default gen_random_uuid(),
@@ -76,3 +82,4 @@ grant usage on schema auth, public to authenticated;
 grant select,insert,update,delete on all tables in schema public to authenticated;
 grant execute on function auth.uid() to authenticated;
 grant execute on function public.is_workspace_member(uuid) to authenticated;
+grant execute on function public.is_workspace_admin(uuid) to authenticated;
