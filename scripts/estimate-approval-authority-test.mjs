@@ -16,6 +16,7 @@ assert.ok(migration.includes('create policy estimates_insert'), 'insert policy r
 assert.ok(migration.includes("status IS DISTINCT FROM 'approved'"), 'insert blocks direct approved insert')
 assert.ok(migration.includes('create or replace function public.is_estimate_admin'), 'new admin function defined')
 assert.ok(migration.includes('coalesce(public.is_workspace_admin'), 'is_estimate_admin handles null workspace')
+assert.ok(/security definer set search_path/i.test(migration), 'SECURITY DEFINER admin function pins search_path')
 assert.ok(migration.includes("if p_status = 'approved' and not public.is_estimate_admin"), 'RPC blocks non-admin approval')
 assert.ok(migration.includes('create policy estimates_update_member'), 'direct table write guard exists')
 assert.ok(!migration.includes('058_atomic_estimate_line_item_replacement.sql'), 'new migration does not alter 058 file')

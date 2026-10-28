@@ -3,7 +3,7 @@
 
 -- Function used by policies / RPC / API
 create or replace function public.is_estimate_admin(target_workspace uuid)
-  returns boolean language sql security definer as $$
+  returns boolean language sql stable security definer set search_path = public as $$
     select coalesce(public.is_workspace_admin(target_workspace), false)
   $$;
 
@@ -87,6 +87,13 @@ create policy estimates_insert on public.estimates for insert
              and auth.uid() = created_by
              and (status IS DISTINCT FROM 'approved' or public.is_estimate_admin(workspace_id)));
 
+-- Approved estimates cannot gain line items through a direct insert.
+drop policy if exists estimate_line_items_insert on public.estimate_line_items;
+create policy estimate_line_items_insert on public.estimate_line_items for insert
+  with check (exists (select 1 from public.estimates e where e.id = estimate_id
+    and public.is_workspace_member(e.workspace_id)
+    and e.status not in ('approved','superseded')));
+
 -- DB-level approval-metadata protection: only admin may set/modify approved_by/approved_at.
 -- Prevents non-admin members from manually forging approval on drafts.
 drop trigger if exists enforce_estimate_approval_metadata on public.estimates;
@@ -94,12 +101,27 @@ drop function if exists public.enforce_estimate_approval_metadata();
 create or replace function public.enforce_estimate_approval_metadata()
   returns trigger language plpgsql security definer set search_path = public as $$
 begin
-  -- If approval metadata is being set/changed, require workspace admin.
-  if (NEW.approved_by IS DISTINCT FROM OLD.approved_by
-      or NEW.approved_at IS DISTINCT FROM OLD.approved_at) then
-    if NEW.approved_by IS NOT NULL or NEW.approved_at IS NOT NULL then
-      if not public.is_estimate_admin(COALESCE(NEW.workspace_id, OLD.workspace_id)) then
-        raise exception 'Workspace administrator authority is required to modify estimate approval metadata';
+  if tg_op = 'UPDATE' then
+    -- Approved estimates are financially immutable. Only superseding is permitted.
+    if OLD.status = 'approved' then
+      if NEW.status not in ('approved','superseded') then
+        raise exception 'An approved estimate can only be superseded';
+      end if;
+      if NEW.status = 'approved' and (NEW.subtotal IS DISTINCT FROM OLD.subtotal
+          or NEW.tax IS DISTINCT FROM OLD.tax
+          or NEW.total IS DISTINCT FROM OLD.total
+          or NEW.approved_by IS DISTINCT FROM OLD.approved_by
+          or NEW.approved_at IS DISTINCT FROM OLD.approved_at) then
+        raise exception 'An approved estimate is immutable';
+      end if;
+    end if;
+    -- If approval metadata is being set/changed, require workspace admin.
+    if (NEW.approved_by IS DISTINCT FROM OLD.approved_by
+        or NEW.approved_at IS DISTINCT FROM OLD.approved_at) then
+      if NEW.approved_by IS NOT NULL or NEW.approved_at IS NOT NULL then
+        if not public.is_estimate_admin(COALESCE(NEW.workspace_id, OLD.workspace_id)) then
+          raise exception 'Workspace administrator authority is required to modify estimate approval metadata';
+        end if;
       end if;
     end if;
   end if;

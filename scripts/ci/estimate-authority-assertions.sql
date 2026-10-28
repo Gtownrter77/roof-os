@@ -98,4 +98,44 @@ begin
     raise exception 'SECURITY FAILURE: approved record can be tampered with';
   end if;
 end $$;
-select 'PASS: tested member denial, cross-workspace denial, owner approval, immutable approved totals' as result;
+
+do $$
+begin
+  -- Approved estimates cannot gain line items (direct INSERT bypass attempt).
+  begin
+    insert into public.estimate_line_items
+      (estimate_id,item_code,description,category,unit,quantity,unit_cost,line_total)
+    values ('aaaaaaaa-1111-4111-8111-111111111111','BYPASS','Synthetic bypass','material','SQ',1,1,1);
+  exception when others then
+    raise notice 'Expected approved line-item insert rejection: %',SQLERRM;
+  end;
+  if exists(select 1 from public.estimate_line_items
+    where estimate_id='aaaaaaaa-1111-4111-8111-111111111111' and item_code='BYPASS') then
+    raise exception 'SECURITY FAILURE: line item inserted into approved estimate';
+  end if;
+end $$;
+
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-4222-8222-222222222222';
+
+do $$
+begin
+  -- A member cannot create an estimate already marked approved.
+  begin
+    insert into public.estimates
+      (id,workspace_id,status,created_by,approved_by,approved_at)
+    values ('aaaaaaaa-3333-4333-8333-333333333333',
+      'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','approved',
+      '22222222-2222-4222-8222-222222222222',
+      '22222222-2222-4222-8222-222222222222',now());
+  exception when others then
+    raise notice 'Expected member approved-insert rejection: %',SQLERRM;
+  end;
+  if exists(select 1 from public.estimates
+    where id='aaaaaaaa-3333-4333-8333-333333333333') then
+    raise exception 'SECURITY FAILURE: member created a pre-approved estimate';
+  end if;
+end $$;
+reset role;
+
+select 'PASS: tested member denial, cross-workspace denial, owner approval, immutable approved totals and line items' as result;
