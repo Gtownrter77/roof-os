@@ -21,9 +21,6 @@ jobs:
       - run: npm ci
       - run: npm ci
         working-directory: apps/field
-      - run: node scripts/test-field-deepmerge-mitigation.cjs
-      - run: node scripts/test-field-deepmerge-mitigation.cjs
-      - run: node scripts/audit-field-deps.mjs
       - run: npm run test:braces-mitigation --prefix apps/field
       - run: npm run build
         env:
@@ -100,6 +97,20 @@ jobs:
       - run: npm ci
       - run: npx tsc --noEmit
       - run: npx expo config --json > /tmp/expo-config.json
+
+  field-security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/field/package-lock.json
+      - run: npm ci
+        working-directory: apps/field
+      - run: node scripts/test-field-deepmerge-mitigation.cjs
+      - run: node scripts/audit-field-deps.mjs
 
   preview-build:
     runs-on: ubuntu-latest
