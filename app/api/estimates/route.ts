@@ -100,6 +100,11 @@ export async function POST(request: NextRequest) {
   if (!ESTIMATE_STATUSES.includes(status as any)) {
     return NextResponse.json({ error: 'Invalid estimate status.' }, { status: 400 })
   }
+  // Production approval via create also requires workspace-admin authority.
+  if (status === 'approved') {
+    const { data: isAdminData } = await supabase.rpc('is_workspace_admin', { target_workspace: workspaceId })
+    if (!isAdminData) return NextResponse.json({ error: 'Workspace administrator authority is required to approve this estimate.' }, { status: 403 })
+  }
 
   const lineItems = body.line_items ?? []
   const { subtotal, tax, total } = computeTotals(lineItems)
