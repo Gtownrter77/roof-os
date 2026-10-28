@@ -22,6 +22,58 @@ async function getWorkspaceContext() {
   return { supabase, user, workspaceId: typeof workspaceId === 'string' ? workspaceId : null }
 }
 
+/** Listing stays metadata-only so a long packet list cannot bloat the response. */
+function draftSummary(packet: unknown) {
+  const value = packet && typeof packet === 'object' ? packet as Record<string, unknown> : {}
+  const proposals = Array.isArray(value.proposals) ? value.proposals : []
+  const lines = Array.isArray(value.lines) ? value.lines : []
+  const totals = value.totals && typeof value.totals === 'object' ? value.totals as Record<string, unknown> : {}
+  const number = (input: unknown) => typeof input === 'number' && Number.isFinite(input) ? input : null
+  return {
+    line_count: lines.length,
+    proposal_count: proposals.length,
+    carrier_source_total: number(totals.carrier_source_total),
+    contractor_total: number(totals.contractor_total),
+    delta: number(totals.delta),
+    export_blocked: value.export_blocked === true,
+  }
+}
+
+export async function GET() {
+  const { supabase, user, workspaceId } = await getWorkspaceContext()
+  if (!user) return NextResponse.json({ error: 'Authentication required.' }, { status: 401 })
+  if (!workspaceId) return NextResponse.json({ error: 'No workspace is configured.' }, { status: 400 })
+
+  const membership = await requireWorkspaceMember(supabase, user.id, workspaceId)
+  if ('response' in membership) return membership.response
+
+  const { data: isAdmin } = await supabase.rpc('is_workspace_admin', { target_workspace: workspaceId })
+  const { data, error } = await supabase
+    .from('supplement_review_drafts')
+    .select('id,document_id,revision,status,created_at,approved_at,packet')
+    .eq('workspace_id', workspaceId)
+    .order('created_at', { ascending: false })
+    .limit(50)
+
+  if (error) return NextResponse.json({ error: 'Could not load supplement review drafts.' }, { status: 502 })
+
+  return NextResponse.json({
+    drafts: (data ?? []).map((row) => ({
+      id: row.id,
+      document_id: row.document_id,
+      revision: row.revision,
+      status: row.status,
+      created_at: row.created_at,
+      approved_at: row.approved_at,
+      ...draftSummary(row.packet),
+    })),
+    can_approve: isAdmin === true,
+    review_required: true,
+    export_blocked: true,
+    external_submission: false,
+  })
+}
+
 export async function POST(request: NextRequest) {
   const { supabase, user, workspaceId } = await getWorkspaceContext()
   if (!user) return NextResponse.json({ error: 'Authentication required.' }, { status: 401 })
