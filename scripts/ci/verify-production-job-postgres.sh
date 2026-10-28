@@ -27,6 +27,9 @@ psql_db "$JOB_DB" -f supabase/migrations/064_production_job_handoff.sql
 # Tables created by the migrations need the same test role grants the baseline gave.
 psql_db "$JOB_DB" -c "grant select,insert,update,delete on all tables in schema public to authenticated"
 psql_db "$JOB_DB" -f scripts/ci/production-job-assertions.sql
+psql_db "$JOB_DB" -f supabase/migrations/067_production_job_schedule.sql
+psql_db "$JOB_DB" -c "grant select,insert,update,delete on all tables in schema public to authenticated"
+psql_db "$JOB_DB" -f scripts/ci/production-job-schedule-assertions.sql
 
-echo 'PRODUCTION JOB HANDOFF MIGRATION 064: isolated SQL-role/RLS/trigger tests passed. Supabase Auth/Storage remains untested.'
-echo '**Production job handoff migration 064: real isolated PostgreSQL trigger/RLS tests PASSED. Supabase Auth/Storage not exercised.**' >> "$GITHUB_STEP_SUMMARY"
+echo 'PRODUCTION JOB SCHEDULE MIGRATION 067: isolated SQL-role/RLS/trigger tests passed. Supabase Auth/Storage remains untested.'
+echo '**Production job schedule migration 067: real isolated PostgreSQL trigger/RLS tests PASSED. Supabase Auth/Storage not exercised.**' >> "$GITHUB_STEP_SUMMARY"

@@ -42,6 +42,7 @@ The database enforces every handoff rule:
 ## What this is not
 
 - No crew assignment, material schedule, permit or weather gate. Those are Day 20–21.
+  (Crew and material planning now exists separately: [production-schedule.md](./production-schedule.md). It is operational only and does not change this handoff.)
 - No invoice, payment or change order.
 - No automatic customer or insurer contact.
 - No mock approval. The handoff needs a real approved estimate and a recorded acceptance in the same workspace.
