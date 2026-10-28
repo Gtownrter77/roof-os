@@ -58,10 +58,16 @@ PY
 
 docker cp /tmp/roofos-synthetic-claim.pdf "$name":/tmp/roofos-synthetic-claim.pdf
 docker exec "$name" python -c '
-from server import converter
+from server import converter, extract_pages
 result = converter().convert("/tmp/roofos-synthetic-claim.pdf")
 markdown = result.document.export_to_markdown()
 assert "synthetic claim scope" in markdown.lower(), f"Unexpected Docling text: {markdown[:400]!r}"
-print("DOCLING RUNTIME PASS: real synthetic PDF extraction")
+pages, structured_truncated = extract_pages(result.document)
+assert pages, f"Structured pages empty: {pages!r}"
+assert all(page["page"] >= 1 for page in pages), pages
+structured_text = " ".join(block["text"] for page in pages for block in page["blocks"]).lower()
+assert "synthetic claim scope" in structured_text, structured_text[:400]
+assert any(block["kind"] == "text" for page in pages for block in page["blocks"]), pages
+print("DOCLING RUNTIME PASS: markdown and page-provenance structured extraction")
 '
-echo '**Docling runtime PASS:** container built, real synthetic PDF extracted, forbidden origin rejected.' >> "$GITHUB_STEP_SUMMARY"
+echo '**Docling runtime PASS:** container built, real synthetic PDF extracted with page provenance, forbidden origin rejected.' >> "$GITHUB_STEP_SUMMARY"

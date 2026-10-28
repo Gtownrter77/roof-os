@@ -4,7 +4,7 @@ Issue: #336. Status: merged in PR #343; review-only. CapOut public-behavior stud
 
 ## What it does
 
-1. **Ingest.** Accepts Docling-style page/block text (`docling.pages[].blocks[].text`) or structured carrier/contractor rows supplied by a trusted API caller.
+1. **Ingest.** Accepts Docling-style page/block text (`docling.pages[].blocks[].text`), structured table blocks, or structured carrier/contractor rows supplied by a trusted API caller. Docling pages pass through the [local-first PDF normalizer](../documents/pdf-normalizer.md), which keeps page provenance explicit: a real Docling page number is `source`; an assigned sequence number is `synthesized` and is reported in `warnings`.
 2. **Extract.** Each line keeps document id, page, block, and the exact source text. Quantity, unit, and price are parsed only when the source states them.
 3. **Compare.** Carrier lines are matched to contractor/verified rows by explicit item code or description token overlap. Output is limited to `missing_scope`, `quantity_delta`, `unsupported_line`, `code_mismatch`, and `question`.
 4. **Draft.** Every packet is `status: ready_for_review` with `export_blocked: true` and `capout_required: false`.
@@ -27,6 +27,7 @@ Issue: #336. Status: merged in PR #343; review-only. CapOut public-behavior stud
 | --- | --- | --- |
 | Source / behavior | `node --experimental-strip-types --no-warnings scripts/agent5-supplement-specialist-test.mjs` | PASS — parser provenance, stated-values-only extraction, comparator deltas and tolerance, alternate/PWI flags, missing-price provenance, review-only packet, revision diff, API/RLS source contracts |
 | Study contract | `node scripts/agent5-capout-study-test.mjs` | PASS — sourced public study, vendor claims labelled, honest REA ledger, alternate/PWI parity flags, local-first preserved, CI wiring |
+| PDF normalizer | `node --experimental-strip-types --no-warnings scripts/pdf-normalizer-test.mjs` | PASS — typed rows, page provenance, header-based table mapping, caps, unknown stays unknown, deterministic, offline worker and route contracts |
 | API route | `app/api/supplements/review/route.ts` — membership check, 256 KB body cap, 500-row / 50-page caps | Source-verified by the same test |
 | Real PostgreSQL (RLS/triggers) | `scripts/ci/verify-supplement-specialist-postgres.sh` in the `migration-safety` job | Wired; result is reported by the PR check, not assumed |
 | Supabase Auth / Storage | Not exercised | **Not tested** |

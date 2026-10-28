@@ -40,7 +40,9 @@ assert.equal(lines[1].provenance, 'unknown')
 assert.ok(lines[1].issues.includes('unit price not stated in source'))
 assert.equal(lines[2].quantity, null)
 assert.equal(lines[2].unit_cost, null)
-assert.equal(lines[3].unit_cost, null)
+// A thousands separator stays a separator: "$4,712.50" is 4712.5, not malformed.
+assert.equal(lines[3].unit_cost, 4712.5)
+assert.equal(lines[3].line_total, null)
 
 // Malformed input yields no invented rows.
 assert.deepEqual(parseDoclingDocument(null), [])

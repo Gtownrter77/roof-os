@@ -7,8 +7,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '../../../../lib/supabase/server'
 import { readJson, requireWorkspaceMember } from '../../../../lib/api-security'
-import { parseDoclingDocument, parseStructuredLines } from '../../../../lib/agent5/parser'
+import { parseStructuredLines } from '../../../../lib/agent5/parser'
 import { buildReviewPacket, compareRevisions } from '../../../../lib/agent5/reviewer'
+import { normalizeDoclingDocument } from '../../../../lib/documents/normalizer'
 
 const MAX_ROWS = 500
 const MAX_PAGES = 50
@@ -56,9 +57,12 @@ export async function POST(request: NextRequest) {
     ? body.measurements.filter((value): value is string => typeof value === 'string').slice(0, 200)
     : []
 
+  const normalized = carrierRows.length === 0
+    ? normalizeDoclingDocument({ ...docling, document_id: body.document_id })
+    : null
   const carrier = carrierRows.length > 0
     ? parseStructuredLines(carrierRows, body.document_id)
-    : parseDoclingDocument({ ...docling, document_id: body.document_id })
+    : normalized!.rows
 
   if (carrier.length === 0) {
     return NextResponse.json({ error: 'No carrier scope rows could be extracted from the supplied document.' }, { status: 422 })
@@ -105,6 +109,14 @@ export async function POST(request: NextRequest) {
     draft_id: inserted.id,
     created_at: inserted.created_at,
     packet,
+    normalization: normalized
+      ? {
+          page_count: normalized.pages.length,
+          pages: normalized.pages,
+          warnings: normalized.warnings,
+          truncated: normalized.truncated,
+        }
+      : null,
     revision,
     review_required: true,
     export_blocked: true,

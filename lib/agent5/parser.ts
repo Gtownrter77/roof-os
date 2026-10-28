@@ -93,7 +93,8 @@ function textLineToLine(
   // Explicit price: a dollar sign is required. Bare numbers are never treated as prices.
   const priceMatch = description.match(/^\$\s?(\d{1,3}(?:,\d{3})*(?:\.\d+)?|\d+(?:\.\d+)?)\s*(.*)$/)
   if (priceMatch) {
-    unitCost = parseNumber(priceMatch[1].replace(',', '.'))
+    // The price pattern uses commas only as thousands separators.
+    unitCost = parseNumber(priceMatch[1].replace(/,/g, ''))
     description = priceMatch[2]
   }
 
