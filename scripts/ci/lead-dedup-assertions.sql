@@ -77,12 +77,32 @@ begin
 end $$;
 
 -- Explicit office override is honoured and is transaction-scoped.
-select set_config('roofos.allow_duplicate_lead','on',true);
-insert into public.leads (workspace_id,owner_id,name,address,phone)
-values ('eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
-        '88888888-8888-4888-8888-888888888888',
-        'Synthetic Intentional Duplicate','6 Synthetic Way','(555) 010-2000');
-select set_config('roofos.allow_duplicate_lead','off',true);
+do $$
+begin
+  perform set_config('roofos.allow_duplicate_lead', 'on', true);
+  insert into public.leads (workspace_id,owner_id,name,address,phone)
+  values ('eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
+          '88888888-8888-4888-8888-888888888888',
+          'Synthetic Intentional Duplicate','6 Synthetic Way','(555) 010-2000');
+end $$;
+
+-- The override is gone after that transaction: a further duplicate still fails.
+do $$
+begin
+  begin
+    insert into public.leads (workspace_id,owner_id,name,address,phone)
+    values ('eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
+            '88888888-8888-4888-8888-888888888888',
+            'Synthetic Duplicate After Override','7 Synthetic Way','(555) 010-2000');
+  exception when unique_violation then
+    raise notice 'Expected duplicate rejection after the override transaction ended: %',SQLERRM;
+  end;
+  if exists (select 1 from public.leads
+      where workspace_id='eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee'
+        and name='Synthetic Duplicate After Override') then
+    raise exception 'SECURITY FAILURE: override leaked past its transaction';
+  end if;
+end $$;
 reset role;
 
 select 'PASS: duplicate phone rejected across formats, other workspace allowed, update blocked, explicit override honoured' as result;
