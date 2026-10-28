@@ -189,6 +189,12 @@ export function parseStructuredLines(
       ? Math.round(quantity * unitCost * 100) / 100
       : null)
     const issues: string[] = []
+    if (providedTotal !== null && quantity !== null && unitCost !== null) {
+      const computed = Math.round(quantity * unitCost * 100) / 100
+      if (Math.abs(providedTotal - computed) > 0.01) {
+        issues.push('stated line total conflicts with quantity times unit price; human review required')
+      }
+    }
     if (quantity === null) issues.push('quantity not stated in source')
     if (unitCost === null && providedTotal === null) issues.push('unit price not stated in source')
     const enabled = parseFlag(row.enabled) ?? true

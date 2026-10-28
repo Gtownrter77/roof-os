@@ -58,6 +58,11 @@ assert.equal(structured[0].provenance, 'source')
 assert.equal(structured[1].quantity, null)
 assert.equal(structured[1].provenance, 'unknown')
 
+// Conflicting carrier totals must be visible to the reviewer, not silently accepted.
+const conflict = parseStructuredLines([{ description: 'Shingles', quantity: 2, unit: 'SQ', unit_cost: 100, line_total: 150 }], 'conflict')
+assert.equal(conflict[0].line_total, 150)
+assert.ok(conflict[0].issues.some((issue) => issue.includes('conflicts with quantity')))
+
 // 3. Comparator: missing scope, quantity delta, tolerance, code mismatch.
 const carrier = parseStructuredLines([
   { item_code: 'M1', description: 'Architectural shingles', category: 'material', quantity: 10, unit: 'SQ', unit_cost: 100 },
