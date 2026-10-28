@@ -9,15 +9,18 @@ Issue: #336. Status: merged in PR #343; review-only. CapOut public-behavior stud
 3. **Compare.** Carrier lines are matched to contractor/verified rows by explicit item code or description token overlap. Output is limited to `missing_scope`, `quantity_delta`, `unsupported_line`, `code_mismatch`, `trade_mismatch`, and `question`. Quantity deltas require both quantities and identical stated units; trade deltas require a stated category on both sides. Rules and false-positive tests: [trade-and-quantity-deltas.md](./trade-and-quantity-deltas.md).
 4. **Draft.** Every packet is `status: ready_for_review` with `export_blocked: true` and `capout_required: false`.
 5. **Alternates.** `enabled: false` rows stay in the packet for review but never enter totals, deltas, or missing-scope proposals. `paid_when_incurred` is retained as a flag and is never priced here.
-6. **Persist.** Migration `060` stores drafts per workspace with server-assigned revisions, append-only history (no delete policy), admin-only approval, and approved-record immutability.
+6. **Persist.** Migration `060` stores drafts per workspace with server-assigned revisions, append-only history (no delete policy), admin-only approval, and approved-record immutability. Migration `066` adds a workspace-scoped idempotency key and request fingerprint.
 7. **Revise.** `previous_draft_id` produces a deterministic added/removed/changed diff.
+8. **Retry safely.** A caller may send `Idempotency-Key`. Same key and same payload replays the stored draft; same key and changed payload is a `409` conflict. Transient database errors return `503` with `Retry-After`; unique violations are never blind-retried.
+9. **Export for review.** A reviewer can download a deterministic JSON or CSV review copy. It is not an ESX file and is never sent anywhere. Rules: [export-revisions-idempotency.md](./export-revisions-idempotency.md).
 
 ## What it will not do
 
 - It does not invent quantity, unit price, line total, trade category, building-code finding, damage evidence, insurance coverage, or Xactimate codes.
 - A bare number is never treated as a price; a price requires an explicit `$`.
 - Missing quantity or price is reported as an `issue` and lowers provenance to `unknown`.
-- It never contacts an insurer, submits a claim, records a payment, or exports a packet.
+- It never contacts an insurer, submits a claim, records a payment, or exports an ESX file.
+- Its JSON/CSV review export is an internal review copy. It is not insurer-submittable and no ESX parity is claimed.
 - It requires no CapOut API key and makes no outbound network call.
 - Review approval stays with a workspace admin; the engine is not an approver.
 
@@ -29,6 +32,7 @@ Issue: #336. Status: merged in PR #343; review-only. CapOut public-behavior stud
 | Study contract | `node scripts/agent5-capout-study-test.mjs` | PASS — sourced public study, vendor claims labelled, honest REA ledger, alternate/PWI parity flags, local-first preserved, CI wiring |
 | PDF normalizer | `node --experimental-strip-types --no-warnings scripts/pdf-normalizer-test.mjs` | PASS — typed rows, page provenance, header-based table mapping, caps, unknown stays unknown, deterministic, offline worker and route contracts |
 | Owner review UI | `node scripts/supplement-review-ui-test.mjs` | PASS — owner/admin-only decision, workspace-scoped API, foreign draft 404, no insurer/export path. See [owner-review-ui.md](./owner-review-ui.md) |
+| Export, idempotence, retries | `node --experimental-strip-types --no-warnings scripts/agent5-export-idempotency-test.mjs` | PASS — deterministic JSON/CSV, null price stays null, traversal-safe filename, key scoping, replay/conflict, retry policy, CapOut disabled by default. See [export-revisions-idempotency.md](./export-revisions-idempotency.md) |
 | API route | `app/api/supplements/review/route.ts` — membership check, 256 KB body cap, 500-row / 50-page caps | Source-verified by the same test |
 | Real PostgreSQL (RLS/triggers) | `scripts/ci/verify-supplement-specialist-postgres.sh` in the `migration-safety` job | Wired; result is reported by the PR check, not assumed |
 | Supabase Auth / Storage | Not exercised | **Not tested** |

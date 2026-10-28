@@ -30,6 +30,7 @@
     "test:agent5-capout-study": "node scripts/agent5-capout-study-test.mjs",
     "test:pdf-normalizer": "node --experimental-strip-types --no-warnings scripts/pdf-normalizer-test.mjs",
     "test:supplement-review-ui": "node scripts/supplement-review-ui-test.mjs",
+    "test:agent5-export-idempotency": "node --experimental-strip-types --no-warnings scripts/agent5-export-idempotency-test.mjs",
     "test:owner-break-glass": "node --experimental-strip-types --no-warnings scripts/owner-break-glass-test.mjs",
     "test:lead-dedup": "node scripts/lead-dedup-test.mjs",
     "test:inspection-appointment": "node scripts/inspection-appointment-test.mjs",
