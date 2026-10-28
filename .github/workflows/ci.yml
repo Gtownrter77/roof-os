@@ -87,6 +87,7 @@ jobs:
       - run: npm run test:agent5-supplement
       - run: npm run test:owner-break-glass
       - run: npm run test:lead-dedup
+      - run: npm run test:inspection-appointment
       - run: npm run test:ai-vision-contract
       - run: npm run test:ai-vision-endpoint
       - run: npm run test:workspace-settings
@@ -254,6 +255,8 @@ jobs:
           grep -q "enable row level security" supabase/migrations/060_supplement_specialist_agent5.sql
           grep -q "prevent_duplicate_lead" supabase/migrations/061_lead_deduplication.sql
           grep -q "lead_phone_digits" supabase/migrations/061_lead_deduplication.sql
+          grep -q "enforce_inspection_appointment" supabase/migrations/062_inspection_appointment_gate.sql
+          grep -q "An inspection must be assigned to a workspace member" supabase/migrations/062_inspection_appointment_gate.sql
           grep -q "create extension if not exists pgcrypto" supabase/migrations/053_agent_action_ledger.sql
           grep -q "approval hashes do not match the current action batch" supabase/migrations/053_agent_action_ledger.sql
           grep -q "get diagnostics updated_count = row_count" supabase/migrations/053_agent_action_ledger.sql
@@ -299,3 +302,12 @@ jobs:
           PGUSER: postgres
           PGPASSWORD: ci-synthetic-only
         run: bash scripts/ci/verify-lead-dedup-postgres.sh
+      - name: Run real PostgreSQL inspection appointment trigger tests
+        shell: bash
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGDATABASE: roofos_authority_ci
+          PGUSER: postgres
+          PGPASSWORD: ci-synthetic-only
+        run: bash scripts/ci/verify-inspection-appointment-postgres.sh

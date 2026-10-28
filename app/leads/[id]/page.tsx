@@ -37,6 +37,7 @@ type Lead = {
   last_activity_at: string | null
 }
 type Activity = { id: string; kind: string; body: string; created_at: string }
+type Appointment = { id: string; title: string; appointment_type: string; starts_at: string; ends_at: string; location: string | null; status: string; assigned_to: string | null }
 
 export default function LeadDetailPage() {
   const params = useParams<{ id: string }>()
@@ -45,6 +46,8 @@ export default function LeadDetailPage() {
   const leadId = params.id
   const [lead, setLead] = useState<Lead | null>(null)
   const [activity, setActivity] = useState<Activity[]>([])
+  const [appointments, setAppointments] = useState<Appointment[]>([])
+  const [currentUserId, setCurrentUserId] = useState('')
   const [note, setNote] = useState('')
   const [apptAt, setApptAt] = useState('')
   const [nextAction, setNextAction] = useState('')
@@ -57,14 +60,17 @@ export default function LeadDetailPage() {
   async function load() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.replace('/auth/login'); return }
-    const [{ data: leadRow, error: leadError }, activityRes] = await Promise.all([
+    setCurrentUserId(user.id)
+    const [{ data: leadRow, error: leadError }, activityRes, appointmentRes] = await Promise.all([
       supabase.from('leads').select('id,name,address,status,phone,email,source,next_action,next_action_due,next_action_owner_id,lead_score,lead_score_reasons,lost_reason,lost_reason_detail,lost_at,last_activity_at').eq('id', leadId).maybeSingle(),
       supabase.from('lead_activity').select('id,kind,body,created_at').eq('lead_id', leadId).order('created_at', { ascending: false }).limit(50),
+      supabase.from('appointments').select('id,title,appointment_type,starts_at,ends_at,location,status,assigned_to').eq('lead_id', leadId).order('starts_at', { ascending: true }),
     ])
     if (leadError) setError(leadError.message)
     if (!leadRow) setError('Lead not found in this workspace.')
     setLead(leadRow)
     setActivity(activityRes.data ?? [])
+    setAppointments(appointmentRes.data ?? [])
     if (leadRow) {
       setNextAction(leadRow.next_action ?? '')
       setNextActionDue(leadRow.next_action_due ? new Date(leadRow.next_action_due).toISOString().slice(0, 16) : '')
@@ -150,14 +156,25 @@ export default function LeadDetailPage() {
 
   async function scheduleInspection() {
     if (!lead || !apptAt) return
+    if (!canScheduleInspection) {
+      setError('Mark the lead qualified before scheduling an inspection.')
+      return
+    }
     setSaving(true); setError('')
     const { user, workspaceId } = await ctx()
     if (!user || !workspaceId) { setError('No workspace available.'); setSaving(false); return }
     const start = new Date(apptAt)
     const end = new Date(start.getTime() + 60 * 60 * 1000)
-    const { error: insertError } = await supabase.from('appointments').insert({ workspace_id: workspaceId, lead_id: lead.id, title: `Inspection: ${lead.name}`, appointment_type: 'inspection', starts_at: start.toISOString(), ends_at: end.toISOString(), location: lead.address, created_by: user.id })
-    if (insertError) { setError(insertError.message); setSaving(false); return }
-    await supabase.from('leads').update({ status: 'inspection_scheduled', next_action: 'Complete inspection', next_action_due: start.toISOString(), next_action_owner_id: user.id, updated_at: new Date().toISOString() }).eq('id', lead.id)
+    // The database assigns the appointment, moves the lead and sets the next action.
+    const { error: insertError } = await supabase.from('appointments').insert({ workspace_id: workspaceId, lead_id: lead.id, title: `Inspection: ${lead.name}`, appointment_type: 'inspection', starts_at: start.toISOString(), ends_at: end.toISOString(), location: lead.address, created_by: user.id, assigned_to: user.id })
+    if (insertError) {
+      setError(/already has a scheduled inspection/i.test(insertError.message)
+        ? 'This lead already has a scheduled inspection. Cancel or complete it before booking another.'
+        : insertError.message)
+      setSaving(false)
+      return
+    }
+    await supabase.from('lead_activity').insert({ lead_id: lead.id, workspace_id: workspaceId, user_id: user.id, kind: 'status_change', body: `Inspection scheduled for ${start.toLocaleString()}, assigned to you.` })
     setApptAt('')
     await load()
     setSaving(false)
@@ -172,6 +189,15 @@ export default function LeadDetailPage() {
     if (insertError) { setError(insertError.message); setSaving(false); return }
     router.push(`/camera?inspection=${data.id}&lead=${lead.id}`)
   }
+
+  const activeInspection = useMemo(
+    () => appointments.find((appointment) => appointment.appointment_type === 'inspection' && appointment.status === 'scheduled') ?? null,
+    [appointments],
+  )
+  const canScheduleInspection = useMemo(() => {
+    if (!lead || activeInspection) return false
+    return lead.status === 'qualified' || lead.status === 'inspection_scheduled'
+  }, [lead, activeInspection])
 
   const scoreLabel = useMemo(() => {
     if (!lead) return ''
@@ -237,9 +263,25 @@ export default function LeadDetailPage() {
           )}
 
           <div className="glass mb-4 space-y-2 rounded-xl p-4">
-            <h2 className="font-semibold">Schedule inspection</h2>
-            <input type="datetime-local" value={apptAt} onChange={(e) => setApptAt(e.target.value)} className="w-full rounded-lg border border-white/15 bg-black/25 p-3 text-sm text-white placeholder:text-slate-500" />
-            <button disabled={saving || !apptAt} onClick={() => void scheduleInspection()} className="ops-btn-primary w-full disabled:opacity-60">Save on calendar</button>
+            <h2 className="font-semibold">Inspection appointment</h2>
+            {activeInspection ? (
+              <div className="rounded-lg border border-cyan-400/30 bg-cyan-400/10 p-3 text-sm">
+                <p className="font-semibold text-cyan-200">{new Date(activeInspection.starts_at).toLocaleString()}</p>
+                <p className="text-xs text-slate-300">{activeInspection.location || lead.address}</p>
+                <p className="mt-1 text-xs text-slate-300">
+                  Assigned to {activeInspection.assigned_to === currentUserId ? 'you' : 'another member'}.
+                  {lead.next_action_due && ` Next action due ${new Date(lead.next_action_due).toLocaleString()}.`}
+                </p>
+              </div>
+            ) : (
+              <p className="text-xs text-slate-400">
+                {canScheduleInspection
+                  ? 'Book the inspection. The lead status, assigned appointment and next action update together.'
+                  : 'Mark the lead qualified first. An inspection cannot be booked before qualification.'}
+              </p>
+            )}
+            <input type="datetime-local" value={apptAt} onChange={(e) => setApptAt(e.target.value)} disabled={!canScheduleInspection} className="w-full rounded-lg border border-white/15 bg-black/25 p-3 text-sm text-white placeholder:text-slate-500 disabled:opacity-50" />
+            <button disabled={saving || !apptAt || !canScheduleInspection} onClick={() => void scheduleInspection()} className="ops-btn-primary w-full disabled:opacity-60">Save on calendar</button>
             <button disabled={saving} onClick={() => void startInspection()} className="w-full bg-gray-900 text-white py-2 rounded font-semibold disabled:opacity-60">Start inspection now</button>
           </div>
           <div className="glass rounded-xl p-4">
