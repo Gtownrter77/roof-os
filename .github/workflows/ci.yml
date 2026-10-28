@@ -98,6 +98,7 @@ jobs:
       - run: npm run test:production-job-schedule
       - run: npm run test:production-job-readiness
       - run: npm run test:production-job-fieldwork
+      - run: npm run test:production-job-qc
       - run: npm run test:ai-vision-contract
       - run: npm run test:ai-vision-endpoint
       - run: npm run test:workspace-settings
@@ -301,6 +302,13 @@ jobs:
           grep -q "A decided change order is immutable" supabase/migrations/069_field_work_change_orders.sql
           grep -q "The change order request fields are immutable; only the decision may change" supabase/migrations/069_field_work_change_orders.sql
           grep -q "A change order cannot be deleted; decline it instead" supabase/migrations/069_field_work_change_orders.sql
+          grep -q "production_job_punch_items" supabase/migrations/070_qc_punch_closeout.sql
+          grep -q "production_job_closeouts" supabase/migrations/070_qc_punch_closeout.sql
+          grep -q "A resolved punch item is immutable" supabase/migrations/070_qc_punch_closeout.sql
+          grep -q "A punch item cannot be deleted; resolve it or record a new item" supabase/migrations/070_qc_punch_closeout.sql
+          grep -q "A supervisor closeout is immutable" supabase/migrations/070_qc_punch_closeout.sql
+          grep -q "A supervisor closeout is blocked by % unresolved critical punch item(s)" supabase/migrations/070_qc_punch_closeout.sql
+          grep -q "A production job needs a supervisor closeout before completion" supabase/migrations/070_qc_punch_closeout.sql
           grep -q "create extension if not exists pgcrypto" supabase/migrations/053_agent_action_ledger.sql
           grep -q "approval hashes do not match the current action batch" supabase/migrations/053_agent_action_ledger.sql
           grep -q "get diagnostics updated_count = row_count" supabase/migrations/053_agent_action_ledger.sql

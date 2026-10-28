@@ -46,6 +46,9 @@ The database enforces every handoff rule:
 - No invoice or payment. Change orders now exist as owner-reviewed records
   ([field-work-and-change-orders.md](./field-work-and-change-orders.md)); an
   approved delta is a separate invoice input and never rewrites this handoff.
+- QC and completion are separate records. Punch items and the supervisor
+  closeout gate are in [qc-closeout.md](./qc-closeout.md); neither changes this
+  handoff, and completion creates no warranty.
 - No automatic customer or insurer contact.
 - No mock approval. The handoff needs a real approved estimate and a recorded acceptance in the same workspace.
 

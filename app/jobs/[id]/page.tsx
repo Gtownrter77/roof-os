@@ -11,7 +11,13 @@ import {
   nextAssignmentStatuses,
   nextMaterialStatuses,
 } from '../../../lib/jobs/schedule'
-import { describeProductionJobStatus } from '../../../lib/jobs/production'
+import { describeProductionJobStatus, nextProductionJobStatuses } from '../../../lib/jobs/production'
+import {
+  PUNCH_SEVERITIES,
+  describePunchSeverity,
+  describePunchStatus,
+  canResolvePunchItem,
+} from '../../../lib/jobs/qc'
 import {
   PERMIT_STATUSES,
   WEATHER_DECISIONS,
@@ -150,6 +156,52 @@ type ChangeOrdersPayload = {
   note: string
 }
 
+type PunchItem = {
+  id: string
+  severity: string
+  location: string
+  description: string
+  status: string
+  created_by: string
+  created_at: string
+  resolved_by: string | null
+  resolved_at: string | null
+  resolution_note: string
+}
+
+type PunchSummary = {
+  total: number
+  open_total: number
+  open_critical: number
+  open_major: number
+  open_minor: number
+  resolved_total: number
+}
+
+type PunchPayload = {
+  punch_items: PunchItem[]
+  summary: PunchSummary
+  note: string
+}
+
+type Closeout = {
+  id: string
+  closed_by: string
+  closed_at: string
+  note: string
+  open_critical_count: number
+  open_total_count: number
+  created_at: string
+}
+
+type CloseoutPayload = {
+  closeout: Closeout | null
+  gate: { can_close: boolean; open_critical: number; open_total: number; blockers: string[] }
+  punch_summary: PunchSummary
+  can_close: boolean
+  note: string
+}
+
 function money(value: number): string {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value)
 }
@@ -189,19 +241,30 @@ export default function JobSchedulePage() {
   const [coReason, setCoReason] = useState('')
   const [coAmount, setCoAmount] = useState('')
   const [coNote, setCoNote] = useState('')
+  const [punchItems, setPunchItems] = useState<PunchItem[]>([])
+  const [closeout, setCloseout] = useState<CloseoutPayload | null>(null)
+  const [punchSeverity, setPunchSeverity] = useState('minor')
+  const [punchLocation, setPunchLocation] = useState('')
+  const [punchDescription, setPunchDescription] = useState('')
+  const [resolutionNote, setResolutionNote] = useState('')
+  const [closeoutNote, setCloseoutNote] = useState('')
 
   const load = useCallback(async (signal?: AbortSignal) => {
     try {
-      const [scheduleResponse, prebuildResponse, updatesResponse, changeOrderResponse] = await Promise.all([
+      const [scheduleResponse, prebuildResponse, updatesResponse, changeOrderResponse, punchResponse, closeoutResponse] = await Promise.all([
         fetch(`/api/production-jobs/${jobId}/schedule`, { signal }),
         fetch(`/api/production-jobs/${jobId}/readiness`, { signal }),
         fetch(`/api/production-jobs/${jobId}/updates`, { signal }),
         fetch(`/api/production-jobs/${jobId}/change-orders`, { signal }),
+        fetch(`/api/production-jobs/${jobId}/punch-items`, { signal }),
+        fetch(`/api/production-jobs/${jobId}/closeout`, { signal }),
       ])
       const scheduleResult = await scheduleResponse.json().catch(() => ({}))
       const prebuildResult = await prebuildResponse.json().catch(() => ({}))
       const updatesResult = await updatesResponse.json().catch(() => ({}))
       const changeOrderResult = await changeOrderResponse.json().catch(() => ({}))
+      const punchResult = await punchResponse.json().catch(() => ({}))
+      const closeoutResult = await closeoutResponse.json().catch(() => ({}))
       if (signal?.aborted) return
       if (!scheduleResponse.ok) {
         setMessage(scheduleResult.error ?? 'Could not load the schedule.')
@@ -219,6 +282,14 @@ export default function JobSchedulePage() {
         setMessage(changeOrderResult.error ?? 'Could not load the change orders.')
         return
       }
+      if (!punchResponse.ok) {
+        setMessage(punchResult.error ?? 'Could not load the punch items.')
+        return
+      }
+      if (!closeoutResponse.ok) {
+        setMessage(closeoutResult.error ?? 'Could not load the closeout.')
+        return
+      }
       setData(scheduleResult as SchedulePayload)
       setPrebuild(prebuildResult as PrebuildPayload)
       setUpdates((updatesResult as UpdatesPayload).updates ?? [])
@@ -226,6 +297,8 @@ export default function JobSchedulePage() {
       setChangeOrders(changePayload.change_orders ?? [])
       setChangeSummary(changePayload.summary ?? null)
       setCanDecide(changePayload.can_decide === true)
+      setPunchItems((punchResult as PunchPayload).punch_items ?? [])
+      setCloseout(closeoutResult as CloseoutPayload)
       const record = (prebuildResult as PrebuildPayload).record
       if (record) {
         setPermitStatus(record.permit_status)
@@ -381,6 +454,106 @@ export default function JobSchedulePage() {
       setMessage('Decision recorded. The handoff snapshot did not change.')
     } catch {
       setMessage('The decision could not be sent.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const addPunchItem = async () => {
+    if (!punchDescription.trim()) {
+      setMessage('Describe the defect.')
+      return
+    }
+    setBusy(true)
+    setMessage('')
+    try {
+      const response = await fetch(`/api/production-jobs/${jobId}/punch-items`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ severity: punchSeverity, location: punchLocation, description: punchDescription }),
+      })
+      const result = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        setMessage(result.error ?? 'The punch item was refused.')
+        return
+      }
+      setPunchDescription('')
+      setPunchLocation('')
+      await load()
+      setMessage('Punch item recorded. A critical item blocks closeout until it is resolved.')
+    } catch {
+      setMessage('The punch item could not be sent.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const resolvePunchItem = async (punchItemId: string) => {
+    setBusy(true)
+    setMessage('')
+    try {
+      const response = await fetch(`/api/production-jobs/${jobId}/punch-items`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'resolve', punch_item_id: punchItemId, resolution_note: resolutionNote }),
+      })
+      const result = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        setMessage(result.error ?? 'The resolution was refused.')
+        return
+      }
+      setResolutionNote('')
+      await load()
+      setMessage('Punch item resolved. A resolved item is immutable.')
+    } catch {
+      setMessage('The resolution could not be sent.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const recordCloseout = async () => {
+    setBusy(true)
+    setMessage('')
+    try {
+      const response = await fetch(`/api/production-jobs/${jobId}/closeout`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ note: closeoutNote }),
+      })
+      const result = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        setMessage(result.error ?? 'The closeout was refused.')
+        return
+      }
+      setCloseoutNote('')
+      await load()
+      setMessage('Supervisor closeout recorded. Completing the job is a separate status move.')
+    } catch {
+      setMessage('The closeout could not be sent.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const moveStatus = async (status: string) => {
+    setBusy(true)
+    setMessage('')
+    try {
+      const response = await fetch(`/api/production-jobs/${jobId}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      })
+      const result = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        setMessage(result.error ?? 'The status move was refused.')
+        return
+      }
+      await load()
+      setMessage('Status updated. The handoff snapshot did not change.')
+    } catch {
+      setMessage('The status move could not be sent.')
     } finally {
       setBusy(false)
     }
@@ -821,6 +994,135 @@ export default function JobSchedulePage() {
         )}
         <p className="mt-3 text-xs text-slate-500">
           Approval is an owner or administrator decision inside Roof OS. It is not a customer signature, a contract amendment sent to the customer, or a payment. An approved delta is a separate invoice input and never rewrites the accepted total or approved scope.
+        </p>
+      </section>
+
+      <section className="rounded-xl border border-white/10 bg-slate-900 p-5">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="font-semibold">QC punch list</h2>
+          {closeout && (
+            <span className={`rounded px-2 py-0.5 text-xs font-semibold ${closeout.gate.can_close ? 'bg-emerald-400/15 text-emerald-200' : 'bg-amber-400/15 text-amber-200'}`}>
+              {closeout.gate.open_critical > 0 ? `${closeout.gate.open_critical} critical open` : 'No critical open'}
+            </span>
+          )}
+        </div>
+        <p className="mt-1 text-xs text-slate-500">
+          A critical defect blocks the supervisor closeout and job completion. A resolved item is immutable; a correction is a new item.
+        </p>
+        {punchItems.length === 0 ? (
+          <p className="mt-2 text-sm text-slate-400">No punch items recorded.</p>
+        ) : (
+          <ul className="mt-2 space-y-2">
+            {punchItems.map((row) => (
+              <li key={row.id} className="rounded border border-white/10 bg-black/20 p-3 text-sm">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="font-semibold">{describePunchSeverity(row.severity)}</span>
+                  <span className={row.status === 'resolved' ? 'text-emerald-300' : row.severity === 'critical' ? 'text-red-300' : 'text-amber-300'}>
+                    {describePunchStatus(row.status)}
+                  </span>
+                </div>
+                <p className="mt-1 text-slate-200">{row.description}</p>
+                {row.location && <p className="text-xs text-slate-400">Location: {row.location}</p>}
+                <p className="mt-1 text-xs text-slate-500">Recorded {new Date(row.created_at).toLocaleString()}</p>
+                {row.resolved_at && (
+                  <p className="text-xs text-slate-500">
+                    Resolved {new Date(row.resolved_at).toLocaleString()}
+                    {row.resolution_note ? ` · ${row.resolution_note}` : ''}
+                  </p>
+                )}
+                {jobActive && canResolvePunchItem(row.status) && (
+                  <div className="mt-2 space-y-2">
+                    <input value={resolutionNote} maxLength={1000} onChange={(event) => setResolutionNote(event.target.value)} placeholder="Resolution note (optional)" className="w-full rounded border border-white/15 bg-black/25 p-2 text-xs" />
+                    <button disabled={busy} onClick={() => void resolvePunchItem(row.id)} className="rounded border border-cyan-500/60 px-2 py-1 text-xs text-cyan-200 hover:bg-cyan-500/10 disabled:opacity-60">Resolve punch item</button>
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {jobActive && (
+          <div className="mt-4 space-y-2 border-t border-white/10 pt-3">
+            <h3 className="text-sm font-semibold">Record a punch item</h3>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <label className="text-xs text-slate-300">Severity
+                <select value={punchSeverity} onChange={(event) => setPunchSeverity(event.target.value)} className="mt-1 w-full rounded border border-white/15 bg-black/25 p-2 text-sm">
+                  {PUNCH_SEVERITIES.map((value) => <option key={value} value={value}>{describePunchSeverity(value)}</option>)}
+                </select>
+              </label>
+              <label className="text-xs text-slate-300">Location (optional)
+                <input value={punchLocation} maxLength={200} onChange={(event) => setPunchLocation(event.target.value)} className="mt-1 w-full rounded border border-white/15 bg-black/25 p-2 text-sm" />
+              </label>
+            </div>
+            <label className="block text-xs text-slate-300">Defect
+              <textarea value={punchDescription} maxLength={1000} onChange={(event) => setPunchDescription(event.target.value)} className="mt-1 h-16 w-full rounded border border-white/15 bg-black/25 p-2 text-sm" />
+            </label>
+            <button disabled={busy} onClick={() => void addPunchItem()} className="rounded bg-cyan-600 px-3 py-2 text-sm font-semibold hover:bg-cyan-500 disabled:opacity-60">Record punch item</button>
+          </div>
+        )}
+      </section>
+
+      <section className="rounded-xl border border-white/10 bg-slate-900 p-5">
+        <h2 className="font-semibold">Supervisor closeout</h2>
+        {closeout?.closeout ? (
+          <div className="mt-2 rounded border border-emerald-500/30 bg-emerald-400/5 p-3 text-sm">
+            <p className="font-semibold text-emerald-200">Closeout recorded {new Date(closeout.closeout.closed_at).toLocaleString()}</p>
+            <p className="mt-1 text-xs text-slate-300">
+              Open critical at closeout: {closeout.closeout.open_critical_count} · open items at closeout: {closeout.closeout.open_total_count}
+            </p>
+            {closeout.closeout.note && <p className="mt-1 text-xs text-slate-300">{closeout.closeout.note}</p>}
+          </div>
+        ) : (
+          <div className="mt-2 space-y-2">
+            <p className="text-sm text-slate-300">
+              {closeout
+                ? `${closeout.gate.open_critical} critical open · ${closeout.gate.open_total} total open`
+                : 'Closeout status unavailable.'}
+            </p>
+            {closeout?.gate.blockers.map((blocker) => (
+              <p key={blocker} className="text-xs text-amber-200">{blocker}</p>
+            ))}
+            {closeout?.can_close ? (
+              <div className="space-y-2 border-t border-white/10 pt-3">
+                <label className="block text-xs text-slate-300">Closeout note (optional)
+                  <input value={closeoutNote} maxLength={2000} onChange={(event) => setCloseoutNote(event.target.value)} className="mt-1 w-full rounded border border-white/15 bg-black/25 p-2 text-sm" />
+                </label>
+                <button disabled={busy} onClick={() => void recordCloseout()} className="rounded bg-cyan-600 px-3 py-2 text-sm font-semibold hover:bg-cyan-500 disabled:opacity-60">Record closeout</button>
+              </div>
+            ) : (
+              <p className="text-xs text-slate-500">
+                {jobActive
+                  ? 'A workspace owner or administrator records the closeout while the job is in progress and no critical punch item is open.'
+                  : 'A supervisor closeout is required before the job can be completed.'}
+              </p>
+            )}
+          </div>
+        )}
+
+        {canEdit && jobActive && (
+          <div className="mt-4 space-y-2 border-t border-white/10 pt-3">
+            <h3 className="text-sm font-semibold">Move job status</h3>
+            <div className="flex flex-wrap gap-2">
+              {nextProductionJobStatuses(job.status).map((status) => (
+                <button
+                  key={status}
+                  disabled={busy}
+                  onClick={() => void moveStatus(status)}
+                  className="rounded border border-cyan-500/60 px-2 py-1 text-xs text-cyan-200 hover:bg-cyan-500/10 disabled:opacity-60"
+                >
+                  {describeProductionJobStatus(status)}
+                </button>
+              ))}
+            </div>
+            {job.status === 'in_progress' && (
+              <p className="text-xs text-slate-500">
+                Completion is refused until a supervisor closeout exists and no critical punch item is open.
+              </p>
+            )}
+          </div>
+        )}
+        <p className="mt-3 text-xs text-slate-500">
+          A closeout is an internal supervisor record. It is not a warranty, an invoice, a final payment, a carrier submission, or a customer sign-off. Completion does not create a warranty.
         </p>
       </section>
 
