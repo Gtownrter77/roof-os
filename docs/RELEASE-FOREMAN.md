@@ -8,11 +8,11 @@
 - One security mitigation belongs on main. Follow-up feature PRs must be rebased to the current main with their shared fixes stripped out; run CI on the rebased commit before merge.
 - A green individual PR before earlier merges is not proof that the integration candidate works. Merge sequentially, then confirm the new main SHA and main CI.
 
-## Branch rule gap requiring owner action
+## Branch rule gap resolved
 
-At review time, the active `main` GitHub ruleset required `web`, `mobile` and `migration-safety`, **not** `field-security`. The connector can inspect but cannot edit repository rulesets.
+The active `main` GitHub ruleset (24434629) now requires `web`, `mobile`, `migration-safety` **and** `field-security`. Verified through the GitHub rulesets API on 2026-10-28: strict status checks enabled, no bypass actors configured. A failing `field-security` job therefore blocks merging without bypass.
 
-**Owner action:** [Edit main ruleset](https://github.com/Gtownrter77/roof-os/rules/24434629) to add the `field-security` status check as required. Until that is confirmed, the web job also runs the same security audit to ensure the **already required** web gate fails if the Expo vulnerability returns. Running a security check in two jobs is intentional defense in depth; copying the patch into multiple feature branches is not.
+The web job still runs the same dependency security audit. That mirror is intentional defense in depth: the required web gate remains closed if the separate `field-security` job is ever removed or renamed. Do not remove the mirror without re-verifying the ruleset.
 
 ## Evidence boundary
 
