@@ -96,6 +96,7 @@ jobs:
       - run: npm run test:estimate-acceptance
       - run: npm run test:production-job
       - run: npm run test:production-job-schedule
+      - run: npm run test:production-job-readiness
       - run: npm run test:ai-vision-contract
       - run: npm run test:ai-vision-endpoint
       - run: npm run test:workspace-settings
@@ -286,6 +287,12 @@ jobs:
           grep -q "A material line cannot be deleted; cancel it instead" supabase/migrations/067_production_job_schedule.sql
           grep -q "Invalid assignment status transition" supabase/migrations/067_production_job_schedule.sql
           grep -q "Invalid material status transition" supabase/migrations/067_production_job_schedule.sql
+          grep -q "production_job_readiness" supabase/migrations/068_production_job_readiness.sql
+          grep -q "A prebuild readiness record cannot be deleted; record a new decision instead" supabase/migrations/068_production_job_readiness.sql
+          grep -q "The readiness job and workspace are immutable" supabase/migrations/068_production_job_readiness.sql
+          grep -q "permit_checked_by" supabase/migrations/068_production_job_readiness.sql
+          grep -q "weather_checked_at" supabase/migrations/068_production_job_readiness.sql
+          grep -q "Never supplied by the browser" supabase/migrations/068_production_job_readiness.sql
           grep -q "create extension if not exists pgcrypto" supabase/migrations/053_agent_action_ledger.sql
           grep -q "approval hashes do not match the current action batch" supabase/migrations/053_agent_action_ledger.sql
           grep -q "get diagnostics updated_count = row_count" supabase/migrations/053_agent_action_ledger.sql
