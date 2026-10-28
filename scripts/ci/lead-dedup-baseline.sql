@@ -2,8 +2,16 @@
 -- Not Supabase Auth, Storage, API or production.
 create schema if not exists auth;
 create table auth.users(id uuid primary key);
-create role authenticated nologin;
-create role anon nologin;
+-- Roles are cluster-wide: another suite may have created them already.
+do $$
+begin
+  if not exists (select 1 from pg_roles where rolname = 'authenticated') then
+    create role authenticated nologin;
+  end if;
+  if not exists (select 1 from pg_roles where rolname = 'anon') then
+    create role anon nologin;
+  end if;
+end $$;
 create function auth.uid() returns uuid language sql stable
 as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
 create table public.workspaces(id uuid primary key);
