@@ -13,8 +13,20 @@ function job(name) {
 const web = job('web')
 const field = job('field-security')
 for (const [name, content] of [['web', web], ['field-security', field]]) {
-  const commands = [...content.matchAll(/^\s+- run:\s*(.+)$/gm)].map(m => m[1].trim())
-  assert.equal(commands.length, new Set(commands).size, name + ' has a duplicated run command')
+  const stepLines = content.split(/\r?\n/)
+  const commands = []
+  for (let i = 0; i < stepLines.length; i += 1) {
+    const match = stepLines[i].match(/^      - run:\s*(.+)$/)
+    if (!match) continue
+    const command = match[1].trim()
+    let directory = '.'
+    for (let j = i + 1; j < stepLines.length && !/^      - (run:|uses:|name:)/.test(stepLines[j]); j += 1) {
+      const cwd = stepLines[j].match(/^        working-directory:\s*(\S+)/)
+      if (cwd) directory = cwd[1]
+    }
+    commands.push(command + ' @ ' + directory)
+  }
+  assert.equal(commands.length, new Set(commands).size, name + ' has a duplicated run command in the same directory')
   assert.ok(!/continue-on-error:\s*true/.test(content), name + ' must not hide failures')
 }
 for (const name of ['web', 'field-security']) {
