@@ -7,7 +7,7 @@
 
 ## 1. Purpose and product boundaries
 
-ROOF/OS is designed as a two-surface operating system for a roofing company. The desktop web application is the company control plane. It is intended for pipeline oversight, administration, scheduling, reporting, configuration, and team coordination. The mobile field application is intended for fast work at a property. It is designed around the camera, lead address, appointment, inspection evidence, follow-up, and communication.
+ROOF/OS is designed as a two-surface operating system for a roofing company. The shared backend is the company control plane. Authorized users must be able to make decisions on phones, tablets, or desktop browsers under identical role-based permissions and server-side approval rules. The mobile field application additionally optimizes camera capture, appointments, inspection evidence, follow-up, and communication. Mobile feature parity must be verified before claiming it is shipped.
 
 The current project is a production-oriented foundation and field-app pilot. It is not yet a fully released commercial SaaS product. The most important external prerequisite is applying the Supabase migrations to the target project and completing cross-workspace security tests. The Android APK source and EAS build profile are present, but an Expo account or `EXPO_TOKEN` is required to produce the signed APK.
 
@@ -36,7 +36,7 @@ The owner should define the company’s lead status vocabulary, inspection photo
 
 ### 3.1 Confirm the web deployment
 
-Open the production URL in a desktop browser. The expected public route is the login page. Protected routes should redirect unauthenticated visitors to `/auth/login`.
+Open the production URL in a supported phone, tablet, or desktop browser. The expected public route is the login page. Protected routes should redirect unauthenticated visitors to `/auth/login`.
 
 Create an account using the Supabase email flow. If the confirmation email does not arrive, check the spam folder and verify that the Supabase Site URL and redirect allowlist contain the production Vercel URL.
 
@@ -79,7 +79,7 @@ Delete test accounts only after recording the results of the security checks. Do
 
 The current database model provides owner, admin, and member membership roles. A commercial release should add explicit crew permissions and feature-level role checks. Until then, use separate workspace memberships and operational procedures to limit access.
 
-## 5. Daily desktop workflow
+## 5. Daily workflow (phone, tablet, or desktop)
 
 ### 5.1 Start-of-day review
 
@@ -179,7 +179,7 @@ If connectivity is weak, do not delete the local draft. The production architect
 
 ### 6.6 Close the field visit
 
-Before leaving, confirm that the correct property is selected, that required categories are documented, and that the next office action is clear. If a follow-up appointment is needed, create it from the desktop calendar during the pilot or from the mobile appointment workflow after it is implemented.
+Before leaving, confirm that the correct property is selected, that required categories are documented, and that the next office action is clear. If a follow-up appointment is needed, create it from the web calendar on any supported device during the pilot or from the native mobile appointment workflow once verified.
 
 ## 7. Automation agents
 

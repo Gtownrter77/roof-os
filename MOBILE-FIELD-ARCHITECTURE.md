@@ -12,7 +12,7 @@ The current arm64 Android debug APK was built from `main` by GitHub Actions run 
 
 Build a separate Expo/React Native application that shares the existing Supabase project with the Next.js desktop application. Do not make the desktop site the long-term mobile product. The phone and tablet workflow needs camera controls, offline persistence, background upload, push notifications, location-aware appointments, and app-store distribution.
 
-The mobile app should be a thin, typed client over shared domain contracts. Supabase remains the system of record. The mobile app owns temporary drafts, upload queues, optimistic UI, and device capabilities. The desktop app owns company administration, dense data management, production planning, reporting, configuration, and billing.
+The mobile app should be a thin, typed client over shared domain contracts. Supabase remains the system of record. The mobile app owns temporary drafts, upload queues, optimistic UI, and device capabilities. The shared backend owns company administration, dense data management, production planning, reporting, configuration, and billing. Authorized users may make decisions on phones, tablets, and desktops under the same role-based permissions and server-side approval checks. Mobile interfaces should expose these actions with responsive layouts; device type must not restrict authority.
 
 ## Technology stack
 

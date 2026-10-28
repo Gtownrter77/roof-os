@@ -12,7 +12,7 @@
 
 ## Executive conclusion
 
-ROOF/OS should become a two-surface roofing operations product. The **desktop application** should remain the system of record for company administration, production scheduling, estimating configuration, reporting, financial visibility, integrations, and team oversight. A dedicated **field application for phones and tablets** should optimize the fast, intermittent, camera-heavy work performed at a property or job site.
+ROOF/OS should become a two-surface roofing operations product. The **shared backend** is the system of record for company administration, production scheduling, estimating configuration, reporting, financial visibility, integrations, and team oversight. Authorized users must be able to make decisions from phone, tablet, or desktop; permissions and approval checks are role-based, never device-based. A dedicated **field application for phones and tablets** should optimize the fast, intermittent, camera-heavy work performed at a property or job site.
 
 This split follows the strongest pattern in AccuLynx’s current product description. Its Field App emphasizes leads, tasks, appointments, job files, estimates, communications, calls, notes, milestones, and photo workflows. Its web application retains the production calendar and detailed company reporting.[1]
 
@@ -22,7 +22,7 @@ ROOF/OS should reproduce the underlying workflow capabilities, not AccuLynx’s 
 
 | Surface | Primary user | Job to be done | Design priority |
 | --- | --- | --- | --- |
-| Desktop web app | Owner, office manager, estimator, production manager | Run the company and control the pipeline | Density, keyboard speed, reporting, permissions |
+| Responsive web app (phone, tablet, desktop) | Any authorized workspace role | Run permitted company workflows and make authorized decisions on any device | Accessible responsive layouts, touch and keyboard support, reporting |
 | Field app | Sales rep, inspector, project manager, crew lead | Capture evidence and move a job forward from the property | Camera-first workflow, offline reliability, minimal typing |
 | Customer portal | Homeowner or property contact | Review status, documents, photos, approvals, and messages | Clarity, trust, mobile responsiveness |
 
@@ -76,9 +76,9 @@ The first sellable release should let a field user review a lead, create or edit
 
 A crew-oriented role should expose only the information needed to execute work: scheduled jobs, directions, work orders, site instructions, checklists, check-in/check-out, photos, messages, and completion notes. AccuLynx describes these as core crew workflows, including bilingual use.[2] ROOF/OS should include English and Spanish labels for crew mode in the commercial roadmap.
 
-## Desktop feature set
+## Company operations feature set (all supported devices)
 
-The desktop system should be the control plane for:
+The shared backend must enforce authorization for these operations on every supported device:
 
 - Pipeline and lead management.
 - Full customer and property records.
@@ -91,13 +91,13 @@ The desktop system should be the control plane for:
 - Reporting, exports, audit logs, and workspace administration.
 - Team roles, permissions, invitations, and subscription billing.
 
-The desktop interface should support dense tables, bulk actions, filters, saved views, keyboard shortcuts, and reporting dashboards. It should not simply mirror the mobile navigation.
+Desktop layouts should optimize dense tables, bulk actions, filters, saved views, keyboard shortcuts, and reporting dashboards. Phone and tablet layouts must provide accessible equivalents for authorized decisions; smaller screens may use different navigation but must not remove decision authority.
 
 ## Recommended architecture
 
 ### Applications
 
-- **Web:** Continue the Next.js desktop app for the main ROOF/OS system.
+- **Web:** Continue the Next.js app as a responsive company operations interface on phones, tablets, and desktops.
 - **Mobile:** Create a separate Expo/React Native application using the same Supabase project and shared TypeScript domain types.
 - **Shared package:** Define status enums, validation schemas, photo metadata, activity types, and permission constants in a shared package.
 
