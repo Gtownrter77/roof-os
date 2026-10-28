@@ -32,6 +32,7 @@
     "test:inspection-appointment": "node scripts/inspection-appointment-test.mjs",
     "test:inspection-packet": "node --experimental-strip-types --no-warnings scripts/inspection-packet-test.mjs",
     "test:estimate-acceptance": "node --experimental-strip-types --no-warnings scripts/estimate-acceptance-test.mjs",
+    "test:production-job": "node --experimental-strip-types --no-warnings scripts/production-job-test.mjs",
     "test:estimate-approval-authority": "node scripts/estimate-approval-authority-test.mjs",
     "test:ai-vision-contract": "node scripts/ai-vision-contract-test.mjs",
     "test:ai-vision-endpoint": "node scripts/ai-vision-endpoint-test.mjs",

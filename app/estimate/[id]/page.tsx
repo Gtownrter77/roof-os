@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
 import { describeAcceptanceMethod, type DepositState } from '../../../lib/estimates/acceptance'
+import { describeProductionJobStatus, describeScopeLineCount } from '../../../lib/jobs/production'
 
 type LineItem = {
   id: string
@@ -45,6 +46,37 @@ type AcceptancePayload = {
   disclaimer: string
 }
 
+type ApprovedScopeLine = {
+  line_item_id: string
+  item_code: string
+  description: string
+  category: string
+  unit: string
+  quantity: number
+  unit_cost: number
+  line_total: number
+}
+
+type ProductionJob = {
+  id: string
+  job_number: string
+  status: string
+  customer_name: string
+  property_address: string
+  accepted_total: number
+  accepted_at: string
+  estimate_formula_version: string
+  approved_scope: ApprovedScopeLine[]
+  scope_item_count: number
+  created_at: string
+}
+
+type JobPayload = {
+  job: ProductionJob | null
+  acceptance: { id: string; accepted_total: number; accepted_at: string } | null
+  can_handoff: boolean
+}
+
 type Estimate = {
   id: string
   status: string
@@ -81,6 +113,19 @@ export default function EstimateDetailPage() {
   const [depositNote, setDepositNote] = useState('')
   const [saving, setSaving] = useState(false)
   const [recordError, setRecordError] = useState('')
+  const [job, setJob] = useState<ProductionJob | null>(null)
+  const [canHandoff, setCanHandoff] = useState(false)
+  const [jobError, setJobError] = useState('')
+  const [creatingJob, setCreatingJob] = useState(false)
+
+  const loadJob = useCallback(async () => {
+    const response = await fetch('/api/estimates/' + encodeURIComponent(id) + '/job', { cache: 'no-store' })
+    const data = await response.json().catch(() => ({}))
+    if (!response.ok) throw new Error(data.error || 'Could not load the production job.')
+    const payload = data as JobPayload
+    setJob(payload.job ?? null)
+    setCanHandoff(Boolean(payload.can_handoff))
+  }, [id])
 
   const loadAcceptance = useCallback(async () => {
     const response = await fetch('/api/estimates/' + encodeURIComponent(id) + '/acceptance', { cache: 'no-store' })
@@ -111,8 +156,11 @@ export default function EstimateDetailPage() {
     loadAcceptance().catch((cause: unknown) => {
       if (!controller.signal.aborted) setRecordError(cause instanceof Error ? cause.message : 'Could not load the recorded acceptance.')
     })
+    loadJob().catch((cause: unknown) => {
+      if (!controller.signal.aborted) setJobError(cause instanceof Error ? cause.message : 'Could not load the production job.')
+    })
     return () => controller.abort()
-  }, [id, loadAcceptance])
+  }, [id, loadAcceptance, loadJob])
 
   async function post(body: Record<string, unknown>) {
     setSaving(true)
@@ -135,10 +183,32 @@ export default function EstimateDetailPage() {
       setDepositAmount('')
       setDepositReference('')
       setDepositNote('')
+      await loadJob().catch(() => undefined)
     } catch (cause) {
       setRecordError(cause instanceof Error ? cause.message : 'Could not save the record.')
     } finally {
       setSaving(false)
+    }
+  }
+
+  async function createJob() {
+    setCreatingJob(true)
+    setJobError('')
+    try {
+      const response = await fetch('/api/estimates/' + encodeURIComponent(id) + '/job', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'create_job' }),
+      })
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(data.error || 'Could not create the production job.')
+      const payload = data as JobPayload
+      setJob(payload.job ?? null)
+      setCanHandoff(Boolean(payload.can_handoff))
+    } catch (cause) {
+      setJobError(cause instanceof Error ? cause.message : 'Could not create the production job.')
+    } finally {
+      setCreatingJob(false)
     }
   }
 
@@ -354,6 +424,53 @@ export default function EstimateDetailPage() {
                     )}
                     <p className="text-xs text-slate-500">Deposit events are append-only. Nothing here charges a card or moves money.</p>
                   </div>
+                )}
+              </section>
+            )}
+            {(job || canHandoff) && (
+              <section className="rounded-xl border border-white/10 bg-slate-900 p-5 space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h2 className="font-semibold">Production handoff</h2>
+                  {job && <span className="rounded bg-emerald-400/15 px-2 py-0.5 text-xs font-semibold text-emerald-200">{describeProductionJobStatus(job.status)}</span>}
+                </div>
+                {jobError && <p role="alert" className="rounded border border-red-500 p-3 text-sm text-red-200">{jobError}</p>}
+                {job ? (
+                  <>
+                    <dl className="grid gap-1 text-sm text-slate-300">
+                      <div className="flex justify-between gap-3"><dt className="text-slate-400">Job number</dt><dd className="font-mono">{job.job_number}</dd></div>
+                      <div className="flex justify-between gap-3"><dt className="text-slate-400">Customer</dt><dd>{job.customer_name}</dd></div>
+                      <div className="flex justify-between gap-3"><dt className="text-slate-400">Property</dt><dd className="text-right">{job.property_address}</dd></div>
+                      <div className="flex justify-between gap-3"><dt className="text-slate-400">Accepted total</dt><dd>{money(job.accepted_total)}</dd></div>
+                      <div className="flex justify-between gap-3"><dt className="text-slate-400">Accepted at</dt><dd>{new Date(job.accepted_at).toLocaleString()}</dd></div>
+                      <div className="flex justify-between gap-3"><dt className="text-slate-400">Approved scope</dt><dd>{describeScopeLineCount(job)}</dd></div>
+                    </dl>
+                    <ul className="space-y-1 text-xs text-slate-300">
+                      {job.approved_scope.map((line) => (
+                        <li key={line.line_item_id} className="rounded border border-white/10 bg-black/20 p-2">
+                          <span className="font-semibold">{line.item_code}</span> {line.description} · {line.quantity} {line.unit} · {money(line.line_total)}
+                        </li>
+                      ))}
+                    </ul>
+                    <p className="text-xs text-slate-500">
+                      This handoff keeps the customer, amount and scope that were true at acceptance. Later estimate edits do not change it.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm text-slate-300">
+                      The estimate is approved and the customer acceptance is recorded. Create the production job to hand this customer to the build team.
+                    </p>
+                    <button
+                      disabled={creatingJob}
+                      onClick={() => void createJob()}
+                      className="rounded-lg bg-emerald-600 px-4 py-2 font-semibold hover:bg-emerald-500 disabled:opacity-60"
+                    >
+                      {creatingJob ? 'Creating production job…' : 'Create production job'}
+                    </button>
+                    <p className="text-xs text-slate-500">
+                      The job number, customer, accepted amount and approved scope are written by the database. The browser cannot choose them.
+                    </p>
+                  </>
                 )}
               </section>
             )}

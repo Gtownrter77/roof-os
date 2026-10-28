@@ -90,6 +90,7 @@ jobs:
       - run: npm run test:inspection-appointment
       - run: npm run test:inspection-packet
       - run: npm run test:estimate-acceptance
+      - run: npm run test:production-job
       - run: npm run test:ai-vision-contract
       - run: npm run test:ai-vision-endpoint
       - run: npm run test:workspace-settings
@@ -268,6 +269,10 @@ jobs:
           grep -q "Not an electronic signature" supabase/migrations/063_estimate_acceptance_deposit.sql
           grep -q "v_refunded_count > 0" supabase/migrations/065_deposit_ledger_order.sql
           grep -q "never from UUID ordering" supabase/migrations/065_deposit_ledger_order.sql
+          grep -q "production_jobs" supabase/migrations/064_production_job_handoff.sql
+          grep -q "The production handoff source evidence is immutable" supabase/migrations/064_production_job_handoff.sql
+          grep -q "A production job needs at least one approved scope line item" supabase/migrations/064_production_job_handoff.sql
+          grep -q "A lost lead cannot be handed off to production" supabase/migrations/064_production_job_handoff.sql
           grep -q "create extension if not exists pgcrypto" supabase/migrations/053_agent_action_ledger.sql
           grep -q "approval hashes do not match the current action batch" supabase/migrations/053_agent_action_ledger.sql
           grep -q "get diagnostics updated_count = row_count" supabase/migrations/053_agent_action_ledger.sql
@@ -331,3 +336,12 @@ jobs:
           PGUSER: postgres
           PGPASSWORD: ci-synthetic-only
         run: bash scripts/ci/verify-estimate-acceptance-postgres.sh
+      - name: Run real PostgreSQL production job handoff tests
+        shell: bash
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGDATABASE: roofos_authority_ci
+          PGUSER: postgres
+          PGPASSWORD: ci-synthetic-only
+        run: bash scripts/ci/verify-production-job-postgres.sh
