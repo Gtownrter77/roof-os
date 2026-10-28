@@ -98,7 +98,10 @@ export async function PUT(
   // Handle status transitions
   let approved_by = existing.approved_by
   let approved_at = existing.approved_at
+  // Production estimate approval requires workspace-admin authority.
   if (status === 'approved' && existing.status !== 'approved') {
+    const { data: isAdminData } = await supabase.rpc('is_workspace_admin', { target_workspace: workspaceId })
+    if (!isAdminData) return NextResponse.json({ error: 'Workspace administrator authority is required to approve this estimate.' }, { status: 403 })
     approved_by = user.id
     approved_at = new Date().toISOString()
   } else if (status !== 'approved') {

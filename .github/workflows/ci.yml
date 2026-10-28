@@ -82,6 +82,7 @@ jobs:
       - run: npm run test:owner-labor
       - run: npm run test:photo-full-report-flow
       - run: npm run test:measurement-estimate-authority
+      - run: npm run test:estimate-approval-authority
       - run: npm run test:ai-vision-contract
       - run: npm run test:ai-vision-endpoint
       - run: npm run test:workspace-settings
@@ -243,6 +244,8 @@ jobs:
           grep -q "AI observation and inspection must belong to the same workspace" supabase/migrations/054_mobile_ai_observations.sql
           grep -q "public.is_workspace_admin(workspace_id)" supabase/migrations/054_mobile_ai_observations.sql
           test -f supabase/migrations/053_agent_action_ledger.sql
+          grep -q "is_estimate_admin" supabase/migrations/059_estimate_approval_admin_guard.sql
+          grep -q "An approved estimate is immutable" supabase/migrations/059_estimate_approval_admin_guard.sql
           grep -q "create extension if not exists pgcrypto" supabase/migrations/053_agent_action_ledger.sql
           grep -q "approval hashes do not match the current action batch" supabase/migrations/053_agent_action_ledger.sql
           grep -q "get diagnostics updated_count = row_count" supabase/migrations/053_agent_action_ledger.sql
