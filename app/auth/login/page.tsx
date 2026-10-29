@@ -89,13 +89,13 @@ function LoginPageContent() {
         {stormOn && (
           <aside className="roof-login-story" aria-label="Storm Mode introduction">
             <p className="storm-live-indicator inline-flex items-center gap-2 text-xs font-extrabold tracking-[0.18em]">
-              <span className="h-2 w-2 rounded-full bg-emerald-400" /> ROOF/OS · STORM COMMAND
+              <span className="h-2 w-2 rounded-full bg-emerald-400" /> BAILEY · STORM COMMAND
             </p>
             <h2 className="mt-6 text-4xl font-black leading-[1.05] tracking-tight text-white md:text-6xl">
               REAL STORMS.<br />REAL DAMAGE.<br /><span className="text-red-500">REAL JOBS.</span>
             </h2>
             <p className="mt-5 max-w-lg text-base leading-7 text-slate-200">
-              Official weather intelligence meets inspection, measurement, estimates, and field operations.
+              BAILEY brings weather intelligence together with inspection, measurement, estimates, and field operations.
               Your records stay real, your workflow stays in control.
             </p>
             <button type="button" className="theme-action mt-5" onClick={() => window.dispatchEvent(new CustomEvent('roofos-play-trailer'))}>WATCH THE TRAILER WITH SOUND ▶</button>
@@ -108,8 +108,8 @@ function LoginPageContent() {
       <section className="roof-login-form glass w-full max-w-md rounded-2xl p-6">
         <div className="mb-5 flex justify-end"><DashboardSkinToggle /></div>
         <div className="mb-5 text-center">
-          <div className="mb-2 text-3xl font-black tracking-tight">ROOF<span className="text-red-500">/</span>OS</div>
-          <h1 className="text-2xl font-bold">Sign in to ROOF/OS</h1>
+          <div className="mb-2 text-3xl font-black tracking-tight text-slate-100">BAILEY</div><p className="text-xs font-semibold tracking-wide text-cyan-200">Business Operations &amp; Support System</p>
+          <h1 className="text-2xl font-bold">Sign in to BAILEY</h1>
           <p className="mt-1 text-sm text-slate-400">Use your work email and password, or request a secure email link.</p>
         </div>
         <form onSubmit={signIn} className="space-y-3">
