@@ -101,6 +101,8 @@ jobs:
       - run: npm run test:production-job-qc
       - run: npm run test:production-job-invoice
       - run: npm run test:production-job-payment
+      - run: npm run test:production-job-warranty
+      - run: npm run test:production-job-e2e
       - run: npm run test:ai-vision-contract
       - run: npm run test:ai-vision-endpoint
       - run: npm run test:workspace-settings
@@ -319,6 +321,13 @@ jobs:
           grep -q "A production job needs a supervisor closeout before completion" supabase/migrations/070_qc_punch_closeout.sql
           grep -q "A cancelled production job cannot be invoiced" supabase/migrations/071_production_invoice.sql
           test -f scripts/ci/production-job-invoice-assertions.sql
+          test -f scripts/ci/production-job-lifecycle-assertions.sql
+          test -f scripts/ci/verify-restore-postgres.sh
+          grep -q "A payment attempt requires an issued invoice" supabase/migrations/074_payment_warranty_guards.sql
+          grep -q "An invoice with a successful payment cannot be voided" supabase/migrations/074_payment_warranty_guards.sql
+          grep -q "A warranty requires a completed production job" supabase/migrations/074_payment_warranty_guards.sql
+          grep -q "A revoked warranty is immutable" supabase/migrations/074_payment_warranty_guards.sql
+          grep -q "A revoked Roof Passport is immutable" supabase/migrations/074_payment_warranty_guards.sql
           grep -q "The approved scope does not reconcile with the accepted total and tax" supabase/migrations/071_production_invoice.sql
           grep -q "A production invoice cannot be deleted; void it instead" supabase/migrations/071_production_invoice.sql
           grep -q "A void invoice is immutable" supabase/migrations/071_production_invoice.sql
@@ -395,3 +404,12 @@ jobs:
           PGUSER: postgres
           PGPASSWORD: ci-synthetic-only
         run: bash scripts/ci/verify-production-job-postgres.sh
+      - name: Run isolated PostgreSQL backup and restore rehearsal
+        shell: bash
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGDATABASE: roofos_authority_ci
+          PGUSER: postgres
+          PGPASSWORD: ci-synthetic-only
+        run: bash scripts/ci/verify-restore-postgres.sh
