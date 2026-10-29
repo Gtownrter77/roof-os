@@ -1,3 +1,14 @@
+## 2026-10-29 production-job gate CI repair
+
+- Baseline / rollback: `11c5aace9629f9c58c8e004747acddc012b55e22`; preserved remotely as `backup/pre-production-job-gate-ci-20261029`.
+- Branch: `fix/production-job-gate-ci-20261029`.
+- Root cause: PR #367 registered a gate without a workflow invocation, failed CI, and closed unmerged. Replacement #366 passed CI but did not retain that named gate. Its 14-suite claim is not merged CI evidence.
+- Added an explicit `test:production-job-gate` web step and package command. The contract checks required web commands, PostgreSQL lifecycle/restore wiring, and rollback/evidence reporting. It reports source-contract PASS separately from the actual release decision; UNKNOWN evidence remains NO-GO.
+- Local source checks passed: gate plus four mutation/regression cases; all production-job package suites; owner Break Glass; SECURITY DEFINER migrations; release-gate-summary; reliability (14 checks); release-check; git diff --check.
+- Database-tested evidence for this patch must come from the GitHub-hosted disposable PostgreSQL job. No local database, Supabase Auth/Storage, physical device, provider, or production verification is claimed.
+- Next: verify the pushed commit and full PR CI, then merge only with green checks. The GitHub commit/PR/run links identify the final checkpoint SHA. Release approval remains NO-GO.
+
+
 ## 2026-10-21 mobile AI top-ten remediation plan
 
 - The mobile AI audit identified ten ordered fixes. Batch 1 contains five security and contract fixes: authoritative AI-observation RLS, review-state invariants, workspace/inspection/photo consistency, truthful runtime/model availability, and executable inference/review validation.

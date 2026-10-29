@@ -103,6 +103,7 @@ jobs:
       - run: npm run test:production-job-payment
       - run: npm run test:production-job-warranty
       - run: npm run test:production-job-e2e
+      - run: npm run test:production-job-gate
       - run: npm run test:ai-vision-contract
       - run: npm run test:ai-vision-endpoint
       - run: npm run test:workspace-settings
