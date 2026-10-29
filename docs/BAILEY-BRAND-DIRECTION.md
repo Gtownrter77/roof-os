@@ -1,23 +1,23 @@
-# BAILEY OS — Brand Direction
+# BAILEY — Approved Brand and Implementation Direction
 
-The owner has selected **BAILEY OS** as the new product name in honor of Bailey. This supersedes the earlier working name BAILEY. The existing ROOF/OS functionality must be preserved during the transition.
+**Owner approval:** 2026-10-29. The product-facing name is **BAILEY**. The expanded descriptor is **Business Operations & Support System**; its B, O, S, S initials are illuminated in electric-blue lightning. Do not place the standalone word BOSS under BAILEY.
 
-## Visual identity
-- Primary wordmark: **BAILEY OS**; BAILEY in raised hardened-steel lettering, OS as a coordinated secondary lockup.
-- Symbol: hardened-steel shield, bevelled edges, thin red illuminated perimeter.
-- Palette: graphite, hardened silver, deep black, restrained signal red.
-- Style: premium industrial, dignified and cinematic.
-- Outputs: full-color and monochrome marks, transparent image, favicon, accessible static logo, responsive header and animated logo.
-- Motion: holographic scan, dimensional light sweep, subtle red trace, physically plausible reflections. Honor reduced-motion preferences.
+## Approved hero artwork
 
-## Implementation
-1. Inventory product branding across UI, metadata, manifest, email and generated documents.
-2. Build reusable BAILEY OS brand tokens and components; preserve data, routes, and existing workflows.
-3. Stage a feature-flagged preview with rollback.
-4. Test mobile/desktop accessibility, builds and affected workflows.
-5. Deploy only after verification.
+The approved reference is the final image from the 2026-10-29 design session: a dramatic suburban storm scene with a tornado at left, detailed houses and rooflines, rain and debris, and a central heavy 3D forged-metal BAILEY wordmark integrated with an architectural house roofline. A horizontal metallic plaque below spells out **Business Operations & Support System**. B/O/S/S initials are electrified blue; the remaining text is legible steel. The letter Y must be clearly readable (lightning cannot cross it to form an X). Blue and gunmetal, no red. No separate shield/crest outline. Preserve the overall composition rather than substituting a generic flat text logo.
 
-## Safeguards
-- No legal-entity rename is implied.
-- This document does not claim the app rebrand, animation or deployment is completed.
-- Keep production unchanged until validated.
+**Artwork delivery limitation:** The approved raster image was generated in chat; this repository specification does not itself contain the image asset. Do not falsely claim the asset has been committed or displayed in the application. Import an approved, optimized image through the proper asset pipeline before claiming visual implementation.
+
+## Rollout requirements
+
+1. Audit current branding across login, navigation, title/metadata, favicon, PWA manifest, emails, exports, documents, mobile surfaces, and settings. Inventory before modifying.
+2. Preserve ROOF/OS code, routes, database tables, auth, and integrations. Product branding is not a legal entity or database rename.
+3. Implement reusable brand tokens and components, accessible static fallback and reduced-motion support. Honor user-selected Professional and storm themes. Avoid overloading weak/mobile devices with animated background effects.
+4. Use an opt-in staged preview/feature flag with rollback; do not push unfinished visuals directly to production.
+5. Validate the image at mobile and desktop sizes and verify legibility, alt text, performance, contrast, no-red palette, and correct spelling.
+6. Run typecheck, build, security, regression and CI checks. Merge/deploy only after verified green gates, and report the exact SHA and production evidence.
+7. Update the Living Build Checklist and handoff with accurate [ ], [~], [✓], [!] markers; no false completion claims.
+
+## Release state
+
+This file records **approved visual direction**, not completed implementation or deployment. Existing release NO-GO gates remain in effect.
