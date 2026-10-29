@@ -21,6 +21,18 @@ export function normalizeThemePreferences(value: unknown): ThemePreferences {
     sound: p.sound === true, lowPower: p.lowPower === true, intro: p.intro !== false,
     motion: p.motion === 'reduced' || p.motion === 'full' ? p.motion : 'auto' }
 }
+/** A corrupt or unknown value is not an explicit choice; preserve valid legacy choices. */
+export function hasSavedThemePreference(): boolean {
+  if (typeof window === 'undefined') return false
+  try {
+    const legacy = window.localStorage.getItem('roofos.theme.dashboard-skin.v1')
+    if (legacy === 'storm' || legacy === 'professional') return true
+    try {
+      const value = JSON.parse(window.localStorage.getItem(THEME_COLLECTION_KEY) || 'null')
+      return Boolean(value && typeof value === 'object' && isTheme(value.theme))
+    } catch { return false }
+  } catch { return volatile !== null }
+}
 export function readThemePreferences(): ThemePreferences {
   if (typeof window === 'undefined') return { ...defaults }
   if (storageBlocked && volatile) {
@@ -68,4 +80,4 @@ export function themeForPath(path: string): StoryChapter {
   return 'command'
 }
 // Runs before React to prevent a saved theme flashing the wrong palette.
-export const THEME_BOOTSTRAP = `try{var p=JSON.parse(localStorage.getItem('${THEME_COLLECTION_KEY}')||'null')||{};var ids=${JSON.stringify(THEMES.map(t => t.id))};var t=ids.indexOf(p.theme)>=0?p.theme:'professional';var l=localStorage.getItem('roofos.theme.dashboard-skin.v1');if(l==='professional')t='professional';else if(l==='storm'&&t==='professional')t=ids.indexOf(p.lastStorm)>0?p.lastStorm:'storm-command';var d=document.documentElement.dataset;if(location.pathname==='/auth/login'&&!l&&!localStorage.getItem('${THEME_COLLECTION_KEY}'))t='storm-command';d.roofTheme=t;d.dashboardSkin=t==='professional'?'professional':'storm';d.themeMotion=p.motion==='reduced'||p.motion==='full'?p.motion:'auto';d.themeLowPower=p.lowPower===true?'true':'false'}catch(e){document.documentElement.dataset.roofTheme='professional'}`
+export const THEME_BOOTSTRAP = `try{var p={};try{p=JSON.parse(localStorage.getItem('${THEME_COLLECTION_KEY}')||'null')||{}}catch(e){};var ids=${JSON.stringify(THEMES.map(t => t.id))};var t=ids.indexOf(p.theme)>=0?p.theme:'professional';var l=localStorage.getItem('roofos.theme.dashboard-skin.v1');if(l==='professional')t='professional';else if(l==='storm'&&t==='professional')t=ids.indexOf(p.lastStorm)>0?p.lastStorm:'storm-command';var d=document.documentElement.dataset;if(location.pathname==='/auth/login'&&ids.indexOf(p.theme)<0&&l!=='storm'&&l!=='professional')t='storm-command';d.roofTheme=t;d.dashboardSkin=t==='professional'?'professional':'storm';d.themeMotion=p.motion==='reduced'||p.motion==='full'?p.motion:'auto';d.themeLowPower=p.lowPower===true?'true':'false'}catch(e){document.documentElement.dataset.roofTheme='professional'}`

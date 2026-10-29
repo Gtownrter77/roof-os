@@ -2,7 +2,7 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { usePathname } from 'next/navigation'
-import { applyThemePreferences, themeForPath } from '../lib/theme/collection'
+import { applyThemePreferences, themeForPath, hasSavedThemePreference } from '../lib/theme/collection'
 import { useThemeCollection } from './useThemeCollection'
 import ThemeScene from './ThemeScene'
 import ThemeIntro from './ThemeIntro'
@@ -26,7 +26,7 @@ export default function ThemeExperience() {
   useEffect(() => {
     if (pathname !== '/auth/login') return
     try {
-      if (!localStorage.getItem('roofos.theme.collection.v1') && !localStorage.getItem('roofos.theme.dashboard-skin.v1')) applyThemePreferences({ ...p, theme: 'storm-command' })
+      if (!hasSavedThemePreference()) applyThemePreferences({ ...p, theme: 'storm-command' })
     } catch { /* Existing local theme controls still work when storage is denied. */ }
     // Only initialize the first login visit; never override an explicit choice.
     // eslint-disable-next-line react-hooks/exhaustive-deps
