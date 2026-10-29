@@ -26,6 +26,6 @@ Files: components/ThemeScene.tsx, components/ThemeExperience.tsx, components/The
 
 ### Task 3: Integration and release
 Files: package.json, .github/workflows/ci.yml, HANDOFF.md, ROOFOS-BUILD-CHECKLIST.md.
-- [ ] Wire new suite into required web CI, update the living checklist and evidence.
-- [ ] Run existing relevant suites/security/release/reliability; review branch; publish PR and wait for green checks.
-- [ ] Merge authorized GitHub work only when green, then verify merged-main CI. No production SQL or manual deployment.
+- [✓] Wire new suite into required web CI, update the living checklist and evidence.
+- [✓] Run existing relevant suites/security/release/reliability; review branch; publish PR and wait for green checks.
+- [✓] Merge authorized GitHub work only when green, then verify merged-main CI. No production SQL or manual deployment.

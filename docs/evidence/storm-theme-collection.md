@@ -24,3 +24,7 @@ Runway connection verified: its Free workspace exposes no video models. The acco
 ## Release
 
 Full required PR and post-merge CI must be recorded by the GitHub run attached to the final SHA. No production SQL, credentials, providers, login policy or payment behavior changed. A GitHub hosting integration may create automatic previews/deployments; this change does not perform a manual deploy.
+
+## Verified implementation merge
+
+PR #370 merged at `4623a3e549504122144d8e61cc3afa800c41719e`. Required PR CI run `40823969333` and post-merge main CI `40824724249` completed successfully. The new theme command and the existing production gate both explicitly passed in web logs. Kilo review completed with no warnings/critical findings and one suggestion: corrupt saved JSON suppressed the first-login default. Follow-up recovery validates whether a saved choice is real, preserves explicit Professional choices, and tests the prepaint script plus browser recovery.

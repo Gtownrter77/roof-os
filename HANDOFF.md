@@ -1,3 +1,10 @@
+## 2026-10-29 — Verified theme release and saved-choice recovery
+
+- Theme implementation PR #370 merged: `4623a3e549504122144d8e61cc3afa800c41719e`. Required PR CI `40823969333` and post-merge main CI `40824724249`: PASS. Final Kilo review: no warnings/critical findings; one corrupted-preference suggestion.
+- The suggestion is repaired on `fix/theme-preference-recovery-20261029`: a validated saved-choice helper and prepaint recovery restore Atlanta Storm Tracker 11 after malformed/unknown saved preferences while preserving explicit Professional. Runtime/prepaint tests, the production build and full browser recovery checks passed. Follow-up GitHub CI is required before merge.
+- All theme media and the 36-second trailer are in GitHub. `/themes` is the theme gallery; the global layout carries the selected scene/palette across the app. Device-local preferences remain separate from authenticated data workflows.
+- Runway connection is authenticated but its Free workspace exposes no video models. No purchase or generation credits were used. Actual actor/lip-sync animation remains unavailable on that plan.
+
 ## 2026-10-29 — Storm theme collection implementation
 
 - Branch: `feat/storm-theme-collection-20261029`; baseline/remote rollback `949594ba0d9d1d2574636a5dde34d16c1d4c2a53` at `backup/pre-storm-theme-collection-20261029`.
