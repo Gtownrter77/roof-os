@@ -1,24 +1,23 @@
-# BAILEY — Brand Direction
+# BAILEY OS — Brand Direction
 
-This document records the requested new brand direction in honor of Bailey. Do not alter production branding until the new assets and UI are reviewed and tested.
+The owner has selected **BAILEY OS** as the new product name in honor of Bailey. This supersedes the earlier working name BAILEY. The existing ROOF/OS functionality must be preserved during the transition.
 
 ## Visual identity
-- Name: **BAILEY** (working product identity; final legal/business naming remains separate).
-- Symbol: hardened-steel shield with bevelled edges, dimensional raised steel lettering, narrow luminous red perimeter.
-- Palette: graphite / hardened silver / deep black / restrained signal red.
-- Aesthetic: premium industrial, resilient, dignified. Avoid gimmicky memorial effects.
-- Deliverables: full-color master, monochrome, transparent mark, favicon, responsive header lockup, accessible static logo, and motion identity.
-- Motion: controlled holographic scan, slow dimensional light sweep, subtle red energy trace, physically plausible reflections. Reduced-motion users receive static image.
-- Preserve readable BAILEY text and strong contrast at small sizes.
+- Primary wordmark: **BAILEY OS**; BAILEY in raised hardened-steel lettering, OS as a coordinated secondary lockup.
+- Symbol: hardened-steel shield, bevelled edges, thin red illuminated perimeter.
+- Palette: graphite, hardened silver, deep black, restrained signal red.
+- Style: premium industrial, dignified and cinematic.
+- Outputs: full-color and monochrome marks, transparent image, favicon, accessible static logo, responsive header and animated logo.
+- Motion: holographic scan, dimensional light sweep, subtle red trace, physically plausible reflections. Honor reduced-motion preferences.
 
-## Implementation sequence
-1. Inventory all visible ROOF/OS brand references, logos, metadata, PWA manifest, emails, PDFs and customer-facing templates.
-2. Implement reusable brand tokens and BAILEY logo components without deleting existing ROOF/OS functionality.
-3. Introduce a feature-flagged BAILEY preview and static reduced-motion variant.
-4. Validate mobile, desktop, accessibility, unit tests, build, and affected workflows.
-5. Publish only after evidence-backed checks and approval of final naming.
+## Implementation
+1. Inventory product branding across UI, metadata, manifest, email and generated documents.
+2. Build reusable BAILEY OS brand tokens and components; preserve data, routes, and existing workflows.
+3. Stage a feature-flagged preview with rollback.
+4. Test mobile/desktop accessibility, builds and affected workflows.
+5. Deploy only after verification.
 
 ## Safeguards
-- No production rename or legal entity changes in this preparatory commit.
-- No claim that animations, 8K assets, or a deployment are complete until independently verified.
-- Preserve rollback to the original brand.
+- No legal-entity rename is implied.
+- This document does not claim the app rebrand, animation or deployment is completed.
+- Keep production unchanged until validated.
