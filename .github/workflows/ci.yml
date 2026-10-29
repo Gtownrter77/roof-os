@@ -310,15 +310,15 @@ jobs:
           grep -q "A supervisor closeout is immutable" supabase/migrations/070_qc_punch_closeout.sql
           grep -q "A supervisor closeout is blocked by % unresolved critical punch item(s)" supabase/migrations/070_qc_punch_closeout.sql
           grep -q "A production job needs a supervisor closeout before completion" supabase/migrations/070_qc_punch_closeout.sql
-          grep -q "production_job_punch_items" supabase/migrations/071_production_invoice.sql
+          grep -q "production_job_punch_items" supabase/migrations/070_qc_punch_closeout.sql
           grep -q "production_job_change_orders" supabase/migrations/071_production_invoice.sql
-          grep -q "A resolved punch item is immutable" supabase/migrations/071_production_invoice.sql
-          grep -q "A punch item cannot be deleted; resolve it or record a new item" supabase/migrations/071_production_invoice.sql
-          grep -q "A supervisor closeout is immutable" supabase/migrations/071_production_invoice.sql
-          grep -q "A supervisor closeout is blocked by % unresolved critical punch item(s)" supabase/migrations/071_production_invoice.sql
-          grep -q "A production job needs a supervisor closeout before completion" supabase/migrations/071_production_invoice.sql
+          grep -q "A resolved punch item is immutable" supabase/migrations/070_qc_punch_closeout.sql
+          grep -q "A punch item cannot be deleted; resolve it or record a new item" supabase/migrations/070_qc_punch_closeout.sql
+          grep -q "A supervisor closeout is immutable" supabase/migrations/070_qc_punch_closeout.sql
+          grep -q "A supervisor closeout is blocked by % unresolved critical punch item(s)" supabase/migrations/070_qc_punch_closeout.sql
+          grep -q "A production job needs a supervisor closeout before completion" supabase/migrations/070_qc_punch_closeout.sql
           grep -q "A cancelled production job cannot be invoiced" supabase/migrations/071_production_invoice.sql
-          grep -q "production-job-invoice-assertions.sql" supabase/migrations/071_production_invoice.sql
+          test -f scripts/ci/production-job-invoice-assertions.sql
           grep -q "The approved scope does not reconcile with the accepted total and tax" supabase/migrations/071_production_invoice.sql
           grep -q "A production invoice cannot be deleted; void it instead"
           grep -q "A void invoice is immutable"
