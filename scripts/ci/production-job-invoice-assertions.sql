@@ -320,19 +320,19 @@ insert into public.production_jobs
    customer_name,property_address,status,accepted_total,accepted_at,
    estimate_formula_version,approved_scope,scope_item_count,created_by)
 values
-  ('1d000000-0000-4000-8000-000000000002','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','CANCELLED-JOB',
+  ('1d000001-0000-4000-8000-000000000002','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','CANCELLED-JOB',
    '1a000000-0000-4000-8000-000000000001','e3000000-0000-4000-8000-000000000002',
    'ac300000-0000-4000-8000-000000000002','Fake','Fake','ready',1,'2000-01-01 00:00:00+00',
    'forged','[]',1,'11111111-1111-4111-8111-111111111111');
 update public.production_jobs set status='cancelled'
- where id='1d000000-0000-4000-8000-000000000002';
+ where id='1d000001-0000-4000-8000-000000000002';
 
 do $$
 begin
   begin
     insert into public.production_invoices(workspace_id,job_id,acceptance_id,created_by)
     values
-      ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','1d000000-0000-4000-8000-000000000002',
+      ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','1d000001-0000-4000-8000-000000000002',
        'ac300000-0000-4000-8000-000000000002','11111111-1111-4111-8111-111111111111');
     raise exception 'SECURITY FAILURE: a cancelled job was invoiced';
   exception when check_violation then
@@ -363,7 +363,7 @@ insert into public.production_jobs
    customer_name,property_address,status,accepted_total,accepted_at,
    estimate_formula_version,approved_scope,scope_item_count,created_by)
 values
-  ('1d000000-0000-4000-8000-000000000003','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','MISMATCH-JOB',
+  ('1d000002-0000-4000-8000-000000000003','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','MISMATCH-JOB',
    '1a000000-0000-4000-8000-000000000001','e3000000-0000-4000-8000-000000000003',
    'ac300000-0000-4000-8000-000000000003','Fake','Fake','ready',1,'2000-01-01 00:00:00+00',
    'forged','[]',1,'11111111-1111-4111-8111-111111111111');
@@ -373,7 +373,7 @@ begin
   begin
     insert into public.production_invoices(workspace_id,job_id,acceptance_id,created_by)
     values
-      ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','1d000000-0000-4000-8000-000000000003',
+      ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','1d000002-0000-4000-8000-000000000003',
        'ac300000-0000-4000-8000-000000000003','11111111-1111-4111-8111-111111111111');
     raise exception 'SECURITY FAILURE: an unreconciled scope was invoiced';
   exception when check_violation then
