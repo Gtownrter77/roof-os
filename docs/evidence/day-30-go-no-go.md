@@ -5,8 +5,9 @@ Date: 2026-10-28. Source repo: `Gtownrter77/roof-os`.
 ## Decision: NO-GO for customer-facing production use
 
 The release decision is read from `docs/evidence/release-gates.json`. Every gate
-is `UNKNOWN` because the required evidence has not been produced. `UNKNOWN` is
-not a pass. `scripts/release-gate-summary.mjs` therefore reports **NO-GO**.
+is `UNKNOWN` except `repositoryChecks`, which is `PASS` on merge commit
+`c2b29fefe95246f28eab3b041f60ce846e9f9318`. `UNKNOWN` is not a pass.
+`scripts/release-gate-summary.mjs` therefore reports **NO-GO**.
 
 A limited internal rehearsal on disposable PostgreSQL is allowed. A production
 deployment, production database migration, customer onboarding, insurer
@@ -16,7 +17,7 @@ submission, or payment capture is **not** authorized by this decision.
 
 | Gate | Status | What exists | What is missing |
 | --- | --- | --- | --- |
-| repositoryChecks | UNKNOWN | Required-check configuration on `main` | A green run on the final merge SHA |
+| repositoryChecks | PASS | Green required checks on merge commit `c2b29fe` | Re-verify on any later release SHA |
 | stagingMigration | UNKNOWN | Migrations 063-074 and disposable PostgreSQL assertions | Application of the migration chain to staging |
 | authenticatedReadOnly | UNKNOWN | Source guards and Break Glass negatives | A real two-workspace Supabase Auth run |
 | stagingRls | UNKNOWN | RLS/trigger assertions in disposable PostgreSQL | RLS verification against staging with real tokens |
