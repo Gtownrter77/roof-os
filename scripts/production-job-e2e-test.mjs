@@ -35,4 +35,4 @@ assert.equal(pkg.scripts['test:production-job-payment'],
 assert.equal(pkg.scripts['test:production-job-warranty'], 
     'node --experimental-strip-types --no-warnings scripts/production-job-warranty-test.mjs')
 
-print('e2e-rehearsal: PASS (full lifecycle contract, scripts registered)')
+console.log('e2e-rehearsal: PASS (full lifecycle contract, scripts registered)')
