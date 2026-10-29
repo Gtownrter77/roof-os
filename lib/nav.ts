@@ -45,4 +45,4 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
   { href: '/settings', label: 'Settings', icon: Settings },
 ]
 
-export const APP_SHELL_HIDDEN = ['/auth', '/onboarding', '/admin', '/portal', '/team/invitations', '/radar']
+export const APP_SHELL_HIDDEN = ['/themes', '/auth', '/onboarding', '/admin', '/portal', '/team/invitations', '/radar']

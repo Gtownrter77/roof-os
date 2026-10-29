@@ -98,9 +98,11 @@ function LoginPageContent() {
               Official weather intelligence meets inspection, measurement, estimates, and field operations.
               Your records stay real, your workflow stays in control.
             </p>
-            <div className="roof-login-weather mt-7">
+            <button type="button" className="theme-action mt-5" onClick={() => window.dispatchEvent(new CustomEvent('roofos-play-trailer'))}>WATCH THE TRAILER WITH SOUND ▶</button>
+            <details className="roof-login-weather mt-7">
+              <summary className="cursor-pointer text-sm font-bold text-cyan-200">Open your local weather &amp; radar</summary>
               <LoginWeatherPreview />
-            </div>
+            </details>
           </aside>
         )}
       <section className="roof-login-form glass w-full max-w-md rounded-2xl p-6">

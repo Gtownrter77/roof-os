@@ -91,7 +91,7 @@ html[data-dashboard-skin='storm'] .roof-login-page {
   border: 1px solid rgba(116, 163, 233, .42);
   box-shadow: 0 25px 65px rgba(0, 0, 0, .55), 0 0 28px rgba(32, 95, 221, .16);
 }
-.roof-login-story h2 { text-shadow: 0 4px 28px rgba(0, 0, 0, .7); }
+.roof-login-story > h2 { text-shadow: 0 4px 28px rgba(0, 0, 0, .7); }
 .roof-login-weather > section {
   background: rgba(3, 11, 25, .78) !important;
   border-color: rgba(103, 176, 232, .36) !important;
@@ -251,7 +251,7 @@ html[data-dashboard-skin='storm'] .roof-login-page {
   .storm-command-hero { padding: 1.2rem; }
   .storm-command-copy h1 { font-size: clamp(2.2rem, 9vw, 3.5rem); }
   .roof-login-weather { display: none; }
-  .roof-login-story h2 { font-size: 2.6rem; }
+  .roof-login-story > h2 { font-size: 2.6rem; }
   .roof-login-layout-storm { padding: 0; }
   .dashboard-skin-header-toggle { padding: .5rem; }
 }
