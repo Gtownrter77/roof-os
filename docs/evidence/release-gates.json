@@ -1,0 +1,12 @@
+{
+  "repositoryChecks": "UNKNOWN",
+  "stagingMigration": "UNKNOWN",
+  "authenticatedReadOnly": "UNKNOWN",
+  "stagingRls": "UNKNOWN",
+  "stagingHeartbeat": "UNKNOWN",
+  "physicalDevice": "UNKNOWN",
+  "backupRestore": "UNKNOWN",
+  "schemaParity": "UNKNOWN",
+  "workerRuntime": "UNKNOWN",
+  "providerExecution": "UNKNOWN"
+}
