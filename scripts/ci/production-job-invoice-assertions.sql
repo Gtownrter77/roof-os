@@ -156,7 +156,7 @@ end $$;
 -- filtering out the row (UPDATE 0) rather than raising insufficient_privilege.
 -- Both outcomes are valid, but the invoice must remain a draft.
 set request.jwt.claim.sub = '22222222-2222-4222-8222-222222222222';
-do $
+do $$
 declare v_updated integer := 0;
 declare v_status text;
 begin
@@ -176,7 +176,7 @@ begin
   if v_status is distinct from 'draft' then
     raise exception 'SECURITY FAILURE: member changed invoice status to %',v_status;
   end if;
-end $;
+end $$;
 
 -- 4. The owner issues it. The database stamps the issuer and the time.
 set request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';
