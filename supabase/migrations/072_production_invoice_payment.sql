@@ -19,8 +19,13 @@ create table if not exists public.production_invoice_payments (
   failure_reason text check (char_length(failure_reason) <= 500),
   created_by uuid not null references auth.users(id) on delete set null,
   updated_at timestamptz not null default now(),
-  constraint production_invoice_payments_one_live_per_invoice unique (invoice_id) where status in ('succeeded','pending')
+  constraint production_invoice_payments_amount_positive check (amount_cents > 0)
 );
+
+-- PostgreSQL partial uniqueness belongs in an index, not a table UNIQUE constraint.
+create unique index if not exists production_invoice_payments_one_live_per_invoice
+  on public.production_invoice_payments (invoice_id)
+  where status in ('succeeded','pending');
 
 alter table public.production_invoice_payments enable row level security;
 
