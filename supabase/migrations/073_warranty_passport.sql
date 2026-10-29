@@ -42,7 +42,7 @@ create table if not exists public.roof_passports (
   generated_at timestamptz not null default now(),
   version text not null default '1.0'
     check (char_length(version) between 1 and 20),
-  data jsonb not null default '{}'::jsonb
+  data jsonb not null default '[]'::jsonb
     check (jsonb_typeof(data) = 'array'),
   status text not null default 'pending'
     check (status in ('pending','generated','issued','revoked')),
