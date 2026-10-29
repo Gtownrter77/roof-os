@@ -41,10 +41,18 @@ psql_db postgres -c "drop database if exists $DST_DB"
 psql_db postgres -c "create database $DST_DB"
 
 # The dump is public-schema only. Recreate the narrow auth surface the
-# foreign keys and auth.uid() defaults reference, exactly as the baseline does.
+# foreign keys and auth.uid() defaults reference, exactly as the baseline does,
+# and seed its synthetic rows before the public data is restored.
 psql_db "$DST_DB" -c "create schema if not exists auth"
 psql_db "$DST_DB" -c "create table if not exists auth.users(id uuid primary key)"
 psql_db "$DST_DB" -c "create or replace function auth.uid() returns uuid language sql stable as \$\$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid \$\$"
+
+echo 'Copying the synthetic auth rows the public foreign keys depend on'
+tool pg_dump -h 127.0.0.1 -p 5432 -U postgres -d "$SRC_DB" \
+  --format=custom --no-owner --no-privileges --schema=auth --data-only \
+  --file=/dump/auth.dump
+tool pg_restore -h 127.0.0.1 -p 5432 -U postgres -d "$DST_DB" \
+  --no-owner --no-privileges --exit-on-error --data-only /dump/auth.dump
 
 # The target database already owns the default public schema. The dump carries
 # its own CREATE SCHEMA public entry, so filter that one TOC line out instead of
@@ -85,6 +93,14 @@ for table in \
 do
   compare_count "$table"
 done
+
+src_auth=$(psql_db "$SRC_DB" -tAc "select count(*) from auth.users")
+dst_auth=$(psql_db "$DST_DB" -tAc "select count(*) from auth.users")
+if [ "$src_auth" != "$dst_auth" ]; then
+  echo "RESTORE FAILURE: auth.users has $src_auth synthetic rows at source and $dst_auth after restore" >&2
+  exit 1
+fi
+echo "restored synthetic auth.users rows: $dst_auth"
 
 # The rehearsed lifecycle evidence must survive the round trip, not just table counts.
 psql_db "$DST_DB" -tAc "select 1" >/dev/null
