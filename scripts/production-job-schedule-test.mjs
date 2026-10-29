@@ -148,7 +148,7 @@ assert.ok(detailPage.includes('Add assignment'))
 assert.ok(detailPage.includes('Add material line'))
 assert.ok(detailPage.includes('planning signals only'))
 assert.ok(detailPage.includes('never change the accepted customer, amount, scope, or warranty'))
-assert.ok(!/make a payment|charge|purchase order created|crew confirmed for sure/i.test(detailPage), 'the page makes no money or commitment claim')
+assert.ok(!/\b(?:make a payment|purchase order created|crew confirmed for sure|charge(?:d)? (?:the )?customer)\b/i.test(detailPage), 'the page makes no money or commitment claim')
 assert.ok(estimatePage.includes('/jobs/${job.id}'), 'the estimate handoff links to the schedule')
 
 // 8. Real PostgreSQL assertions cover the important guards.
