@@ -13,6 +13,7 @@ function isPublicPassportPath(pathname: string) {
 function isAuthUtilityPath(pathname: string) {
   return (
     pathname.startsWith('/auth')
+    || pathname === '/themes'
     || pathname === '/about'
     || pathname === '/pricing'
     || pathname === '/admin'

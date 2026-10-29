@@ -1,5 +1,9 @@
 import './globals.css'
 import './storm-skin.css'
+import './theme-collection.css'
+import { headers } from 'next/headers'
+import { THEME_BOOTSTRAP } from '../lib/theme/collection'
+import ThemeExperience from '../components/ThemeExperience'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import type { Metadata } from 'next'
 import Navigation from '../components/Navigation'
@@ -16,21 +20,24 @@ export const metadata: Metadata = {
   description: 'Storm-driven roofing operations command center',
 }
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const nonce = (await headers()).get('x-nonce') || undefined
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className="bg-[#050914] text-slate-100">
-        <script
+        <script nonce={nonce}
           dangerouslySetInnerHTML={{
             __html: "try{var v=localStorage.getItem('roofos.theme.cinema.v1');document.documentElement.dataset.cinema=v==='off'?'off':'on';var skin=localStorage.getItem('roofos.theme.dashboard-skin.v1');document.documentElement.dataset.dashboardSkin=skin==='storm'?'storm':'professional'}catch(e){document.documentElement.dataset.cinema='on';document.documentElement.dataset.dashboardSkin='professional'}",
           }}
         />
+        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP }} />
+        <ThemeExperience />
         <CinemaTheme />
         <DashboardSkinTheme />
         <DocumentLang />
         <PrototypeNotice />
         <WorkspaceSwitcher />
-        <AppShell>{children}</AppShell>
+        <div className="theme-page-content"><AppShell>{children}</AppShell></div>
         <Navigation />
         <ConditionalAiChatBar />
       </body>

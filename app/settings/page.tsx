@@ -12,6 +12,7 @@ import {
   type RadarLayerPrefs,
 } from '../../lib/radar/cinema-layers'
 import { applyCinemaTheme, cinemaThemeEnabled } from '../../lib/theme/cinema'
+import ThemePicker from '../../components/ThemePicker'
 import DashboardSkinToggle from '../../components/DashboardSkinToggle'
 import { FEATURE_FLAG_ENFORCEMENT, type WorkspaceFeatureFlag } from '../../lib/workspace-settings'
 
@@ -269,6 +270,7 @@ export default function SettingsPage() {
             This setting is saved on this device and never changes customer, estimate, or weather data.
           </p>
           <DashboardSkinToggle className="w-full justify-between sm:w-auto" />
+          <ThemePicker compact />
         </section>
 
         <section className="glass rounded-xl p-4 border-l-4 border-cyan-500 space-y-3">

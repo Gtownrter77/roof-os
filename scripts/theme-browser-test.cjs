@@ -1,0 +1,100 @@
+/* UI verification. Install Playwright separately; pass PLAYWRIGHT_MODULE and optionally
+   BROWSER_EXECUTABLE/BROWSER_LIBRARY_PATH. Starts a local production server with synthetic env. */
+const assert = require('node:assert/strict')
+const { spawn } = require('node:child_process')
+const fs = require('node:fs')
+const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright')
+const BASE = 'http://127.0.0.1:3100'
+async function main() {
+  const server = spawn(process.execPath, ['node_modules/next/dist/bin/next','start','--port','3100','--hostname','127.0.0.1'], {
+    env: { ...process.env, NEXT_PUBLIC_SUPABASE_URL:'https://validation.supabase.co', NEXT_PUBLIC_SUPABASE_ANON_KEY:'validation-only-key' },
+    stdio: ['ignore', fs.openSync('/tmp/roofos-theme-browser-server.log','w'), 'inherit'],
+  })
+  let browser
+  try {
+    let ready = false
+    for (let i=0;i<100;i++) { try { await fetch(BASE+'/themes'); ready=true; break } catch {} await new Promise(r=>setTimeout(r,300)) }
+    assert.ok(ready, 'production server starts')
+    browser = await chromium.launch({ headless:true, executablePath:process.env.BROWSER_EXECUTABLE || undefined,
+      args:['--no-sandbox','--disable-dev-shm-usage','--no-zygote','--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader'],
+      env: { ...process.env, LD_LIBRARY_PATH:process.env.BROWSER_LIBRARY_PATH || '', FONTCONFIG_PATH:process.env.BROWSER_FONT_PATH || '' },
+    })
+    const context = await browser.newContext({ viewport:{width:1440,height:1000} })
+    const page = await context.newPage(); page.setDefaultTimeout(15000); page.setDefaultNavigationTimeout(15000)
+    const errors = []; page.on('pageerror', e=>errors.push(e.message))
+    await page.goto(BASE+'/themes')
+    await page.locator('.theme-card').first().waitFor()
+    assert.equal(await page.locator('.theme-card').count(), 6)
+    const before = await page.evaluate(()=>localStorage.getItem('roofos.theme.collection.v1'))
+    await page.getByRole('button',{name:'Preview Tornado Alley',exact:true}).click()
+    await page.locator('dialog[open]').waitFor()
+    await page.keyboard.press('Escape')
+    await page.locator('dialog').waitFor({state:'detached'})
+    assert.equal(await page.evaluate(()=>localStorage.getItem('roofos.theme.collection.v1')),before,'preview is not Apply')
+    assert.equal(await page.evaluate(()=>document.activeElement?.getAttribute('aria-label')),'Preview Tornado Alley','preview restores focus')
+    for (const [name,id] of [['Tornado Alley','tornado'],['Storm Tracker 11','storm-command'],['Hail Core','hail'],['Lightning Front','lightning'],['After the Storm','after-storm'],['Professional','professional']]) {
+      const card=page.locator('.theme-card').filter({has:page.getByRole('heading',{name,exact:true})})
+      await card.getByRole('button',{name:/APPLY THEME|ACTIVE THEME/}).click()
+      await page.waitForFunction(id=>document.documentElement.dataset.roofTheme===id,id)
+      if(id!=='professional') {
+        const response=await page.request.get(BASE+`/themes/${id}.webp`)
+        assert.equal(response.status(),200,`${id} artwork exists`)
+      }
+    }
+    await page.locator('.theme-card').filter({has:page.getByRole('heading',{name:'Tornado Alley',exact:true})}).getByRole('button',{name:/APPLY THEME/}).click()
+    await page.reload(); await page.waitForFunction(()=>document.documentElement.dataset.roofTheme==='tornado')
+    await page.getByRole('combobox',{name:'Theme motion'}).selectOption('reduced')
+    assert.equal(await page.locator('.theme-world .theme-photo').evaluate(el=>getComputedStyle(el).animationName),'none')
+    await page.getByRole('combobox',{name:'Theme motion'}).selectOption('full')
+    await page.emulateMedia({reducedMotion:'reduce'})
+    assert.equal(await page.locator('.theme-world .theme-photo').evaluate(el=>getComputedStyle(el).animationName),'none','OS motion wins over full')
+    await page.emulateMedia({reducedMotion:'no-preference'})
+    await page.getByLabel('Low-power mode',{exact:false}).check()
+    assert.equal(await page.getByRole('button',{name:'Play sound',exact:true}).isDisabled(),true)
+    await page.getByLabel('Low-power mode',{exact:false}).uncheck()
+    await page.getByRole('button',{name:'Play sound',exact:true}).click()
+    await page.getByRole('button',{name:'Mute',exact:true}).waitFor()
+    await page.getByRole('button',{name:'Mute',exact:true}).click()
+    await page.getByRole('button',{name:'Play sound',exact:true}).waitFor()
+    await page.getByRole('button',{name:'WATCH THE TRAILER WITH SOUND',exact:false}).click()
+    const video=page.locator('dialog[open] video')
+    await video.waitFor(); await page.waitForFunction(()=>document.querySelector('video')?.readyState>=2)
+    assert.equal(await video.evaluate(v=>Math.round(v.duration)),36)
+    await page.waitForFunction(()=>document.querySelector('video')?.paused === false)
+    await page.evaluate(()=>{ Object.defineProperty(document,'hidden',{value:true,configurable:true}); document.dispatchEvent(new Event('visibilitychange')) })
+    assert.equal(await video.evaluate(v=>v.paused),true,'trailer pauses when the tab is hidden')
+    await page.evaluate(()=>{ delete document.hidden; document.dispatchEvent(new Event('visibilitychange')) })
+    await page.getByRole('button',{name:'Close trailer ×',exact:true}).click()
+    await page.locator('dialog').waitFor({state:'detached'})
+    await page.screenshot({path:'/tmp/roofos-themes-desktop.png',fullPage:true})
+    const other=await context.newPage(); await other.goto(BASE+'/themes')
+    await other.locator('.theme-card').filter({has:other.getByRole('heading',{name:'Hail Core',exact:true})}).getByRole('button',{name:/APPLY THEME/}).click()
+    await page.waitForFunction(()=>document.documentElement.dataset.roofTheme==='hail')
+    await other.close()
+    assert.deepEqual(errors,[], 'no browser runtime/hydration errors')
+    await context.close()
+    const mobile = await browser.newContext({viewport:{width:390,height:844},isMobile:true})
+    const phone=await mobile.newPage(); await phone.goto(BASE+'/auth/login'); await phone.locator('#email').waitFor()
+    await phone.waitForFunction(()=>document.documentElement.dataset.roofTheme==='storm-command')
+    assert.ok(await phone.locator('#email').isVisible())
+    assert.ok(await phone.evaluate(()=>document.documentElement.scrollWidth <= innerWidth+1),'login has no horizontal overflow')
+    await phone.screenshot({path:'/tmp/roofos-login-mobile.png',fullPage:true})
+    await phone.getByRole('switch',{name:'Storm Mode dashboard skin'}).click()
+    await phone.waitForFunction(()=>document.documentElement.dataset.roofTheme==='professional')
+    await phone.getByRole('switch',{name:'Storm Mode dashboard skin'}).click()
+    await phone.waitForFunction(()=>document.documentElement.dataset.roofTheme==='storm-command')
+    await phone.goto(BASE+'/themes'); await phone.locator('.theme-card').first().waitFor()
+    assert.ok(await phone.evaluate(()=>document.documentElement.scrollWidth <= innerWidth+1),'theme gallery has no horizontal overflow')
+    await mobile.close()
+    const denied=await browser.newContext()
+    await denied.addInitScript(()=>Object.defineProperty(window,'localStorage',{get(){throw Error('storage denied')}}))
+    const blocked=await denied.newPage(); await blocked.goto(BASE+'/themes')
+    await blocked.locator('.theme-card').filter({has:blocked.getByRole('heading',{name:'Hail Core',exact:true})}).getByRole('button',{name:/APPLY THEME/}).click()
+    await blocked.waitForFunction(()=>document.documentElement.dataset.roofTheme==='hail')
+    await blocked.locator('.theme-card').filter({has:blocked.getByRole('heading',{name:'Professional',exact:true})}).getByRole('button',{name:/APPLY THEME/}).click()
+    await blocked.waitForFunction(()=>document.documentElement.dataset.roofTheme==='professional')
+    await denied.close()
+    console.log('theme-browser-test: PASS (six themes, preview/focus, persistence, cross-tab, motion, audio, 36s video, login, mobile, denied storage)')
+  } finally { await browser?.close(); server.kill('SIGTERM') }
+}
+main().catch(e=>{console.error(e);process.exitCode=1})

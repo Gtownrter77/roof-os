@@ -1,3 +1,13 @@
+## 2026-10-29 — Storm theme collection implementation
+
+- Branch: `feat/storm-theme-collection-20261029`; baseline/remote rollback `949594ba0d9d1d2574636a5dde34d16c1d4c2a53` at `backup/pre-storm-theme-collection-20261029`.
+- Six per-device themes now share a global scene/palette on app pages. `/themes` is a public visual preference gallery; authentication and business APIs retain their existing guards. First-time login uses the owner-selected Atlanta Storm Tracker 11 scene; explicit Professional choice wins.
+- CSS 3D camera depth, scene previews, saved controls, optional local sound, reduced-motion and low-power behavior; 36-second MP4 trailer and local sound design. Photographic plates are not a rigged/talking actor.
+- Local checks: build/typecheck; theme runtime, existing cinema/dashboard, auth, radar, weather/settings, route integrity, security/reliability/release and production-job-gate. Actual browser checks cover desktop/mobile, preferences, cross-tab, denied storage, audio and video controls.
+- Reviewer found hidden-tab video sound cleanup; browser test reproduced the issue and a visibility pause listener was added. Final browser rerun passed, including hidden-tab video pause. Full CI still required before merge.
+- Runway connection verified: the connected Free workspace exposes no video models. No purchase, generation, or credits used.
+- Next: green feature CI/review and merged-main CI; no production SQL or manual deployment. Evidence: `docs/evidence/storm-theme-collection.md`; authoritative task status: `ROOFOS-BUILD-CHECKLIST.md`.
+
 ## 2026-10-29 production-job gate CI repair
 
 - Baseline / rollback: `11c5aace9629f9c58c8e004747acddc012b55e22`; preserved remotely as `backup/pre-production-job-gate-ci-20261029`.
