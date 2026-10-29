@@ -46,9 +46,16 @@ psql_db "$DST_DB" -c "create schema if not exists auth"
 psql_db "$DST_DB" -c "create table if not exists auth.users(id uuid primary key)"
 psql_db "$DST_DB" -c "create or replace function auth.uid() returns uuid language sql stable as \$\$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid \$\$"
 
+# The target database already owns the default public schema. The dump carries
+# its own CREATE SCHEMA public entry, so filter that one TOC line out instead of
+# weakening --exit-on-error or dropping the live schema.
+tool pg_restore -l /dump/job.dump > "$WORK_DIR/toc.list"
+grep -v 'SCHEMA - public' "$WORK_DIR/toc.list" > "$WORK_DIR/toc.filtered"
+test -s "$WORK_DIR/toc.filtered"
+
 echo 'Restoring into the isolated rehearsal database'
 tool pg_restore -h 127.0.0.1 -p 5432 -U postgres -d "$DST_DB" \
-  --no-owner --no-privileges --exit-on-error /dump/job.dump
+  --no-owner --no-privileges --exit-on-error --use-list=/dump/toc.filtered /dump/job.dump
 
 compare_count() {
   local table="$1"

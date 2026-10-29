@@ -45,6 +45,8 @@ assert.ok(runner.includes('production-job-lifecycle-assertions.sql'))
 assert.ok(runner.includes('Supabase Auth/Storage remains untested'))
 assert.ok(restoreRunner.includes('pg_dump'))
 assert.ok(restoreRunner.includes('pg_restore'))
+assert.ok(restoreRunner.includes('SCHEMA - public'))
+assert.ok(restoreRunner.includes('--use-list'))
 assert.ok(restoreRunner.includes('row level security was lost in restore'))
 
 assert.ok(route.includes('production_invoices'))
