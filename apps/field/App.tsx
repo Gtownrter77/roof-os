@@ -816,7 +816,7 @@ export default function App() {
                       ? 'Retrying'
                       : photo.last_error
                         ? `Waiting · ${photo.last_error}`
-                        : offline
+                        : online === false
                           ? 'Waiting for connection'
                           : 'Waiting to upload'}
                 </Text>

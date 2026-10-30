@@ -1,5 +1,6 @@
 const BUILD_FALLBACK_URL = 'https://placeholder.supabase.co'
 const BUILD_FALLBACK_KEY = 'preview-build-placeholder-key'
+let hasWarnedMissingSupabaseEnv = false
 
 export function getSupabaseEnv() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim()
@@ -25,5 +26,3 @@ export function getSupabaseEnv() {
 
   return { url, anonKey }
 }
-
-let hasWarnedMissingSupabaseEnv = false
