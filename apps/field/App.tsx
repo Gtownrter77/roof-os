@@ -609,6 +609,7 @@ export default function App() {
     const selected = draftRef.current ?? draft
     if (!selected) { setError('Select an inspection before retrying its queue.'); return }
     if (pendingRowCount(selected.id) === 0) { setNotice('Nothing queued for this inspection yet.'); return }
+    if (syncLock.current) { setNotice('Please wait, the current sync is still running.'); return }
     db.runSync('UPDATE inspection_measurements_local SET sync_status = ?, next_retry_at = NULL WHERE draft_id = ? AND sync_status IN (?, ?)', 'queued', selected.id, 'queued', 'retrying')
     db.runSync('UPDATE inspection_photo_queue SET sync_status = ?, next_retry_at = NULL WHERE draft_id = ? AND sync_status IN (?, ?)', 'queued', selected.id, 'queued', 'retrying')
     refreshPhotoQueue(selected.id); setPendingUploads(pendingRowCount(selected.id)); setNotice('Retrying this inspection now. Local errors are preserved if it fails again.'); void syncNow(selected)
