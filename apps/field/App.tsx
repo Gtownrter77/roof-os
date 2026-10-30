@@ -171,7 +171,7 @@ export default function App() {
   const [technicianName, setTechnicianName] = useState('')
   const [technicianLicense, setTechnicianLicense] = useState('')
   const [verificationNotes, setVerificationNotes] = useState('')
-  const [online, setOnline] = useState(true)
+  const [online, setOnline] = useState<boolean | null>(true)
   const [stormHeadline, setStormHeadline] = useState('')
   const [pendingUploads, setPendingUploads] = useState(0)
   const [photoQueue, setPhotoQueue] = useState<QueuedPhoto[]>([])
@@ -220,8 +220,10 @@ export default function App() {
   useEffect(() => {
     if (!session) return
     const unsubscribe = NetInfo.addEventListener((state) => {
-      const connected = Boolean(state.isConnected && state.isInternetReachable !== false)
-      setOnline(connected)
+      const connected =
+        state.isConnected === true && state.isInternetReachable !== false
+      const known = state.isConnected !== null
+      setOnline(known ? connected : null)
       if (connected) void syncQueuedDrafts()
     })
     return () => unsubscribe()
@@ -771,7 +773,7 @@ export default function App() {
                 : address.trim() || 'Capture the property. The photo stays on the phone until it syncs.'}
           </Text>
           <Text style={styles.syncChip}>
-            {syncing ? 'Syncing' : !online ? 'Offline · saved on the phone' : lastSyncedAt ? `Synced at ${new Date(lastSyncedAt).toLocaleTimeString()}` : pendingUploads > 0 ? `${pendingUploads} photo${pendingUploads === 1 ? '' : 's'} waiting` : draft?.remoteId ? 'Synced' : 'Not uploaded yet'}
+            {syncing ? 'Syncing' : online === null ? 'Checking connection…' : !online ? 'Offline · saved on the phone' : lastSyncedAt ? `Synced at ${new Date(lastSyncedAt).toLocaleTimeString()}` : pendingUploads > 0 ? `${pendingUploads} photo${pendingUploads === 1 ? '' : 's'} waiting` : draft?.remoteId ? 'Synced' : 'Not uploaded yet'}
           </Text>
           {agenda[0]?.location ? (
             <Pressable
