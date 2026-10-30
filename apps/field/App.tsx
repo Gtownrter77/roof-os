@@ -808,7 +808,7 @@ export default function App() {
             <View key={photo.id} style={styles.queueRow}>
               <Image source={{ uri: photo.local_uri }} style={styles.thumb} />
               <View style={{ flex: 1 }}>
-                <Text style={styles.leadName}>{photo.caption || photo.album}</Text>
+                <Text style={styles.leadName}>{photo.caption || photo.album || 'Untitled photo'}</Text>
                 <Text style={styles.helper}>
                   {photo.sync_status === 'synced'
                     ? 'Synced'
@@ -1064,7 +1064,7 @@ export default function App() {
           </Pressable>
           <Text style={styles.helper}>
             {draft?.verifiedAt
-              ? `Verified ${new Date(draft.verifiedAt).toLocaleString()}. Signature and manager approval remain required.`
+              ? `Verified ${new Date(draft.verifiedAt).toLocaleString()}. AI checks remain off until a local model is installed or enabled; signature and manager approval still required.`
               : 'AI observations and measurements remain non-authoritative until this field review is recorded.'}
           </Text>
         </View>
