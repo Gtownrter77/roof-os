@@ -47,7 +47,7 @@ const supabaseAnonKey =
   defaultSupabaseAnonKey
 const webAppUrl = process.env.EXPO_PUBLIC_WEB_APP_URL ?? 'https://roof-os-lemon.vercel.app'
 
-import { db } from './src/localDb'
+import { db, initLocalDb } from './src/localDb'
 import RadarCinema from './src/RadarCinema'
 import {
   activeAlertHeadline,
@@ -146,6 +146,7 @@ export default function App() {
   const [showPassword, setShowPassword] = useState(false)
   const [showRadar, setShowRadar] = useState(false)
 
+  const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null)
   const [address, setAddress] = useState('')
   const [photos, setPhotos] = useState(0)
   const [draft, setDraft] = useState<Draft | null>(null)
@@ -181,6 +182,7 @@ export default function App() {
 
   useEffect(() => {
     ensureDatabase()
+    initLocalDb()
     SecureStore.getItemAsync('roof_os_field_email')
       .then((saved) => {
         if (saved && !email) setEmail(saved)
@@ -604,6 +606,7 @@ export default function App() {
   function retryNow() {
     const selected = draftRef.current ?? draft
     if (!selected) { setError('Select an inspection before retrying its queue.'); return }
+    if (pendingRowCount(selected.id) === 0) { setNotice('Nothing queued for this inspection yet.'); return }
     db.runSync('UPDATE inspection_measurements_local SET sync_status = ?, next_retry_at = NULL WHERE draft_id = ? AND sync_status IN (?, ?)', 'queued', selected.id, 'queued', 'retrying')
     db.runSync('UPDATE inspection_photo_queue SET sync_status = ?, next_retry_at = NULL WHERE draft_id = ? AND sync_status IN (?, ?)', 'queued', selected.id, 'queued', 'retrying')
     refreshPhotoQueue(selected.id); setPendingUploads(pendingRowCount(selected.id)); setNotice('Retrying this inspection now. Local errors are preserved if it fails again.'); void syncNow(selected)
@@ -676,7 +679,7 @@ export default function App() {
       db.runSync('UPDATE inspection_photo_queue SET sync_status = ?, retry_count = retry_count + 1, next_retry_at = ?, last_error = ?, error = ? WHERE draft_id = ? AND sync_status IN (?, ?)', 'retrying', retryAt, message, message, draftToSync.id, 'queued', 'retrying')
       setError(`Sync paused: ${message}. Automatic retry scheduled.`)
     }
-    finally { syncLock.current = false; setSyncing(false); if (!sessionExpired) loadDrafts(undefined, true) }
+    finally { syncLock.current = false; setSyncing(false); if (!sessionExpired) { setLastSyncedAt(new Date().toISOString()); loadDrafts(undefined, true) } }
   }
 
   const coachItems = fieldCoach({
@@ -763,10 +766,12 @@ export default function App() {
           <Text style={styles.heroText}>
             {agenda[0]
               ? `${agenda[0].startsAt ? new Date(agenda[0].startsAt).toLocaleString() : 'No time set'}${agenda[0].location ? ` · ${agenda[0].location}` : ''}`
-              : address.trim() || 'Capture the property. The photo stays on the phone until it syncs.'}
+              : (drafts?.length ?? 0) === 0
+                ? 'No jobs on the schedule today. Start a fresh inspection.'
+                : address.trim() || 'Capture the property. The photo stays on the phone until it syncs.'}
           </Text>
           <Text style={styles.syncChip}>
-            {syncing ? 'Syncing' : !online ? 'Offline · saved on the phone' : pendingUploads > 0 ? `${pendingUploads} photo${pendingUploads === 1 ? '' : 's'} waiting` : draft?.remoteId ? 'Synced' : 'Not uploaded yet'}
+            {syncing ? 'Syncing' : !online ? 'Offline · saved on the phone' : lastSyncedAt ? `Synced at ${new Date(lastSyncedAt).toLocaleTimeString()}` : pendingUploads > 0 ? `${pendingUploads} photo${pendingUploads === 1 ? '' : 's'} waiting` : draft?.remoteId ? 'Synced' : 'Not uploaded yet'}
           </Text>
           {agenda[0]?.location ? (
             <Pressable
@@ -802,8 +807,15 @@ export default function App() {
               <View style={{ flex: 1 }}>
                 <Text style={styles.leadName}>{photo.caption || photo.album}</Text>
                 <Text style={styles.helper}>
-                  {photo.sync_status === 'synced' ? 'Synced' : photo.sync_status === 'retrying' ? 'Retrying' : 'Waiting'}
-                  {photo.last_error ? ` · ${photo.last_error}` : ''}
+                  {photo.sync_status === 'synced'
+                    ? 'Synced'
+                    : photo.sync_status === 'retrying'
+                      ? 'Retrying'
+                      : photo.last_error
+                        ? `Waiting · ${photo.last_error}`
+                        : offline
+                          ? 'Waiting for connection'
+                          : 'Waiting to upload'}
                 </Text>
               </View>
             </View>
