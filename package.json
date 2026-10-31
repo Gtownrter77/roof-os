@@ -45,6 +45,8 @@
     "test:ai-vision-contract": "node scripts/ai-vision-contract-test.mjs",
     "test:ai-vision-endpoint": "node scripts/ai-vision-endpoint-test.mjs",
     "test:aerial": "node scripts/aerial-geometry-test.mjs",
+    "test:roof-slope": "node scripts/roof-slope-test.mjs",
+    "test:estimate-creation-flow": "node scripts/estimate-creation-flow-test.mjs",
     "verify:security": "node scripts/security-check.mjs",
     "test:security-definer-migrations": "node scripts/security-definer-migration-test.mjs",
     "test:receptionist": "node scripts/receptionist-check.mjs",

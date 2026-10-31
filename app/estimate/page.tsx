@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 const STATUS_COLORS: Record<string, string> = {
   draft: 'bg-slate-500/30 text-slate-200',
@@ -26,7 +27,6 @@ export default function EstimateListPage() {
   const [filter, setFilter] = useState<'all' | 'draft' | 'pending_approval' | 'approved' | 'rejected'>('all')
   const [search, setSearch] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
-  const [creating, setCreating] = useState(false)
 
   useEffect(() => {
     setLoading(true)
@@ -51,43 +51,20 @@ export default function EstimateListPage() {
 
   const formatCurrency = (n: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n)
 
-  const handleNew = async () => {
-    if (creating) return
-    setCreating(true)
-    setErrorMessage('')
-    try {
-    const res = await fetch('/api/estimates', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: 'draft' }),
-    })
-    if (res.ok) {
-      const { estimate } = await res.json()
-      router.push(`/estimate/${estimate.id}`)
-    } else {
-      const payload = await res.json().catch(() => ({}))
-      setErrorMessage(payload.error || 'Could not create estimate.')
-    }
-    } catch {
-      setErrorMessage('Could not create estimate. Check your connection.')
-    } finally {
-      setCreating(false)
-    }
-  }
+  const handleNew = () => router.push('/estimate/new')
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-50">
       <header className="sticky top-0 z-10 glass border-b border-slate-700/50 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <h1 className="text-xl font-bold text-slate-50">Estimates</h1>
-          <button
-            onClick={handleNew}
-            disabled={creating}
-            className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2 rounded-lg flex items-center gap-2"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-            New Estimate
-          </button>
+          <div className="flex items-center gap-2">
+            <Link href="/templates" className="rounded-lg border border-cyan-500/50 px-3 py-2 text-sm font-semibold text-cyan-200 hover:bg-cyan-500/10">Templates</Link>
+            <button onClick={handleNew} className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2 rounded-lg flex items-center gap-2">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+              New Estimate
+            </button>
+          </div>
         </div>
         <div className="px-4 pb-4 space-y-3">
           <input
