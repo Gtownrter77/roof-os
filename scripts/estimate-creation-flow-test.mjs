@@ -1,0 +1,25 @@
+import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
+
+const read = (path) => readFileSync(new URL(path, import.meta.url), 'utf8')
+const createPage = read('../app/estimate/new/page.tsx')
+const listPage = read('../app/estimate/page.tsx')
+const templatesPage = read('../app/templates/page.tsx')
+const editorPage = read('../app/estimate/[id]/edit/page.tsx')
+const route = read('../app/api/estimates/route.ts')
+const routes = read('../public/manus-routes.json')
+
+assert.ok(createPage.includes('Create an estimate'))
+assert.ok(createPage.includes('Use this template') || createPage.includes('Create estimate draft'))
+assert.ok(createPage.includes("fetch('/api/estimates'"))
+assert.ok(createPage.includes('line_items: lineItems'))
+assert.ok(listPage.includes("router.push('/estimate/new')"))
+assert.ok(listPage.includes('href="/templates"'))
+assert.ok(templatesPage.includes('Use this template'))
+assert.ok(templatesPage.includes('Save to workspace templates'))
+assert.ok(editorPage.includes('Send for review'))
+assert.ok(editorPage.includes('Measurements & source documents'))
+assert.ok(route.includes('An estimate may contain at most 200 line items.'))
+assert.ok(route.includes('Number.isFinite(item.quantity)'))
+assert.ok(routes.includes('"/estimate/new"'))
+console.log('estimate-creation-flow-test: PASS')

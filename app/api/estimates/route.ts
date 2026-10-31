@@ -108,6 +108,15 @@ export async function POST(request: NextRequest) {
   }
 
   const lineItems = body.line_items ?? []
+  if (!Array.isArray(lineItems) || lineItems.length > 200) {
+    return NextResponse.json({ error: 'An estimate may contain at most 200 line items.' }, { status: 400 })
+  }
+  const allowedCategories = new Set(['material', 'labor', 'allowance', 'fee', 'tax'])
+  for (const [index, item] of lineItems.entries()) {
+    if (!item || typeof item !== 'object' || typeof item.description !== 'string' || typeof item.category !== 'string' || typeof item.unit !== 'string' || item.description.trim().length === 0 || item.description.length > 500 || item.unit.trim().length === 0 || item.unit.length > 20 || !allowedCategories.has(item.category) || !Number.isFinite(item.quantity) || item.quantity < 0 || !Number.isFinite(item.unit_cost) || item.unit_cost < 0) {
+      return NextResponse.json({ error: `Line item ${index + 1} must have a description, valid category, unit, and nonnegative numeric quantity and cost.` }, { status: 400 })
+    }
+  }
   const { subtotal, tax, total } = computeTotals(lineItems)
 
   const { data: estimate, error } = await supabase
