@@ -113,11 +113,14 @@ export async function POST(request: NextRequest) {
   }
   const allowedCategories = new Set(['material', 'labor', 'allowance', 'fee', 'tax'])
   for (const [index, item] of lineItems.entries()) {
-    if (!item || typeof item !== 'object' || typeof item.description !== 'string' || typeof item.category !== 'string' || typeof item.unit !== 'string' || item.description.trim().length === 0 || item.description.length > 500 || item.unit.trim().length === 0 || item.unit.length > 20 || !allowedCategories.has(item.category) || !Number.isFinite(item.quantity) || item.quantity < 0 || !Number.isFinite(item.unit_cost) || item.unit_cost < 0) {
+    if (!item || typeof item !== 'object' || typeof item.description !== 'string' || typeof item.category !== 'string' || typeof item.unit !== 'string' || item.description.trim().length === 0 || item.description.length > 500 || item.unit.trim().length === 0 || item.unit.length > 20 || !allowedCategories.has(item.category) || !Number.isFinite(item.quantity) || item.quantity < 0 || !Number.isFinite(item.unit_cost) || item.unit_cost < 0 || !Number.isFinite(item.quantity * item.unit_cost) || (item.item_code != null && typeof item.item_code !== 'string')) {
       return NextResponse.json({ error: `Line item ${index + 1} must have a description, valid category, unit, and nonnegative numeric quantity and cost.` }, { status: 400 })
     }
   }
   const { subtotal, tax, total } = computeTotals(lineItems)
+  if (![subtotal, tax, total].every(Number.isFinite)) {
+    return NextResponse.json({ error: 'Estimate totals must be finite numbers.' }, { status: 400 })
+  }
 
   const { data: estimate, error } = await supabase
     .from('estimates')

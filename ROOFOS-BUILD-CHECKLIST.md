@@ -21,3 +21,15 @@ Verification snapshots name the tested implementation SHA. Follow-up preference-
 - [—] Rigged 3D actor/lip-sync or full fluid/cloth/weather simulation: not produced by still artwork and camera effects.
 
 Source/UI evidence is separate from authenticated production workflows, Supabase, field-device and provider execution. This checkpoint does not change the existing release NO-GO decision.
+
+## 2026-11-01 — PR #374 merge remediation
+
+- [✓] Preserve pre-fix head `a1ea24d` at `backup/pr374-before-audit-fix-a1ea24d`.
+- [✓] Reproduce field audit failure, replace vulnerable glob/minimatch with exact upstream patches `14.0.2`/`11.0.1`, regenerate the lockfile, clean-install and pass the existing audit. Existing pinned build-only zod risk acceptance is unchanged; this is not a zero-vulnerability claim.
+- [✓] Run roof-slope and estimate-creation tests and require both in the web CI job.
+- [✓] Exercise the real estimate POST handler with a synthetic Supabase boundary: reject malformed items before writes, preserve draft defaults and totals, and attempt cleanup on line-write failure. Regression tests exposed and now prevent non-string item-code crashes and overflowing numeric totals.
+- [✓] Regenerate the web lockfile with patched follow-redirects/qs and selector-parser, preserving platform selectors. The production audit no longer reports its former high/moderate findings.
+- [✓] Correct stale navigation assertions after template-first creation replaced inline creation; continue requiring detail, edit, and new-estimate destinations.
+- [~] Final repair commit must pass GitHub PR checks against current main before merge; post-merge main CI must also pass.
+
+Local handler/source checks do not verify Supabase Auth/Storage or deployed database policies. Hosted migration-safety uses disposable PostgreSQL only. Preview readiness does not prove authenticated production workflows. No production database, authorization, or approval controls are relaxed by this repair.

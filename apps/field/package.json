@@ -39,6 +39,8 @@
     "braces": "file:vendor/braces",
     "node-forge": "github:Krysthyan/forge#ceba34402e329f0365134f23fe19898756527d65",
     "shell-quote": "^1.11.0",
-    "deepmerge": "file:vendor/deepmerge"
+    "deepmerge": "file:vendor/deepmerge",
+    "glob": "14.0.2",
+    "minimatch": "11.0.1"
   }
 }
