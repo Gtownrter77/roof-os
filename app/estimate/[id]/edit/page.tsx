@@ -168,6 +168,22 @@ export default function EditEstimatePage() {
     }
   }
 
+  const sendForReview = async () => {
+    if (!id || !isEditable || saving) return
+    setSaving('details')
+    setError('')
+    setNotice('')
+    try {
+      const updated = await saveEstimatePart(id, { status: 'pending_approval' })
+      setEstimate(updated)
+      setNotice('Estimate sent for review. Approval is still required before external use.')
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Could not send estimate for review.')
+    } finally {
+      setSaving(null)
+    }
+  }
+
   const setItem = (index: number, patch: Partial<LineItem>) =>
     setLineItems(previous => previous.map((item, i) => i === index ? { ...item, ...patch } : item))
 
@@ -187,12 +203,21 @@ export default function EditEstimatePage() {
   return (
     <main className="min-h-screen bg-slate-950 text-slate-100 p-4 sm:p-8">
       <div className="max-w-5xl mx-auto space-y-5">
-        <header className="flex flex-wrap justify-between items-center gap-3">
-          <div>
-            <Link href={'/estimate/' + encodeURIComponent(id)} className="text-sm text-cyan-300 hover:underline">← Back to estimate</Link>
-            <h1 className="mt-2 text-2xl font-bold">Edit estimate</h1>
+        <header className="rounded-xl border border-white/10 bg-slate-900 p-5">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <Link href="/estimate" className="text-sm text-cyan-300 hover:underline">← All estimates</Link>
+              <p className="mt-3 text-xs uppercase tracking-[0.18em] text-slate-500">Estimate workspace</p>
+              <h1 className="mt-1 text-2xl font-black">{estimate?.estimate_snapshot?.customer?.name || 'New customer estimate'}</h1>
+              <p className="mt-1 text-sm text-slate-400">{estimate?.estimate_snapshot?.property?.address || 'Add the customer and job address below'}</p>
+            </div>
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <span className="rounded-full border border-amber-400/40 bg-amber-400/10 px-3 py-1 text-xs font-bold uppercase text-amber-200">{estimate?.status?.replaceAll('_', ' ') || 'loading'}</span>
+              <button onClick={() => router.push('/templates')} className="rounded-lg border border-white/20 px-3 py-2 text-sm text-slate-200">Templates</button>
+              {isEditable && <button onClick={sendForReview} disabled={saving !== null} className="rounded-lg bg-emerald-600 px-3 py-2 text-sm font-bold text-white disabled:opacity-50">{saving === 'details' ? 'Saving…' : 'Send for review'}</button>}
+            </div>
           </div>
-          <button onClick={() => router.push('/estimate')} className="text-sm text-slate-300 hover:underline">All estimates</button>
+          <div className="mt-4 grid gap-3 border-t border-white/10 pt-4 sm:grid-cols-3"><div><p className="text-xs text-slate-500">Estimate number</p><p className="font-semibold">EST-{id ? id.slice(0, 8).toUpperCase() : '--------'}</p></div><div><p className="text-xs text-slate-500">Current total</p><p className="font-semibold text-emerald-300">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(estimate?.total ?? 0))}</p></div><div><p className="text-xs text-slate-500">Workflow</p><p className="font-semibold">Draft → review → approval</p></div></div>
         </header>
         {loading && <p role="status">Loading estimate…</p>}
         {error && <p role="alert" className="rounded-lg border border-red-500 p-3 text-red-200">{error}</p>}
@@ -230,9 +255,10 @@ export default function EditEstimatePage() {
               </button>
             </section>
 
+            <section className="rounded-xl border border-cyan-400/20 bg-cyan-400/5 p-5"><div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="font-bold">Measurements & source documents</h2><p className="mt-1 text-sm text-slate-400">Use reviewed roof geometry and a marked-up photo as job context. Quantities still require human verification before pricing or approval.</p></div><div className="flex gap-2"><Link href="/measure" className="rounded-lg border border-cyan-500 px-3 py-2 text-sm text-cyan-200">Aerial measurement</Link><Link href="/sketch" className="rounded-lg border border-cyan-500 px-3 py-2 text-sm text-cyan-200">Roof sketch</Link></div></div></section>
             <section className="rounded-xl border border-white/10 bg-slate-900 p-5 space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <h2 className="font-bold">Estimate line items</h2>
+                <div><h2 className="font-bold">Scope and line items</h2><p className="mt-1 text-xs text-slate-400">Organize materials, labor, allowances, fees, and taxes. Server totals are authoritative after save.</p></div><span className="text-sm text-slate-400">{lineItems.length} rows</span>
                 <button onClick={() => setLineItems(previous => [...previous, { item_code: '', description: '', category: 'material', unit: 'ea', quantity: 1, unit_cost: 0 }])}
                   className="rounded-lg border border-cyan-500 px-3 py-2 text-cyan-200 hover:bg-cyan-500/10">Add line item</button>
               </div>
