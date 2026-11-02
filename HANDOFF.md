@@ -1,3 +1,14 @@
+## 2026-11-02 — Local AI and field workflow repair checkpoint
+
+- Working branch: `fix/whisper-multipart-contract-20261102`. The first repair checkpoint commit is `6786b7131a52b4d1ae8995ef5388ee8adbdfe9b4`; its remote branch SHA was independently confirmed equal.
+- Fixed the app/Whisper multipart contract, aligned Ollama status reporting with the runtime host selector, and synchronized local-AI/Whisper operational notes. The AI path remains Ollama/Whisper local-only per the owner direction; live provider reachability was not tested.
+- Added `log_canvass_knock`, a workspace-authorized RPC that checks the workspace conversion flag and commits lead/dedupe/activity writes atomically. The browser now fails closed when settings cannot be verified. Added localStorage-backed field-web persistence and implemented the exact owner-scoped draft query and queued-count read used by the app.
+- Rebuilt Canvass as a responsive field-notes workflow with responsive entry controls, coaching on the side at wide widths, readable outcome badges, and a clear CRM list. Existing disclosure and do-not-knock behavior remain.
+- Local checks passed: production `npm run build`; root `npm run typecheck`; field `npx tsc --noEmit` and `npx expo config --json`; Whisper/status, Canvass transaction, field web persistence, mobile offline-sync, mobile AI-observation security, release, security, route-integrity, field dependency and brace mitigation checks; `git diff --check`.
+- New migration `075_atomic_canvass_knock.sql` is source only. It has not been applied to staging or production. The most recent live migration state *recorded in older docs* was through 056 on Oct 26; migrations 057 onward have not been re-verified. No claim is made that production can execute the new RPC yet.
+- GitHub PR and deployment are not yet verified. GitHub CI is pending after branch push; Vercel, authenticated canvass save, production schema, and physical-device persistence remain unverified. Other audit items (integration-catalog truthfulness, full deployment-doc reconciliation, provider inventory/removal, and device release evidence) remain open.
+- Next: finish migration/handoff doc reconciliation, create the PR, wait for required checks, merge only on green checks, then confirm deployment separately. Apply migration 075 only after the required staging migration/schema checks and owner-approved production release sequence.
+
 ## 2026-10-29 — Verified theme release and saved-choice recovery
 
 - Theme implementation PR #370 merged: `4623a3e549504122144d8e61cc3afa800c41719e`. Required PR CI `40823969333` and post-merge main CI `40824724249`: PASS. Final Kilo review: no warnings/critical findings; one corrupted-preference suggestion.
