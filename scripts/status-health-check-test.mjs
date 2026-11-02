@@ -14,10 +14,11 @@ assert.ok(route.includes("from('workspaces')"))
 assert.ok(route.includes("from('inspection-photos')"))
 assert.ok(route.includes('api.weather.gov'))
 assert.ok(route.includes("uptime: 'not_measured'"))
-assert.ok(route.includes("cache-control"))
+assert.ok(route.includes('cache-control'))
 assert.ok(route.includes('try {'), 'status health must tolerate missing server-only configuration')
 assert.ok(route.includes("let database: ServiceStatus = 'unknown'"), 'missing server-only configuration must be reported as unknown')
-assert.ok(route.includes('OLLAMA_HOST'))
+assert.ok(route.includes('getOllamaEndpointInfo().provider'), 'status must use the same effective Ollama selection as inference')
+assert.ok(!route.includes("? 'ollama' : 'keywords'"), 'default loopback inference must not be mislabeled keyword-only')
 assert.ok(route.includes('OLLAMA_VISION_API_BASE_URL'))
 assert.ok(!route.includes('GEMINI_API_KEY'))
 assert.ok(!route.includes('XAI_API_KEY'))
@@ -31,4 +32,23 @@ assert.ok(route.includes('vision_endpoint_is_localhost_in_production'))
 const release = readFileSync(new URL('../scripts/release-check.mjs', import.meta.url), 'utf8')
 assert.ok(release.includes('isPublicStatusRoute'))
 assert.ok(release.includes('boundedStatusHealthFetch'))
+
+const { getOllamaEndpointInfo } = await import('../lib/ai/ollama.ts')
+const savedOllamaHost = process.env.OLLAMA_HOST
+try {
+  delete process.env.OLLAMA_HOST
+  assert.deepEqual(getOllamaEndpointInfo(), {
+    host: 'http://127.0.0.1:11434',
+    provider: 'ollama-default-loopback',
+  })
+  process.env.OLLAMA_HOST = 'https://ollama.example.test:11434/'
+  assert.deepEqual(getOllamaEndpointInfo(), {
+    host: 'https://ollama.example.test:11434',
+    provider: 'ollama-configured',
+  })
+} finally {
+  if (savedOllamaHost === undefined) delete process.env.OLLAMA_HOST
+  else process.env.OLLAMA_HOST = savedOllamaHost
+}
+
 console.log('status-health-check-test: PASS')

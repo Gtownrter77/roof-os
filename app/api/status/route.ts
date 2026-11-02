@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '../../../lib/supabase/admin'
+import { getOllamaEndpointInfo } from '../../../lib/ai/ollama'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -68,9 +69,9 @@ export async function GET() {
   const services = { database, api, weather, storage }
   const operational = Object.values(services).every((value) => value === 'online')
 
-  // Booleans only — never echo secret values.
+  // Report effective provider selection without exposing internal hosts or secrets.
   const ai = {
-    textProvider: process.env.OLLAMA_HOST?.trim() ? 'ollama' : 'keywords',
+    textProvider: getOllamaEndpointInfo().provider,
     visionConfigured: Boolean(process.env.OLLAMA_VISION_API_BASE_URL?.trim()),
     cronConfigured: Boolean(process.env.CRON_SECRET?.trim()),
     capoutConfigured: Boolean(process.env.CAPOUT_API_KEY?.trim()),

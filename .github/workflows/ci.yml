@@ -79,6 +79,8 @@ jobs:
       - run: npm run test:status-health
       - run: npm run test:ai-report-authority
       - run: npm run test:ai-chat-bar
+      - run: npm run test:canvass-save
+      - run: npm run test:field-localdb-web
       - run: npm run test:invoices-live-data
       - run: npm run test:radar-source
       - run: npm run test:dashboard-weather
