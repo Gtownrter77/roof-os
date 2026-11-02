@@ -83,7 +83,7 @@ jobs:
           fi
 
       - name: Install pinned EAS CLI
-        run: npm install --global eas-cli@26.0.0
+        run: npm install --global eas-cli@27.2.0
 
       - name: Record EAS CLI version
         run: eas --version
@@ -116,7 +116,7 @@ jobs:
           EAS_BUILD_ID: ${{ steps.eas.outputs.build_id }}
           APP_VERSION: ${{ steps.source.outputs.app_version }}
           ANDROID_PACKAGE: ${{ steps.source.outputs.package_name }}
-          EAS_CLI_VERSION: 26.0.0
+          EAS_CLI_VERSION: 27.2.0
         run: |
           node ../../scripts/mobile-apk-provenance.mjs \
             ../../artifacts/roof-os-field-preview.apk \
