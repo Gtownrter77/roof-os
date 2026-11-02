@@ -93,7 +93,8 @@
     "test:production-job-gate": "node --test scripts/production-job-gate-regression-test.mjs && node scripts/production-job-gate-test.mjs",
     "test:production-job-e2e": "node --experimental-strip-types --no-warnings scripts/production-job-e2e-test.mjs",
     "test:theme-collection": "node --experimental-strip-types --no-warnings scripts/theme-collection-test.mjs",
-    "test:production-job-warranty-legacy-compat": "node scripts/production-job-warranty-legacy-compat-test.mjs"
+    "test:production-job-warranty-legacy-compat": "node scripts/production-job-warranty-legacy-compat-test.mjs",
+    "test:mobile-apk-provenance": "node scripts/mobile-apk-provenance-test.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.2",
