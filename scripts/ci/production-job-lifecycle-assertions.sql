@@ -457,63 +457,120 @@ begin
   end;
 end $$;
 
-insert into public.roof_passports(id,workspace_id,job_id,version,data,status)
+insert into public.roof_passports
+  (id,workspace_id,job_id,version,data,status,lifecycle_status,created_by)
 values
   ('27000000-0000-4000-8000-000000000001','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
    '1e000000-0000-4000-8000-000000000001','1.0',
    '[{"kind":"scope","source":"approved_estimate"},{"kind":"qc","source":"closeout"}]'::jsonb,
-   'issued');
+   'draft','issued','11111111-1111-4111-8111-111111111111');
 
-do $$
+do $
 declare v public.roof_passports%rowtype;
 begin
   select * into v from public.roof_passports where id='27000000-0000-4000-8000-000000000001';
-  if v.status <> 'pending' then
-    raise exception 'LIFECYCLE FAILURE: a passport did not start pending (got %)',v.status;
+  if v.status <> 'draft' then
+    raise exception 'LIFECYCLE FAILURE: the legacy passport status was not preserved (got %)',v.status;
+  end if;
+  if v.lifecycle_status <> 'pending' then
+    raise exception 'LIFECYCLE FAILURE: a job passport did not start pending (got %)',v.lifecycle_status;
   end if;
   if v.generated_at is null then
     raise exception 'LIFECYCLE FAILURE: passport generation time was not stamped';
   end if;
-end $$;
+end $;
 
-update public.roof_passports set status='generated'
+update public.roof_passports set lifecycle_status='generated'
  where id='27000000-0000-4000-8000-000000000001';
-update public.roof_passports set status='issued'
+update public.roof_passports set lifecycle_status='issued'
  where id='27000000-0000-4000-8000-000000000001';
 
 -- Exception path K: revocation needs a reason and is terminal.
-do $$
+do $
 begin
   begin
-    update public.roof_passports set status='revoked'
+    update public.roof_passports set lifecycle_status='revoked'
      where id='27000000-0000-4000-8000-000000000001';
     raise exception 'EXCEPTION FAILURE: a passport was revoked without a reason';
   exception when check_violation then
     raise notice 'Expected reasonless-passport-revocation rejection: %',SQLERRM;
   end;
-end $$;
+end $;
 
 update public.roof_passports
-   set status='revoked', revocation_reason='Superseded by corrected passport'
+   set lifecycle_status='revoked', revocation_reason='Superseded by corrected passport'
  where id='27000000-0000-4000-8000-000000000001';
 
-do $$
+do $
 declare v public.roof_passports%rowtype;
 begin
   select * into v from public.roof_passports where id='27000000-0000-4000-8000-000000000001';
-  if v.status <> 'revoked'
+  if v.lifecycle_status <> 'revoked'
      or v.revoked_by <> '11111111-1111-4111-8111-111111111111'::uuid
      or v.revoked_at is null then
     raise exception 'LIFECYCLE FAILURE: passport revocation evidence is incomplete';
   end if;
   begin
-    update public.roof_passports set status='pending'
+    update public.roof_passports set lifecycle_status='pending'
      where id='27000000-0000-4000-8000-000000000001';
     raise exception 'EXCEPTION FAILURE: a revoked passport was reopened';
   exception when check_violation then
     raise notice 'Expected passport-revocation immutability: %',SQLERRM;
   end;
-end $$;
+end $;
+
+-- Legacy warranty record: retain its lead-linked registration fields and date.
+insert into public.warranties
+  (workspace_id,lead_id,manufacturer,product_line,registration_status,expires_at,missing_items,created_by)
+values
+  ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+   '1a000000-0000-4000-8000-000000000101',
+   'Legacy Manufacturer','Legacy Line','packet_ready',current_date + 365,
+   'delivery ticket','11111111-1111-4111-8111-111111111111');
+
+do $
+declare v public.warranties%rowtype;
+begin
+  select * into v from public.warranties
+   where lead_id='1a000000-0000-4000-8000-000000000101'
+     and job_id is null;
+  if not found or v.registration_status <> 'packet_ready'
+     or v.expires_at <> current_date + 365 or v.status <> 'active'
+     or v.issued_by <> '11111111-1111-4111-8111-111111111111'::uuid then
+    raise exception 'LIFECYCLE FAILURE: the legacy warranty record was not preserved';
+  end if;
+end $;
+
+-- Legacy Roof Passport: keep the original status and public-share token model.
+insert into public.roof_passports
+  (workspace_id,lead_id,property_address,homeowner_name,manufacturer,status,created_by)
+values
+  ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+   '1a000000-0000-4000-8000-000000000101',
+   '10 Rehearsal Way','Lifecycle Customer','Legacy Manufacturer','active',
+   '11111111-1111-4111-8111-111111111111');
+
+do $
+declare v public.roof_passports%rowtype;
+begin
+  select * into v from public.roof_passports
+   where lead_id='1a000000-0000-4000-8000-000000000101'
+     and job_id is null;
+  if not found or v.status <> 'active' or v.lifecycle_status <> 'pending'
+     or v.public_token is null or v.public_shared then
+    raise exception 'LIFECYCLE FAILURE: the legacy Roof Passport contract was not preserved';
+  end if;
+  update public.roof_passports set public_shared=true,public_shared_at=now()
+   where id=v.id;
+  if not (select public_shared from public.roof_passports where id=v.id) then
+    raise exception 'LIFECYCLE FAILURE: legacy homeowner share state could not be published';
+  end if;
+  update public.roof_passports set public_shared=false
+   where id=v.id;
+  if (select public_shared from public.roof_passports where id=v.id) then
+    raise exception 'LIFECYCLE FAILURE: legacy homeowner share state could not be revoked';
+  end if;
+end $;
 
 -- Deletes are refused even for a caller that bypasses RLS.
 reset role;
