@@ -458,10 +458,10 @@ begin
 end $$;
 
 insert into public.roof_passports
-  (id,workspace_id,job_id,version,data,status,lifecycle_status,created_by)
+  (id,workspace_id,job_id,property_address,homeowner_name,version,data,status,lifecycle_status,created_by)
 values
   ('27000000-0000-4000-8000-000000000001','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
-   '1e000000-0000-4000-8000-000000000001','1.0',
+   '1e000000-0000-4000-8000-000000000001','10 Rehearsal Way','Lifecycle Customer','1.0',
    '[{"kind":"scope","source":"approved_estimate"},{"kind":"qc","source":"closeout"}]'::jsonb,
    'draft','issued','11111111-1111-4111-8111-111111111111');
 
