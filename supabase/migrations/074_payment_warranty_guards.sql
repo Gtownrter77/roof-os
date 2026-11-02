@@ -149,8 +149,8 @@ begin
       raise exception 'Workspace membership is required for a legacy warranty record'
         using errcode = '42501';
     end if;
-    new.issued_at := coalesce(new.issued_at, now());
-    new.issued_by := coalesce(new.issued_by, auth.uid());
+    new.issued_at := now();
+    new.issued_by := auth.uid();
     new.created_by := coalesce(new.created_by, auth.uid());
     new.updated_at := now();
     return new;
@@ -164,6 +164,9 @@ begin
     if new.workspace_id is distinct from old.workspace_id
        or new.lead_id is distinct from old.lead_id
        or new.passport_id is distinct from old.passport_id
+       or new.issued_at is distinct from old.issued_at
+       or new.issued_by is distinct from old.issued_by
+       or new.terms is distinct from old.terms
        or new.created_by is distinct from old.created_by
        or new.created_at is distinct from old.created_at
        or new.status is distinct from old.status then
