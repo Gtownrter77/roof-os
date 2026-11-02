@@ -139,7 +139,7 @@ begin
   end if;
 
   select * into v_passport from public.roof_passports where id='27000000-0000-4000-8000-000000000001';
-  if v_passport.status <> 'revoked' or v_passport.revoked_by is null then
+  if v_passport.status <> 'draft' or v_passport.lifecycle_status <> 'revoked' or v_passport.revoked_by is null then
     raise exception 'RESTORE FAILURE: the Roof Passport evidence changed in restore';
   end if;
 
