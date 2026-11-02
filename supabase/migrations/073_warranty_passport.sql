@@ -64,10 +64,6 @@ begin
 end
 $$;
 
-create unique index if not exists warranties_one_per_job_idx
-  on public.warranties (job_id)
-  where job_id is not null;
-
 -- Keep the property-centered passport fields and public-share token used by
 -- existing pages/routes. lifecycle_status is deliberately separate from the
 -- legacy status CHECK ('draft','active','transferred','archived').
