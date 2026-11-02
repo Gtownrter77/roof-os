@@ -11,7 +11,7 @@
 
 -- 1. Payment attempts are audit records for an issued invoice only.
 create or replace function public.enforce_production_invoice_payment()
-  returns trigger language plpgsql security definer set search_path = public as $$
+  returns trigger language plpgsql security definer set search_path = '' as $$
 declare
   v_invoice public.production_invoices%rowtype;
 begin
@@ -108,7 +108,7 @@ grant execute on function public.enforce_production_invoice_payment() to authent
 -- 2. An invoice with a successful payment cannot be voided until the payment
 --    is reversed. A void invoice carries no live money.
 create or replace function public.enforce_production_invoice_void_guard()
-  returns trigger language plpgsql security definer set search_path = public as $$
+  returns trigger language plpgsql security definer set search_path = '' as $$
 begin
   if new.status = 'void' and old.status is distinct from 'void' then
     if exists (
