@@ -333,6 +333,10 @@ jobs:
           grep -q "A warranty requires a completed production job" supabase/migrations/074_payment_warranty_guards.sql
           grep -q "A revoked warranty is immutable" supabase/migrations/074_payment_warranty_guards.sql
           grep -q "A revoked Roof Passport is immutable" supabase/migrations/074_payment_warranty_guards.sql
+           test -f supabase/migrations/075_harden_security_definer_triggers.sql
+           grep -q "p.prorettype = 'trigger'::regtype" supabase/migrations/075_harden_security_definer_triggers.sql
+           grep -q "REVOKE EXECUTE ON FUNCTION %s FROM PUBLIC, anon, authenticated" supabase/migrations/075_harden_security_definer_triggers.sql
+           test -f scripts/ci/security-definer-trigger-assertions.sql
           grep -q "The approved scope does not reconcile with the accepted total and tax" supabase/migrations/071_production_invoice.sql
           grep -q "A production invoice cannot be deleted; void it instead" supabase/migrations/071_production_invoice.sql
           grep -q "A void invoice is immutable" supabase/migrations/071_production_invoice.sql
