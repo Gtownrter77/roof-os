@@ -45,7 +45,7 @@
 
 - [ ] Add failing release contract tests for ref-to-SHA provenance, checksum generation, version/package identity, and artifact presence.
 - [ ] Run the new tests and verify the expected RED result.
-- [ ] Update the workflow so a manual build can only use the selected ref and a release tag can produce a signed, traceable APK artifact.
+- [ ] Update the workflow so manual builds use protected `main`, release builds use the exact version tag, and tagged APK publication runs in a separate write-permission job.
 - [ ] Verify the downloaded EAS build matches the requested source commit (not merely the newest finished build).
 - [ ] Upload the APK and provenance manifest; compute SHA-256 after download.
 - [ ] Run current-main mobile tests and CI; confirm required EAS secret presence before claiming a successful APK.
