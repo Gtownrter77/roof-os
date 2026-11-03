@@ -109,6 +109,24 @@ jobs:
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
 
+      - name: Verify APK binary identity and signature
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+          test -n "$SDK_ROOT"
+          SDKMANAGER="$(command -v sdkmanager || true)"
+          if ! find "$SDK_ROOT/build-tools" -mindepth 1 -maxdepth 1 -type d -print -quit 2>/dev/null | grep -q .; then
+            test -n "$SDKMANAGER" || { echo 'Android SDK build-tools and sdkmanager are unavailable.' >&2; exit 1; }
+            yes | "$SDKMANAGER" --install "build-tools;36.0.0"
+          fi
+          BUILD_TOOLS="$(find "$SDK_ROOT/build-tools" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort -V | tail -1)"
+          test -n "$BUILD_TOOLS"
+          BUILD_TOOLS_PATH="$SDK_ROOT/build-tools/$BUILD_TOOLS"
+          test -x "$BUILD_TOOLS_PATH/aapt"
+          test -x "$BUILD_TOOLS_PATH/apksigner"
+          echo "ANDROID_BUILD_TOOLS=$BUILD_TOOLS_PATH" >> "$GITHUB_ENV"
+
       - name: Generate SHA-256 and build provenance
         env:
           SOURCE_SHA: ${{ steps.source.outputs.source_sha }}
