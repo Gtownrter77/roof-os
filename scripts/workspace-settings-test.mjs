@@ -86,12 +86,14 @@ assert.equal(isWithinQuietHours(new Date('2026-10-22T07:59:00')), false)
 assert.equal(isWithinQuietHours(new Date('2026-10-22T19:59:00')), true)
 assert.equal(isWithinQuietHours(new Date('2026-10-22T20:00:00')), false)
 
-assert.equal(normalizeStrictE164('(555) 123-4567'), '+15551234567')
-assert.equal(normalizeStrictE164('1-555-123-4567'), '+15551234567')
-assert.equal(normalizeStrictE164('+1 (555) 123-4567'), '+15551234567')
+assert.equal(normalizeStrictE164('(415) 555-2671'), '+14155552671')
+assert.equal(normalizeStrictE164('1-415-555-2671'), '+14155552671')
+assert.equal(normalizeStrictE164('+1 (415) 555-2671'), '+14155552671')
 assert.equal(normalizeStrictE164('555-1234'), null)
 assert.equal(normalizeStrictE164('+44 20 7123 4567'), null)
 assert.equal(normalizeStrictE164(''), null)
+assert.equal(normalizeStrictE164('(115) 555-2671'), null, 'invalid area-code NPA must be rejected')
+assert.equal(normalizeStrictE164('(415) 055-2671'), null, 'invalid exchange NXX must be rejected')
 
 // 8. The Golden Report gates stay closed by default and stay openable.
 const reportRoute = read('app/api/photo-estimate/report/route.ts')
