@@ -14,7 +14,7 @@ The source files for 073–074 were rewritten additively before production appli
 
 Post-apply verification found 33 SECURITY DEFINER trigger functions with empty search paths and no anon/authenticated EXECUTE grants. Authenticated rollback-only production tests passed for legacy warranty registration and passport homeowner sharing; cross-workspace inserts were rejected. The transaction rolled back and production still has zero warranty/passport/job/invoice rows.
 
-The next new repository migration prefix is **076**. Never renumber or replay any applied migration. The current branch's PostgreSQL CI rehearsal applies 075 in isolated test databases and verifies that the trigger functions still execute after their direct API grants are revoked. The remaining eight authenticated SECURITY DEFINER helper/RPC warnings are recorded in the current audit; do not revoke workspace/authentication primitives without a separate authority review. The 127 unindexed-FK advisor notices require workload/table-size analysis before adding indexes. Vercel deployed-code parity remains unverified.
+The next new repository migration prefix is **077**. Never renumber or replay any applied migration. The current branch's PostgreSQL CI rehearsal applies 075 in isolated test databases and verifies that the trigger functions still execute after their direct API grants are revoked. The remaining eight authenticated SECURITY DEFINER helper/RPC warnings are recorded in the current audit; do not revoke workspace/authentication primitives without a separate authority review. The 127 unindexed-FK advisor notices require workload/table-size analysis before adding indexes. Vercel deployed-code parity remains unverified.
 
 # Database migration ordering
 
