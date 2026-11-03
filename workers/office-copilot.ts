@@ -1,4 +1,3 @@
-import type { SupabaseClient } from '@supabase/supabase-js'
 
 export type OfficePhoto = {
   id: string
@@ -86,10 +85,10 @@ export async function runOfficeCopilot(
   reviewTaskCreatorId: string,
   eventKey: string,
 ) {
-  const { SupabaseClient } = await import('@supabase/supabase-js')
-  const { persistActionBatch } = await import('./action-batch.ts')
-  const { createAgentRuntime } = await import('./agent-runtime.ts')
-  const { runLlamaAgentJson } = await import('./llama-agent.ts')
+  const { createClient } = await import('@supabase/supabase-js')
+  const { persistActionBatch } = await import('./action-batch')
+  const { createAgentRuntime } = await import('./agent-runtime')
+  const { runLlamaAgentJson } = await import('./llama-agent')
   const runtime = createAgentRuntime({ ...config, reviewTaskCreatorId })
   await runtime.heartbeat(workspaceId, 'office_copilot', 'healthy', {
     deterministic: true,
@@ -104,7 +103,7 @@ export async function runOfficeCopilot(
     trigger: 'office_report_draft',
     inputReference: { inspection_id: inspectionId },
   }, async () => {
-    const supabase = new SupabaseClient(config.supabaseUrl, config.serviceRoleKey)
+    const supabase = createClient(config.supabaseUrl, config.serviceRoleKey, { auth: { autoRefreshToken: false, persistSession: false } })
     const { data: inspection, error: inspectionError } = await supabase
       .from('inspection_sessions')
       .select('id,workspace_id,lead_id,status')
@@ -130,6 +129,17 @@ export async function runOfficeCopilot(
       if (lead?.name) leadName = lead.name
     }
 
+    const { data: activity, error: activityError } = inspection.lead_id
+      ? await supabase
+          .from('lead_activity')
+          .select('kind,body,created_at')
+          .eq('lead_id', inspection.lead_id)
+          .eq('workspace_id', workspaceId)
+          .order('created_at', { ascending: false })
+          .limit(50)
+      : { data: [], error: null }
+    if (activityError) throw activityError
+
     const draft = buildOfficeCopilotDraft({
       inspectionId,
       leadName,
@@ -140,7 +150,7 @@ export async function runOfficeCopilot(
         uploadStatus: photo.upload_status,
         objectPath: photo.object_path,
       })),
-      activity: [],
+      activity: (activity ?? []).map((item) => ({ kind: item.kind, label: item.body, createdAt: item.created_at })),
     })
     const llamaAdvisory = await runLlamaAgentJson<{ summary?: string; suggested_review_items?: string[] }>({
       agentKey: 'office_copilot',
@@ -148,25 +158,35 @@ export async function runOfficeCopilot(
       instruction: 'Summarize only the supplied inspection evidence. Do not infer damage, measurements, coverage, pricing, approval, or customer communication.',
       input: draft,
     })
-    const actionBatch = await persistActionBatch(supabase, {
-      workspaceId,
-      batchKey: `office-copilot-review:${inspectionId}:${eventKey}`,
-      summary: `Review draft inspection report for ${leadName}`,
-      actions: [{
-        kind: 'create_review_task',
-        subjectType: 'inspection',
-        subjectId: inspectionId,
-        payload: {
-          createdByUserId: reviewTaskCreatorId,
-          assignedToUserId: reviewTaskCreatorId,
-          title: `Review draft inspection report: ${leadName}`,
-          notes: `${draft.summary} Human approval is required before report delivery.`,
-        },
-        reason: 'Office Copilot drafts are advisory and require human review.',
-        sourceEvidence: draft.evidence,
-        idempotencyKey: `office-copilot-review:${inspectionId}`,
-      }],
-    })
+    const batchKey = `office-copilot-review:${inspectionId}:${eventKey}`
+    const { data: existingBatch, error: existingBatchError } = await supabase
+      .from('agent_action_batches')
+      .select('id')
+      .eq('workspace_id', workspaceId)
+      .eq('batch_key', batchKey)
+      .maybeSingle()
+    if (existingBatchError) throw existingBatchError
+    const actionBatch = existingBatch
+      ? { batch: existingBatch }
+      : await persistActionBatch(supabase, {
+          workspaceId,
+          batchKey,
+          summary: `Review draft inspection report for ${leadName}`,
+          actions: [{
+            kind: 'create_review_task',
+            subjectType: 'inspection',
+            subjectId: inspectionId,
+            payload: {
+              createdByUserId: reviewTaskCreatorId,
+              assignedToUserId: reviewTaskCreatorId,
+              title: `Review draft inspection report: ${leadName}`,
+              notes: `${draft.summary} Human approval is required before report delivery.`,
+            },
+            reason: 'Office Copilot drafts are advisory and require human review.',
+            sourceEvidence: draft.evidence,
+            idempotencyKey: `office-copilot-review:${inspectionId}`,
+          }],
+        })
     return {
       status: 'needs_review' as const,
       output: { ...draft, model_assistance: llamaAdvisory ?? { enabled: false }, action_batch_id: actionBatch.batch.id },

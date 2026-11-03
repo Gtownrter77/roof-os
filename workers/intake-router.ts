@@ -1,4 +1,3 @@
-import type { SupabaseClient } from '@supabase/supabase-js'
 
 type LeadRecord = {
   id: string
@@ -157,9 +156,9 @@ export async function runIntakeRouter(
   taskCreatorId: string,
   eventKey: string,
 ) {
-  const { SupabaseClient } = await import('@supabase/supabase-js')
-  const { createAgentRuntime } = await import('./agent-runtime.ts')
-  const { persistActionBatch } = await import('./action-batch.ts')
+  const { createClient } = await import('@supabase/supabase-js')
+  const { createAgentRuntime } = await import('./agent-runtime')
+  const { persistActionBatch } = await import('./action-batch')
   const runtime = createAgentRuntime({ ...config, reviewTaskCreatorId: taskCreatorId })
   await runtime.heartbeat(workspaceId, 'intake_router', 'healthy', {
     deterministic: true,
@@ -174,7 +173,7 @@ export async function runIntakeRouter(
     trigger: 'lead_intake',
     inputReference: { lead_id: leadId },
   }, async () => {
-    const supabase = new SupabaseClient(config.supabaseUrl, config.serviceRoleKey)
+    const supabase = createClient(config.supabaseUrl, config.serviceRoleKey, { auth: { autoRefreshToken: false, persistSession: false } })
     const { data: lead, error: leadError } = await supabase
       .from('leads')
       .select('id,name,address,phone,email,owner_id')
@@ -207,12 +206,22 @@ export async function runIntakeRouter(
       roundRobinOwnerIds: (members ?? []).map((member) => member.user_id).filter(Boolean),
       taskCreatorId,
     })
-    const actionBatch = await persistActionBatch(supabase, {
-      workspaceId,
-      batchKey: `intake:${leadId}:${eventKey}`,
-      summary: plan.duplicateLeadIds.length ? `Review duplicate lead routing for ${lead.name}` : `Route new lead ${lead.name}`,
-      actions: plan.actions,
-    })
+    const batchKey = `intake:${leadId}:${eventKey}`
+    const { data: existingBatch, error: existingBatchError } = await supabase
+      .from('agent_action_batches')
+      .select('id')
+      .eq('workspace_id', workspaceId)
+      .eq('batch_key', batchKey)
+      .maybeSingle()
+    if (existingBatchError) throw existingBatchError
+    const actionBatch = existingBatch
+      ? { batch: existingBatch }
+      : await persistActionBatch(supabase, {
+          workspaceId,
+          batchKey,
+          summary: plan.duplicateLeadIds.length ? `Review duplicate lead routing for ${lead.name}` : `Route new lead ${lead.name}`,
+          actions: plan.actions,
+        })
     return {
       status: plan.duplicateLeadIds.length ? ('needs_review' as const) : ('succeeded' as const),
       output: { ...plan, action_batch_id: actionBatch.batch.id },
