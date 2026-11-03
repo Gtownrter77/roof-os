@@ -21,7 +21,7 @@ Migration 075 hardened all 33 SECURITY DEFINER trigger functions: empty search p
 ### Repository fixes in PR #375
 
 - `apps/field/src/localMigrations.ts` checks `PRAGMA table_info` before adding SQLite columns. The previous blanket catch hid disk, locking and schema errors; those now surface instead of being silently ignored.
-- APK workflow pins EAS CLI 27.2.0, binds the build to the selected source commit, emits SHA-256 and a JSON provenance manifest, verifies APK package/version with Android build-tools, verifies its signature and records the certificate fingerprint, retains artifacts for 90 days, and marks tagged internal APK releases as prereleases.
+- APK workflow pins EAS CLI 27.2.0, uses protected `main` for manual builds and exact `field-v*` tags for releases, binds the build to the source commit, emits SHA-256 and JSON provenance, verifies APK package/version and signature/certificate fingerprint, retains artifacts for 90 days, and marks internal APK releases as prereleases. The build job has read-only GitHub permission and only exposes `EXPO_TOKEN` to EAS commands; a separate release job receives write permission and only downloads/verifies the artifact.
 - CI contracts cover the APK release workflow, local SQLite migrations, 057 feature-flag trigger behavior, and 075 trigger privilege/search-path hardening.
 - PostgreSQL CI rehearsal now applies 075 and asserts that triggers still work after direct API grants are revoked.
 
