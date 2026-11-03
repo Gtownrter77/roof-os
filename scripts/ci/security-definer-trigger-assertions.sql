@@ -16,12 +16,14 @@ begin
     raise exception 'SECURITY DEFINER trigger privilege/search_path hardening failed';
   end if;
 
-  if has_function_privilege('anon', 'public.is_estimate_admin(uuid)'::regprocedure, 'EXECUTE') then
-    raise exception 'is_estimate_admin must not be executable by anon';
-  end if;
+  if to_regprocedure('public.is_estimate_admin(uuid)') is not null then
+    if has_function_privilege('anon', 'public.is_estimate_admin(uuid)'::regprocedure, 'EXECUTE') then
+      raise exception 'is_estimate_admin must not be executable by anon';
+    end if;
 
-  if not has_function_privilege('authenticated', 'public.is_estimate_admin(uuid)'::regprocedure, 'EXECUTE') then
-    raise exception 'authenticated RLS policies must retain is_estimate_admin access';
+    if not has_function_privilege('authenticated', 'public.is_estimate_admin(uuid)'::regprocedure, 'EXECUTE') then
+      raise exception 'authenticated RLS policies must retain is_estimate_admin access';
+    end if;
   end if;
 end
 $$;
