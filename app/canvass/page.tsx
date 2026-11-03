@@ -17,6 +17,7 @@ type CanvassLead = {
   status: string
   phone: string | null
   next_action: string | null
+  lost_reason_detail: string | null
   last_activity_at: string | null
   updated_at?: string | null
 }
@@ -29,7 +30,8 @@ const outcomeColors: Record<CanvassOutcome, string> = {
 }
 
 function outcomeFromLead(lead: CanvassLead): CanvassOutcome | null {
-  if (lead.status === 'lost') return 'DO_NOT_KNOCK'
+  if ((lead.lost_reason_detail || '').toLowerCase().includes('do not knock')) return 'DO_NOT_KNOCK'
+  if (lead.status === 'lost') return null
   if (lead.status === 'inspected' || lead.status === 'report_pending' || lead.status === 'report_approved') {
     return 'INSPECTED'
   }
@@ -73,7 +75,7 @@ export default function CanvassPage() {
     }
     const { data, error: queryError } = await supabase
       .from('leads')
-      .select('id,name,address,status,phone,next_action,last_activity_at,updated_at')
+      .select('id,name,address,status,phone,next_action,lost_reason_detail,last_activity_at,updated_at')
       .eq('source', CANVASS_LEAD_SOURCE)
       .order('updated_at', { ascending: false })
       .limit(100)
@@ -88,7 +90,7 @@ export default function CanvassPage() {
 
   useEffect(() => {
     let active = true
-    fetch('/api/settings')
+    fetch('/api/settings', { cache: 'no-store' })
       .then(async (response) => {
         const payload = await response.json().catch(() => ({}))
         if (!response.ok || !payload.settings) throw new Error('Workspace settings could not be verified.')
@@ -169,7 +171,7 @@ export default function CanvassPage() {
             <div className="min-w-[170px] rounded-2xl border border-white/15 bg-white/[.08] px-5 py-4 backdrop-blur-sm">
               <p className="text-xs font-medium text-[#c5d8be]">In your canvass list</p>
               <p className="mt-1 font-serif text-4xl">{loading ? '—' : leads.length}</p>
-              <p className="mt-1 text-xs text-white/65">{loading ? 'Checking workspace' : 'recent field leads'}</p>
+              <p className="mt-1 text-xs text-white/65">{loading ? 'Checking workspace' : 'Live from workspace CRM'}</p>
             </div>
           </div>
         </header>
