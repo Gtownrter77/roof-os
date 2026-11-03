@@ -41,6 +41,7 @@ jobs:
       - run: npm run verify:security
       - run: npm run test:security-definer-migrations
       - run: npm run test:receptionist
+      - run: npm run test:outbound-policy
       - run: npm run test:aerial
       - run: npm run test:roof-slope
       - run: npm run test:estimate-creation-flow
