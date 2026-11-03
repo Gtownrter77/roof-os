@@ -9,7 +9,7 @@
     "test:runtime-smoke": "node scripts/runtime-smoke-test.mjs",
     "test:performance": "node --experimental-strip-types scripts/performance-optimization-verify.mjs",
     "typecheck": "tsc --noEmit",
-    "release-check": "node scripts/security-definer-trigger-test.mjs && node scripts/production-followup-trigger-test.mjs && node scripts/mobile-apk-provenance-test.mjs && node scripts/release-check.mjs",
+    "release-check": "node scripts/security-definer-trigger-test.mjs && node scripts/production-followup-trigger-test.mjs && node scripts/mobile-apk-provenance-test.mjs && node --experimental-strip-types scripts/mobile-local-db-migration-test.mjs && node scripts/release-check.mjs",
     "test:api-security": "node scripts/api-security-test.mjs",
     "test:auth-flow": "node scripts/auth-flow-test.mjs",
     "test:invitation-flow": "node scripts/invitation-flow-test.mjs",
@@ -95,7 +95,8 @@
     "test:theme-collection": "node --experimental-strip-types --no-warnings scripts/theme-collection-test.mjs",
     "test:production-job-warranty-legacy-compat": "node scripts/production-job-warranty-legacy-compat-test.mjs",
     "test:mobile-apk-provenance": "node scripts/mobile-apk-provenance-test.mjs",
-    "test:security-definer-triggers": "node scripts/security-definer-trigger-test.mjs"
+    "test:security-definer-triggers": "node scripts/security-definer-trigger-test.mjs",
+    "test:mobile-local-db-migrations": "node --experimental-strip-types scripts/mobile-local-db-migration-test.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.2",
