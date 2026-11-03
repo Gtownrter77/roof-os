@@ -14,10 +14,10 @@ export function quietHoursMessage(channel: 'call' | 'text' = 'text') {
 
 export function normalizeStrictE164(phone: string): string | null {
   const trimmed = phone.trim()
-  if (/^\+1[2-9]\d{9}$/.test(trimmed)) return trimmed
+  if (/^\\+1[2-9]\\d{2}[2-9]\\d{6}$/.test(trimmed)) return trimmed
   const digits = trimmed.replace(/[^0-9]/g, '')
-  if (digits.length === 10) return `+1${digits}`
-  if (digits.length === 11 && digits.startsWith('1')) return `+${digits}`
+  const nationalNumber = digits.length === 11 && digits.startsWith('1') ? digits.slice(1) : digits
+  if (/^[2-9]\\d{2}[2-9]\\d{6}$/.test(nationalNumber)) return `+1${nationalNumber}`
   return null
 }
 
