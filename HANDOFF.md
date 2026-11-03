@@ -1,3 +1,48 @@
+## 2026-11-02 — Production reconciliation and Android Field release hardening
+
+**Source baseline:** `main` `b74d23431aa4affcf512710635197bc0e1923256`
+
+**Working branch / PR:** `fix/roofos-autonomous-remediation-20261101`, PR [#375](https://github.com/Gtownrter77/roof-os/pull/375). Open, not merged. All source changes remain isolated from `main`.
+
+### Production Supabase work completed
+
+Project: `xksumagfbegdlapwysps`.
+
+- Applied and verified `057 workspace_feature_flags_reconcile_20261101`.
+- Did not replay `058`; the live ledger already records its effect as `atomic_estimate_line_item_replacement`.
+- Applied `059`–`072` in order.
+- Applied backward-compatible `073 warranty_passport_legacy_compatible` and `074 payment_warranty_lifecycle_guards_legacy_compatible`.
+- Applied `075 harden_security_definer_triggers`.
+
+Migration 073–074 preserve the old warranty/passport field contracts and separate the new production-job lifecycle fields. Live authenticated rollback tests verified a legacy warranty insert/update, legacy Roof Passport insert/share update, and rejection of cross-workspace warranty/passport inserts. All test writes rolled back; live counts remain zero for warranties, Roof Passports, production jobs and production invoices.
+
+Migration 075 hardened all 33 SECURITY DEFINER trigger functions: empty search path and no direct EXECUTE for anon/authenticated. `is_estimate_admin(uuid)` retains authenticated execution for RLS policy use and is not anonymous. Security advisor now has zero anonymous SECURITY DEFINER warnings and eight authenticated helper/RPC warnings.
+
+### Repository fixes in PR #375
+
+- `apps/field/src/localMigrations.ts` checks `PRAGMA table_info` before adding SQLite columns. The previous blanket catch hid disk, locking and schema errors; those now surface instead of being silently ignored.
+- APK workflow pins EAS CLI 27.2.0, binds the build to the selected source commit, emits SHA-256 and a JSON provenance manifest, verifies APK package/version with Android build-tools, verifies its signature and records the certificate fingerprint, retains artifacts for 90 days, and marks tagged internal APK releases as prereleases.
+- CI contracts cover the APK release workflow, local SQLite migrations, 057 feature-flag trigger behavior, and 075 trigger privilege/search-path hardening.
+- PostgreSQL CI rehearsal now applies 075 and asserts that triggers still work after direct API grants are revoked.
+
+### APK and AI status — do not overstate
+
+No EAS APK build or physical-device install has been verified. The repository's `EXPO_TOKEN` secret presence is not confirmed through this connection, and the new workflow has not produced a binary. Do not call the APK release-ready until a real build is inspected and installed on a physical Android device.
+
+The field app's on-device inference adapter remains intentionally disabled (`runtimeAvailable=false`, `modelLoaded=false`, model version unavailable). `fieldCoach.ts` is deterministic guidance, not an AI model. The server photo-analysis route exists but is workspace-admin gated and depends on the configured Ollama vision service; the transcription route exists behind the workspace voice-copilot setting, but the mobile app has no recording/transcription integration. AI work still needed: guided evidence completeness, AI caption/album suggestions with review, voice-to-structured notes with read-back, and draft-only estimate prefill from human-verified measurements.
+
+### Remaining release and security gates
+
+- Final PR-head CI must pass, including the latest real-PostgreSQL 075 rehearsal.
+- Run the EAS APK workflow with a configured token; verify source SHA, package/version, APK signature, checksum and manifest.
+- Install on a physical Android device and test offline capture, process restart, reconnect, retries, auth expiry and workspace isolation.
+- Confirm the Vercel production deployment SHA and check runtime errors for the new schema-backed routes.
+- Review the eight remaining authenticated SECURITY DEFINER helpers/RPCs without disabling required workspace primitives.
+- Enable Supabase leaked-password protection in Auth settings; this cannot be changed through the available database migration tool.
+- Review 127 unindexed foreign-key notices and add indexes selectively after table-size/workload review. Do not bulk-index blindly.
+
+No Vercel production deployment, APK build, external payment, customer communication, insurer submission, or production test-row creation was performed.
+
 ## 2026-10-29 — Verified theme release and saved-choice recovery
 
 - Theme implementation PR #370 merged: `4623a3e549504122144d8e61cc3afa800c41719e`. Required PR CI `40823969333` and post-merge main CI `40824724249`: PASS. Final Kilo review: no warnings/critical findings; one corrupted-preference suggestion.
