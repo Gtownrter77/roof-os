@@ -1,3 +1,12 @@
+## 2026-11-03 — Android APK parity checkpoint
+
+- Current source baseline: `main` at `b74d23431aa4affcf512710635197bc0e1923256`. Latest successful APK workflow run #39739973454 was built from `9f65193e7d6d63764c71f222a055900f3bcabe5a` on 2026-10-22, before newer field-app changes on main.
+- APK-only branch: `fix/field-apk-current-system-20261103`; source checkpoint commit `dbe09bebbfac38cfe777aed7e914ae59325c2cca`. The app is version 0.5.0. Preview EAS builds produce internal APKs and increment the remote Android build number. Sync status now advances only after all queued writes succeed; pending counts include measurements and photos. Location permission text now describes the actual user-triggered GPS use.
+- The current system's removed legacy mobile AI screens were not restored. The source still exposes the field inspection companion rather than every browser-only CRM, finance, and administration route.
+- Local checks PASS: mobile offline-sync and release contracts, mobile AI-observation security, release evidence, mobile auth, field coach, root release-check, field TypeScript, Expo SDK 57 config/version/package, Android bundle smoke, and `git diff --check`. Remote branch SHA matched `dbe09bebbfac38cfe777aed7e914ae59325c2cca` after push.
+- Pending: open PR and required GitHub checks; merge only if all required checks pass; then run the APK workflow from main and verify/download the artifact. No new APK has been built yet. Physical-device installation, authenticated offline reopen/upload, and two-workspace isolation remain unverified. No production database or deployment action was taken.
+- Next: open the APK-only PR, wait for required checks, merge only when green, then dispatch `.github/workflows/mobile-apk.yml` against main.
+
 ## 2026-10-29 — Verified theme release and saved-choice recovery
 
 - Theme implementation PR #370 merged: `4623a3e549504122144d8e61cc3afa800c41719e`. Required PR CI `40823969333` and post-merge main CI `40824724249`: PASS. Final Kilo review: no warnings/critical findings; one corrupted-preference suggestion.
