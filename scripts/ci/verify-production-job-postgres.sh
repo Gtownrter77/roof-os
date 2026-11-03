@@ -22,6 +22,7 @@ if [ -z "$(psql_db postgres -tAc "select 1 from pg_database where datname='$JOB_
 fi
 
 psql_db "$JOB_DB" -f scripts/ci/production-job-baseline.sql
+psql_db "$JOB_DB" -f supabase/migrations/059_estimate_approval_admin_guard.sql
 psql_db "$JOB_DB" -f supabase/migrations/063_estimate_acceptance_deposit.sql
 psql_db "$JOB_DB" -f supabase/migrations/064_production_job_handoff.sql
 # Tables created by the migrations need the same test role grants the baseline gave.
