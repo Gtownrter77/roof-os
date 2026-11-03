@@ -4,8 +4,9 @@
 - APK-only branch: `fix/field-apk-current-system-20261103`; source checkpoint commit `dbe09bebbfac38cfe777aed7e914ae59325c2cca`. The app is version 0.5.0. Preview EAS builds produce internal APKs and increment the remote Android build number. Sync status now advances only after all queued writes succeed; pending counts include measurements and photos. Location permission text now describes the actual user-triggered GPS use.
 - The current system's removed legacy mobile AI screens were not restored. The source still exposes the field inspection companion rather than every browser-only CRM, finance, and administration route.
 - Local checks PASS: mobile offline-sync and release contracts, mobile AI-observation security, release evidence, mobile auth, field coach, root release-check, field TypeScript, Expo SDK 57 config/version/package, Android bundle smoke, and `git diff --check`. Remote branch SHA matched `dbe09bebbfac38cfe777aed7e914ae59325c2cca` after push.
-- Pending: open PR and required GitHub checks; merge only if all required checks pass; then run the APK workflow from main and verify/download the artifact. No new APK has been built yet. Physical-device installation, authenticated offline reopen/upload, and two-workspace isolation remain unverified. No production database or deployment action was taken.
-- Next: open the APK-only PR, wait for required checks, merge only when green, then dispatch `.github/workflows/mobile-apk.yml` against main.
+- PR #377: [Bring Android APK to current system release 0.5.0](https://github.com/Gtownrter77/roof-os/pull/377), from branch `fix/field-apk-current-system-20261103`. At the first check, GitHub showed 4 successful, 1 skipped, and 10 pending checks, with no failures; Vercel preview was successful.
+- Pending: required GitHub checks and review; merge only if every required check passes; then run the APK workflow from main and verify/download the artifact. No new APK has been built yet. Physical-device installation, authenticated offline reopen/upload, and two-workspace isolation remain unverified. No production database or deployment action was taken.
+- Next: wait for PR #377 checks, merge only when green, then dispatch `.github/workflows/mobile-apk.yml` against main.
 
 ## 2026-10-29 — Verified theme release and saved-choice recovery
 
