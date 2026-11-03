@@ -22,3 +22,9 @@ Each agent is ready only after its worker:
 7. Has an explicit approval boundary for outbound messages, estimates, contracts, and payments.
 
 The runtime scaffold does not pretend that a worker is deployed. Deployment and live heartbeat evidence are still required before shipment.
+
+## Registry and heartbeat verification
+
+`agent-registry.ts` is the source-of-truth registry for the four bounded automation agents. It records whether a worker implementation and entry point actually exist. The protected `/api/cron/heartbeat` route is heartbeat-only: it reads the latest service-side heartbeat for every workspace and evaluates freshness without self-attesting a worker as healthy or executing any action.
+
+The probe reports `worker_not_registered`, `heartbeat_missing`, `heartbeat_stale`, `worker_not_healthy`, or `worker_stopped` when evidence is insufficient. A source registration is not production proof. Production readiness still requires a deployed worker to write a fresh healthy heartbeat, an idempotent `agent_runs` record, a failure review task, and a two-workspace isolation result. Intake Router and Office Copilot now have source workers, but remain pilot-only until those external gates are demonstrated.

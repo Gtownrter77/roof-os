@@ -1,3 +1,4 @@
+
 ## 2026-11-03 — Android Field 0.5.0 integration checkpoint
 
 - Integrated the 0.5.0 Android Field release work into the production-reconciliation branch while preserving the PR #375 SQLite schema migration guard.
@@ -51,6 +52,38 @@ The field app's on-device inference adapter remains intentionally disabled (`run
 - Review 127 unindexed foreign-key notices and add indexes selectively after table-size/workload review. Do not bulk-index blindly.
 
 No Vercel production deployment, APK build, external payment, customer communication, insurer submission, or production test-row creation was performed.
+
+
+## 2026-11-03 — Intake Router and Office Copilot implementation batch
+
+- Branch: `feat/two-bounded-ai-agents-20261103`.
+- Added `workers/intake-router.ts` with deterministic contact normalization, duplicate detection, round-robin owner suggestion, first-response tasks, and review-task proposals through the action ledger.
+- Added `workers/office-copilot.ts` with deterministic inspection evidence summaries, missing-album/caption/upload/duplicate checks, optional advisory Ollama output, and human-review-gated report drafts.
+- Added focused contract tests and required CI commands: `test:intake-router` and `test:office-copilot`.
+- Local evidence: both focused tests, registry test, TypeScript, and `git diff --check` passed. Production readiness still requires deployed worker heartbeats, idempotent live runs, failure-review evidence, and two-workspace isolation.
+- Next: push this branch, open a protected PR, wait for required CI, merge, and verify main.
+
+## 2026-11-03 — Deployable automation runtime and heartbeat verification batch
+
+- Branch: `feat/deployable-automation-runtime-20261103`, based on GitHub `main` `f4043836cd207a24e3a0a92186211321bea3a387`.
+- Added `workers/agent-registry.ts`, a source-of-truth registry for the four bounded agents. Intake Router and Office Copilot were initially unimplemented in this checkpoint; the later implementation batch above adds their worker modules.
+- Replaced the heartbeat probe's scheduler self-attestation with a read-only, heartbeat-only readiness report. `/api/cron/heartbeat` now reads service-side heartbeats, evaluates five-minute freshness, reports workspace-level reasons, and performs no action execution.
+- Added `test:agent-registry` to package scripts and required CI, plus registry and heartbeat contract coverage.
+- Level 1 evidence: registry, heartbeat probe, runtime heartbeat, agent runtime, action policy, and inspection-quality contracts passed; TypeScript passed; `git diff --check` passed.
+- Level 2 evidence: `release-check` and `verify:security` passed. No production migration or database mutation was performed.
+- Level 3 evidence: production build passed and included `/api/cron/heartbeat`. Deployed heartbeat freshness, authenticated worker execution, two-workspace isolation, and physical-device evidence remain external gates.
+- Next: push this branch, open a protected PR, wait for required CI, then run the authorized staging heartbeat probe. Do not begin the Intake Router worker until this batch is merged and externally verified.
+
+## 2026-11-03 — Android APK parity checkpoint
+
+- Current source baseline: `main` at `cc0dca653236a93f23040a7c4f8a0f8b9857ae28`, merged from PR #377. The preceding successful APK workflow run #39739973454 was built from `9f65193e7d6d63764c71f222a055900f3bcabe5a` on 2026-10-22, before these field-app updates.
+- APK-only branch: `fix/field-apk-current-system-20261103`; latest source checkpoint `c3c8f2a66ed9cc6725bf1802a1e8f95237833806` (preceded by release commit `dbe09bebbfac38cfe777aed7e914ae59325c2cca`). The app is version 0.5.0. Preview EAS builds produce internal APKs and increment the remote Android build number. Photo/measurement queue inserts and their counts are transaction-scoped; sync time advances only after all queued writes succeed; counts are labeled as pending items. Location permission text describes the actual user-triggered GPS use.
+- The current system's removed legacy mobile AI screens were not restored. The source still exposes the field inspection companion rather than every browser-only CRM, finance, and administration route.
+- Local checks PASS on the release source: mobile offline-sync and release contracts, mobile AI-observation security, release evidence, mobile auth, field coach, root release-check, field TypeScript, Expo SDK 57 config/version/package, Android bundle smoke, and `git diff --check`. PR #377 passed 14 checks with 1 skipped, no failures or pending checks, and all review threads resolved. It was squash-merged as `cc0dca653236a93f23040a7c4f8a0f8b9857ae28`.
+- Main APK workflow [run 41597966309](https://github.com/Gtownrter77/roof-os/actions/runs/41597966309) completed successfully against that exact SHA. EAS build, APK download, and artifact upload passed. Artifact `roof-os-field-preview-apk` contains `roof-os-field-preview.apk` (78,651,680 bytes); SHA-256 `ab50192a84f4598999ff716619b3519aa3dcea7e528f0a29409858f5eef6b22c`. ZIP integrity passed and `file` identified it as an Android package.
+- The APK is available from the workflow artifact for 14 days and was also downloaded to `/home/ubuntu/roof-os-field-preview-0.5.0.apk` in the Manus workspace. Physical-device installation, authenticated offline reopen/upload, and two-workspace isolation remain unverified. No production database mutation or manual production deployment was performed.
+- Next: install the APK on a physical Android device and test authentication, offline reopen/upload, and two-workspace isolation before treating device-level behavior as verified.
+
 
 ## 2026-10-29 — Verified theme release and saved-choice recovery
 

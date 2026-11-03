@@ -1,5 +1,6 @@
 # ROOF/OS Field Mobile Release 0.5.0
 
+
 ## Current checkpoint — 2026-11-02
 
 **The APK currently published on GitHub is not the current app.** The latest release is [field-apk-main-2501cc2](https://github.com/Gtownrter77/roof-os/releases/tag/field-apk-main-2501cc2), published 2026-10-22 from commit `2501cc20fc5a0e346426a389bbfe46be6aaa44c5`. Current `main` is `b74d23431aa4affcf512710635197bc0e1923256), **119 commits ahead** of that APK source. The existing APK is 78,795,524 bytes and has GitHub asset SHA-256 `580d3ebac4ddc1143c9c5336123a0b7c12fc996185ee4cfdb3bdc77f31ec357b`. It has no companion provenance manifest or published checksum file.
@@ -34,6 +35,10 @@ Highest-value next AI work: (1) missing-evidence/elevation checklist, (2) photo 
 
 ---
 
+
+**Current checkpoint — 2026-11-03:** The source and Expo configuration report version `0.5.0`. The most recent successful APK workflow run is #39739973454 (2026-10-22), built from `9f65193`; it predates current main `b74d234`. This release updates the APK to the current field-app source, including initialized on-device SQLite tables, clearer offline retry/queue feedback, and the removal of legacy mobile AI screens that are no longer in the system source. The sync indicator now advances only after a complete successful sync, and pending photos/measurements are counted as pending items. These are source/CI behaviors only; a new successful APK artifact, authenticated physical-device capture, offline reopen, private upload, and two-workspace test are still required.
+
+
 ## Release scope
 
 The Expo field app now provides an authenticated, offline-first inspection capture pilot. Sessions require Supabase authentication and persist credentials through `expo-secure-store`. Inspection drafts, measurements, and photo queue metadata persist in SQLite so a field worker can continue capture without a network connection.
@@ -41,6 +46,12 @@ The Expo field app now provides an authenticated, offline-first inspection captu
 When a workspace connection is available, the app resolves the authenticated workspace through `current_workspace_id`, creates an RLS-scoped `inspection_sessions` record, syncs manual measurements as explicitly unverified evidence, and uploads queued camera files into the private `inspection-photos` bucket using a workspace/user/inspection path. Photo metadata is inserted only after the Storage upload succeeds. The UI keeps estimate and report approval review-gated and labels GPS and manual measurements honestly.
 
 The release also persists the latest draft location, provides sign-in/sign-out states, exposes queued-work sync and retry-now, makes checklist rows interactive and screen-reader addressable, and adds release checks for the mobile security boundary. The app version is `0.5.0`.
+
+
+
+
+The internal preview profile explicitly produces an APK and increments its remote Android build number so it can be installed as an update. This follows Expo's guidance for [building APKs](https://docs.expo.dev/build-reference/apk/) and [remote app version management](https://docs.expo.dev/versions/v57.0.0/build-reference/app-versions.md).
+
 
 ## Three-level verification
 
