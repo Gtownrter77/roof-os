@@ -22,6 +22,10 @@ if [ -z "$(psql_db postgres -tAc "select 1 from pg_database where datname='$JOB_
 fi
 
 psql_db "$JOB_DB" -f scripts/ci/production-job-baseline.sql
+# Migration 075 also hardens the estimate RLS helper created by 059. This
+# isolated job-only fixture does not install 059, so provide a harmless stub;
+# the real helper's behavior and ACL are tested in verify-estimate-authority-postgres.sh.
+psql_db "$JOB_DB" -c "create function public.is_estimate_admin(uuid) returns boolean language sql security definer set search_path=public as 'select false'; grant execute on function public.is_estimate_admin(uuid) to authenticated"
 psql_db "$JOB_DB" -f supabase/migrations/063_estimate_acceptance_deposit.sql
 psql_db "$JOB_DB" -f supabase/migrations/064_production_job_handoff.sql
 # Tables created by the migrations need the same test role grants the baseline gave.
