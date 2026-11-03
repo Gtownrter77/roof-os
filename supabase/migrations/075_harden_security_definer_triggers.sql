@@ -24,26 +24,9 @@ end;
 $$;
 
 -- This helper is intentionally used by authenticated RLS policies and by
--- server-side guards. It is not an anonymous endpoint. Some isolated migration
--- rehearsals do not install migration 059, so harden it only when it exists.
-do $
-begin
-  if to_regprocedure('public.is_estimate_admin(uuid)') is not null then
-    execute format(
-      'ALTER FUNCTION %s SET search_path = %L',
-      'public.is_estimate_admin(uuid)'::regprocedure,
-      ''
-    );
-    execute format(
-      'REVOKE EXECUTE ON FUNCTION %s FROM PUBLIC, anon',
-      'public.is_estimate_admin(uuid)'::regprocedure
-    );
-    execute format(
-      'GRANT EXECUTE ON FUNCTION %s TO authenticated',
-      'public.is_estimate_admin(uuid)'::regprocedure
-    );
-  end if;
-end;
-$;
+-- server-side guards. It is not an anonymous endpoint.
+alter function public.is_estimate_admin(uuid) set search_path = '';
+revoke execute on function public.is_estimate_admin(uuid) from public, anon;
+grant execute on function public.is_estimate_admin(uuid) to authenticated;
 
 commit;
