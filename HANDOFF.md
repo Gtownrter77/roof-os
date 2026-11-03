@@ -1,3 +1,12 @@
+## 2026-11-03 — Android Field 0.5.0 integration checkpoint
+
+- Integrated the 0.5.0 Android Field release work into the production-reconciliation branch while preserving the PR #375 SQLite schema migration guard.
+- Photo and manual-measurement queue writes now calculate pending counts inside SQLite transactions; the sync indicator records a new last-synced time only after every queued write succeeds.
+- Pending counters now describe both photos and measurements as items. The preview profile increments the remote Android build number, and the location permission text matches the actual user-triggered GPS tagging use.
+- Repaired two CI defects: the disposable PostgreSQL baseline now revokes inherited PUBLIC/anon execution on authenticated workspace helpers before granting authenticated access; the search-path migration contract test now uses valid JavaScript quoting.
+- Automated source/CI checks are wired. A current APK has **not** yet been built: the protected-main EAS workflow still requires its GitHub Actions dispatch and a valid EXPO_TOKEN. Physical-device install/offline/reconnect/workspace-isolation evidence remains outstanding.
+- No production database mutation, Vercel setting change, or app deployment was made in this checkpoint.
+
 ## 2026-11-02 — Production reconciliation and Android Field release hardening
 
 **Source baseline:** `main` `b74d23431aa4affcf512710635197bc0e1923256`

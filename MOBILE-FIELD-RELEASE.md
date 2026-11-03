@@ -1,10 +1,10 @@
-# ROOF/OS Field Mobile Release 0.4.0
+# ROOF/OS Field Mobile Release 0.5.0
 
 ## Current checkpoint — 2026-11-02
 
 **The APK currently published on GitHub is not the current app.** The latest release is [field-apk-main-2501cc2](https://github.com/Gtownrter77/roof-os/releases/tag/field-apk-main-2501cc2), published 2026-10-22 from commit `2501cc20fc5a0e346426a389bbfe46be6aaa44c5`. Current `main` is `b74d23431aa4affcf512710635197bc0e1923256), **119 commits ahead** of that APK source. The existing APK is 78,795,524 bytes and has GitHub asset SHA-256 `580d3ebac4ddc1143c9c5336123a0b7c12fc996185ee4cfdb3bdc77f31ec357b`. It has no companion provenance manifest or published checksum file.
 
-The app source still reports version `0.4.0` and package `com.roofos.field`. No APK has yet been built from the current `main`, no current-main APK binary has been inspected, and no physical-device installation/smoke test has been verified. Do not call the old release current or production-ready.
+The app source reports version `0.5.0` and package `com.roofos.field`. No APK has yet been built from the current `main`, no current-main APK binary has been inspected, and no physical-device installation/smoke test has been verified. Do not call the old release current or production-ready.
 
 ### Current build pipeline in PR #375
 
@@ -14,7 +14,7 @@ The app source still reports version `0.4.0` and package `com.roofos.field`. No 
 - The workflow generates SHA-256 and a JSON provenance manifest, checks the actual APK package/version with Android build-tools, verifies its APK signature, and records the signing certificate fingerprint.
 - APK, checksum and manifest are retained as a 90-day GitHub artifact.
 - Tagged internal APK releases are prereleases. The EAS build job has read-only GitHub permission and only exposes `EXPO_TOKEN` to EAS steps; a separate artifact-only job receives release-write permission.
-- The workflow has not yet produced a current APK. `EXPO_TOKEN` presence is unverified through this connection.
+- The workflow has not yet produced a current APK. `EXPO_TOKEN` presence is unverified through this connection. The preview profile increments the remote Android build number so an internal APK can update an existing installation.
 
 ### Current app capability assessment
 
@@ -40,7 +40,7 @@ The Expo field app now provides an authenticated, offline-first inspection captu
 
 When a workspace connection is available, the app resolves the authenticated workspace through `current_workspace_id`, creates an RLS-scoped `inspection_sessions` record, syncs manual measurements as explicitly unverified evidence, and uploads queued camera files into the private `inspection-photos` bucket using a workspace/user/inspection path. Photo metadata is inserted only after the Storage upload succeeds. The UI keeps estimate and report approval review-gated and labels GPS and manual measurements honestly.
 
-The release also persists the latest draft location, provides sign-in/sign-out states, exposes queued-work sync and retry-now, makes checklist rows interactive and screen-reader addressable, and adds release checks for the mobile security boundary. The app version is `0.4.0`.
+The release also persists the latest draft location, provides sign-in/sign-out states, exposes queued-work sync and retry-now, makes checklist rows interactive and screen-reader addressable, and adds release checks for the mobile security boundary. The app version is `0.5.0`.
 
 ## Three-level verification
 
@@ -77,13 +77,13 @@ Exactly three mobile weaknesses were addressed:
 Static, runtime bundle, and repository security checks passed. A signed EAS APK artifact remains the final delivery gate.
 
 
-## 0.4.0 hardening batch — 2026-10-05
+## 0.5.0 hardening batch — 2026-10-05
 This batch completed three integration steps:
 1. Added CI and release guards for migrations 050–051, including technician verification and complete field measurement columns.
 2. Expanded the deterministic mobile contract checks and aligned the real-device E2E preconditions through migration 052.
 3. Verified Expo configuration and the Android bundle embed locally; the signed APK still requires the existing EAS workflow with `EXPO_TOKEN`.
 
-The field app version is now `0.4.0`.
+The field app version is now `0.5.0`.
 
 ## APK artifact verification — 2026-10-04
 
