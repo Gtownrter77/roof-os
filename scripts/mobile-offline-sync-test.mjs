@@ -16,6 +16,12 @@ for (const marker of [
   'Automatic retry scheduled.',
   'syncLock.current',
   'retryDelayMs',
+  'let syncSucceeded = false',
+  'syncSucceeded = true',
+  'if (syncSucceeded) setLastSyncedAt(new Date().toISOString())',
+  'if (draftRef.current?.id === draftToSync.id) setPendingUploads(pendingRowCount(draftToSync.id))',
+  'pendingCount = pendingRowCount(draftId)',
+  'label="Pending items"',
   'loadDrafts(undefined, true)',
   'readLocalDrafts()',
   'syncQueuedDrafts',
@@ -24,7 +30,7 @@ for (const marker of [
   'const activeId = draftRef.current?.id ?? (preserveSelection ? undefined : preferredId)',
   'const activeDraftId = draftRef.current?.id',
   'if (activeDraftId === draftToSync.id)',
-  "client_version: 'field-0.4.0'",
+  "client_version: 'field-0.5.0'",
   'complete manual measurement set',
   'notes: draftToSync.verificationNotes',
   'eave_lf',
@@ -46,6 +52,14 @@ for (const marker of [
   'saveTechnicianVerification',
   'Automatic retry scheduled.',
 ]) assert.ok(app.includes(marker), `app contract missing: ${marker}`)
+const syncSuccessAt = app.indexOf('syncSucceeded = true')
+const syncCatchAt = app.indexOf('} catch (syncError) {', syncSuccessAt)
+const syncTimestampAt = app.indexOf('if (syncSucceeded) setLastSyncedAt(', syncCatchAt)
+assert.ok(syncSuccessAt >= 0 && syncCatchAt > syncSuccessAt && syncTimestampAt > syncCatchAt, 'last-synced time must follow all writes and be guarded by the success flag')
+const queueTransactions = app.match(/db\.withTransactionSync\(\(\) => \{[\s\S]*?pendingCount = pendingRowCount\(draftId\)[\s\S]*?\n\s*\}\)/g) ?? []
+assert.equal(queueTransactions.length, 2, 'photo and measurement rows must update pending counts inside SQLite transactions')
+assert.ok(queueTransactions.some((block) => block.includes('inspection_photo_queue')), 'photo queue count must be transaction-scoped')
+assert.ok(queueTransactions.some((block) => block.includes('inspection_measurements_local')), 'measurement queue count must be transaction-scoped')
 for (const marker of [
   'inspection_sessions_workspace_client_uidx',
   'inspection_measurements_workspace_client_uidx',
