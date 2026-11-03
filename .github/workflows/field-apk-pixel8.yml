@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - feat/pixel8-field-apk-20261002
+      - fix/roofos-autonomous-remediation-20261101
     paths:
       - .github/workflows/field-apk-pixel8.yml
       - apps/field/**
