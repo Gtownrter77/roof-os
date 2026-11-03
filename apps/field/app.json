@@ -2,7 +2,7 @@
   "expo": {
     "name": "ROOF/OS Field",
     "slug": "roof-os-field",
-    "version": "0.4.0",
+    "version": "0.5.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -30,7 +30,7 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "ROOF/OS Field uses your location to center NOAA weather radar while you watch oncoming storms."
+          "locationWhenInUsePermission": "ROOF/OS Field uses your location when you capture GPS to tag inspection evidence to a property and show nearby weather alerts."
         }
       ]
     ],

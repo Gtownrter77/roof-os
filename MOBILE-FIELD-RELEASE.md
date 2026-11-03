@@ -1,6 +1,6 @@
-# ROOF/OS Field Mobile Release 0.4.0
+# ROOF/OS Field Mobile Release 0.5.0
 
-**Current checkpoint — 2026-10-21:** The source and Expo configuration report version `0.4.0`. The app now includes explicit sign-out, owner-scoped local evidence retention, manual retry-now, and session-expiry recovery. These are source/CI behaviors only; an authenticated physical-device capture, offline reopen, private upload, and two-workspace test remain required.
+**Current checkpoint — 2026-11-03:** The source and Expo configuration report version `0.5.0`. The most recent successful APK workflow run is #39739973454 (2026-10-22), built from `9f65193`; it predates current main `b74d234`. This release updates the APK to the current field-app source, including initialized on-device SQLite tables, clearer offline retry/queue feedback, and the removal of legacy mobile AI screens that are no longer in the system source. The sync indicator now advances only after a complete successful sync, and pending photos/measurements are counted as pending items. These are source/CI behaviors only; a new successful APK artifact, authenticated physical-device capture, offline reopen, private upload, and two-workspace test are still required.
 
 ## Release scope
 
@@ -8,7 +8,9 @@ The Expo field app now provides an authenticated, offline-first inspection captu
 
 When a workspace connection is available, the app resolves the authenticated workspace through `current_workspace_id`, creates an RLS-scoped `inspection_sessions` record, syncs manual measurements as explicitly unverified evidence, and uploads queued camera files into the private `inspection-photos` bucket using a workspace/user/inspection path. Photo metadata is inserted only after the Storage upload succeeds. The UI keeps estimate and report approval review-gated and labels GPS and manual measurements honestly.
 
-The release also persists the latest draft location, provides sign-in/sign-out states, exposes queued-work sync and retry-now, makes checklist rows interactive and screen-reader addressable, and adds release checks for the mobile security boundary. The app version is `0.4.0`.
+The release also persists the latest draft location, provides sign-in/sign-out states, exposes queued-work sync and retry-now, makes checklist rows interactive and screen-reader addressable, and adds release checks for the mobile security boundary. The app version is `0.5.0`.
+
+The internal preview profile explicitly produces an APK and increments its remote Android build number so it can be installed as an update. This follows Expo's guidance for [building APKs](https://docs.expo.dev/build-reference/apk/) and [remote app version management](https://docs.expo.dev/versions/v57.0.0/build-reference/app-versions.md).
 
 ## Three-level verification
 
