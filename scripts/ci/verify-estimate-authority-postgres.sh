@@ -35,6 +35,8 @@ fi
 test "$count" == 1 || { echo "Found $count migration 059 files; expected exactly one." >&2; exit 1; }
 echo "Applying migration $file in disposable PostgreSQL"
 sql -f "$file"
+sql -f supabase/migrations/075_harden_security_definer_triggers.sql
+sql -f scripts/ci/security-definer-trigger-assertions.sql
 sql -f scripts/ci/estimate-authority-assertions.sql
 echo 'MIGRATION 059: isolated SQL-role/RLS/trigger/RPC tests passed. Full Supabase Auth/Storage remains untested.'
 echo '**Migration 059: real isolated PostgreSQL SQL-role authorization tests PASSED. Supabase Auth/Storage not exercised.**' >> "$GITHUB_STEP_SUMMARY"
