@@ -16,7 +16,7 @@ Project: `xksumagfbegdlapwysps`.
 
 Migration 073–074 preserve the old warranty/passport field contracts and separate the new production-job lifecycle fields. Live authenticated rollback tests verified a legacy warranty insert/update, legacy Roof Passport insert/share update, and rejection of cross-workspace warranty/passport inserts. All test writes rolled back; live counts remain zero for warranties, Roof Passports, production jobs and production invoices.
 
-Migration 075 hardened all 33 SECURITY DEFINER trigger functions: empty search path and no direct EXECUTE for anon/authenticated. `is_estimate_admin(uuid)` retains authenticated execution for RLS policy use and is not anonymous. Security advisor now has zero anonymous SECURITY DEFINER warnings and eight authenticated helper/RPC warnings.
+Migration 075 hardened all 33 SECURITY DEFINER trigger functions: empty search path and no direct EXECUTE for anon/authenticated. `is_estimate_admin(uuid)` retains authenticated execution for RLS policy use and is not anonymous. Migration 076 removed direct table grants on `public_access_rate_limits` from client roles, preserved service-role-only access, and set `consume_public_rate_limit()` to an empty search path; a rollback-only service-role call succeeded. Security advisor now has zero anonymous SECURITY DEFINER warnings and eight authenticated helper/RPC warnings.
 
 ### Repository fixes in PR #375
 
