@@ -541,6 +541,7 @@ export default function App() {
     if (!draftId) return
     const capturedAt = timestamp()
     result.assets.forEach((asset) => db.runSync('INSERT INTO inspection_photo_queue (draft_id, client_id, local_uri, album, caption, mime_type, file_size_bytes, width, height, captured_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', draftId, clientId('photo'), asset.uri, photoAlbum, photoCaption.trim() || null, asset.mimeType ?? 'image/jpeg', asset.fileSize ?? null, asset.width ?? null, asset.height ?? null, capturedAt))
+    setPendingUploads(pendingRowCount(draftId))
     setPhotos(count); setPhotoCaption(''); refreshPhotoQueue(draftId); setNotice(`${result.assets.length} photo${result.assets.length === 1 ? '' : 's'} saved to the offline upload queue.`)
     if (session) void syncNow()
   }
@@ -582,6 +583,7 @@ export default function App() {
     if (!Object.values(values).every(Number.isFinite) || values.roof <= 0 || values.gutter < 0 || values.eave <= 0 || values.rafter <= 0 || values.pitch < 0 || values.pitch > 24 || values.soffit < 0 || values.fascia < 0 || !roofType.trim()) { setError('Enter valid roof, eave, rafter, pitch, soffit, fascia, and roof-type inputs.'); return }
     const draftId = saveDraft(); if (!draftId) return
     db.runSync('INSERT INTO inspection_measurements_local (draft_id, client_id, roof_squares, gutter_lf, eave_lf, rafter_lf, pitch, soffit_lf, fascia_lf, roof_type, latitude, longitude, captured_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', draftId, clientId('measurement'), values.roof, values.gutter, values.eave, values.rafter, values.pitch, values.soffit, values.fascia, roofType.trim(), point?.latitude ?? null, point?.longitude ?? null, timestamp())
+    setPendingUploads(pendingRowCount(draftId))
     setNotice('Measurements saved locally as manual, unverified inputs.'); if (session) void syncNow()
   }
 
@@ -619,6 +621,7 @@ export default function App() {
     if (!supabase || !session || !draftToSync || syncLock.current || !online) { if (!online) setNotice('Offline. Local work is saved and will retry when connectivity returns.'); return }
     const activeDraftId = draftRef.current?.id
     let sessionExpired = false
+    let syncSucceeded = false
     syncLock.current = true; setSyncing(true); setError('')
     try {
       const { data: workspaceId, error: workspaceError } = await supabase.rpc('current_workspace_id')
@@ -627,7 +630,7 @@ export default function App() {
       if (draftToSync.workspaceId && draftToSync.workspaceId !== workspaceId) throw new Error('This draft belongs to a different workspace. Switch workspace before syncing.')
       let remoteId = draftToSync.remoteId
       if (!remoteId) {
-        const { data, error: insertError } = await supabase.from('inspection_sessions').upsert({ workspace_id: workspaceId, lead_id: draftToSync.leadId, client_id: draftToSync.clientId, created_by: session.user.id, status: 'draft', client_version: 'field-0.4.0' }, { onConflict: 'workspace_id,client_id' }).select('id').single()
+        const { data, error: insertError } = await supabase.from('inspection_sessions').upsert({ workspace_id: workspaceId, lead_id: draftToSync.leadId, client_id: draftToSync.clientId, created_by: session.user.id, status: 'draft', client_version: 'field-0.5.0' }, { onConflict: 'workspace_id,client_id' }).select('id').single()
         if (insertError) throw insertError
         remoteId = data.id; db.runSync('UPDATE inspection_drafts SET remote_id = ?, workspace_id = ? WHERE id = ?', remoteId, workspaceId, draftToSync.id); const syncedDraft = { ...draftToSync, remoteId, workspaceId }; if (activeDraftId === draftToSync.id) { draftRef.current = syncedDraft; setDraft(syncedDraft) }
       }
@@ -662,6 +665,7 @@ export default function App() {
         if (recordError) throw recordError
         db.runSync('UPDATE inspection_photo_queue SET sync_status = ?, remote_id = ?, last_error = NULL, next_retry_at = NULL WHERE id = ?', 'synced', data.id, photo.id)
       }
+      syncSucceeded = true
       setNotice('Synced securely to the workspace. Evidence and estimates remain review-gated.')
     } catch (syncError) {
       const message = syncError instanceof Error ? syncError.message : 'Unknown sync error'
@@ -682,7 +686,7 @@ export default function App() {
       db.runSync('UPDATE inspection_photo_queue SET sync_status = ?, retry_count = retry_count + 1, next_retry_at = ?, last_error = ?, error = ? WHERE draft_id = ? AND sync_status IN (?, ?)', 'retrying', retryAt, message, message, draftToSync.id, 'queued', 'retrying')
       setError(`Sync paused: ${message}. Automatic retry scheduled.`)
     }
-    finally { syncLock.current = false; setSyncing(false); if (!sessionExpired) { setLastSyncedAt(new Date().toISOString()); loadDrafts(undefined, true) } }
+    finally { syncLock.current = false; setSyncing(false); if (!sessionExpired) { if (syncSucceeded) setLastSyncedAt(new Date().toISOString()); loadDrafts(undefined, true) } }
   }
 
   const coachItems = fieldCoach({
@@ -774,7 +778,7 @@ export default function App() {
                 : address.trim() || 'Capture the property. The photo stays on the phone until it syncs.'}
           </Text>
           <Text style={styles.syncChip}>
-            {syncing ? 'Syncing' : online === null ? 'Checking connection…' : !online ? 'Offline · saved on the phone' : lastSyncedAt ? `Synced at ${new Date(lastSyncedAt).toLocaleTimeString()}` : pendingUploads > 0 ? `${pendingUploads} photo${pendingUploads === 1 ? '' : 's'} waiting` : draft?.remoteId ? 'Synced' : 'Not uploaded yet'}
+            {syncing ? 'Syncing' : online === null ? 'Checking connection…' : !online ? 'Offline · saved on the phone' : pendingUploads > 0 ? `${pendingUploads} item${pendingUploads === 1 ? '' : 's'} waiting` : lastSyncedAt ? `Last synced at ${new Date(lastSyncedAt).toLocaleTimeString()}` : draft?.remoteId ? 'Synced' : 'Not uploaded yet'}
           </Text>
           {agenda[0]?.location ? (
             <Pressable
@@ -832,7 +836,7 @@ export default function App() {
         </Pressable>
         {showTools ? <>
         <View style={styles.metrics}>
-          <Metric value={String(photos)} label="Queued photos" />
+          <Metric value={String(pendingUploads)} label="Pending uploads" />
           <Metric value={draft ? 'Saved' : 'Draft'} label="Local inspection" />
           <Metric value={online ? 'Live' : 'Offline'} label="Sync state" />
         </View>
@@ -1087,7 +1091,7 @@ export default function App() {
         </Pressable>
         {notice ? <Text style={styles.notice}>{notice}</Text> : null}
         {error ? <Text style={styles.error}>{error}</Text> : null}
-        <Text style={styles.footer}>Field release 0.4.0 · local drafts remain until server confirmation.</Text>
+        <Text style={styles.footer}>Field release 0.5.0 · local drafts remain until server confirmation.</Text>
       </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

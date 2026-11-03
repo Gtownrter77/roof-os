@@ -16,6 +16,11 @@ for (const marker of [
   'Automatic retry scheduled.',
   'syncLock.current',
   'retryDelayMs',
+  'let syncSucceeded = false',
+  'syncSucceeded = true',
+  'if (syncSucceeded) setLastSyncedAt(new Date().toISOString())',
+  'setPendingUploads(pendingRowCount(draftId))',
+  'label="Pending uploads"',
   'loadDrafts(undefined, true)',
   'readLocalDrafts()',
   'syncQueuedDrafts',
@@ -24,7 +29,7 @@ for (const marker of [
   'const activeId = draftRef.current?.id ?? (preserveSelection ? undefined : preferredId)',
   'const activeDraftId = draftRef.current?.id',
   'if (activeDraftId === draftToSync.id)',
-  "client_version: 'field-0.4.0'",
+  "client_version: 'field-0.5.0'",
   'complete manual measurement set',
   'notes: draftToSync.verificationNotes',
   'eave_lf',
@@ -46,6 +51,8 @@ for (const marker of [
   'saveTechnicianVerification',
   'Automatic retry scheduled.',
 ]) assert.ok(app.includes(marker), `app contract missing: ${marker}`)
+const syncBlock = app.slice(app.indexOf('let syncSucceeded = false'), app.indexOf('\n  }\n\n  const coachItems'))
+assert.ok(syncBlock.indexOf('syncSucceeded = true') < syncBlock.indexOf('} catch (syncError) {'), 'success must be recorded only after all queued writes finish')
 for (const marker of [
   'inspection_sessions_workspace_client_uidx',
   'inspection_measurements_workspace_client_uidx',
