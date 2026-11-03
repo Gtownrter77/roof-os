@@ -98,3 +98,15 @@
 - [ ] Install the built APK on a physical Android device; verify sign-in, capture, airplane-mode save, app restart, reconnection, sync, retry, logout/login and workspace isolation.
 - [ ] Compare the installed build's version/package/signature against the provenance manifest.
 - [ ] Keep release marked preview until all device and authenticated-production gates have evidence.
+
+
+## Execution record — 2026-11-02
+
+- APK workflow now pins EAS CLI 27.2.0, checks out the selected ref, records its SHA, selects the EAS build by that SHA, emits a SHA-256 and JSON provenance manifest, inspects the APK package/version with Android build-tools, verifies the APK signature and records the signing certificate fingerprint, retains artifacts for 90 days, and publishes tagged internal APKs as GitHub prereleases.
+- The release contract test passed on the prior branch checkpoint; the latest workflow changes are being revalidated on the current PR head.
+- Field SQLite upgrade behavior is repaired: `ensureLocalColumns` uses `PRAGMA table_info` and only applies missing columns. Disk/locking/corruption/schema errors now propagate. The fake-database regression covers existing/missing columns, per-table schema caching, unsupported tables and error propagation. Field TypeScript/Expo config and the release-check containing this test passed on the preceding CI checkpoint; final-head CI remains pending.
+- No EAS APK build has been produced, the `EXPO_TOKEN` secret has not been verified, and no physical Android install/smoke test has been performed. Keep the artifact classified as internal preview until those gates pass.
+- On-device inference remains intentionally disabled; the model/runtime are unavailable and no model artifact is bundled. The field coach is deterministic. Existing server photo analysis is workspace-admin gated and depends on Ollama vision configuration; server transcription is feature-flagged but not integrated into the mobile app.
+- Highest-value AI follow-ups: missing-evidence/elevation checklist, photo caption and album suggestions with technician review, voice-to-structured notes with read-back, OCR of product/receipt/claim documents, and estimate draft prefill from verified measurements and workspace price books. No AI output may certify measurements, decide claims/code, approve estimates, send customer communications, or trigger purchases/payments.
+- Physical device validation still required: airplane-mode capture, process kill/restart, reconnect, duplicate retry, auth expiry, workspace switch, large/corrupt image, permission denial and low-storage handling.
+
