@@ -1,7 +1,16 @@
+## 2026-11-03 — Intake Router and Office Copilot implementation batch
+
+- Branch: `feat/two-bounded-ai-agents-20261103`.
+- Added `workers/intake-router.ts` with deterministic contact normalization, duplicate detection, round-robin owner suggestion, first-response tasks, and review-task proposals through the action ledger.
+- Added `workers/office-copilot.ts` with deterministic inspection evidence summaries, missing-album/caption/upload/duplicate checks, optional advisory Ollama output, and human-review-gated report drafts.
+- Added focused contract tests and required CI commands: `test:intake-router` and `test:office-copilot`.
+- Local evidence: both focused tests, registry test, TypeScript, and `git diff --check` passed. Production readiness still requires deployed worker heartbeats, idempotent live runs, failure-review evidence, and two-workspace isolation.
+- Next: push this branch, open a protected PR, wait for required CI, merge, and verify main.
+
 ## 2026-11-03 — Deployable automation runtime and heartbeat verification batch
 
 - Branch: `feat/deployable-automation-runtime-20261103`, based on GitHub `main` `f4043836cd207a24e3a0a92186211321bea3a387`.
-- Added `workers/agent-registry.ts`, a source-of-truth registry for the four bounded agents. Intake Router and Office Copilot remain explicitly unimplemented; they cannot be reported healthy.
+- Added `workers/agent-registry.ts`, a source-of-truth registry for the four bounded agents. Intake Router and Office Copilot were initially unimplemented in this checkpoint; the later implementation batch above adds their worker modules.
 - Replaced the heartbeat probe's scheduler self-attestation with a read-only, heartbeat-only readiness report. `/api/cron/heartbeat` now reads service-side heartbeats, evaluates five-minute freshness, reports workspace-level reasons, and performs no action execution.
 - Added `test:agent-registry` to package scripts and required CI, plus registry and heartbeat contract coverage.
 - Level 1 evidence: registry, heartbeat probe, runtime heartbeat, agent runtime, action policy, and inspection-quality contracts passed; TypeScript passed; `git diff --check` passed.

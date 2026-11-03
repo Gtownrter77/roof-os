@@ -61,6 +61,8 @@ jobs:
       - run: npm run test:authenticated-readonly-smoke
       - run: npm run test:heartbeat-probe
       - run: npm run test:agent-registry
+      - run: npm run test:intake-router
+      - run: npm run test:office-copilot
       - run: npm run test:field-device-evidence
       - run: npm run test:release-gate-summary
       - run: npm run test:field-coach

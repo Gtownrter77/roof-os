@@ -19,9 +19,9 @@ const REGISTRATIONS: Record<AgentKey, AgentRegistration> = {
   intake_router: {
     agentKey: 'intake_router',
     label: 'Intake and Lead Router',
-    implemented: false,
-    entryPoint: null,
-    heartbeatSource: null,
+    implemented: true,
+    entryPoint: 'workers/intake-router.ts',
+    heartbeatSource: 'workers/intake-router.ts',
   },
   scheduler: {
     agentKey: 'scheduler',
@@ -40,9 +40,9 @@ const REGISTRATIONS: Record<AgentKey, AgentRegistration> = {
   office_copilot: {
     agentKey: 'office_copilot',
     label: 'Office Copilot and Report Agent',
-    implemented: false,
-    entryPoint: null,
-    heartbeatSource: null,
+    implemented: true,
+    entryPoint: 'workers/office-copilot.ts',
+    heartbeatSource: 'workers/office-copilot.ts',
   },
 }
 
