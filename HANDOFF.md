@@ -1,3 +1,14 @@
+## 2026-11-03 — Deployable automation runtime and heartbeat verification batch
+
+- Branch: `feat/deployable-automation-runtime-20261103`, based on GitHub `main` `f4043836cd207a24e3a0a92186211321bea3a387`.
+- Added `workers/agent-registry.ts`, a source-of-truth registry for the four bounded agents. Intake Router and Office Copilot remain explicitly unimplemented; they cannot be reported healthy.
+- Replaced the heartbeat probe's scheduler self-attestation with a read-only, heartbeat-only readiness report. `/api/cron/heartbeat` now reads service-side heartbeats, evaluates five-minute freshness, reports workspace-level reasons, and performs no action execution.
+- Added `test:agent-registry` to package scripts and required CI, plus registry and heartbeat contract coverage.
+- Level 1 evidence: registry, heartbeat probe, runtime heartbeat, agent runtime, action policy, and inspection-quality contracts passed; TypeScript passed; `git diff --check` passed.
+- Level 2 evidence: `release-check` and `verify:security` passed. No production migration or database mutation was performed.
+- Level 3 evidence: production build passed and included `/api/cron/heartbeat`. Deployed heartbeat freshness, authenticated worker execution, two-workspace isolation, and physical-device evidence remain external gates.
+- Next: push this branch, open a protected PR, wait for required CI, then run the authorized staging heartbeat probe. Do not begin the Intake Router worker until this batch is merged and externally verified.
+
 ## 2026-11-03 — Android APK parity checkpoint
 
 - Current source baseline: `main` at `cc0dca653236a93f23040a7c4f8a0f8b9857ae28`, merged from PR #377. The preceding successful APK workflow run #39739973454 was built from `9f65193e7d6d63764c71f222a055900f3bcabe5a` on 2026-10-22, before these field-app updates.
