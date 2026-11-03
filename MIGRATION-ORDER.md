@@ -10,6 +10,7 @@ Production project `xksumagfbegdlapwysps` has the following current ledger seque
 - `075 harden_security_definer_triggers`
 - `076 private_passport_rate_limit`
 - `077 harden_remaining_security_definers`
+- `078 explicitly_deny_public_rate_limit_clients`
 
 The source files for 073–074 were rewritten additively before production application. Existing legacy warranty fields (`registration_status`, `passport_id`, `lead_id`) and Roof Passport fields (`status`, `lead_id`, `public_token`, `public_shared`) remain intact. Job-linked lifecycle state is stored separately. Migration 075 sets an empty `search_path` and revokes direct API execution from every SECURITY DEFINER trigger function; authenticated execution remains on `is_estimate_admin(uuid)` because it is used by RLS policies, while anonymous execution is revoked.
 
