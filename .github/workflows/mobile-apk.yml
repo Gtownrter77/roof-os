@@ -164,4 +164,5 @@ jobs:
             artifacts/roof-os-field-preview.manifest.json \
             --verify-tag \
             --title "ROOF/OS Field $GITHUB_REF_NAME" \
-            --generate-notes
+            --generate-notes \
+            --prerelease
