@@ -537,12 +537,22 @@ export default function App() {
     if (!permission.granted) { Alert.alert('Camera permission needed', 'Allow camera access to capture inspection evidence.'); return }
     const result = await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], quality: 0.8 })
     if (result.canceled) return
-    const count = photos + result.assets.length; const draftId = saveDraft(address, count, point, selectedLeadId)
+    const count = photos + result.assets.length; const draftId = saveDraft(address, photos, point, selectedLeadId)
     if (!draftId) return
     const capturedAt = timestamp()
-    result.assets.forEach((asset) => db.runSync('INSERT INTO inspection_photo_queue (draft_id, client_id, local_uri, album, caption, mime_type, file_size_bytes, width, height, captured_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', draftId, clientId('photo'), asset.uri, photoAlbum, photoCaption.trim() || null, asset.mimeType ?? 'image/jpeg', asset.fileSize ?? null, asset.width ?? null, asset.height ?? null, capturedAt))
-    setPendingUploads(pendingRowCount(draftId))
-    setPhotos(count); setPhotoCaption(''); refreshPhotoQueue(draftId); setNotice(`${result.assets.length} photo${result.assets.length === 1 ? '' : 's'} saved to the offline upload queue.`)
+    let pendingCount = 0
+    try {
+      db.withTransactionSync(() => {
+        result.assets.forEach((asset) => db.runSync('INSERT INTO inspection_photo_queue (draft_id, client_id, local_uri, album, caption, mime_type, file_size_bytes, width, height, captured_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', draftId, clientId('photo'), asset.uri, photoAlbum, photoCaption.trim() || null, asset.mimeType ?? 'image/jpeg', asset.fileSize ?? null, asset.width ?? null, asset.height ?? null, capturedAt))
+        db.runSync('UPDATE inspection_drafts SET photo_count = ?, updated_at = ? WHERE id = ?', count, timestamp(), draftId)
+        pendingCount = pendingRowCount(draftId)
+      })
+    } catch {
+      setError('Could not save the captured photos to the offline queue. The inspection draft is still on the phone; try again.')
+      return
+    }
+    saveDraft(address, count, point, selectedLeadId)
+    setPhotos(count); setPendingUploads(pendingCount); setPhotoCaption(''); refreshPhotoQueue(draftId); setNotice(`${result.assets.length} photo${result.assets.length === 1 ? '' : 's'} saved to the offline upload queue.`)
     if (session) void syncNow()
   }
 
@@ -582,9 +592,19 @@ export default function App() {
     const values = { roof: Number(squares), gutter: Number(gutters), eave: Number(eave), rafter: Number(rafter), pitch: Number(pitch), soffit: Number(soffit), fascia: Number(fascia) }
     if (!Object.values(values).every(Number.isFinite) || values.roof <= 0 || values.gutter < 0 || values.eave <= 0 || values.rafter <= 0 || values.pitch < 0 || values.pitch > 24 || values.soffit < 0 || values.fascia < 0 || !roofType.trim()) { setError('Enter valid roof, eave, rafter, pitch, soffit, fascia, and roof-type inputs.'); return }
     const draftId = saveDraft(); if (!draftId) return
-    db.runSync('INSERT INTO inspection_measurements_local (draft_id, client_id, roof_squares, gutter_lf, eave_lf, rafter_lf, pitch, soffit_lf, fascia_lf, roof_type, latitude, longitude, captured_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', draftId, clientId('measurement'), values.roof, values.gutter, values.eave, values.rafter, values.pitch, values.soffit, values.fascia, roofType.trim(), point?.latitude ?? null, point?.longitude ?? null, timestamp())
-    setPendingUploads(pendingRowCount(draftId))
-    setNotice('Measurements saved locally as manual, unverified inputs.'); if (session) void syncNow()
+    let pendingCount = 0
+    try {
+      db.withTransactionSync(() => {
+        db.runSync('INSERT INTO inspection_measurements_local (draft_id, client_id, roof_squares, gutter_lf, eave_lf, rafter_lf, pitch, soffit_lf, fascia_lf, roof_type, latitude, longitude, captured_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', draftId, clientId('measurement'), values.roof, values.gutter, values.eave, values.rafter, values.pitch, values.soffit, values.fascia, roofType.trim(), point?.latitude ?? null, point?.longitude ?? null, timestamp())
+        pendingCount = pendingRowCount(draftId)
+      })
+    } catch {
+      setError('Could not save measurements to the offline queue. The inspection draft is still on the phone; try again.')
+      return
+    }
+    setNotice('Measurements saved locally as manual, unverified inputs.')
+    setPendingUploads(pendingCount)
+    if (session) void syncNow()
   }
 
   function saveTechnicianVerification() {
@@ -665,6 +685,7 @@ export default function App() {
         if (recordError) throw recordError
         db.runSync('UPDATE inspection_photo_queue SET sync_status = ?, remote_id = ?, last_error = NULL, next_retry_at = NULL WHERE id = ?', 'synced', data.id, photo.id)
       }
+      if (draftRef.current?.id === draftToSync.id) setPendingUploads(pendingRowCount(draftToSync.id))
       syncSucceeded = true
       setNotice('Synced securely to the workspace. Evidence and estimates remain review-gated.')
     } catch (syncError) {
@@ -836,7 +857,7 @@ export default function App() {
         </Pressable>
         {showTools ? <>
         <View style={styles.metrics}>
-          <Metric value={String(pendingUploads)} label="Pending uploads" />
+          <Metric value={String(pendingUploads)} label="Pending items" />
           <Metric value={draft ? 'Saved' : 'Draft'} label="Local inspection" />
           <Metric value={online ? 'Live' : 'Offline'} label="Sync state" />
         </View>
