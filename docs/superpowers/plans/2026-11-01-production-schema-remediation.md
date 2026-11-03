@@ -95,3 +95,16 @@
 - [ ] Use disposable records only and remove them after verifying rollback/cleanup.
 - [ ] Confirm no external messages, payment charges, warranty registrations, or insurer submissions are sent by tests.
 - [ ] Update the release evidence and handoff with exact applied migration names, deployment SHA, test run IDs, and explicit unresolved gates.
+
+
+## Execution record — 2026-11-02
+
+- Production project `xksumagfbegdlapwysps`: migrations 057 and 059–075 are applied and recorded. Migration 058 was already present under the ledger alias `atomic_estimate_line_item_replacement`; it was not replayed. The next new source prefix is 076.
+- Migration 057's follow-up trigger now honors the workspace feature flag, uses an empty search path and schema-qualified objects.
+- Migrations 073–074 are additive against the deployed 020 warranty/passport contract. Legacy status and public-share columns remain intact; production-job lifecycle uses separate fields.
+- Live authenticated rollback tests passed for legacy warranty insert/update, legacy passport insert/share update, and cross-workspace insert rejection. All test writes rolled back; no synthetic production records remain.
+- Migration 075 hardens 33 SECURITY DEFINER trigger functions. Live verification: all 33 have an empty search path and zero direct EXECUTE for anon/authenticated. `is_estimate_admin(uuid)` remains authenticated-callable for RLS and is no longer anonymous.
+- CI coverage now applies 075 in the isolated estimate-authority and production-job PostgreSQL rehearsals. The latest PR-head run remains pending; earlier failures were traced to the test harness applying migration 059 in the wrong fixture. That was removed from the job-only fixture and the helper hardening is conditional when migration 059 is not part of a given rehearsal.
+- Ruling: do not bulk-create indexes for the 127 unindexed-FK advisor notices — workload, table size, and write/storage trade-offs have not been measured. Review and index hot paths selectively.
+- Remaining: final-head PostgreSQL CI pass, full owner/member lifecycle checks for all new production workflows, Vercel production deployment SHA/runtime verification, eight authenticated SECURITY DEFINER helper/RPC reviews, and Supabase leaked-password protection enablement.
+
