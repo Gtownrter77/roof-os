@@ -337,6 +337,10 @@ jobs:
            grep -q "p.prorettype = 'trigger'::regtype" supabase/migrations/075_harden_security_definer_triggers.sql
            grep -q "REVOKE EXECUTE ON FUNCTION %s FROM PUBLIC, anon, authenticated" supabase/migrations/075_harden_security_definer_triggers.sql
            test -f scripts/ci/security-definer-trigger-assertions.sql
+           test -f supabase/migrations/076_private_passport_rate_limit.sql
+           grep -q "set search_path = ''" supabase/migrations/076_private_passport_rate_limit.sql
+           grep -q "revoke all on table public.public_access_rate_limits" supabase/migrations/076_private_passport_rate_limit.sql
+           test -f scripts/ci/passport-rate-limit-privacy-assertions.sql
           grep -q "The approved scope does not reconcile with the accepted total and tax" supabase/migrations/071_production_invoice.sql
           grep -q "A production invoice cannot be deleted; void it instead" supabase/migrations/071_production_invoice.sql
           grep -q "A void invoice is immutable" supabase/migrations/071_production_invoice.sql
