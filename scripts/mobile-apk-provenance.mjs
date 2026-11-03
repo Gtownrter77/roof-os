@@ -39,6 +39,26 @@ const apkBytes = readFileSync(apkPath)
 if (apkBytes.length === 0) throw new Error('Downloaded APK is empty')
 const sha256 = createHash('sha256').update(apkBytes).digest('hex')
 const sizeBytes = statSync(apkPath).size
+
+// Verify the artifact itself, not only the EAS job metadata. This catches a
+// wrong package, stale version, unsigned/corrupt APK, or mismatched release.
+const androidBuildTools = requiredEnv('ANDROID_BUILD_TOOLS')
+const aapt = resolve(androidBuildTools, 'aapt')
+const apksigner = resolve(androidBuildTools, 'apksigner')
+const badging = execFileSync(aapt, ['dump', 'badging', apkPath], { encoding: 'utf8' })
+const packageMatch = badging.match(/^package: name='([^']+)' versionCode='([^']+)' versionName='([^']+)'/m)
+if (!packageMatch) throw new Error('Android package metadata could not be read from the APK')
+const [, binaryPackage, binaryVersionCode, binaryVersion] = packageMatch
+if (binaryPackage !== androidPackage) {
+  throw new Error(`APK package mismatch: expected ${androidPackage}, found ${binaryPackage}`)
+}
+if (binaryVersion !== appVersion) {
+  throw new Error(`APK version mismatch: expected ${appVersion}, found ${binaryVersion}`)
+}
+const signatureReport = execFileSync(apksigner, ['verify', '--verbose', '--print-certs', apkPath], { encoding: 'utf8' })
+const certificateMatch = signatureReport.match(/Signer #1 certificate SHA-256 digest: ([a-f0-9:]+)/i)
+if (!certificateMatch) throw new Error('APK signing certificate SHA-256 fingerprint is missing')
+const signingCertificateSha256 = certificateMatch[1].replaceAll(':', '').toLowerCase()
 const workflowUrl = process.env.GITHUB_SERVER_URL && process.env.GITHUB_REPOSITORY && process.env.GITHUB_RUN_ID
   ? `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`
   : null
@@ -52,6 +72,13 @@ const manifest = {
   artifactType: 'internal-preview-apk',
   sizeBytes,
   sha256,
+  signingCertificateSha256,
+  binary: {
+    packageName: binaryPackage,
+    versionCode: binaryVersionCode,
+    versionName: binaryVersion,
+    signatureVerified: true,
+  },
   source: {
     repository: process.env.GITHUB_REPOSITORY ?? null,
     ref: sourceRef,
