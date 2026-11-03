@@ -2,12 +2,6 @@ name: ROOF OS Mobile APK
 
 on:
   workflow_dispatch:
-    inputs:
-      ref:
-        description: Git branch, tag, or commit to build
-        required: true
-        default: main
-        type: string
   push:
     tags:
       - 'field-v*'
@@ -21,18 +15,17 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     permissions:
-      contents: write
+      contents: read
     defaults:
       run:
         working-directory: apps/field
     env:
-      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-      SOURCE_REF: ${{ github.event_name == 'workflow_dispatch' && inputs.ref || github.ref }}
+      SOURCE_REF: ${{ github.event_name == 'workflow_dispatch' && 'main' || github.ref }}
     steps:
-      - name: Check out selected source
+      - name: Check out protected source
         uses: actions/checkout@v5
         with:
-          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.ref || github.ref }}
+          ref: ${{ github.event_name == 'workflow_dispatch' && 'main' || github.ref }}
           fetch-depth: 0
 
       - name: Set up Node 22
@@ -75,6 +68,8 @@ jobs:
 
       - name: Require Expo build credentials
         shell: bash
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
           if [ -z "${EXPO_TOKEN:-}" ]; then
             echo 'EXPO_TOKEN is required in the repository or protected environment secrets.' >&2
@@ -90,10 +85,14 @@ jobs:
 
       - name: Build Android preview APK with EAS
         run: eas build --platform android --profile preview --non-interactive --wait
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
 
       - name: Download the exact source build
         id: eas
         shell: bash
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
           set -euo pipefail
           mkdir -p ../../artifacts
@@ -106,8 +105,6 @@ jobs:
           test -f "$APK"
           cp "$APK" ../../artifacts/roof-os-field-preview.apk
           echo "build_id=$BUILD_ID" >> "$GITHUB_OUTPUT"
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
 
       - name: Verify APK binary identity and signature
         shell: bash
@@ -151,8 +148,34 @@ jobs:
           if-no-files-found: error
           retention-days: 90
 
-      - name: Publish tagged APK release
-        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/field-v')
+  publish-preview-release:
+    name: Publish tagged APK prerelease
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/field-v')
+    needs: build-preview-apk
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download the attested APK artifact
+        uses: actions/download-artifact@v5
+        with:
+          pattern: roof-os-field-preview-*
+          path: artifacts
+          merge-multiple: true
+
+      - name: Verify release artifact and source commit
+        shell: bash
+        env:
+          SOURCE_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          test -s artifacts/roof-os-field-preview.apk
+          test -s artifacts/roof-os-field-preview.apk.sha256
+          test -s artifacts/roof-os-field-preview.manifest.json
+          (cd artifacts && sha256sum -c roof-os-field-preview.apk.sha256)
+          node -e "const m=require('./artifacts/roof-os-field-preview.manifest.json'); if (m.source.commit !== process.env.SOURCE_SHA) throw new Error('Release artifact source commit mismatch'); if (m.artifactType !== 'internal-preview-apk') throw new Error('Unexpected artifact type')"
+
+      - name: Publish verified prerelease
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
