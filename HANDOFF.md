@@ -12,7 +12,7 @@ Project: `xksumagfbegdlapwysps`.
 - Did not replay `058`; the live ledger already records its effect as `atomic_estimate_line_item_replacement`.
 - Applied `059`–`072` in order.
 - Applied backward-compatible `073 warranty_passport_legacy_compatible` and `074 payment_warranty_lifecycle_guards_legacy_compatible`.
-- Applied `075 harden_security_definer_triggers`.
+- Applied `075 harden_security_definer_triggers` and `076 private_passport_rate_limit`.
 
 Migration 073–074 preserve the old warranty/passport field contracts and separate the new production-job lifecycle fields. Live authenticated rollback tests verified a legacy warranty insert/update, legacy Roof Passport insert/share update, and rejection of cross-workspace warranty/passport inserts. All test writes rolled back; live counts remain zero for warranties, Roof Passports, production jobs and production invoices.
 
