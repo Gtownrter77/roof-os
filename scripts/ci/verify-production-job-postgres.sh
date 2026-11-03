@@ -49,6 +49,8 @@ psql_db "$JOB_DB" -f supabase/migrations/073_warranty_passport.sql
 psql_db "$JOB_DB" -f supabase/migrations/074_payment_warranty_guards.sql
 psql_db "$JOB_DB" -f supabase/migrations/075_harden_security_definer_triggers.sql
 psql_db "$JOB_DB" -f scripts/ci/security-definer-trigger-assertions.sql
+psql_db "$JOB_DB" -f supabase/migrations/077_harden_remaining_security_definers.sql
+psql_db "$JOB_DB" -f scripts/ci/security-definer-search-path-assertions.sql
 psql_db "$JOB_DB" -c "grant select,insert,update,delete on all tables in schema public to authenticated"
 psql_db "$JOB_DB" -f scripts/ci/production-job-invoice-assertions.sql
 psql_db "$JOB_DB" -f scripts/ci/production-job-lifecycle-assertions.sql
