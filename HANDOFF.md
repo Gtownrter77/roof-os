@@ -1,3 +1,43 @@
+## 2026-11-03 — AI automation roadmap and guardrails
+
+The recommended direction is to add AI as a **reviewable copilot around existing workflow events**, not as an unrestricted agent that changes records or sends messages autonomously. The current system already has useful foundations: web-side agent runtime/cron/worker processing, tasks and action approvals, workspace controls, and a field app with offline drafts, photos, measurements, GPS, technician verification, retry state, and sync status.
+
+### First automation to build: Inspection Completeness Copilot
+
+When a field inspection is saved or synchronized, analyze whether it is ready for office work. Check for missing required photo categories, blank or contradictory measurements, missing address/lead/technician/verification information, weak or duplicate photos, roof-type/measurement/note mismatches, and insufficient evidence for an estimate or claim packet. Produce a review queue item such as “Inspection is 78% complete” with the missing evidence listed. Do not auto-correct the inspection or mark it complete.
+
+### Additional automation opportunities
+
+- **New lead triage:** normalize addresses, classify storm/roof/siding/gutter intent, detect duplicates, suggest the next task, and draft a first response. Human approval remains required for outbound messages.
+- **Appointment preparation:** cache a field brief with customer/property history, open tasks, weather/storm context, expected evidence, and known missing information before the technician leaves connectivity.
+- **Estimate preflight:** compare proposed scope and line items against measurements and photos; flag missing materials, labor, waste, dimensions, or manager approval. Never silently change prices or submit an estimate.
+- **Claims evidence assistant:** extract dates, addresses, damage descriptions, and document references; match documents to inspections; identify missing evidence; produce a source-linked checklist. It must not decide coverage or invent damage.
+- **Follow-up automation:** propose tasks for unreviewed estimates, unsynced verification, missing documents, post-appointment follow-up, warranty expiry, and closeout. Retries must be idempotent.
+- **Weather-aware dispatch suggestions:** rank jobs by storm context, geography, safety, and weather sensitivity. Recommendations first; rescheduling or dispatch changes require approval.
+- **Receptionist conversation assistant:** summarize conversations, detect intent/urgency, extract appointment/address data, draft replies, and create tasks. Sending messages or changing appointments requires approval.
+- **Field photo quality assistant:** flag blurry/dark/duplicate/mis-categorized photos and missing roof-area coverage. Ask for another photo; do not claim damage from a quality flag.
+
+### Proposed automation architecture
+
+```text
+Event -> automation rule -> idempotent automation run -> AI/deterministic analysis
+      -> suggestion or task -> human review -> approved action -> audit record
+```
+
+Add durable records for `automation_runs`, `automation_suggestions`, `automation_tasks`, `automation_approvals`, and `automation_artifacts`. Every result should retain workspace ID, source record IDs, trigger/time, model/provider/version, prompt or rule version, confidence/severity, evidence references, lifecycle state (`proposed`, `approved`, `rejected`, `expired`, `executed`), idempotency key, reviewer, and review timestamp.
+
+### Mandatory guardrails
+
+AI must not independently change prices, decide insurance coverage, mark an inspection verified, sign documents, send customer/insurer messages, reschedule appointments, change workspace ownership, delete/overwrite evidence, or treat an AI observation as a measurement. Each automation needs deterministic pre-checks, bounded inputs/timeouts, an idempotency key, evidence-linked output, human approval for material actions, retry/failure escalation, a complete audit trail, and workspace/record ownership checks.
+
+### Rollout order
+
+1. Low risk/high value: inspection completeness, photo-quality flags, missing-measurement detection, appointment briefs, and internal task generation.
+2. Workflow acceleration: estimate preflight, lead triage, claims evidence checklist, follow-up tasks, and receptionist draft replies.
+3. Controlled actions: approved customer messaging, approved dispatch changes, approved estimate updates, and automated warranty/closeout reminders.
+
+The first implementation should follow the complete path: **capture offline -> sync -> analyze -> create review task -> technician or manager resolves it**. Do not enable native field AI inference until its model/runtime and offline behavior are explicitly reviewed; the current field handoff still treats AI observations as non-authoritative.
+
 ## 2026-11-03 — Field theme parity and APK checkpoint
 
 - Current verified source baseline before this change: `main` at `f404383` (`docs: record field APK 0.5.0 artifact evidence (#378)`). Older handoff entries were treated as historical and not assumed current.
