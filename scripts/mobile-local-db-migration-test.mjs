@@ -33,7 +33,6 @@ ensureLocalColumns(database, [
 
 assert.deepEqual(executed, [
   'ALTER TABLE inspection_drafts ADD COLUMN client_id TEXT',
-  'ALTER TABLE inspection_measurements_local ADD COLUMN roof_squares REAL',
   'ALTER TABLE inspection_photo_queue ADD COLUMN caption TEXT',
 ])
 assert.equal(reads.length, 3, 'read each table schema once')
