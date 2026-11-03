@@ -27,6 +27,7 @@ assert.ok(workflow.includes('retention-days: 90'), 'APK artifact should be retai
 assert.ok(workflow.includes("if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/field-v')"), 'release upload must be restricted to version tags')
 assert.ok(workflow.includes('gh release create'), 'tagged APKs must be attached to a GitHub Release')
 assert.ok(workflow.includes('--verify-tag'), 'release must verify its source tag')
+assert.ok(workflow.includes('--prerelease'), 'internal preview APK releases must be clearly marked as prereleases')
 
 for (const marker of [
   'SOURCE_SHA',
