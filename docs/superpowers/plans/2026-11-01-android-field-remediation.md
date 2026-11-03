@@ -39,7 +39,7 @@
 - Modify: `package.json`
 
 **Interfaces:**
-- Build input: explicit tag/ref and exact source SHA.
+- Build input: protected `main` for manual preview builds or a `field-v*` tag for release builds, plus the exact source SHA.
 - Outputs: APK artifact, JSON build manifest, SHA-256 checksum, Expo build ID, app version, Android package, commit SHA, workflow run URL.
 - Artifact retention and release publication must be explicit.
 
