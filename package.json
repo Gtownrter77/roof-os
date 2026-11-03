@@ -17,6 +17,7 @@
     "audit": "npm audit --omit=dev --audit-level=high",
     "lint": "tsc --noEmit",
     "test:mobile-offline-sync": "node scripts/mobile-offline-sync-test.mjs",
+    "test:field-theme-parity": "node scripts/field-theme-parity-test.mjs",
     "test:mobile-ai-observation-security": "node scripts/mobile-ai-observation-security-test.mjs",
     "test:field-coach": "node --experimental-strip-types scripts/field-coach-test.mjs",
     "test:stale-screens": "node scripts/stale-screens-test.mjs",

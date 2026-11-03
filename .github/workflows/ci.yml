@@ -50,6 +50,7 @@ jobs:
       - run: npm run test:invitation-flow
       - run: npm run test:two-workspace-contract
       - run: npm run test:mobile-offline-sync
+      - run: npm run test:field-theme-parity
       - run: npm run test:mobile-ai-observation-security
       - run: npm run test:mobile-auth
       - run: npm run test:worker-heartbeat

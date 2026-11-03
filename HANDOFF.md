@@ -1,3 +1,11 @@
+## 2026-11-03 — Field theme parity and APK checkpoint
+
+- Current verified source baseline before this change: `main` at `f404383` (`docs: record field APK 0.5.0 artifact evidence (#378)`). Older handoff entries were treated as historical and not assumed current.
+- Branch: `feat/field-theme-parity-20261103`. The field app now mirrors the current web theme collection's six IDs and names: Professional, Tornado Alley, Storm Tracker 11, Hail Core, Lightning Front, and After the Storm.
+- Added a native React Native background renderer with theme-specific palette/motif layers, reduced dependency surface, no network/media requirement, and a device-local SecureStore preference. The picker is in `Measurements, leads, and drafts` → `Field atmosphere`; inspection data and sync behavior are unchanged.
+- Local validation passed: Expo Android bundle export, field TypeScript, Expo config, field theme parity contract, mobile offline-sync, mobile auth, mobile release contract, and field-coach checks. Root web typecheck was not run to completion in the fresh clone because root dependencies were not installed; no web source was changed except the new CI contract registration.
+- APK status at this checkpoint: not yet built from this branch. The existing authenticated EAS preview workflow is the required build route; it must finish, download the APK, and produce a checksum before this is called an APK release.
+
 ## 2026-11-03 — Android APK parity checkpoint
 
 - Current source baseline: `main` at `cc0dca653236a93f23040a7c4f8a0f8b9857ae28`, merged from PR #377. The preceding successful APK workflow run #39739973454 was built from `9f65193e7d6d63764c71f222a055900f3bcabe5a` on 2026-10-22, before these field-app updates.

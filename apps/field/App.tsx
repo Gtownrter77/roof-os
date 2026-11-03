@@ -49,6 +49,7 @@ const webAppUrl = process.env.EXPO_PUBLIC_WEB_APP_URL ?? 'https://roof-os-lemon.
 
 import { db, initLocalDb } from './src/localDb'
 import RadarCinema from './src/RadarCinema'
+import { FIELD_THEMES, FieldThemeBackground, FIELD_THEME_STORAGE_KEY, isFieldTheme, type FieldThemeId } from './src/FieldThemeBackground'
 import {
   activeAlertHeadline,
   draftNeedsSync,
@@ -145,6 +146,7 @@ export default function App() {
   const [cooldown, setCooldown] = useState(0)
   const [showPassword, setShowPassword] = useState(false)
   const [showRadar, setShowRadar] = useState(false)
+  const [fieldTheme, setFieldTheme] = useState<FieldThemeId>('storm-command')
 
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null)
   const [address, setAddress] = useState('')
@@ -187,6 +189,9 @@ export default function App() {
       .then((saved) => {
         if (saved && !email) setEmail(saved)
       })
+      .catch(() => {})
+    SecureStore.getItemAsync(FIELD_THEME_STORAGE_KEY)
+      .then((saved) => { if (isFieldTheme(saved)) setFieldTheme(saved) })
       .catch(() => {})
 
     if (!supabase) {
@@ -236,6 +241,11 @@ export default function App() {
     const interval = setInterval(retry, 30_000)
     return () => { subscription.remove(); clearInterval(interval) }
   }, [session])
+
+  async function chooseFieldTheme(theme: FieldThemeId) {
+    setFieldTheme(theme)
+    try { await SecureStore.setItemAsync(FIELD_THEME_STORAGE_KEY, theme) } catch { /* Theme remains available for this session. */ }
+  }
 
   function readLocalDrafts(): Draft[] {
     const userId = session?.user.id
@@ -730,6 +740,7 @@ export default function App() {
   if (booting) {
     return (
       <SafeAreaView style={styles.center}>
+        <FieldThemeBackground theme={fieldTheme} />
         <ActivityIndicator color={colors.blue} />
       </SafeAreaView>
     )
@@ -764,12 +775,14 @@ export default function App() {
         showPassword={showPassword}
         setShowPassword={setShowPassword}
         webAppUrl={webAppUrl}
+        theme={fieldTheme}
       />
     )
   }
 
   return (
     <SafeAreaView style={styles.safe}>
+      <FieldThemeBackground theme={fieldTheme} />
       <StatusBar style="dark" />
       <RadarCinema visible={showRadar} onClose={() => setShowRadar(false)} webAppUrl={webAppUrl} />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -856,6 +869,12 @@ export default function App() {
           <Text style={styles.secondaryText}>{showTools ? 'Hide measurements and leads' : 'Measurements, leads, and drafts'}</Text>
         </Pressable>
         {showTools ? <>
+        <Text style={styles.sectionTitle}>Field atmosphere</Text>
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Use the same storm backgrounds as ROOF/OS on the web</Text>
+          <Text style={styles.helper}>Saved on this device only. It does not change inspection data or sync behavior.</Text>
+          <FieldThemePicker theme={fieldTheme} onChange={(next) => void chooseFieldTheme(next)} />
+        </View>
         <View style={styles.metrics}>
           <Metric value={String(pendingUploads)} label="Pending items" />
           <Metric value={draft ? 'Saved' : 'Draft'} label="Local inspection" />
@@ -1142,6 +1161,7 @@ function AuthScreen({
   showPassword,
   setShowPassword,
   webAppUrl,
+  theme,
 }: {
   email: string
   password: string
@@ -1165,9 +1185,11 @@ function AuthScreen({
   showPassword: boolean
   setShowPassword: (val: boolean | ((prev: boolean) => boolean)) => void
   webAppUrl: string
+  theme: FieldThemeId
 }) {
   return (
     <SafeAreaView style={styles.center}>
+      <FieldThemeBackground theme={theme} />
       <View style={styles.authCard}>
         <Text style={styles.eyebrow}>ROOF/OS FIELD</Text>
         <Text style={styles.authTitle}>
@@ -1341,6 +1363,31 @@ function AuthScreen({
   )
 }
 
+function FieldThemePicker({ theme, onChange }: { theme: FieldThemeId; onChange: (theme: FieldThemeId) => void }) {
+  return (
+    <View style={styles.themePicker}>
+      {FIELD_THEMES.map((option) => (
+        <Pressable
+          key={option.id}
+          style={[styles.themeOption, theme === option.id && { borderColor: option.accent, backgroundColor: `${option.accent}18` }]}
+          onPress={() => onChange(option.id)}
+          accessibilityRole="radio"
+          accessibilityState={{ selected: theme === option.id }}
+        >
+          <View style={[styles.themeSwatch, { backgroundColor: option.sky, borderColor: option.accent }]}>
+            <View style={[styles.themeSwatchHorizon, { backgroundColor: option.horizon }]} />
+          </View>
+          <View style={styles.themeOptionCopy}>
+            <Text style={styles.themeOptionName}>{option.name}</Text>
+            <Text style={styles.themeOptionEyebrow}>{option.eyebrow}</Text>
+          </View>
+          {theme === option.id ? <Text style={[styles.themeSelected, { color: option.accent }]}>ON</Text> : null}
+        </Pressable>
+      ))}
+    </View>
+  )
+}
+
 function Metric({ value, label }: { value: string; label: string }) {
   return (
     <View style={styles.metric}>
@@ -1373,8 +1420,8 @@ function Checklist({
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#f7f9fc' },
-  center: { flex: 1, backgroundColor: '#f7f9fc', justifyContent: 'center', padding: 24 },
+  safe: { flex: 1, backgroundColor: 'transparent' },
+  center: { flex: 1, backgroundColor: 'transparent', justifyContent: 'center', padding: 24 },
   content: { padding: 20, paddingBottom: 40 },
   header: {
     flexDirection: 'row',
@@ -1630,4 +1677,12 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   footer: { color: colors.muted, fontSize: 12, lineHeight: 17, textAlign: 'center' },
+  themePicker: { gap: 8 },
+  themeOption: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 8, backgroundColor: '#ffffffd9' },
+  themeSwatch: { width: 48, height: 36, borderRadius: 8, borderWidth: 1, overflow: 'hidden', marginRight: 10 },
+  themeSwatchHorizon: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '44%' },
+  themeOptionCopy: { flex: 1 },
+  themeOptionName: { color: colors.ink, fontWeight: '800', fontSize: 13 },
+  themeOptionEyebrow: { color: colors.muted, fontSize: 9, fontWeight: '800', letterSpacing: 0.8, marginTop: 2 },
+  themeSelected: { fontSize: 10, fontWeight: '900', letterSpacing: 1 },
 })
