@@ -345,6 +345,9 @@ jobs:
            grep -q "p.prosecdef" supabase/migrations/077_harden_remaining_security_definers.sql
            grep -q "ALTER FUNCTION %s SET search_path = %L" supabase/migrations/077_harden_remaining_security_definers.sql
            test -f scripts/ci/security-definer-search-path-assertions.sql
+           test -f supabase/migrations/078_explicitly_deny_public_rate_limit_clients.sql
+           grep -q "deny_client_roles" supabase/migrations/078_explicitly_deny_public_rate_limit_clients.sql
+           test -f scripts/ci/passport-rate-limit-rls-assertions.sql
           grep -q "The approved scope does not reconcile with the accepted total and tax" supabase/migrations/071_production_invoice.sql
           grep -q "A production invoice cannot be deleted; void it instead" supabase/migrations/071_production_invoice.sql
           grep -q "A void invoice is immutable" supabase/migrations/071_production_invoice.sql
