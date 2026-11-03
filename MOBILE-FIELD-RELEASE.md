@@ -1,6 +1,38 @@
 # ROOF/OS Field Mobile Release 0.4.0
 
-**Current checkpoint — 2026-10-21:** The source and Expo configuration report version `0.4.0`. The app now includes explicit sign-out, owner-scoped local evidence retention, manual retry-now, and session-expiry recovery. These are source/CI behaviors only; an authenticated physical-device capture, offline reopen, private upload, and two-workspace test remain required.
+## Current checkpoint — 2026-11-02
+
+**The APK currently published on GitHub is not the current app.** The latest release is [field-apk-main-2501cc2](https://github.com/Gtownrter77/roof-os/releases/tag/field-apk-main-2501cc2), published 2026-10-22 from commit `2501cc20fc5a0e346426a389bbfe46be6aaa44c5`. Current `main` is `b74d23431aa4affcf512710635197bc0e1923256), **119 commits ahead** of that APK source. The existing APK is 78,795,524 bytes and has GitHub asset SHA-256 `580d3ebac4ddc1143c9c5336123a0b7c12fc996185ee4cfdb3bdc77f31ec357b`. It has no companion provenance manifest or published checksum file.
+
+The app source still reports version `0.4.0` and package `com.roofos.field`. No APK has yet been built from the current `main`, no current-main APK binary has been inspected, and no physical-device installation/smoke test has been verified. Do not call the old release current or production-ready.
+
+### Current build pipeline in PR #375
+
+- Manual workflow dispatch builds **protected `main` only**; it no longer accepts an arbitrary branch/ref input.
+- A `field-v*` tag builds that exact tag and must match `app.json` version.
+- EAS CLI is pinned to `27.2.0`; the build is tied to the checked-out source SHA.
+- The workflow generates SHA-256 and a JSON provenance manifest, checks the actual APK package/version with Android build-tools, verifies its APK signature, and records the signing certificate fingerprint.
+- APK, checksum and manifest are retained as a 90-day GitHub artifact.
+- Tagged internal APK releases are prereleases. The EAS build job has read-only GitHub permission and only exposes `EXPO_TOKEN` to EAS steps; a separate artifact-only job receives release-write permission.
+- The workflow has not yet produced a current APK. `EXPO_TOKEN` presence is unverified through this connection.
+
+### Current app capability assessment
+
+Implemented: Supabase Auth with SecureStore session persistence, owner-scoped local drafts, SQLite offline capture and retry queue, NetInfo reconnect handling, camera/photo capture, private Storage paths, manual measurements, inspection verification, lead/appointment/task context, and workspace-scoped sync checks.
+
+Not yet implemented as working field AI: the mobile inference adapter is intentionally disabled (`runtimeAvailable=false`, `modelLoaded=false`); the model version is unavailable. `fieldCoach.ts` is deterministic guidance, not an AI model. The server photo-analysis route is workspace-admin gated and depends on configured Ollama vision; the voice-transcription route is feature-flagged but the mobile app has no recording/transcription UI. The AI modules are not integrated into the field capture flow.
+
+Highest-value next AI work: (1) missing-evidence/elevation checklist, (2) photo captions and album suggestions with technician review, (3) voice-to-structured notes with read-back, (4) OCR for product labels/receipts/claim documents, and (5) estimate draft prefill from human-verified measurements and price books. AI must never certify measurements, approve estimates, decide claims/code, or send customer communications automatically.
+
+### Remaining release gates
+
+1. Final PR-head CI green, including migrations 075–078 and Android release contracts.
+2. EAS build from current protected `main` with `EXPO_TOKEN`.
+3. Inspect generated APK package/version, signature/certificate, source SHA, checksum and manifest.
+4. Install on a physical Android device and test sign-in, offline capture, process kill/restart, reconnect, retries, auth expiry, workspace switch, camera/location permissions and low-storage handling.
+5. Confirm Vercel production deployment SHA and authenticated API/runtime compatibility.
+
+---
 
 ## Release scope
 
@@ -25,17 +57,9 @@ Set `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY`, and `EXPO_PUBLI
 This release is a **shippable internal/pilot field app**, not a claim-approved estimating product. It does not certify measurements, approve estimates, send customer communications, or replace the required human review workflow.
 
 
-## 2026-10-04 APK build path
+## 2026-10-04 APK build path — superseded 2026-11-02
 
-A manual GitHub Actions workflow now provides the repeatable APK path:
-
-```text
-.github/workflows/mobile-apk.yml
-```
-
-Run it from GitHub Actions with the branch or commit to build. It installs the field app, runs TypeScript and Expo configuration checks, starts an EAS Android preview build, waits for completion, downloads the APK, and uploads `roof-os-field-preview.apk` as a workflow artifact retained for 14 days.
-
-The repository must have an `EXPO_TOKEN` Actions secret with permission to build this Expo project. The workflow does not print the token. A successful workflow run with the uploaded artifact is the APK verification evidence; creating the workflow alone is not an APK build.
+The original manual EAS workflow has been replaced by the protected, provenance-producing workflow described in the current checkpoint above. Manual builds now target `main` only; version tags trigger internal prereleases. The current workflow requires an `EXPO_TOKEN` Actions secret and has not yet produced a new APK.
 
 
 ## 2026-10-04 clean-install bundle fix
