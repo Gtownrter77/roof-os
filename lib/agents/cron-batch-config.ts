@@ -73,3 +73,14 @@ export function readCronBatchConfig(agent: CronBatchAgent, env: Env = process.en
     ascending: order === 'oldest',
   }
 }
+
+// Per-job deadline for the daily dispatcher (AGENT_CRON_JOB_TIMEOUT_MS, clamped 1s..290s).
+// Defaults keep jobs (run side by side) plus the alert pass under a 60s Hobby function limit.
+export const DEFAULT_CRON_JOB_TIMEOUT_MS = 45_000
+export const CRON_ALERTS_TIMEOUT_MS = 10_000
+
+export function cronJobTimeoutMs(env: Record<string, string | undefined> = process.env): number {
+  const parsed = Number(env.AGENT_CRON_JOB_TIMEOUT_MS)
+  if (!Number.isFinite(parsed) || parsed <= 0) return DEFAULT_CRON_JOB_TIMEOUT_MS
+  return Math.min(Math.max(Math.floor(parsed), 1_000), 290_000)
+}

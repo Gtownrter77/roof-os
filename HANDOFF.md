@@ -1,3 +1,21 @@
+## 2026-11-04 — Workspace agent switches and resilient daily dispatcher (PR D)
+
+- Branch: `feat/agent-toggles-daily-allsettled`, based on PR C. The checkpoint commit SHA is the PR head SHA.
+- Agent switches (item 4), with no migration:
+  - Settings now has a "Workspace agents" section (`components/AgentSwitches.tsx`) backed by `GET/PUT /api/settings/agents`.
+  - The route uses only the signed-in user's Supabase client, never the service role. It needs `is_workspace_admin` and flips only an existing `automation_rules` row for the current workspace.
+  - Migration 014 RLS limits writes to `is_system_owner()`. When RLS blocks a write, the update returns zero rows, and the route reports that as a 403 with an explanation instead of a false success.
+  - `GET` returns `canEdit` (system owner), so other users see the switches as read-only. Rows that were never seeded show as "Not set up in this workspace yet". Seeding stays with migration 005.
+- Daily dispatcher (item 10):
+  - `/api/cron/daily` runs the agent jobs with `Promise.allSettled`. Each job has its own deadline, `AGENT_CRON_JOB_TIMEOUT_MS` (default 45s, clamped from 1s to 290s), and the alert pass gets 10s. Defaults fit a 60s Hobby function.
+  - A job past its deadline is reported as `504`, and a thrown job as `500`; the other jobs and the alerts still run. The deadline stops waiting but does not cancel the job; jobs are idempotent per run key.
+- Optional free schedule: `.github/workflows/agent-cron-schedule.yml` calls `/api/cron/daily` every 6 hours (Actions minutes are free on this public repo).
+  - It exits 0 and does nothing unless the owner adds repository secrets `ROOF_OS_CRON_URL` (https base URL) and `ROOF_OS_CRON_SECRET`.
+  - Logs show only `{processed, failed}` because the repo is public.
+  - `vercel.json` still has two crons.
+- Tests: new `test:agent-toggles-daily` (in the CI web job).
+- Still unverified external gates: a switch flipped by a real system owner on a deployment, the scheduled workflow running with real secrets, and a deployed daily run hitting the deadline path.
+
 ## 2026-11-04 — Free agent alerts and read-only live-gate verifier (PR C)
 
 - Branch: `feat/agent-alerts-live-gates`, based on GitHub `main` after #383. The checkpoint commit SHA is the PR head SHA.

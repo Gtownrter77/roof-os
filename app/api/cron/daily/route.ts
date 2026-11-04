@@ -6,19 +6,39 @@ import { POST as runReceptionistFollowups } from '../receptionist-followups/rout
 import { POST as runWarrantyExpiry } from '../warranty-expiry/route'
 import { POST as runAgentAlerts } from '../agent-alerts/route'
 import { readCronDryRun } from '../../../../lib/agents/cron-route'
+import { CRON_ALERTS_TIMEOUT_MS, cronJobTimeoutMs } from '../../../../lib/agents/cron-batch-config'
 
 export const runtime = 'nodejs'
 
 type JobResult = { status: number; body: unknown }
 
-async function invoke(name: string, job: (request: NextRequest) => Promise<NextResponse>, request: NextRequest): Promise<[string, JobResult]> {
-  try {
+// Each job gets its own deadline so one slow agent cannot hold back the rest or the alerts.
+// The timer only stops waiting; it does not cancel the job, which is idempotent per run key.
+async function invoke(name: string, job: (request: NextRequest) => Promise<NextResponse>, request: NextRequest, timeoutMs = cronJobTimeoutMs()): Promise<[string, JobResult]> {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const timeout = new Promise<JobResult>((resolve) => {
+    timer = setTimeout(() => resolve({ status: 504, body: { error: `Job timed out after ${timeoutMs}ms.`, timeoutMs } }), timeoutMs)
+  })
+  const work = (async (): Promise<JobResult> => {
     const response = await job(request)
     const body = await response.json().catch(() => null)
-    return [name, { status: response.status, body }]
+    return { status: response.status, body }
+  })()
+  try {
+    return [name, await Promise.race([work, timeout])]
   } catch (error) {
     return [name, { status: 500, body: { error: error instanceof Error ? error.message : 'Unknown cron job error' } }]
+  } finally {
+    if (timer) clearTimeout(timer)
   }
+}
+
+/** Run jobs side by side; a rejected or thrown job becomes a 500 entry instead of failing the batch. */
+async function settleAll(jobs: Array<[string, Promise<[string, JobResult]>]>): Promise<Record<string, JobResult>> {
+  const settled = await Promise.allSettled(jobs.map(([, promise]) => promise))
+  return Object.fromEntries(settled.map((outcome, index): [string, JobResult] => outcome.status === 'fulfilled'
+    ? outcome.value
+    : [jobs[index][0], { status: 500, body: { error: outcome.reason instanceof Error ? outcome.reason.message : 'Unknown cron job error' } }]))
 }
 
 async function run(request: NextRequest) {
@@ -28,12 +48,12 @@ async function run(request: NextRequest) {
 
   // Dry-run only reaches jobs that support it; every other job is reported, not run.
   if (await readCronDryRun(request)) {
-    const dryResults = Object.fromEntries(await Promise.all([
-      invoke('intake_router', runIntakeRouter, request),
-      invoke('office_copilot', runOfficeCopilot, request),
-    ]))
+    const dryResults = await settleAll([
+      ['intake_router', invoke('intake_router', runIntakeRouter, request)],
+      ['office_copilot', invoke('office_copilot', runOfficeCopilot, request)],
+    ])
     // Alerts run after the agent jobs so they see this run's heartbeats.
-    const [dryAlertName, dryAlertResult] = await invoke('agent_alerts', runAgentAlerts, request)
+    const [dryAlertName, dryAlertResult] = await invoke('agent_alerts', runAgentAlerts, request, CRON_ALERTS_TIMEOUT_MS)
     dryResults[dryAlertName] = dryAlertResult
     const dispatched = Object.keys(dryResults).length
     const skippedJobs = ['inspection_quality', 'receptionist_followups', 'warranty_expiry']
@@ -42,15 +62,15 @@ async function run(request: NextRequest) {
     return NextResponse.json({ dryRun: true, processed: dispatched, failed: dryFailed, results: dryResults }, { status: dryFailed ? 207 : 200 })
   }
 
-  const results = Object.fromEntries(await Promise.all([
-    invoke('intake_router', runIntakeRouter, request),
-    invoke('inspection_quality', runInspectionQuality, request),
-    invoke('office_copilot', runOfficeCopilot, request),
-    invoke('receptionist_followups', runReceptionistFollowups, request),
-    invoke('warranty_expiry', runWarrantyExpiry, request),
-  ]))
+  const results = await settleAll([
+    ['intake_router', invoke('intake_router', runIntakeRouter, request)],
+    ['inspection_quality', invoke('inspection_quality', runInspectionQuality, request)],
+    ['office_copilot', invoke('office_copilot', runOfficeCopilot, request)],
+    ['receptionist_followups', invoke('receptionist_followups', runReceptionistFollowups, request)],
+    ['warranty_expiry', invoke('warranty_expiry', runWarrantyExpiry, request)],
+  ])
   // Alerts run after the agent jobs so they see this run's heartbeats.
-  const [alertName, alertResult] = await invoke('agent_alerts', runAgentAlerts, request)
+  const [alertName, alertResult] = await invoke('agent_alerts', runAgentAlerts, request, CRON_ALERTS_TIMEOUT_MS)
   results[alertName] = alertResult
 
   const failed = Object.values(results).filter((result) => result.status >= 500).length

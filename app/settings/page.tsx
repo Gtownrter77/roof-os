@@ -14,6 +14,7 @@ import {
 import { applyCinemaTheme, cinemaThemeEnabled } from '../../lib/theme/cinema'
 import ThemePicker from '../../components/ThemePicker'
 import DashboardSkinToggle from '../../components/DashboardSkinToggle'
+import AgentSwitches from '../../components/AgentSwitches'
 import { FEATURE_FLAG_ENFORCEMENT, type WorkspaceFeatureFlag } from '../../lib/workspace-settings'
 
 type Settings = {
@@ -211,6 +212,8 @@ export default function SettingsPage() {
             />
           </div>
         </section>
+
+        <AgentSwitches />
 
         {/* Pricing & Margin Controls */}
         <section className="glass rounded-xl p-4 border-l-4 border-emerald-600 space-y-3">
