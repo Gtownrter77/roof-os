@@ -1,3 +1,4 @@
+import type { SupabaseClient } from '@supabase/supabase-js'
 
 export type OfficePhoto = {
   id: string
@@ -104,61 +105,16 @@ export async function runOfficeCopilot(
     inputReference: { inspection_id: inspectionId },
   }, async () => {
     const supabase = createClient(config.supabaseUrl, config.serviceRoleKey, { auth: { autoRefreshToken: false, persistSession: false } })
-    const { data: inspection, error: inspectionError } = await supabase
-      .from('inspection_sessions')
-      .select('id,workspace_id,lead_id,status')
-      .eq('id', inspectionId)
-      .eq('workspace_id', workspaceId)
-      .maybeSingle()
-    if (inspectionError) throw inspectionError
-    if (!inspection) throw new Error('Inspection was not found in the requested workspace.')
-    if (inspection.status !== 'completed') return { status: 'skipped' as const, output: { inspection_id: inspectionId, reason: 'inspection_not_completed' } }
-
-    const { data: photos, error: photosError } = await supabase
-      .from('inspection_photos')
-      .select('id,album,caption,upload_status,object_path')
-      .eq('inspection_id', inspectionId)
-      .eq('workspace_id', workspaceId)
-      .order('created_at', { ascending: true })
-    if (photosError) throw photosError
-
-    let leadName = 'the customer'
-    if (inspection.lead_id) {
-      const { data: lead, error: leadError } = await supabase.from('leads').select('name').eq('id', inspection.lead_id).eq('workspace_id', workspaceId).maybeSingle()
-      if (leadError) throw leadError
-      if (lead?.name) leadName = lead.name
-    }
-
-    const { data: activity, error: activityError } = inspection.lead_id
-      ? await supabase
-          .from('lead_activity')
-          .select('kind,body,created_at')
-          .eq('lead_id', inspection.lead_id)
-          .eq('workspace_id', workspaceId)
-          .order('created_at', { ascending: false })
-          .limit(50)
-      : { data: [], error: null }
-    if (activityError) throw activityError
-
-    const draft = buildOfficeCopilotDraft({
-      inspectionId,
-      leadName,
-      photos: (photos ?? []).map((photo) => ({
-        id: photo.id,
-        album: photo.album,
-        caption: photo.caption,
-        uploadStatus: photo.upload_status,
-        objectPath: photo.object_path,
-      })),
-      activity: (activity ?? []).map((item) => ({ kind: item.kind, label: item.body, createdAt: item.created_at })),
-    })
+    const planned = await planOfficeCopilotForInspection(supabase, workspaceId, inspectionId, reviewTaskCreatorId)
+    if ('reason' in planned) return { status: 'skipped' as const, output: { inspection_id: inspectionId, reason: planned.reason } }
+    const { draft, leadName, actions } = planned
     const llamaAdvisory = await runLlamaAgentJson<{ summary?: string; suggested_review_items?: string[] }>({
       agentKey: 'office_copilot',
       promptVersion: 'office-copilot-draft-v1',
       instruction: 'Summarize only the supplied inspection evidence. Do not infer damage, measurements, coverage, pricing, approval, or customer communication.',
       input: draft,
     })
-    const batchKey = `office-copilot-review:${inspectionId}:${eventKey}`
+    const batchKey = officeCopilotBatchKey(inspectionId, eventKey)
     const { data: existingBatch, error: existingBatchError } = await supabase
       .from('agent_action_batches')
       .select('id')
@@ -171,21 +127,8 @@ export async function runOfficeCopilot(
       : await persistActionBatch(supabase, {
           workspaceId,
           batchKey,
-          summary: `Review draft inspection report for ${leadName}`,
-          actions: [{
-            kind: 'create_review_task',
-            subjectType: 'inspection',
-            subjectId: inspectionId,
-            payload: {
-              createdByUserId: reviewTaskCreatorId,
-              assignedToUserId: reviewTaskCreatorId,
-              title: `Review draft inspection report: ${leadName}`,
-              notes: `${draft.summary} Human approval is required before report delivery.`,
-            },
-            reason: 'Office Copilot drafts are advisory and require human review.',
-            sourceEvidence: draft.evidence,
-            idempotencyKey: `office-copilot-review:${inspectionId}`,
-          }],
+          summary: officeCopilotBatchSummary(leadName),
+          actions,
         })
     return {
       status: 'needs_review' as const,
@@ -193,4 +136,93 @@ export async function runOfficeCopilot(
       approvalState: 'pending' as const,
     }
   })
+}
+
+export function officeCopilotBatchKey(inspectionId: string, eventKey: string): string {
+  return `office-copilot-review:${inspectionId}:${eventKey}`
+}
+
+export function officeCopilotBatchSummary(leadName: string): string {
+  return `Review draft inspection report for ${leadName}`
+}
+
+export function buildOfficeCopilotActions(draft: OfficeCopilotDraft, leadName: string, inspectionId: string, reviewTaskCreatorId: string) {
+  return [{
+    kind: 'create_review_task' as const,
+    subjectType: 'inspection' as const,
+    subjectId: inspectionId,
+    payload: {
+      createdByUserId: reviewTaskCreatorId,
+      assignedToUserId: reviewTaskCreatorId,
+      title: `Review draft inspection report: ${leadName}`,
+      notes: `${draft.summary} Human approval is required before report delivery.`,
+    },
+    reason: 'Office Copilot drafts are advisory and require human review.',
+    sourceEvidence: draft.evidence,
+    idempotencyKey: `office-copilot-review:${inspectionId}`,
+  }]
+}
+
+/**
+ * Read-only planning step shared by the live run and the cron dry-run mode.
+ * Performs workspace-scoped reads only; never writes and never calls a model.
+ */
+export async function planOfficeCopilotForInspection(
+  supabase: SupabaseClient,
+  workspaceId: string,
+  inspectionId: string,
+  reviewTaskCreatorId: string,
+): Promise<
+  | { skipped: true; reason: 'inspection_not_completed' }
+  | { skipped: false; draft: OfficeCopilotDraft; leadName: string; actions: ReturnType<typeof buildOfficeCopilotActions> }
+> {
+  const { data: inspection, error: inspectionError } = await supabase
+    .from('inspection_sessions')
+    .select('id,workspace_id,lead_id,status')
+    .eq('id', inspectionId)
+    .eq('workspace_id', workspaceId)
+    .maybeSingle()
+  if (inspectionError) throw inspectionError
+  if (!inspection) throw new Error('Inspection was not found in the requested workspace.')
+  if (inspection.status !== 'completed') return { skipped: true, reason: 'inspection_not_completed' }
+
+  const { data: photos, error: photosError } = await supabase
+    .from('inspection_photos')
+    .select('id,album,caption,upload_status,object_path')
+    .eq('inspection_id', inspectionId)
+    .eq('workspace_id', workspaceId)
+    .order('created_at', { ascending: true })
+  if (photosError) throw photosError
+
+  let leadName = 'the customer'
+  if (inspection.lead_id) {
+    const { data: lead, error: leadError } = await supabase.from('leads').select('name').eq('id', inspection.lead_id).eq('workspace_id', workspaceId).maybeSingle()
+    if (leadError) throw leadError
+    if (lead?.name) leadName = lead.name
+  }
+
+  const { data: activity, error: activityError } = inspection.lead_id
+    ? await supabase
+        .from('lead_activity')
+        .select('kind,body,created_at')
+        .eq('lead_id', inspection.lead_id)
+        .eq('workspace_id', workspaceId)
+        .order('created_at', { ascending: false })
+        .limit(50)
+    : { data: [], error: null }
+  if (activityError) throw activityError
+
+  const draft = buildOfficeCopilotDraft({
+    inspectionId,
+    leadName,
+    photos: (photos ?? []).map((photo) => ({
+      id: photo.id,
+      album: photo.album,
+      caption: photo.caption,
+      uploadStatus: photo.upload_status,
+      objectPath: photo.object_path,
+    })),
+    activity: (activity ?? []).map((item) => ({ kind: item.kind, label: item.body, createdAt: item.created_at })),
+  })
+  return { skipped: false, draft, leadName, actions: buildOfficeCopilotActions(draft, leadName, inspectionId, reviewTaskCreatorId) }
 }

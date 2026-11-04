@@ -1,24 +1,34 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import twilio from 'twilio'
-import { createAdminClient } from '../../../../lib/supabase/admin'
-import { writeWorkerHeartbeats } from '../../../../workers/heartbeat'
+import { createCronAgentRoute } from '../../../../lib/agents/cron-route'
+import { readCronBatchConfig } from '../../../../lib/agents/cron-batch-config'
 import { defaultWorkspaceSettings, loadWorkspaceSettings } from '../../../../lib/workspace-settings'
 import { isWithinQuietHours, normalizeStrictE164 } from '../../../../lib/outbound-policy'
 
-export async function POST(request: NextRequest) {
-  const secret = process.env.CRON_SECRET?.trim()
-  const supplied = request.headers.get('authorization')?.replace(/^Bearer\s+/i, '')
-  if (!secret || supplied !== secret) return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 })
+function twilioConfig() {
   const accountSid = process.env.TWILIO_ACCOUNT_SID?.trim()
   const authToken = process.env.TWILIO_AUTH_TOKEN?.trim()
   const from = process.env.TWILIO_PHONE_NUMBER?.trim()
   const publicUrl = process.env.RECEPTIONIST_PUBLIC_URL?.trim()
-  if (!accountSid || !authToken || !from || !publicUrl) return NextResponse.json({ error: 'Twilio and receptionist configuration is incomplete.' }, { status: 503 })
-  const admin = createAdminClient()
-  const { data: attempts, error } = await admin.from('receptionist_call_attempts').select('id,workspace_id,lead_id,phone,attempt_number').eq('direction', 'outbound').eq('status', 'queued').not('next_attempt_at', 'is', null).lte('next_attempt_at', new Date().toISOString()).order('created_at', { ascending: true }).limit(25)
+  if (!accountSid || !authToken || !from || !publicUrl) return null
+  return { accountSid, authToken, from, publicUrl }
+}
+
+export const POST = createCronAgentRoute({
+  agentKey: 'scheduler',
+  workerVersion: 'scheduler-cron-v1',
+  // The Twilio follow-up job keeps its original contract: no separate Supabase 503 check.
+  requireSupabaseWorker: false,
+  checkConfig: () => twilioConfig()
+    ? null
+    : NextResponse.json({ error: 'Twilio and receptionist configuration is incomplete.' }, { status: 503 }),
+}, async ({ admin, heartbeat }) => {
+  const { accountSid, authToken, from, publicUrl } = twilioConfig()!
+  const batch = readCronBatchConfig('scheduler')
+  const { data: attempts, error } = await admin.from('receptionist_call_attempts').select('id,workspace_id,lead_id,phone,attempt_number').eq('direction', 'outbound').eq('status', 'queued').not('next_attempt_at', 'is', null).lte('next_attempt_at', new Date().toISOString()).order('created_at', { ascending: batch.ascending }).limit(batch.limit)
   if (error) return NextResponse.json({ error: 'Could not read follow-up queue.', detail: error.message }, { status: 502 })
   const workspaceIds = (attempts ?? []).map((attempt) => attempt.workspace_id)
-  await writeWorkerHeartbeats(admin, workspaceIds, 'scheduler', 'starting')
+  await heartbeat(workspaceIds, 'starting')
   const settingsByWorkspace = new Map<string, Awaited<ReturnType<typeof loadWorkspaceSettings>>>()
   for (const workspaceId of [...new Set(workspaceIds)]) {
     settingsByWorkspace.set(workspaceId, await loadWorkspaceSettings(admin, workspaceId))
@@ -108,13 +118,13 @@ export async function POST(request: NextRequest) {
   }
 
   if (failed > 0) {
-    await writeWorkerHeartbeats(admin, workspaceIds, 'scheduler', 'degraded', { lastError: failures[0]?.error })
+    await heartbeat(workspaceIds, 'degraded', { lastError: failures[0]?.error })
     return NextResponse.json({ processed: attempts?.length || 0, started, optedOut, failed, failures }, { status: 502 })
   }
 
-  await writeWorkerHeartbeats(admin, workspaceIds, 'scheduler', 'healthy')
+  await heartbeat(workspaceIds, 'healthy')
   return NextResponse.json({ processed: attempts?.length || 0, started, optedOut, skipped, failed: 0 })
-}
+})
 
 // Vercel Cron invokes scheduled paths with GET; keep POST for manual runs.
 export const GET = POST

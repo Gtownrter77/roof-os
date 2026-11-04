@@ -4,6 +4,7 @@ import { POST as runIntakeRouter } from '../intake-router/route'
 import { POST as runOfficeCopilot } from '../office-copilot/route'
 import { POST as runReceptionistFollowups } from '../receptionist-followups/route'
 import { POST as runWarrantyExpiry } from '../warranty-expiry/route'
+import { readCronDryRun } from '../../../../lib/agents/cron-route'
 
 export const runtime = 'nodejs'
 
@@ -23,6 +24,18 @@ async function run(request: NextRequest) {
   const secret = process.env.CRON_SECRET?.trim()
   const supplied = request.headers.get('authorization')?.replace(/^Bearer\s+/i, '')
   if (!secret || supplied !== secret) return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 })
+
+  // Dry-run only reaches jobs that support it; every other job is reported, not run.
+  if (await readCronDryRun(request)) {
+    const dryResults = Object.fromEntries(await Promise.all([
+      invoke('intake_router', runIntakeRouter, request),
+      invoke('office_copilot', runOfficeCopilot, request),
+    ]))
+    const skippedJobs = ['inspection_quality', 'receptionist_followups', 'warranty_expiry']
+    for (const job of skippedJobs) dryResults[job] = { status: 204, body: { skipped: 'dry_run_unsupported' } }
+    const dryFailed = Object.values(dryResults).filter((result) => result.status >= 500).length
+    return NextResponse.json({ dryRun: true, processed: 2, failed: dryFailed, results: dryResults }, { status: dryFailed ? 207 : 200 })
+  }
 
   const results = Object.fromEntries(await Promise.all([
     invoke('intake_router', runIntakeRouter, request),

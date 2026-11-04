@@ -85,10 +85,19 @@ function walk(dir) {
   }
 }
 walk(join(root, 'app', 'api'))
+// The shared agent cron wrapper enforces CRON_SECRET before any handler runs.
+const cronRouteHelper = readFileSync(join(root, 'lib', 'agents', 'cron-route.ts'), 'utf8')
+const cronGuardHelper = readFileSync(join(root, 'lib', 'agents', 'cron-guard.ts'), 'utf8')
+const sharedCronWrapperGuards = cronGuardHelper.includes('env.CRON_SECRET?.trim()')
+  && cronRouteHelper.includes("if (!isCronAuthorized(request.headers.get('authorization')))")
+  && cronRouteHelper.includes("NextResponse.json({ error: 'Unauthorized.' }, { status: 401 })")
 for (const route of routes) {
   const source = readFileSync(route, 'utf8')
   const hasSessionGuard = source.includes('getUser()')
-  const hasCronGuard = source.includes('CRON_SECRET')
+  const usesSharedCronWrapper = sharedCronWrapperGuards
+    && /export const POST = createCronAgentRoute\(/.test(source)
+    && source.includes("from '../../../../lib/agents/cron-route'")
+  const hasCronGuard = source.includes('CRON_SECRET') || usesSharedCronWrapper
   const hasStripeSignatureGuard = source.includes("stripe-signature") && source.includes('constructEvent')
   const hasTwilioSignatureGuard = source.includes('assertTwilioRequest')
   const isPublicStatusRoute = route === join(root, 'app', 'api', 'status', 'route.ts')
