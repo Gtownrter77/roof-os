@@ -35,17 +35,21 @@ for (const route of routes) {
   has('supportsDryRun: true', 'must support dry-run mode')
   has(route.table, 'must read its source records')
   has("from '../../../../lib/agents/cron-batch-config'", 'must use the shared batch config')
-  has('.limit(batch.limit)', 'must bound each run')
+  // Backlog-safe selection: scan past the limit, skip processed event keys, then cap.
+  has('.limit(batch.scanLimit)', 'must bound the candidate scan')
+  has("from '../../../../lib/agents/cron-backlog'", 'must use the shared backlog selection')
+  has(`selectUnprocessedCandidates(admin, '${route.agent}', candidates, batch.limit)`, 'must skip processed records before applying the per-run limit')
   has(route.worker, `must import ${route.runner} from its worker`)
   has(`await ${route.runner}(`, `must call ${route.runner}`)
   has(route.eventKey, 'must derive a deterministic per-record event key')
 
   // Per-workspace enablement through automation_rules, matching the DB follow-up trigger.
-  has(".from('automation_rules')", 'must check automation_rules enablement')
-  has(`.eq('agent_key', '${route.agent}')`, 'must scope automation_rules to this agent')
-  has(".in('workspace_id', uniqueWorkspaceIds)", 'must scope automation_rules to the run workspaces')
-  has('rule.enabled === true', 'must require an explicitly enabled rule')
-  has('skipped += 1', 'must skip disabled workspaces')
+  has(`enabledAutomationWorkspaces(admin, '${route.agent}',`, 'must check automation_rules enablement for this agent')
+  assert.match(source, /skipped = \(\w+ \?\? \[\]\)\.length - enabled\w+\.length/, `${route.file}: must count disabled-workspace records as skipped`)
+
+  // Heartbeats only for enabled workspaces that have pending work (no disabled-agent heartbeats).
+  has('const workspaceIds = selection.pending.map((candidate) => candidate.workspaceId)', 'heartbeat workspaces must come from enabled, pending work')
+  assert.ok(source.indexOf('selectUnprocessedCandidates(') < source.indexOf(`heartbeat(workspaceIds, 'starting'`), `${route.file}: enablement and selection must precede the starting heartbeat`)
 
   // Heartbeats before and after, with this agent's key.
   for (const state of ['starting', 'healthy', 'degraded']) {
@@ -59,13 +63,22 @@ for (const route of routes) {
   // Dry-run plans without writes: the planner is read-only and the run is skipped.
   const dryIdx = source.indexOf('if (dryRun) {')
   assert.ok(dryIdx > 0 && dryIdx < runIdx, `${route.file}: dry-run branch must return before the worker runs`)
-  has("dryRun: true, processed, skipped, failed, failures, planned", 'dry-run must return the planned batches')
+  has("dryRun: true, processed, skipped, alreadyProcessed, failed, failures, planned", 'dry-run must return the planned batches')
   assert.match(source, /export const GET = POST/, `${route.file}: must export GET for Vercel Cron`)
 
   // Free-core / safety boundaries: no paid model keys, no direct outbound messaging.
   for (const forbidden of ['XAI_API_KEY', 'OPENAI_API_KEY', 'twilio', 'stripe', 'request.json()']) {
     assert.ok(!source.includes(forbidden), `${route.file}: must not reference ${forbidden}`)
   }
+}
+
+// Shared enablement + backlog helpers.
+const backlog = readFileSync('lib/agents/cron-backlog.ts', 'utf8')
+assert.ok(backlog.includes(".from('automation_rules')") && backlog.includes("rule.enabled === true"), 'automation enablement must require an explicitly enabled rule')
+assert.ok(backlog.includes('if (error) return enabled'), 'automation enablement must fail closed on read errors')
+assert.ok(backlog.includes(".from('agent_runs')") && backlog.includes(".in('status', [...PROCESSED_RUN_STATUSES])"), 'backlog selection must consult agent_runs')
+for (const forbidden of ['.insert(', '.update(', '.upsert(', '.delete(', '.rpc(']) {
+  assert.ok(!backlog.includes(forbidden), `cron-backlog must stay read-only (${forbidden})`)
 }
 
 // Shared wrapper contract: 401 before config, 503 for missing service role, no heartbeats in dry-run.
@@ -84,9 +97,11 @@ for (const file of ['app/api/cron/inspection-quality/route.ts', 'app/api/cron/re
   assert.ok(readFileSync(file, 'utf8').includes('createCronAgentRoute('), `${file} must use the shared cron wrapper`)
 }
 
-// Workspace-scoped photo lookup for Office Copilot event keys.
+// Workspace-scoped photo lookup for Office Copilot event keys (shared helper).
 const office = readFileSync('app/api/cron/office-copilot/route.ts', 'utf8')
-assert.ok(office.includes(".eq('workspace_id', inspection.workspace_id)"), 'office-copilot photo lookup must be workspace-scoped')
+assert.ok(office.includes('latestInspectionPhotoTimes(admin, enabledInspections)'), 'office-copilot must use the shared photo lookup')
+assert.ok(backlog.includes('if (workspaceById.get(row.inspection_id) !== row.workspace_id) continue'), 'bulk photo lookup must be workspace-scoped')
+assert.ok(backlog.includes(".eq('workspace_id', inspection.workspace_id)"), 'fallback photo lookup must be workspace-scoped')
 
 // Worker signatures the routes depend on.
 const intakeWorker = readFileSync('workers/intake-router.ts', 'utf8')

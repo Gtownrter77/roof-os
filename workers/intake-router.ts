@@ -24,6 +24,12 @@ export type IntakeRouterInput = {
   roundRobinOwnerIds: string[]
   taskCreatorId: string
   now?: string | Date
+  /**
+   * True when the lead already has a first-response task, for example the
+   * `intake:<lead id>` task created by the `create_default_lead_followup` trigger.
+   * The router then skips its own first-response task instead of duplicating it.
+   */
+  firstResponseTaskExists?: boolean
 }
 
 export type IntakeRouterPlan = {
@@ -131,6 +137,9 @@ export function planIntakeRouter(input: IntakeRouterInput): IntakeRouterPlan {
       idempotencyKey: `intake-owner:${input.lead.id}:${suggestedOwnerId}`,
     })
   }
+  if (input.firstResponseTaskExists) {
+    return { normalized, duplicateLeadIds, suggestedOwnerId, firstResponseDueAt, actions }
+  }
   actions.push({
     kind: 'create_task',
     subjectType: 'lead',
@@ -176,6 +185,14 @@ export async function runIntakeRouter(
   }, async () => {
     const supabase = createClient(config.supabaseUrl, config.serviceRoleKey, { auth: { autoRefreshToken: false, persistSession: false } })
     const { lead, plan } = await planIntakeRouterForLead(supabase, workspaceId, leadId, taskCreatorId)
+    if (plan.actions.length === 0) {
+      // Nothing left to propose (first-response task already exists, owner already set).
+      return {
+        status: plan.duplicateLeadIds.length ? ('needs_review' as const) : ('succeeded' as const),
+        output: { ...plan, action_batch_id: null },
+        approvalState: 'not_required' as const,
+      }
+    }
     const batchKey = intakeRouterBatchKey(leadId, eventKey)
     const { data: existingBatch, error: existingBatchError } = await supabase
       .from('agent_action_batches')
@@ -245,14 +262,49 @@ export async function planIntakeRouterForLead(
     .limit(100)
   if (memberError) throw memberError
 
-  const plan = planIntakeRouter({
+  // The create_default_lead_followup trigger (migration 057) already creates an
+  // `intake:<lead id>` task when auto follow-up tasks are on; do not duplicate it.
+  const { data: triggerTask, error: triggerTaskError } = await supabase
+    .from('tasks')
+    .select('id')
+    .eq('workspace_id', workspaceId)
+    .eq('automation_key', intakeFirstResponseTaskKey(leadId))
+    .limit(1)
+    .maybeSingle()
+  if (triggerTaskError) throw triggerTaskError
+
+  const fullPlan = planIntakeRouter({
     lead: toLead(lead as LeadRecord),
     existingLeads: (existing ?? []).map((row) => toLead(row as LeadRecord)),
     roundRobinOwnerIds: (members ?? []).map((member) => member.user_id).filter(Boolean),
     taskCreatorId,
     now,
+    firstResponseTaskExists: Boolean(triggerTask),
   })
-  return { lead: lead as LeadRecord, plan }
+
+  // agent_actions has unique (workspace_id, idempotency_key): an action proposed by an
+  // earlier run (any status) must not be proposed again.
+  const plannedKeys = fullPlan.actions.map((action) => action.idempotencyKey)
+  let existingKeys = new Set<string>()
+  if (plannedKeys.length) {
+    const { data: priorActions, error: priorActionsError } = await supabase
+      .from('agent_actions')
+      .select('idempotency_key')
+      .eq('workspace_id', workspaceId)
+      .in('idempotency_key', plannedKeys)
+    if (priorActionsError) throw priorActionsError
+    existingKeys = new Set((priorActions ?? []).map((row: { idempotency_key: string }) => row.idempotency_key))
+  }
+  const plan: IntakeRouterPlan = {
+    ...fullPlan,
+    actions: fullPlan.actions.filter((action) => !existingKeys.has(action.idempotencyKey)),
+  }
+  return { lead: lead as LeadRecord, plan, firstResponseTaskExists: Boolean(triggerTask) }
+}
+
+/** automation_key used by the create_default_lead_followup trigger for a lead's first task. */
+export function intakeFirstResponseTaskKey(leadId: string): string {
+  return `intake:${leadId}`
 }
 
 function toLead(row: LeadRecord): IntakeLead {
