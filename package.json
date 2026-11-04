@@ -92,6 +92,7 @@
     "test:passport-public-share": "node scripts/passport-public-share-contract-test.mjs",
     "test:passport-public-link": "node scripts/passport-public-link-contract-test.mjs",
     "test:cron-http": "node scripts/cron-http-contract-test.mjs",
+    "test:agent-cron-routes": "node scripts/agent-cron-routes-contract-test.mjs",
     "test:warranty-expiry": "node scripts/warranty-expiry-contract-test.mjs",
     "test:production-job-invoice": "node --experimental-strip-types --no-warnings scripts/production-job-invoice-test.mjs",
     "test:production-job-payment": "node --experimental-strip-types --no-warnings scripts/production-job-payment-test.mjs",

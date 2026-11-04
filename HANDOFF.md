@@ -1,3 +1,17 @@
+## 2026-11-04 — Intake Router and Office Copilot cron entry points
+
+- Branch: `feat/cron-intake-router-office-copilot`, based on GitHub `main` `1be8af36520c9a601ee637eb8c49a0a39dcceb6a`. The checkpoint commit SHA is the PR head SHA.
+- Added `app/api/cron/intake-router/route.ts` and `app/api/cron/office-copilot/route.ts`, mirroring `app/api/cron/inspection-quality/route.ts`: `CRON_SECRET` bearer auth (401), service-role config check (503), bounded reads (25 records), `starting` heartbeat, per-record `runIntakeRouter` / `runOfficeCopilot` calls with deterministic event keys, then `healthy` or `degraded` heartbeats. Both export `POST` and `GET`.
+- Intake Router reads `leads` with `status = 'new'`, newest first. `owner_id` is the task creator, and the event key is `intake-router:<lead id>:<updated_at>`. Office Copilot reads completed `inspection_sessions`, uses the workspace-scoped latest photo for the event key, and passes `created_by` as the review-task creator.
+- Per-workspace enablement uses `automation_rules` (`agent_key`, `enabled`), the same gate as the database follow-up trigger. A missing rule or read error skips the record. Office Copilot is seeded disabled by migration 005, so it does nothing until a workspace enables it. The routes add no new `workspace_settings` flag and no migration.
+- `workers/agent-registry.ts` entry points now point to `/api/cron/intake-router` and `/api/cron/office-copilot`, with the route files as heartbeat sources.
+- Both jobs are dispatched by `/api/cron/daily`. `vercel.json` is unchanged because the Hobby plan allows two crons.
+- Tests: new `test:agent-cron-routes` contract (`scripts/agent-cron-routes-contract-test.mjs`). The cron-http, worker-heartbeat, and agent-registry contracts were extended. `test:agent-cron-routes` and `test:cron-http` are now required web CI steps.
+- Local evidence (Node 24, `npm ci --ignore-scripts`): `npm run typecheck` and `npm run lint` passed. Every `npm run` step in the CI web job passed, including release-check, verify:security, two-workspace contract, audit, and the production build with validation-only env (routes listed). After the build, runtime-smoke passed. `git diff --check` passed. A local standalone server returned 401 without auth and 503 with auth but no Supabase config for GET and POST on both routes.
+- No production database, migration, deployment, or real secret was used.
+- Remaining external gates (not done): (1) verify deployed `intake_router` and `office_copilot` heartbeats in `agent_worker_heartbeats` through `/api/cron/heartbeat`; (2) verify two-workspace isolation with live data; (3) verify live runs (idempotent `agent_runs`, action batches, failure-review tasks). Both agents stay pilot-only until these pass.
+- Next: wait for required PR CI, then merge only when green, then verify main.
+
 ## 2026-11-03 — Intake Router and Office Copilot implementation batch
 
 - Branch: `feat/two-bounded-ai-agents-20261103`.

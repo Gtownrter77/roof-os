@@ -11,6 +11,8 @@ assert.ok(helper.includes('results.some((success) => !success)'))
 const routes = [
   ['app/api/cron/agent-actions/route.ts', 'office_copilot'],
   ['app/api/cron/inspection-quality/route.ts', 'inspection_quality'],
+  ['app/api/cron/intake-router/route.ts', 'intake_router'],
+  ['app/api/cron/office-copilot/route.ts', 'office_copilot'],
   ['app/api/cron/receptionist-followups/route.ts', 'scheduler'],
   ['app/api/cron/retailer-prices/route.ts', 'scheduler'],
 ]
