@@ -12,6 +12,61 @@
 - Remaining external gates (not done): (1) verify deployed `intake_router` and `office_copilot` heartbeats in `agent_worker_heartbeats` through `/api/cron/heartbeat`; (2) verify two-workspace isolation with live data; (3) verify live runs (idempotent `agent_runs`, action batches, failure-review tasks). Both agents stay pilot-only until these pass.
 - Next: wait for required PR CI, then merge only when green, then verify main.
 
+## 2026-11-03 — Android Field 0.5.0 integration checkpoint
+
+- Integrated the 0.5.0 Android Field release work into the production-reconciliation branch while preserving the PR #375 SQLite schema migration guard.
+- Photo and manual-measurement queue writes now calculate pending counts inside SQLite transactions; the sync indicator records a new last-synced time only after every queued write succeeds.
+- Pending counters now describe both photos and measurements as items. The preview profile increments the remote Android build number, and the location permission text matches the actual user-triggered GPS tagging use.
+- Repaired two CI defects: the disposable PostgreSQL baseline now revokes inherited PUBLIC/anon execution on authenticated workspace helpers before granting authenticated access; the search-path migration contract test now uses valid JavaScript quoting.
+- Automated source/CI checks are wired. A current APK has **not** yet been built: the protected-main EAS workflow still requires its GitHub Actions dispatch and a valid EXPO_TOKEN. Physical-device install/offline/reconnect/workspace-isolation evidence remains outstanding.
+- No production database mutation, Vercel setting change, or app deployment was made in this checkpoint.
+
+## 2026-11-02 — Production reconciliation and Android Field release hardening
+
+**Source baseline:** `main` `b74d23431aa4affcf512710635197bc0e1923256`
+
+**Working branch / PR:** `fix/roofos-autonomous-remediation-20261101`, PR [#375](https://github.com/Gtownrter77/roof-os/pull/375). Open, not merged. All source changes remain isolated from `main`.
+
+### Production Supabase work completed
+
+Project: `xksumagfbegdlapwysps`.
+
+- Applied and verified `057 workspace_feature_flags_reconcile_20261101`.
+- Did not replay `058`; the live ledger already records its effect as `atomic_estimate_line_item_replacement`.
+- Applied `059`–`072` in order.
+- Applied backward-compatible `073 warranty_passport_legacy_compatible` and `074 payment_warranty_lifecycle_guards_legacy_compatible`.
+- Applied `075 harden_security_definer_triggers`, `076 private_passport_rate_limit`, `077 harden_remaining_security_definers`, and `078 explicitly_deny_public_rate_limit_clients`.
+
+Migration 073–074 preserve the old warranty/passport field contracts and separate the new production-job lifecycle fields. Live authenticated rollback tests verified a legacy warranty insert/update, legacy Roof Passport insert/share update, and rejection of cross-workspace warranty/passport inserts. All test writes rolled back; live counts remain zero for warranties, Roof Passports, production jobs and production invoices.
+
+Migration 075 hardened all 33 SECURITY DEFINER trigger functions: empty search path and no direct EXECUTE for anon/authenticated. Migration 076 removed direct table grants on `public_access_rate_limits` from client roles, preserved service-role-only access, and set `consume_public_rate_limit()` to an empty search path; a rollback-only service-role call succeeded. Migration 077 set empty search paths on all remaining public SECURITY DEFINER functions without changing ACLs. Live query: 46/46 empty search paths, zero anon EXECUTE, eight authenticated helper/RPC grants preserved. Migration 078 added an explicit deny policy for anon/authenticated on `public_access_rate_limits`; the security advisor's RLS-enabled/no-policy info finding is gone, and a rollback-only service-role RPC call still succeeds. Rollback-only tests exercised the workspace helpers, estimate-admin helper, retailer reservation, agent approval rejection, lead-score refresh, automation-rule seeding, and service-role worker reservation. Security advisor now has zero anonymous SECURITY DEFINER warnings and eight authenticated helper/RPC warnings.
+
+### Repository fixes in PR #375
+
+- `apps/field/src/localMigrations.ts` checks `PRAGMA table_info` before adding SQLite columns. The previous blanket catch hid disk, locking and schema errors; those now surface instead of being silently ignored.
+- APK workflow pins EAS CLI 27.2.0, uses protected `main` for manual builds and exact `field-v*` tags for releases, binds the build to the source commit, emits SHA-256 and JSON provenance, verifies APK package/version and signature/certificate fingerprint, retains artifacts for 90 days, and marks internal APK releases as prereleases. The build job has read-only GitHub permission and only exposes `EXPO_TOKEN` to EAS commands; a separate release job receives write permission and only downloads/verifies the artifact.
+- CI contracts cover the APK release workflow, local SQLite migrations, 057 feature-flag trigger behavior, and 075 trigger privilege/search-path hardening.
+- PostgreSQL CI rehearsal now applies 075 and asserts that triggers still work after direct API grants are revoked.
+
+### APK and AI status — do not overstate
+
+No EAS APK build or physical-device install has been verified. The repository's `EXPO_TOKEN` secret presence is not confirmed through this connection, and the new workflow has not produced a binary. Do not call the APK release-ready until a real build is inspected and installed on a physical Android device.
+
+The field app's on-device inference adapter remains intentionally disabled (`runtimeAvailable=false`, `modelLoaded=false`, model version unavailable). `fieldCoach.ts` is deterministic guidance, not an AI model. The server photo-analysis route exists but is workspace-admin gated and depends on the configured Ollama vision service; the transcription route exists behind the workspace voice-copilot setting, but the mobile app has no recording/transcription integration. AI work still needed: guided evidence completeness, AI caption/album suggestions with review, voice-to-structured notes with read-back, and draft-only estimate prefill from human-verified measurements.
+
+### Remaining release and security gates
+
+- Final PR-head CI must pass, including the latest real-PostgreSQL 075 rehearsal.
+- Run the EAS APK workflow with a configured token; verify source SHA, package/version, APK signature, checksum and manifest.
+- Install on a physical Android device and test offline capture, process restart, reconnect, retries, auth expiry and workspace isolation.
+- Confirm the Vercel production deployment SHA and check runtime errors for the new schema-backed routes.
+- Review the eight remaining authenticated SECURITY DEFINER helpers/RPCs without disabling required workspace primitives.
+- Enable Supabase leaked-password protection in Auth settings; this cannot be changed through the available database migration tool.
+- Review 127 unindexed foreign-key notices and add indexes selectively after table-size/workload review. Do not bulk-index blindly.
+
+No Vercel production deployment, APK build, external payment, customer communication, insurer submission, or production test-row creation was performed.
+
+
 ## 2026-11-03 — Intake Router and Office Copilot implementation batch
 
 - Branch: `feat/two-bounded-ai-agents-20261103`.
@@ -53,6 +108,8 @@
 - Pull request #376 is open: https://github.com/Gtownrter77/roof-os/pull/376. The first PR CI run (`41393009932`) passed preview-build, mobile, migration-safety, and field-security jobs but failed web at `npm run test:release-evidence`, because the refreshed migration note omitted the literal unverified-boundary term. The wording is restored locally; rerun after the docs checkpoint is pending. Vercel Preview succeeded; this is not a production deployment. No authenticated canvass save or physical-device persistence check has been done.
 - Still open: integrations catalog truthfulness, inventory/removal of non-exempt paid API vendors, full deployment/schema-doc reconciliation, provider execution, staging migration/RLS rehearsal, physical-device release evidence, and production deployment. Merge only after required CI/review is green. Migration 075 remains blocked on staging/backup and production release checks.
 - Next: push the migration-doc wording correction and refreshed database evidence, inspect the new PR checks and review, then address remaining audit items. Do not claim production Canvass atomic writes until the migration is validated and applied to the target.
+
+
 
 
 ## 2026-10-29 — Verified theme release and saved-choice recovery

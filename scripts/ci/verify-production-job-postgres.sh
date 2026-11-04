@@ -22,6 +22,10 @@ if [ -z "$(psql_db postgres -tAc "select 1 from pg_database where datname='$JOB_
 fi
 
 psql_db "$JOB_DB" -f scripts/ci/production-job-baseline.sql
+# Migration 075 also hardens the estimate RLS helper created by 059. This
+# isolated job-only fixture does not install 059, so provide a harmless stub;
+# the real helper's behavior and ACL are tested in verify-estimate-authority-postgres.sh.
+psql_db "$JOB_DB" -c "create function public.is_estimate_admin(uuid) returns boolean language sql security definer set search_path=public as 'select false'; grant execute on function public.is_estimate_admin(uuid) to authenticated"
 psql_db "$JOB_DB" -f supabase/migrations/063_estimate_acceptance_deposit.sql
 psql_db "$JOB_DB" -f supabase/migrations/064_production_job_handoff.sql
 # Tables created by the migrations need the same test role grants the baseline gave.
@@ -43,9 +47,13 @@ psql_db "$JOB_DB" -f supabase/migrations/071_production_invoice.sql
 psql_db "$JOB_DB" -f supabase/migrations/072_production_invoice_payment.sql
 psql_db "$JOB_DB" -f supabase/migrations/073_warranty_passport.sql
 psql_db "$JOB_DB" -f supabase/migrations/074_payment_warranty_guards.sql
+psql_db "$JOB_DB" -f supabase/migrations/075_harden_security_definer_triggers.sql
+psql_db "$JOB_DB" -f scripts/ci/security-definer-trigger-assertions.sql
+psql_db "$JOB_DB" -f supabase/migrations/077_harden_remaining_security_definers.sql
+psql_db "$JOB_DB" -f scripts/ci/security-definer-search-path-assertions.sql
 psql_db "$JOB_DB" -c "grant select,insert,update,delete on all tables in schema public to authenticated"
 psql_db "$JOB_DB" -f scripts/ci/production-job-invoice-assertions.sql
 psql_db "$JOB_DB" -f scripts/ci/production-job-lifecycle-assertions.sql
 
-echo 'PRODUCTION JOB SCHEDULE, READINESS, FIELD, CHANGE-ORDER, QC, INVOICE, PAYMENT, WARRANTY AND PASSPORT MIGRATIONS 067-074: isolated SQL-role/RLS/trigger tests plus one clean and one exception lifecycle rehearsal passed. Supabase Auth/Storage remains untested.'
+echo 'PRODUCTION JOB SCHEDULE, READINESS, FIELD, CHANGE-ORDER, QC, INVOICE, PAYMENT, WARRANTY, PASSPORT AND SECURITY-DEFINER MIGRATIONS 067-075: isolated SQL-role/RLS/trigger tests plus one clean and one exception lifecycle rehearsal passed. Supabase Auth/Storage remains untested.'
 echo '**Production job migrations 067-071: real isolated PostgreSQL trigger/RLS tests PASSED. Supabase Auth/Storage not exercised.**' >> "$GITHUB_STEP_SUMMARY"

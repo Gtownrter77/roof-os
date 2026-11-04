@@ -25,5 +25,7 @@ as $$ select exists(select 1 from public.workspace_members
     and role in ('owner','admin')) $$;
 grant usage on schema auth,public to authenticated;
 grant execute on function auth.uid() to authenticated;
+revoke all on function public.is_workspace_member(uuid) from public, anon;
+revoke all on function public.is_workspace_admin(uuid) from public, anon;
 grant execute on function public.is_workspace_member(uuid) to authenticated;
 grant execute on function public.is_workspace_admin(uuid) to authenticated;

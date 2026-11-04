@@ -56,7 +56,7 @@ comment on column public.receptionist_payment_links.expires_at is 'When the gene
 
 -- Re-apply the lead follow-up trigger so it honors the workspace switch.
 create or replace function public.create_default_lead_followup()
-returns trigger language plpgsql security definer set search_path = public
+returns trigger language plpgsql security definer set search_path = ''
 as $$
 declare followup_key text;
 declare followup_title text;

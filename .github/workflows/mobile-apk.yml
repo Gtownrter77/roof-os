@@ -2,29 +2,31 @@ name: ROOF OS Mobile APK
 
 on:
   workflow_dispatch:
-    inputs:
-      ref:
-        description: Git ref to build
-        required: true
-        default: main
-        type: string
+  push:
+    tags:
+      - 'field-v*'
 
 permissions:
   contents: read
 
 jobs:
   build-preview-apk:
-    name: Build preview APK
+    name: Build and attest Android APK
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
+    permissions:
+      contents: read
     defaults:
       run:
         working-directory: apps/field
+    env:
+      SOURCE_REF: ${{ github.event_name == 'workflow_dispatch' && 'main' || github.ref }}
     steps:
-      - name: Check out requested ref
+      - name: Check out protected source
         uses: actions/checkout@v5
         with:
-          ref: ${{ inputs.ref }}
+          ref: ${{ github.event_name == 'workflow_dispatch' && 'main' || github.ref }}
+          fetch-depth: 0
 
       - name: Set up Node 22
         uses: actions/setup-node@v5
@@ -32,6 +34,28 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: apps/field/package-lock.json
+
+      - name: Resolve source and app identity
+        id: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          SOURCE_SHA="$(git rev-parse HEAD)"
+          APP_VERSION="$(node -p "require('./app.json').expo.version")"
+          PACKAGE_NAME="$(node -p "require('./app.json').expo.android.package")"
+          test -n "$SOURCE_SHA"
+          test -n "$APP_VERSION"
+          test -n "$PACKAGE_NAME"
+          if [[ "$GITHUB_EVENT_NAME" == "push" ]]; then
+            test "$GITHUB_REF_NAME" = "field-v$APP_VERSION" || {
+              echo "Tag $GITHUB_REF_NAME must exactly match field-v$APP_VERSION" >&2
+              exit 1
+            }
+          fi
+          echo "source_sha=$SOURCE_SHA" >> "$GITHUB_OUTPUT"
+          echo "app_version=$APP_VERSION" >> "$GITHUB_OUTPUT"
+          echo "package_name=$PACKAGE_NAME" >> "$GITHUB_OUTPUT"
+          echo "Building $PACKAGE_NAME $APP_VERSION from $SOURCE_SHA ($SOURCE_REF)"
 
       - name: Install field dependencies
         run: npm ci
@@ -46,38 +70,125 @@ jobs:
         run: node -e "const v=require('./app.json').expo.version; if(v !== '0.5.0') { console.error('Expected field release 0.5.0, found ' + v); process.exit(1) }"
 
       - name: Require Expo build credentials
+        shell: bash
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
           if [ -z "${EXPO_TOKEN:-}" ]; then
             echo 'EXPO_TOKEN is required in the repository or protected environment secrets.' >&2
-            echo 'This workflow cannot produce an APK without an authenticated Expo account.' >&2
+            echo 'No APK can be built without an authenticated Expo account.' >&2
             exit 1
           fi
+
+      - name: Install pinned EAS CLI
+        run: npm install --global eas-cli@27.2.0
+
+      - name: Record EAS CLI version
+        run: eas --version
+
+      - name: Build Android preview APK with EAS
+        run: eas build --platform android --profile preview --non-interactive --wait
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
 
-      - name: Build Android APK with EAS
-        run: npx eas-cli@latest build --platform android --profile preview --non-interactive --wait
+      - name: Download the exact source build
+        id: eas
+        shell: bash
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-
-      - name: Download the completed APK
         run: |
+          set -euo pipefail
           mkdir -p ../../artifacts
-          BUILD_ID="$(npx eas-cli@latest build:list --platform android --status finished --build-profile preview --git-commit-hash "${GITHUB_SHA}" --limit 1 --json --non-interactive | node -e "let s=''; process.stdin.on('data', d => s += d).on('end', () => { const rows = JSON.parse(s); if (!rows[0]?.id) process.exit(1); process.stdout.write(rows[0].id) })")"
+          BUILD_ID="$(eas build:list --platform android --status finished --build-profile preview --git-commit-hash "${{ steps.source.outputs.source_sha }}" --limit 1 --json --non-interactive | node -e "let s=''; process.stdin.on('data', d => s += d).on('end', () => { const rows = JSON.parse(s); if (!rows[0]?.id) process.exit(1); process.stdout.write(rows[0].id) })")"
           test -n "$BUILD_ID"
-          DOWNLOAD_LOG="$(npx eas-cli@latest build:download --build-id "$BUILD_ID" --non-interactive 2>&1)"
+          DOWNLOAD_LOG="$(eas build:download --build-id "$BUILD_ID" --non-interactive 2>&1)"
           printf '%s\n' "$DOWNLOAD_LOG"
           APK="$(printf '%s\n' "$DOWNLOAD_LOG" | sed -n 's/^Build downloaded to //p' | tail -1)"
           test -n "$APK"
           test -f "$APK"
           cp "$APK" ../../artifacts/roof-os-field-preview.apk
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          echo "build_id=$BUILD_ID" >> "$GITHUB_OUTPUT"
 
-      - name: Upload APK artifact
+      - name: Verify APK binary identity and signature
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+          test -n "$SDK_ROOT"
+          SDKMANAGER="$(command -v sdkmanager || true)"
+          if ! find "$SDK_ROOT/build-tools" -mindepth 1 -maxdepth 1 -type d -print -quit 2>/dev/null | grep -q .; then
+            test -n "$SDKMANAGER" || { echo 'Android SDK build-tools and sdkmanager are unavailable.' >&2; exit 1; }
+            yes | "$SDKMANAGER" --install "build-tools;36.0.0"
+          fi
+          BUILD_TOOLS="$(find "$SDK_ROOT/build-tools" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort -V | tail -1)"
+          test -n "$BUILD_TOOLS"
+          BUILD_TOOLS_PATH="$SDK_ROOT/build-tools/$BUILD_TOOLS"
+          test -x "$BUILD_TOOLS_PATH/aapt"
+          test -x "$BUILD_TOOLS_PATH/apksigner"
+          echo "ANDROID_BUILD_TOOLS=$BUILD_TOOLS_PATH" >> "$GITHUB_ENV"
+
+      - name: Generate SHA-256 and build provenance
+        env:
+          SOURCE_SHA: ${{ steps.source.outputs.source_sha }}
+          SOURCE_REF: ${{ env.SOURCE_REF }}
+          EAS_BUILD_ID: ${{ steps.eas.outputs.build_id }}
+          APP_VERSION: ${{ steps.source.outputs.app_version }}
+          ANDROID_PACKAGE: ${{ steps.source.outputs.package_name }}
+          EAS_CLI_VERSION: 27.2.0
+        run: |
+          node ../../scripts/mobile-apk-provenance.mjs \
+            ../../artifacts/roof-os-field-preview.apk \
+            ../../artifacts/roof-os-field-preview.manifest.json
+
+      - name: Upload APK, checksum, and manifest
         uses: actions/upload-artifact@v5
         with:
-          name: roof-os-field-preview-apk
-          path: artifacts/roof-os-field-preview.apk
+          name: roof-os-field-preview-${{ steps.source.outputs.source_sha }}
+          path: |
+            artifacts/roof-os-field-preview.apk
+            artifacts/roof-os-field-preview.apk.sha256
+            artifacts/roof-os-field-preview.manifest.json
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 90
+
+  publish-preview-release:
+    name: Publish tagged APK prerelease
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/field-v')
+    needs: build-preview-apk
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download the attested APK artifact
+        uses: actions/download-artifact@v5
+        with:
+          pattern: roof-os-field-preview-*
+          path: artifacts
+          merge-multiple: true
+
+      - name: Verify release artifact and source commit
+        shell: bash
+        env:
+          SOURCE_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          test -s artifacts/roof-os-field-preview.apk
+          test -s artifacts/roof-os-field-preview.apk.sha256
+          test -s artifacts/roof-os-field-preview.manifest.json
+          (cd artifacts && sha256sum -c roof-os-field-preview.apk.sha256)
+          node -e "const m=require('./artifacts/roof-os-field-preview.manifest.json'); if (m.source.commit !== process.env.SOURCE_SHA) throw new Error('Release artifact source commit mismatch'); if (m.artifactType !== 'internal-preview-apk') throw new Error('Unexpected artifact type')"
+
+      - name: Publish verified prerelease
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release create "$GITHUB_REF_NAME" \
+            artifacts/roof-os-field-preview.apk \
+            artifacts/roof-os-field-preview.apk.sha256 \
+            artifacts/roof-os-field-preview.manifest.json \
+            --verify-tag \
+            --title "ROOF/OS Field $GITHUB_REF_NAME" \
+            --generate-notes \
+            --prerelease

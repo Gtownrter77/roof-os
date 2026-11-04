@@ -9,6 +9,10 @@ on:
   pull_request:
     branches: ['**']
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   web:
     runs-on: ubuntu-latest
@@ -113,6 +117,7 @@ jobs:
       - run: npm run test:production-job-invoice
       - run: npm run test:production-job-payment
       - run: npm run test:production-job-warranty
+      - run: npm run test:production-job-warranty-legacy-compat
       - run: npm run test:production-job-e2e
       - run: npm run test:production-job-gate
       - run: npm run test:ai-vision-contract
@@ -340,6 +345,21 @@ jobs:
           grep -q "A warranty requires a completed production job" supabase/migrations/074_payment_warranty_guards.sql
           grep -q "A revoked warranty is immutable" supabase/migrations/074_payment_warranty_guards.sql
           grep -q "A revoked Roof Passport is immutable" supabase/migrations/074_payment_warranty_guards.sql
+           test -f supabase/migrations/075_harden_security_definer_triggers.sql
+           grep -q "p.prorettype = 'trigger'::regtype" supabase/migrations/075_harden_security_definer_triggers.sql
+           grep -q "REVOKE EXECUTE ON FUNCTION %s FROM PUBLIC, anon, authenticated" supabase/migrations/075_harden_security_definer_triggers.sql
+           test -f scripts/ci/security-definer-trigger-assertions.sql
+           test -f supabase/migrations/076_private_passport_rate_limit.sql
+           grep -q "set search_path = ''" supabase/migrations/076_private_passport_rate_limit.sql
+           grep -q "revoke all on table public.public_access_rate_limits" supabase/migrations/076_private_passport_rate_limit.sql
+           test -f scripts/ci/passport-rate-limit-privacy-assertions.sql
+           test -f supabase/migrations/077_harden_remaining_security_definers.sql
+           grep -q "p.prosecdef" supabase/migrations/077_harden_remaining_security_definers.sql
+           grep -q "ALTER FUNCTION %s SET search_path = %L" supabase/migrations/077_harden_remaining_security_definers.sql
+           test -f scripts/ci/security-definer-search-path-assertions.sql
+           test -f supabase/migrations/078_explicitly_deny_public_rate_limit_clients.sql
+           grep -q "deny_client_roles" supabase/migrations/078_explicitly_deny_public_rate_limit_clients.sql
+           test -f scripts/ci/passport-rate-limit-rls-assertions.sql
           grep -q "The approved scope does not reconcile with the accepted total and tax" supabase/migrations/071_production_invoice.sql
           grep -q "A production invoice cannot be deleted; void it instead" supabase/migrations/071_production_invoice.sql
           grep -q "A void invoice is immutable" supabase/migrations/071_production_invoice.sql

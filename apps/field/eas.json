@@ -1,16 +1,25 @@
 {
   "cli": {
-    "appVersionSource": "remote"
+    "appVersionSource": "remote",
+    "version": ">=27.2.0"
   },
   "build": {
     "preview": {
       "distribution": "internal",
       "autoIncrement": true,
-      "android": { "buildType": "apk" }
+
+      "android": {
+        "buildType": "apk"
+      }
+
     },
     "production": {
-      "android": { "buildType": "app-bundle" },
-      "ios": { "simulator": false }
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "ios": {
+        "simulator": false
+      }
     }
   }
 }
