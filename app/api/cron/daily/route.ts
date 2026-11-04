@@ -4,6 +4,7 @@ import { POST as runIntakeRouter } from '../intake-router/route'
 import { POST as runOfficeCopilot } from '../office-copilot/route'
 import { POST as runReceptionistFollowups } from '../receptionist-followups/route'
 import { POST as runWarrantyExpiry } from '../warranty-expiry/route'
+import { POST as runAgentAlerts } from '../agent-alerts/route'
 import { readCronDryRun } from '../../../../lib/agents/cron-route'
 
 export const runtime = 'nodejs'
@@ -31,6 +32,9 @@ async function run(request: NextRequest) {
       invoke('intake_router', runIntakeRouter, request),
       invoke('office_copilot', runOfficeCopilot, request),
     ]))
+    // Alerts run after the agent jobs so they see this run's heartbeats.
+    const [dryAlertName, dryAlertResult] = await invoke('agent_alerts', runAgentAlerts, request)
+    dryResults[dryAlertName] = dryAlertResult
     const dispatched = Object.keys(dryResults).length
     const skippedJobs = ['inspection_quality', 'receptionist_followups', 'warranty_expiry']
     for (const job of skippedJobs) dryResults[job] = { status: 204, body: { skipped: 'dry_run_unsupported' } }
@@ -45,6 +49,9 @@ async function run(request: NextRequest) {
     invoke('receptionist_followups', runReceptionistFollowups, request),
     invoke('warranty_expiry', runWarrantyExpiry, request),
   ]))
+  // Alerts run after the agent jobs so they see this run's heartbeats.
+  const [alertName, alertResult] = await invoke('agent_alerts', runAgentAlerts, request)
+  results[alertName] = alertResult
 
   const failed = Object.values(results).filter((result) => result.status >= 500).length
   return NextResponse.json({ processed: Object.keys(results).length, failed, results }, { status: failed ? 207 : 200 })

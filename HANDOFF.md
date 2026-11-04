@@ -1,3 +1,19 @@
+## 2026-11-04 — Free agent alerts and read-only live-gate verifier (PR C)
+
+- Branch: `feat/agent-alerts-live-gates`, based on GitHub `main` after #383. The checkpoint commit SHA is the PR head SHA.
+- Alerts (free, in-app only): `app/api/cron/agent-alerts/route.ts` runs from `/api/cron/daily` after the agent jobs. `vercel.json` still has two crons. For each workspace where an agent is enabled, it raises an alert when the latest heartbeat is `degraded` or older than `AGENT_ALERT_STALE_HOURS` (default 24). An agent counts as enabled when its `automation_rules` row is enabled; Inspection Quality and Scheduler also need their settings flag not set to `false`. Each alert becomes one open task for the workspace owner, with `automation_key = agent-alert:<agent>:<reason>:<UTC date>`. No new task is created while an open `agent-alert:<agent>:` task exists. Workspaces where an agent never wrote a heartbeat are not alerted; `/api/cron/heartbeat` reports them. There is no email or SMS. `?dryRun=1` lists the alerts without writing.
+- Quiet versus idle: an enabled workspace with no pending work now gets an idle `healthy` heartbeat (`capabilities.idle = true`) each run. A stale heartbeat therefore means the cron stopped reaching the workspace, not that there was no work. Disabled workspaces still get no heartbeat.
+- `scripts/verify-agent-live-gates.mjs` (`npm run verify:agent-live-gates`) is READ-ONLY. It sends GET requests only, in this order:
+  1. `/api/cron/agent-alerts?dryRun=1` is the capability gate. An older deployment returns 404 here and the script stops before calling any other route.
+  2. `/api/cron/intake-router?dryRun=1`
+  3. `/api/cron/office-copilot?dryRun=1`
+  4. `/api/cron/heartbeat`
+  Every dry-run response must echo `dryRun: true`, or the script stops. It checks that each planned action stays inside its own lead or inspection and workspace. It also checks that the heartbeat report has one result per agent per workspace across at least `ROOF_AGENT_GATES_MIN_WORKSPACES` (default 2) workspaces. It refuses `roof-os-lemon.vercel.app` and any host in `ROOF_PRODUCTION_HOSTS`. Usage, for staging or local only:
+  `ROOF_AGENT_GATES_NONPROD=true ROOF_AGENT_GATES_CONFIRM=I_UNDERSTAND_DRY_RUN_ONLY ROOF_AGENT_GATES_BASE_URL=https://<staging-host> CRON_SECRET=<staging secret> npm run verify:agent-live-gates`
+  The script was only exercised against a local mock server in `test:agent-alerts-live-gates`. It has NOT been run against staging or production.
+- Tests: new `test:agent-alerts-live-gates` (in the CI web job).
+- Still unverified external gates: deployed heartbeats, two-workspace isolation on live data (run the verifier against staging), an alert task created by a real daily run, and the live intake and office runs.
+
 ## 2026-11-04 — First-response dedupe, backlog-safe selection, and enabled-only heartbeats (PR B)
 
 - Branch: `fix/agent-dedupe-backlog-heartbeats`, based on GitHub `main` `7ea4f78` (#382). The checkpoint commit SHA is the PR head SHA.
