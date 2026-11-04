@@ -8,8 +8,6 @@ import { getCanvassAdvice, ObjectionType } from '../../lib/ai/canvass-mentor'
 import {
   CANVASS_LEAD_SOURCE,
   CanvassOutcome,
-  canvassOutcomeToLeadFields,
-  normalizeAddress,
 } from '../../lib/canvass'
 
 type CanvassLead = {
@@ -19,19 +17,21 @@ type CanvassLead = {
   status: string
   phone: string | null
   next_action: string | null
+  lost_reason_detail: string | null
   last_activity_at: string | null
   updated_at?: string | null
 }
 
 const outcomeColors: Record<CanvassOutcome, string> = {
   INTERESTED: 'bg-emerald-100 text-emerald-800 border-emerald-300',
-  INSPECTED: 'bg-blue-100 text-cyan-200 border-blue-300',
+  INSPECTED: 'bg-blue-100 text-blue-900 border-blue-300',
   NOT_HOME: 'bg-amber-100 text-amber-800 border-amber-300',
   DO_NOT_KNOCK: 'bg-red-100 text-red-800 border-red-300',
 }
 
 function outcomeFromLead(lead: CanvassLead): CanvassOutcome | null {
-  if (lead.status === 'lost') return 'DO_NOT_KNOCK'
+  if ((lead.lost_reason_detail || '').toLowerCase().includes('do not knock')) return 'DO_NOT_KNOCK'
+  if (lead.status === 'lost') return null
   if (lead.status === 'inspected' || lead.status === 'report_pending' || lead.status === 'report_approved') {
     return 'INSPECTED'
   }
@@ -50,8 +50,10 @@ export default function CanvassPage() {
   const [error, setError] = useState('')
   const [selectedObjection, setSelectedObjection] = useState<ObjectionType>('NO_DAMAGE')
   const [showVCard, setShowVCard] = useState(false)
-  const [leadConversionEnabled, setLeadConversionEnabled] = useState(true)
-  const [vCardEnabled, setVCardEnabled] = useState(true)
+  const [leadConversionEnabled, setLeadConversionEnabled] = useState(false)
+  const [vCardEnabled, setVCardEnabled] = useState(false)
+  const [settingsLoading, setSettingsLoading] = useState(true)
+  const [settingsError, setSettingsError] = useState('')
   const [form, setForm] = useState({
     address: '',
     homeownerName: '',
@@ -73,7 +75,7 @@ export default function CanvassPage() {
     }
     const { data, error: queryError } = await supabase
       .from('leads')
-      .select('id,name,address,status,phone,next_action,last_activity_at,updated_at')
+      .select('id,name,address,status,phone,next_action,lost_reason_detail,last_activity_at,updated_at')
       .eq('source', CANVASS_LEAD_SOURCE)
       .order('updated_at', { ascending: false })
       .limit(100)
@@ -88,15 +90,20 @@ export default function CanvassPage() {
 
   useEffect(() => {
     let active = true
-    fetch('/api/settings')
+    fetch('/api/settings', { cache: 'no-store' })
       .then(async (response) => {
         const payload = await response.json().catch(() => ({}))
-        if (!response.ok || !payload.settings) return
+        if (!response.ok || !payload.settings) throw new Error('Workspace settings could not be verified.')
         if (!active) return
-        setLeadConversionEnabled(payload.settings.enable_canvassing_lead_auto_convert !== false)
-        setVCardEnabled(payload.settings.enable_vcard_digital_business_card !== false)
+        setLeadConversionEnabled(payload.settings.enable_canvassing_lead_auto_convert === true)
+        setVCardEnabled(payload.settings.enable_vcard_digital_business_card === true)
       })
-      .catch(() => undefined)
+      .catch(() => {
+        if (active) setSettingsError('Workspace settings could not be verified. Saving is paused until settings can be loaded.')
+      })
+      .finally(() => {
+        if (active) setSettingsLoading(false)
+      })
     return () => { active = false }
   }, [])
 
@@ -105,8 +112,8 @@ export default function CanvassPage() {
     const address = form.address.trim()
     if (!address) return
 
-    if (!leadConversionEnabled) {
-      setError('Canvass lead conversion is turned off for this workspace. Change it in workspace settings before saving leads.')
+    if (settingsLoading || settingsError || !leadConversionEnabled) {
+      setError(settingsError || 'Canvass lead conversion is turned off for this workspace. Change it in workspace settings before saving leads.')
       return
     }
 
@@ -120,283 +127,104 @@ export default function CanvassPage() {
         router.replace('/auth/login?next=/canvass')
         return
       }
-      const { data: workspaceId, error: workspaceError } = await supabase.rpc('current_workspace_id')
-      if (workspaceError || !workspaceId) {
-        setError('Active workspace is required to log canvass activity.')
-        return
-      }
-
-      const fields = canvassOutcomeToLeadFields(form.outcome)
-      const name = form.homeownerName.trim() || `Canvass: ${address}`
-      const phone = form.phone.trim() || null
-      const noteBody = [
-        `Door knock: ${form.outcome.replaceAll('_', ' ')}`,
-        form.notes.trim() ? form.notes.trim() : null,
-      ].filter(Boolean).join(' — ')
-
-      const normalized = normalizeAddress(address)
-      const { data: existingRows } = await supabase
-        .from('leads')
-        .select('id,address,source')
-        .eq('workspace_id', workspaceId)
-        .eq('source', CANVASS_LEAD_SOURCE)
-        .limit(200)
-
-      const existing = (existingRows ?? []).find(
-        (row) => normalizeAddress(row.address || '') === normalized,
-      )
-
-      let leadId = existing?.id as string | undefined
-
-      if (leadId) {
-        const updatePayload: Record<string, unknown> = {
-          status: fields.status,
-          next_action: fields.next_action,
-          next_action_owner_id: fields.next_action ? user.id : null,
-          lost_reason: fields.lost_reason,
-          lost_reason_detail: fields.lost_reason_detail,
-          lost_at: fields.lost_at,
-          updated_at: new Date().toISOString(),
-        }
-        if (form.homeownerName.trim()) updatePayload.name = name
-        if (phone) updatePayload.phone = phone
-        const { error: updateError } = await supabase.from('leads').update(updatePayload).eq('id', leadId)
-        if (updateError) {
-          setError(updateError.message)
-          return
-        }
-      } else {
-        const { data: inserted, error: insertError } = await supabase.from('leads').insert({
-          name,
-          address,
-          phone,
-          source: CANVASS_LEAD_SOURCE,
-          notes: form.notes.trim() || 'Logged from field canvass.',
-          owner_id: user.id,
-          workspace_id: workspaceId,
-          status: fields.status,
-          next_action: fields.next_action,
-          next_action_owner_id: fields.next_action ? user.id : null,
-          lost_reason: fields.lost_reason,
-          lost_reason_detail: fields.lost_reason_detail,
-          lost_at: fields.lost_at,
-        }).select('id').single()
-
-        if (insertError || !inserted) {
-          setError(insertError?.message || 'Could not create canvass lead.')
-          return
-        }
-        leadId = inserted.id
-      }
-
-      await supabase.from('lead_activity').insert({
-        lead_id: leadId,
-        workspace_id: workspaceId,
-        user_id: user.id,
-        kind: 'note',
-        body: noteBody,
+      const { data: savedRows, error: saveError } = await supabase.rpc('log_canvass_knock', {
+        p_address: address,
+        p_name: form.homeownerName.trim() || null,
+        p_phone: form.phone.trim() || null,
+        p_notes: form.notes.trim() || null,
+        p_outcome: form.outcome,
       })
+      if (saveError) throw saveError
+      const saved = savedRows?.[0]
+      if (!saved?.lead_id) throw new Error('The canvass result was not confirmed as saved.')
 
       setForm({ address: '', homeownerName: '', phone: '', outcome: 'INTERESTED', notes: '' })
-      setNotice(existing ? 'Updated existing canvass lead.' : 'Saved to Leads (canvass source).')
+      setNotice(saved.created ? 'Knock saved to the workspace Leads and activity.' : 'Existing canvass lead and activity updated together.')
       await loadCanvassLeads()
-    } catch {
-      setError('Failed to save canvass knock into Leads.')
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : 'Canvass result was not saved.')
     } finally {
       setSaving(false)
     }
   }
 
   return (
-    <div className="space-y-4 pb-4">
-      <header className="glass rounded-xl mb-4">
-        <div className="px-4 py-3 flex items-center justify-between gap-2">
-          <div className="flex items-center min-w-0">
-            <button type="button" onClick={() => smartBack(router, '/leads')} className="mr-3 text-xl text-cyan-300">←</button>
-            <div className="min-w-0">
-              <h1 className="text-xl font-bold truncate">Field canvass</h1>
-              <p className="text-[11px] text-slate-400">Door-knock mode for Leads — same CRM, field UI</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <button
-              type="button"
-              onClick={() => router.push('/leads?source=canvass')}
-              className="rounded border border-cyan-400/40 px-2.5 py-1 text-xs font-bold text-cyan-200 hover:bg-cyan-400/10"
-            >
-              Canvass leads
+    <div className="-mx-4 min-h-screen bg-[#f5f2eb] px-4 pb-12 pt-4 text-[#21352e] sm:px-6 lg:-mx-8 lg:px-8">
+      <main className="mx-auto max-w-6xl space-y-7">
+        <header className="relative isolate overflow-hidden rounded-[30px] bg-[#183d32] px-5 py-6 text-white shadow-[0_24px_60px_-35px_rgba(24,61,50,.8)] sm:px-8 sm:py-8">
+          <div aria-hidden="true" className="absolute -right-14 -top-24 -z-10 h-72 w-72 rounded-full border-[34px] border-[#91ad8d]/15" />
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <button type="button" onClick={() => smartBack(router, '/leads')} className="inline-flex items-center gap-2 text-sm font-semibold text-[#d8e4d6] transition hover:text-white">
+              <span aria-hidden="true">←</span> Back to workspace
             </button>
-            {vCardEnabled && (
-              <button
-                type="button"
-                onClick={() => setShowVCard(!showVCard)}
-                className="bg-emerald-400 text-black text-xs font-bold px-2.5 py-1 rounded uppercase hover:bg-emerald-300"
-              >
-                VCard
-              </button>
-            )}
-          </div>
-        </div>
-      </header>
-
-      <main className="p-4 max-w-3xl mx-auto space-y-4">
-        {notice && <div className="bg-emerald-50 border border-emerald-200 text-emerald-900 p-3 rounded-lg text-xs font-bold">{notice}</div>}
-        {error && <div className="bg-red-400/10 border border-red-200 text-red-800 p-3 rounded-lg text-xs font-bold" role="alert">{error}</div>}
-
-        {showVCard && (
-          <div className="glass rounded-xl p-4 border-2 border-emerald-500 space-y-3">
-            <div className="flex justify-between items-start border-b pb-2">
-              <div>
-                <p className="font-bold text-base text-white">Business card not configured</p>
-                <p className="text-xs text-slate-300">Connect verified company contact details before sharing.</p>
-              </div>
-              <span className="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-mono font-bold">Not configured</span>
+            <div className="flex flex-wrap items-center gap-2">
+              <button type="button" onClick={() => router.push('/leads?source=canvass')} className="rounded-full border border-white/25 px-4 py-2 text-sm font-semibold text-white/90 transition hover:bg-white/10">Your canvass leads</button>
+              {vCardEnabled && <button type="button" onClick={() => setShowVCard((open) => !open)} className="rounded-full bg-[#d7e6ce] px-4 py-2 text-sm font-bold text-[#183d32] transition hover:bg-white">Share card</button>}
             </div>
           </div>
-        )}
-
-        <div className="glass rounded-xl p-4 border-l-4 border-indigo-600 space-y-3">
-          <div className="flex justify-between items-center">
-            <h2 className="font-bold text-sm text-white">Doorstep opener & objection guide</h2>
-            <span className="text-[10px] bg-indigo-100 text-indigo-900 font-bold px-2 py-0.5 rounded uppercase">Golden rule</span>
-          </div>
-          <div className="bg-indigo-50/60 p-3 rounded border border-indigo-100 space-y-1 text-xs">
-            <p className="font-bold text-indigo-950">Suggested opener:</p>
-            <p className="text-indigo-900 italic">&ldquo;{advice.openerScript}&rdquo;</p>
-          </div>
-          <div className="space-y-1 text-xs">
-            <label className="font-bold text-slate-100 block">Homeowner objection</label>
-            <select
-              value={selectedObjection}
-              onChange={(e) => setSelectedObjection(e.target.value as ObjectionType)}
-              className="w-full p-2 border rounded font-semibold text-xs"
-            >
-              <option value="NO_DAMAGE">&quot;I don&apos;t see any damage on my roof&quot;</option>
-              <option value="NEW_ROOF">&quot;My roof is relatively new&quot;</option>
-              <option value="HAVE_ADJUSTER">&quot;I already have an insurance adjuster coming out&quot;</option>
-              <option value="NO_TIME">&quot;I don&apos;t have time right now&quot;</option>
-              <option value="SEND_EMAIL">&quot;Just send me an email or leave a flyer&quot;</option>
-              <option value="SPOUSE">&quot;I need to talk to my spouse first&quot;</option>
-              <option value="RATES_GO_UP">&quot;Won&apos;t my insurance rates go up if I file a claim?&quot;</option>
-            </select>
-            {advice.objectionResponse && (
-              <div className="p-3 bg-amber-400/10 border border-amber-400/30 text-amber-100 rounded mt-2 font-medium">
-                <p className="font-bold text-[11px] uppercase text-amber-800 mb-0.5">Recommended counter</p>
-                <p>&ldquo;{advice.objectionResponse}&rdquo;</p>
-              </div>
-            )}
-          </div>
-          <div className="text-[10px] text-slate-400 border-t pt-2 space-y-1">
-            <p className="font-bold text-slate-200">Soft-metal evidence checklist</p>
-            <div className="flex flex-wrap gap-1">
-              {advice.collateralChecklist.map((item) => (
-                <span key={item} className="bg-white/10 text-slate-100 px-2 py-0.5 rounded border">{item}</span>
-              ))}
+          <div className="mt-9 grid items-end gap-7 md:grid-cols-[1fr_auto]">
+            <div className="max-w-2xl">
+              <p className="text-[11px] font-bold uppercase tracking-[.24em] text-[#c5d8be]">Field notes · canvass</p>
+              <h1 className="mt-3 max-w-xl font-serif text-4xl leading-[1.04] tracking-[-.04em] sm:text-5xl">Make room for a real conversation.</h1>
+              <p className="mt-4 max-w-lg text-sm leading-6 text-[#d8e4d6]">Capture the doorstep, not a paperwork pile. A knock becomes a workspace lead with its activity saved in the same transaction.</p>
             </div>
-            <p className="text-cyan-200 font-semibold pt-1">{advice.goldenReportRuleNote}</p>
+            <div className="min-w-[170px] rounded-2xl border border-white/15 bg-white/[.08] px-5 py-4 backdrop-blur-sm">
+              <p className="text-xs font-medium text-[#c5d8be]">In your canvass list</p>
+              <p className="mt-1 font-serif text-4xl">{loading ? '—' : leads.length}</p>
+              <p className="mt-1 text-xs text-white/65">{loading ? 'Checking workspace' : 'Live from workspace CRM'}</p>
+            </div>
           </div>
+        </header>
+
+        {notice && <div className="rounded-2xl border border-[#bad4bd] bg-[#e8f1e7] px-5 py-4 text-sm font-semibold text-[#234b38]" role="status">{notice}</div>}
+        {error && <div className="rounded-2xl border border-[#edc2b6] bg-[#fff0eb] px-5 py-4 text-sm font-semibold text-[#813c2e]" role="alert">{error}</div>}
+
+        {showVCard && <section className="rounded-2xl border border-[#d5dfd0] bg-white p-5 sm:flex sm:items-center sm:justify-between"><div><h2 className="font-serif text-xl">Business card is not set up yet</h2><p className="mt-1 text-sm text-[#68766e]">Add verified company contact details before sharing a card from the field.</p></div><span className="mt-3 inline-flex rounded-full bg-[#f5f2eb] px-3 py-1 text-xs font-bold text-[#55665b] sm:mt-0">Not configured</span></section>}
+
+        <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(290px,.8fr)]">
+          <form onSubmit={(e) => void logKnock(e)} className="rounded-[28px] border border-[#e5dfd4] bg-white p-5 shadow-[0_18px_50px_-38px_rgba(31,53,43,.35)] sm:p-7">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div><p className="text-[11px] font-bold uppercase tracking-[.2em] text-[#8a7255]">A quick field note</p><h2 className="mt-2 font-serif text-3xl tracking-tight">Who did you meet?</h2><p className="mt-2 text-sm text-[#728078]">Address is all you need. Add the rest if it feels right.</p></div>
+              <span className={`rounded-full px-3 py-1.5 text-xs font-bold ${settingsLoading ? 'bg-[#f5f2eb] text-[#68766e]' : leadConversionEnabled ? 'bg-[#e8f1e7] text-[#315d42]' : 'bg-[#fff0eb] text-[#813c2e]'}`}>{settingsLoading ? 'Checking workspace' : leadConversionEnabled ? 'Ready to save' : 'Saving paused'}</span>
+            </div>
+            <div className="mt-7 space-y-5">
+              <label className="block"><span className="mb-2 block text-sm font-bold">Property address <span className="text-[#b45d3d]">*</span></span><input autoComplete="street-address" type="text" required placeholder="Start with the street address" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} className="w-full rounded-2xl border border-[#ddd7cb] bg-[#fbfaf7] px-4 py-4 text-base outline-none transition placeholder:text-[#a5aaa3] focus:border-[#65866d] focus:ring-4 focus:ring-[#65866d]/10" /></label>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="block"><span className="mb-2 block text-sm font-semibold">Homeowner <span className="font-normal text-[#89928c]">optional</span></span><input autoComplete="name" type="text" placeholder="Name" value={form.homeownerName} onChange={(e) => setForm({ ...form, homeownerName: e.target.value })} className="w-full rounded-2xl border border-[#ddd7cb] bg-white px-4 py-3.5 text-sm outline-none transition placeholder:text-[#a5aaa3] focus:border-[#65866d] focus:ring-4 focus:ring-[#65866d]/10" /></label>
+                <label className="block"><span className="mb-2 block text-sm font-semibold">Phone <span className="font-normal text-[#89928c]">optional</span></span><input autoComplete="tel" type="tel" placeholder="Best number to reach them" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="w-full rounded-2xl border border-[#ddd7cb] bg-white px-4 py-3.5 text-sm outline-none transition placeholder:text-[#a5aaa3] focus:border-[#65866d] focus:ring-4 focus:ring-[#65866d]/10" /></label>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-[.85fr_1.15fr]">
+                <label className="block"><span className="mb-2 block text-sm font-semibold">How did it go?</span><select value={form.outcome} onChange={(e) => setForm({ ...form, outcome: e.target.value as CanvassOutcome })} className="w-full rounded-2xl border border-[#ddd7cb] bg-white px-4 py-3.5 text-sm font-semibold outline-none focus:border-[#65866d] focus:ring-4 focus:ring-[#65866d]/10"><option value="INTERESTED">Interested</option><option value="NOT_HOME">No answer</option><option value="INSPECTED">Inspection done</option><option value="DO_NOT_KNOCK">Do not knock</option></select></label>
+                <label className="block"><span className="mb-2 block text-sm font-semibold">A detail to remember <span className="font-normal text-[#89928c]">optional</span></span><input type="text" placeholder="Roof age, hail, next step…" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} className="w-full rounded-2xl border border-[#ddd7cb] bg-white px-4 py-3.5 text-sm outline-none transition placeholder:text-[#a5aaa3] focus:border-[#65866d] focus:ring-4 focus:ring-[#65866d]/10" /></label>
+              </div>
+              <div className="flex flex-col gap-3 border-t border-[#eee9e0] pt-5 sm:flex-row sm:items-center sm:justify-between">
+                <p className="max-w-sm text-xs leading-5 text-[#7e8982]">Only record contact details they choose to share. No inspection or photos without permission.</p>
+                <button type="submit" disabled={saving || settingsLoading || !!settingsError || !leadConversionEnabled} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-[#d97850] px-6 py-3 text-sm font-bold text-white shadow-[0_12px_24px_-14px_rgba(172,88,57,.8)] transition hover:bg-[#bf6441] disabled:cursor-not-allowed disabled:bg-[#c9c8c1] disabled:shadow-none">{saving ? 'Saving note…' : 'Save field note'} <span aria-hidden="true">↗</span></button>
+              </div>
+              {settingsError && <p className="rounded-xl bg-[#fff0eb] p-3 text-xs leading-5 text-[#813c2e]">{settingsError}</p>}
+              {!settingsLoading && !settingsError && !leadConversionEnabled && <p className="rounded-xl bg-[#fff6e7] p-3 text-xs leading-5 text-[#76592c]">Canvass lead conversion is off for this workspace. An administrator can change it in workspace settings.</p>}
+            </div>
+          </form>
+
+          <aside className="space-y-5">
+            <section className="rounded-[28px] bg-[#e6ecdf] p-5 sm:p-6">
+              <div className="flex items-center justify-between gap-3"><div><p className="text-[11px] font-bold uppercase tracking-[.2em] text-[#6c806a]">In your pocket</p><h2 className="mt-2 font-serif text-2xl">A gentle opener</h2></div><span aria-hidden="true" className="grid h-10 w-10 place-items-center rounded-full bg-white/70 text-lg text-[#55735d]">“</span></div>
+              <p className="mt-4 text-sm leading-6 text-[#405747]">&ldquo;{advice.openerScript}&rdquo;</p>
+              <label className="mt-6 block text-xs font-bold uppercase tracking-wide text-[#617164]">Need a thoughtful response?</label>
+              <select value={selectedObjection} onChange={(e) => setSelectedObjection(e.target.value as ObjectionType)} className="mt-2 w-full rounded-xl border border-[#cdd8c8] bg-white/75 px-3 py-3 text-sm font-medium text-[#31463a] outline-none focus:ring-4 focus:ring-[#65866d]/15"><option value="NO_DAMAGE">“I don’t see any damage.”</option><option value="NEW_ROOF">“My roof is relatively new.”</option><option value="HAVE_ADJUSTER">“I already have an adjuster.”</option><option value="NO_TIME">“I don’t have time.”</option><option value="SEND_EMAIL">“Just send me an email.”</option><option value="SPOUSE">“I need to talk with my spouse.”</option><option value="RATES_GO_UP">“Will my rates go up?”</option></select>
+              {advice.objectionResponse && <p className="mt-3 rounded-2xl bg-white/75 p-4 text-sm leading-6 text-[#405747]">&ldquo;{advice.objectionResponse}&rdquo;</p>}
+            </section>
+            <section className="rounded-[28px] border border-[#e5dfd4] bg-white p-5 sm:p-6"><p className="text-[11px] font-bold uppercase tracking-[.2em] text-[#8a7255]">Keep it grounded</p><h2 className="mt-2 font-serif text-xl">What to notice</h2><ul className="mt-4 space-y-2">{advice.collateralChecklist.map((item) => <li key={item} className="flex gap-2 text-sm leading-5 text-[#53635a]"><span className="mt-1 text-[#d97850]" aria-hidden="true">•</span><span>{item}</span></li>)}</ul><p className="mt-5 border-t border-[#eee9e0] pt-4 text-xs leading-5 text-[#78847c]">{advice.goldenReportRuleNote}</p></section>
+          </aside>
         </div>
 
-        <form onSubmit={(e) => void logKnock(e)} className="glass rounded-xl p-4 space-y-3 border">
-          <h2 className="font-bold text-sm text-slate-100">Log door knock → Leads</h2>
-          <input
-            type="text"
-            required
-            placeholder="Property address"
-            value={form.address}
-            onChange={(e) => setForm({ ...form, address: e.target.value })}
-            className="w-full p-2.5 border rounded-lg text-sm"
-          />
-          <div className="grid grid-cols-2 gap-2">
-            <input
-              type="text"
-              placeholder="Homeowner name (optional)"
-              value={form.homeownerName}
-              onChange={(e) => setForm({ ...form, homeownerName: e.target.value })}
-              className="p-2.5 border rounded-lg text-sm"
-            />
-            <input
-              type="tel"
-              placeholder="Phone (optional)"
-              value={form.phone}
-              onChange={(e) => setForm({ ...form, phone: e.target.value })}
-              className="p-2.5 border rounded-lg text-sm"
-            />
+        <section className="rounded-[28px] border border-[#e5dfd4] bg-white p-5 sm:p-7">
+          <div className="flex flex-wrap items-end justify-between gap-3"><div><p className="text-[11px] font-bold uppercase tracking-[.2em] text-[#8a7255]">Workspace CRM</p><h2 className="mt-2 font-serif text-3xl tracking-tight">Recent field leads <span className="font-sans text-base font-medium text-[#8c958f]">{loading ? '…' : leads.length}</span></h2></div><button type="button" onClick={() => router.push('/leads?source=canvass')} className="text-sm font-bold text-[#416a4d] underline decoration-[#bbcab8] underline-offset-4 hover:text-[#254a32]">Open the full list</button></div>
+          <div className="mt-5 grid gap-3 md:grid-cols-2">
+            {!loading && leads.length === 0 && <p className="rounded-2xl border border-dashed border-[#d8d2c6] bg-[#fbfaf7] p-5 text-sm leading-6 text-[#7a867e] md:col-span-2">Your first note will show up here. The field view and workspace CRM share the same leads.</p>}
+            {leads.map((lead) => { const outcome = outcomeFromLead(lead); return <button key={lead.id} type="button" onClick={() => router.push(`/leads/${lead.id}`)} className="group rounded-2xl border border-[#ebe6dc] bg-[#fbfaf7] p-4 text-left transition hover:border-[#b6c9b3] hover:bg-[#f6f8f2]"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="truncate font-semibold text-[#293d32]">{lead.address}</p><p className="mt-1 truncate text-sm text-[#79847d]">{lead.name}{lead.phone ? ` · ${lead.phone}` : ''}</p></div><span className="shrink-0 text-xs font-bold text-[#648269] transition group-hover:translate-x-0.5">Open ↗</span></div><div className="mt-4 flex flex-wrap gap-2">{outcome && <span className={`rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${outcomeColors[outcome]}`}>{outcome.replaceAll('_', ' ')}</span>}<span className="rounded-full bg-[#e9ede6] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-[#586a5d]">{lead.status.replaceAll('_', ' ')}</span></div>{lead.next_action && <p className="mt-3 border-t border-[#ebe6dc] pt-3 text-xs text-[#77847a]">Next: {lead.next_action}</p>}</button> })}
           </div>
-          <div className="grid grid-cols-2 gap-2">
-            <select
-              value={form.outcome}
-              onChange={(e) => setForm({ ...form, outcome: e.target.value as CanvassOutcome })}
-              className="p-2.5 border rounded-lg text-sm font-semibold"
-            >
-              <option value="INTERESTED">Interested / inspection requested</option>
-              <option value="NOT_HOME">Not home / left door hanger</option>
-              <option value="INSPECTED">On-site inspection completed</option>
-              <option value="DO_NOT_KNOCK">Do not knock / no soliciting</option>
-            </select>
-            <input
-              type="text"
-              placeholder="Notes (hail, roof age, etc.)"
-              value={form.notes}
-              onChange={(e) => setForm({ ...form, notes: e.target.value })}
-              className="p-2.5 border rounded-lg text-sm"
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={saving || !leadConversionEnabled}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg text-sm disabled:opacity-50"
-          >
-            {saving ? 'Saving…' : 'Save to Leads'}
-          </button>
-          {!leadConversionEnabled && (
-            <p className="text-[11px] text-amber-200 -mt-2">
-              Canvass lead conversion is turned off for this workspace. Change it in workspace settings before saving leads.
-            </p>
-          )}
-        </form>
-
-        <div className="glass rounded-xl p-4 space-y-3">
-          <h2 className="font-bold text-sm text-slate-100 flex justify-between items-center">
-            <span>Canvass leads ({loading ? '…' : leads.length})</span>
-            <span className="text-xs text-slate-400 font-normal">Live from workspace CRM</span>
-          </h2>
-          <div className="space-y-2">
-            {!loading && leads.length === 0 && (
-              <p className="rounded border border-dashed p-4 text-xs text-slate-400">
-                No canvass leads yet. Log a door knock — it creates (or updates) a lead with source canvass.
-              </p>
-            )}
-            {leads.map((lead) => {
-              const outcome = outcomeFromLead(lead)
-              return (
-                <button
-                  key={lead.id}
-                  type="button"
-                  onClick={() => router.push(`/leads/${lead.id}`)}
-                  className="w-full p-3 border rounded-lg bg-white/5 flex justify-between items-start text-xs border-l-4 border-blue-600 text-left hover:bg-white/10"
-                >
-                  <div className="space-y-1 min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-bold text-sm text-white truncate">{lead.address}</span>
-                      {outcome && (
-                        <span className={`px-2 py-0.5 rounded font-bold uppercase text-[10px] border ${outcomeColors[outcome]}`}>
-                          {outcome.replaceAll('_', ' ')}
-                        </span>
-                      )}
-                      <span className="rounded bg-cyan-400/15 px-2 py-0.5 text-[10px] font-semibold text-cyan-300">
-                        {lead.status.replaceAll('_', ' ')}
-                      </span>
-                    </div>
-                    <p className="text-slate-200">{lead.name}{lead.phone ? ` · ${lead.phone}` : ''}</p>
-                    {lead.next_action && <p className="text-slate-400">Next: {lead.next_action}</p>}
-                  </div>
-                  <span className="text-cyan-300 shrink-0 ml-2">Open →</span>
-                </button>
-              )
-            })}
-          </div>
-        </div>
+        </section>
       </main>
     </div>
   )

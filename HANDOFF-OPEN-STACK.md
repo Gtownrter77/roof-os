@@ -8,7 +8,7 @@ Branch: free-local-stack. Changes must pass the release checks before merge to m
 
 | Paid call | Free replacement | Where |
 | --- | --- | --- |
-| OpenAI whisper-1 | faster-whisper, MIT build of openai/whisper. No key. | workers/whisper, WHISPER_URL |
+| OpenAI whisper-1 | faster-whisper, MIT build of openai/whisper. No key. | `workers/whisper`, `POST /transcribe`, multipart fields `file` + `language`; `WHISPER_WORKER_URL` is the canonical endpoint variable and legacy `WHISPER_URL` base URL remains supported. |
 | OpenAI gpt-4o-mini chat | Ollama llama3:8b. Keywords only if Ollama is down. No hosted chat key. | lib/ai/ollama.ts, lib/ai/chat-copilot.ts |
 | Receptionist OpenAI fallback | Same Ollama model, then the keyword rule engine. | lib/receptionist-ai.ts |
 

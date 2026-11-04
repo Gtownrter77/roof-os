@@ -34,7 +34,36 @@ export async function POST(request: NextRequest) {
     const settings = settingsByWorkspace.get(attempt.workspace_id) ?? defaultWorkspaceSettings()
     if (!settings.enable_ai_receptionist) { skipped += 1; continue }
     if (settings.enforce_tcpa_quiet_hours_outbound && !isWithinQuietHours()) { skipped += 1; continue }
-    const phone = settings.require_strict_e164_phone_format ? (normalizeStrictE164(attempt.phone) ?? attempt.phone) : attempt.phone
+    const phone = settings.require_strict_e164_phone_format ? normalizeStrictE164(attempt.phone) : attempt.phone
+    if (!phone) {
+      const invalidPhoneMessage = 'Follow-up skipped: phone number is not valid +1 E.164.'
+      const { data: invalidClaim, error: invalidClaimError } = await admin
+        .from('receptionist_call_attempts')
+        .update({ status: 'failed' })
+        .eq('id', attempt.id)
+        .eq('status', 'queued')
+        .select('id')
+        .maybeSingle()
+      if (invalidClaimError) {
+        failed += 1
+        failures.push({ attemptId: attempt.id, error: `${invalidPhoneMessage} Could not mark the queued attempt failed: ${invalidClaimError.message}` })
+        continue
+      }
+      if (!invalidClaim) continue
+      const { error: eventError } = await admin.from('receptionist_events').upsert({
+        workspace_id: attempt.workspace_id,
+        event_key: `followup:${attempt.id}:invalid_phone`,
+        event_type: 'follow_up.invalid_phone',
+        provider: 'twilio',
+        payload: { attemptId: attempt.id, reason: 'invalid_e164_phone' },
+      }, { onConflict: 'workspace_id,event_key' })
+      failed += 1
+      failures.push({
+        attemptId: attempt.id,
+        error: eventError ? `${invalidPhoneMessage} Event logging failed: ${eventError.message}` : invalidPhoneMessage,
+      })
+      continue
+    }
     const { data: claimed } = await admin.from('receptionist_call_attempts').update({ status: 'ringing' }).eq('id', attempt.id).eq('status', 'queued').select('id').maybeSingle()
     if (!claimed) continue
     const { data: optOut } = await admin.from('receptionist_consents').select('id').eq('workspace_id', attempt.workspace_id).eq('phone', phone).eq('channel', 'voice').eq('state', 'revoked').order('captured_at', { ascending: false }).limit(1).maybeSingle()

@@ -11,7 +11,7 @@ docker build -t roofos-whisper workers/whisper
 docker run --rm -p 8088:8088 roofos-whisper
 ```
 
-Set WHISPER_URL=http://127.0.0.1:8088 on the app. processAudioTranscription posts audio there. If the worker is down, the call fails. It does not invent a transcript.
+Set `WHISPER_WORKER_URL=http://127.0.0.1:8088/transcribe` on the app. The client also accepts a worker base URL (for example, the legacy `WHISPER_URL=http://127.0.0.1:8088`) and appends `/transcribe`; an existing `/transcribe` path is not duplicated. The request is multipart form data with `file` and `language` fields, matching `workers/whisper/server.py`. If the worker is down or returns no transcript, the API reports an explicit unavailable/error response; it does not invent a transcript. The worker URL must be reachable from the server runtime, not just from a user's browser.
 
 ## Languages
 

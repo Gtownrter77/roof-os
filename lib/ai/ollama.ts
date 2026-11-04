@@ -25,8 +25,16 @@ function recordOllamaFailure(): void {
   lastOllamaFailure = Date.now()
 }
 
+export function getOllamaEndpointInfo() {
+  const configuredHost = process.env.OLLAMA_HOST?.trim()
+  return {
+    host: (configuredHost || DEFAULT_HOST).replace(/\/$/, ''),
+    provider: configuredHost ? 'ollama-configured' as const : 'ollama-default-loopback' as const,
+  }
+}
+
 function ollamaHost() {
-  return (process.env.OLLAMA_HOST?.trim() || DEFAULT_HOST).replace(/\/$/, '')
+  return getOllamaEndpointInfo().host
 }
 
 function ollamaModel(model?: string) {
