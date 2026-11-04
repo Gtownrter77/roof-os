@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createCronAgentRoute } from '../../../../lib/agents/cron-route'
 import { readCronBatchConfig } from '../../../../lib/agents/cron-batch-config'
+import { enabledAutomationWorkspaces, latestInspectionPhotoTimes, selectUnprocessedCandidates } from '../../../../lib/agents/cron-backlog'
 import { officeCopilotBatchKey, officeCopilotBatchSummary, planOfficeCopilotForInspection, runOfficeCopilot } from '../../../../workers/office-copilot'
 
 export const POST = createCronAgentRoute({
@@ -15,46 +16,42 @@ export const POST = createCronAgentRoute({
     .select('id,workspace_id,created_by,updated_at')
     .eq('status', 'completed')
     .order('updated_at', { ascending: batch.ascending })
-    .limit(batch.limit)
+    .limit(batch.scanLimit)
 
   if (error) return NextResponse.json({ error: 'Could not read completed inspections.', detail: error.message }, { status: 502 })
-  const workspaceIds = (inspections ?? []).map((inspection) => inspection.workspace_id)
-  await heartbeat(workspaceIds, 'starting')
 
   // Office Copilot is seeded disabled (migration 005). Only workspaces whose office_copilot
   // automation rule is explicitly enabled are processed; a missing rule or read error skips.
-  const enabledWorkspaces = new Set<string>()
-  const uniqueWorkspaceIds = [...new Set(workspaceIds)]
-  if (uniqueWorkspaceIds.length) {
-    const { data: rules, error: rulesError } = await admin
-      .from('automation_rules')
-      .select('workspace_id,enabled')
-      .eq('agent_key', 'office_copilot')
-      .in('workspace_id', uniqueWorkspaceIds)
-    if (!rulesError) {
-      for (const rule of rules ?? []) if (rule.enabled === true) enabledWorkspaces.add(rule.workspace_id as string)
-    }
+  const enabledWorkspaces = await enabledAutomationWorkspaces(admin, 'office_copilot', (inspections ?? []).map((inspection) => inspection.workspace_id as string))
+  const enabledInspections = (inspections ?? []).filter((inspection) => enabledWorkspaces.has(inspection.workspace_id))
+  let skipped = (inspections ?? []).length - enabledInspections.length
+
+  let selection
+  try {
+    const photoTimes = await latestInspectionPhotoTimes(admin, enabledInspections)
+    const candidates = enabledInspections.map((inspection) => ({
+      inspection,
+      workspaceId: inspection.workspace_id as string,
+      eventKey: `office-copilot:${inspection.id}:${photoTimes.get(inspection.id) ?? inspection.updated_at}`,
+    }))
+    // Already-processed inspections are skipped before the per-run limit applies.
+    selection = await selectUnprocessedCandidates(admin, 'office_copilot', candidates, batch.limit)
+  } catch (selectionError) {
+    return NextResponse.json({ error: 'Could not select pending inspections.', detail: selectionError instanceof Error ? selectionError.message : String(selectionError) }, { status: 502 })
   }
+
+  // Heartbeats only for workspaces where the agent is enabled and has work this run.
+  const workspaceIds = selection.pending.map((candidate) => candidate.workspaceId)
+  await heartbeat(workspaceIds, 'starting')
 
   let processed = 0
   let failed = 0
-  let skipped = 0
+  const alreadyProcessed = selection.alreadyProcessed
   const failures: Array<{ inspectionId: string; error: string }> = []
   const planned: Array<Record<string, unknown>> = []
 
-  for (const inspection of inspections ?? []) {
-    if (!enabledWorkspaces.has(inspection.workspace_id)) { skipped += 1; continue }
+  for (const { inspection, eventKey } of selection.pending) {
     try {
-      const { data: latestPhoto } = await admin
-        .from('inspection_photos')
-        .select('updated_at')
-        .eq('inspection_id', inspection.id)
-        .eq('workspace_id', inspection.workspace_id)
-        .order('updated_at', { ascending: false })
-        .limit(1)
-        .maybeSingle()
-
-      const eventKey = `office-copilot:${inspection.id}:${latestPhoto?.updated_at ?? inspection.updated_at}`
       if (dryRun) {
         // Read-only: plan the review batch without agent_runs, batches, model calls, or heartbeats.
         const plan = await planOfficeCopilotForInspection(admin, inspection.workspace_id, inspection.id, inspection.created_by)
@@ -89,16 +86,16 @@ export const POST = createCronAgentRoute({
   }
 
   if (dryRun) {
-    return NextResponse.json({ dryRun: true, processed, skipped, failed, failures, planned }, { status: failed > 0 ? 500 : 200 })
+    return NextResponse.json({ dryRun: true, processed, skipped, alreadyProcessed, failed, failures, planned }, { status: failed > 0 ? 500 : 200 })
   }
 
   if (failed > 0) {
     await heartbeat(workspaceIds, 'degraded', { lastError: failures[0]?.error })
-    return NextResponse.json({ processed, skipped, failed, failures }, { status: 500 })
+    return NextResponse.json({ processed, skipped, alreadyProcessed, failed, failures }, { status: 500 })
   }
 
   await heartbeat(workspaceIds, 'healthy')
-  return NextResponse.json({ processed, skipped, failed: 0 })
+  return NextResponse.json({ processed, skipped, alreadyProcessed, failed: 0 })
 })
 
 // Vercel Cron invokes scheduled paths with GET; keep POST for manual runs.

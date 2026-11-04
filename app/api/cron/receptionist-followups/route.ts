@@ -25,19 +25,25 @@ export const POST = createCronAgentRoute({
 }, async ({ admin, heartbeat }) => {
   const { accountSid, authToken, from, publicUrl } = twilioConfig()!
   const batch = readCronBatchConfig('scheduler')
-  const { data: attempts, error } = await admin.from('receptionist_call_attempts').select('id,workspace_id,lead_id,phone,attempt_number').eq('direction', 'outbound').eq('status', 'queued').not('next_attempt_at', 'is', null).lte('next_attempt_at', new Date().toISOString()).order('created_at', { ascending: batch.ascending }).limit(batch.limit)
+  // Scan past the per-run limit so queued attempts in workspaces with the receptionist
+  // disabled cannot fill the batch and block enabled workspaces.
+  const { data: queued, error } = await admin.from('receptionist_call_attempts').select('id,workspace_id,lead_id,phone,attempt_number').eq('direction', 'outbound').eq('status', 'queued').not('next_attempt_at', 'is', null).lte('next_attempt_at', new Date().toISOString()).order('created_at', { ascending: batch.ascending }).limit(batch.scanLimit)
   if (error) return NextResponse.json({ error: 'Could not read follow-up queue.', detail: error.message }, { status: 502 })
-  const workspaceIds = (attempts ?? []).map((attempt) => attempt.workspace_id)
-  await heartbeat(workspaceIds, 'starting')
   const settingsByWorkspace = new Map<string, Awaited<ReturnType<typeof loadWorkspaceSettings>>>()
-  for (const workspaceId of [...new Set(workspaceIds)]) {
+  for (const workspaceId of [...new Set((queued ?? []).map((attempt) => attempt.workspace_id as string))]) {
     settingsByWorkspace.set(workspaceId, await loadWorkspaceSettings(admin, workspaceId))
   }
+  const receptionistEnabled = (workspaceId: string) => (settingsByWorkspace.get(workspaceId) ?? defaultWorkspaceSettings()).enable_ai_receptionist
+  const disabledAttempts = (queued ?? []).filter((attempt) => !receptionistEnabled(attempt.workspace_id)).length
+  const attempts = (queued ?? []).filter((attempt) => receptionistEnabled(attempt.workspace_id)).slice(0, batch.limit)
+  // Heartbeats only for workspaces where the receptionist is enabled and has queued work.
+  const workspaceIds = attempts.map((attempt) => attempt.workspace_id)
+  await heartbeat(workspaceIds, 'starting')
   const client = twilio(accountSid, authToken)
   let started = 0
   let failed = 0
   let optedOut = 0
-  let skipped = 0
+  let skipped = disabledAttempts
   const failures: Array<{ attemptId: string; error: string }> = []
 
   for (const attempt of attempts || []) {

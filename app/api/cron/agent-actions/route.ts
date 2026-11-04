@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '../../../../lib/supabase/admin'
 import { executeApprovedBatch } from '../../../../workers/action-executor'
 import { writeWorkerHeartbeats } from '../../../../workers/heartbeat'
+import { enabledAutomationWorkspaces } from '../../../../lib/agents/cron-backlog'
 
 export async function POST(request: NextRequest) {
   const secret = process.env.CRON_SECRET?.trim()
@@ -15,7 +16,10 @@ export async function POST(request: NextRequest) {
     .order('created_at', { ascending: true })
     .limit(25)
   if (error) return NextResponse.json({ error: 'Could not read approved action batches.', detail: error.message }, { status: 502 })
-  const workspaceIds = (batches ?? []).map((batch) => batch.workspace_id)
+  // Approved batches still execute, but office_copilot heartbeats are only written for
+  // workspaces where that agent is enabled, so a disabled agent never looks alive.
+  const enabledWorkspaces = await enabledAutomationWorkspaces(admin, 'office_copilot', (batches ?? []).map((batch) => batch.workspace_id as string))
+  const workspaceIds = (batches ?? []).map((batch) => batch.workspace_id).filter((workspaceId) => enabledWorkspaces.has(workspaceId))
   await writeWorkerHeartbeats(admin, workspaceIds, 'office_copilot', 'starting')
 
   let executed = 0

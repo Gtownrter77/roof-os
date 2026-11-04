@@ -36,7 +36,7 @@ assert.equal(parseDryRunBody('x'.repeat(5000)), null)
 
 // 4. Batch limit/order defaults and env overrides.
 assert.equal(DEFAULT_CRON_BATCH_LIMIT, 25)
-assert.deepEqual(readCronBatchConfig('intake_router', {}), { limit: 25, order: 'newest', ascending: false })
+assert.deepEqual(readCronBatchConfig('intake_router', {}), { limit: 25, scanLimit: 100, order: 'newest', ascending: false })
 assert.equal(readCronBatchConfig('scheduler', {}).order, 'oldest')
 assert.equal(readCronBatchConfig('office_copilot', { AGENT_CRON_BATCH_LIMIT: '10' }).limit, 10)
 assert.equal(readCronBatchConfig('office_copilot', { AGENT_CRON_BATCH_LIMIT: '10', OFFICE_COPILOT_CRON_BATCH_LIMIT: '40' }).limit, 40, 'per-agent override wins')
