@@ -1,30 +1,25 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createAdminClient } from '../../../../lib/supabase/admin'
-import { runOfficeCopilot } from '../../../../workers/office-copilot'
-import { writeWorkerHeartbeats } from '../../../../workers/heartbeat'
+import { NextResponse } from 'next/server'
+import { createCronAgentRoute } from '../../../../lib/agents/cron-route'
+import { readCronBatchConfig } from '../../../../lib/agents/cron-batch-config'
+import { officeCopilotBatchKey, officeCopilotBatchSummary, planOfficeCopilotForInspection, runOfficeCopilot } from '../../../../workers/office-copilot'
 
-export async function POST(request: NextRequest) {
-  const secret = process.env.CRON_SECRET?.trim()
-  const supplied = request.headers.get('authorization')?.replace(/^Bearer\s+/i, '')
-  if (!secret || supplied !== secret) return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 })
-
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim()
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()
-  if (!supabaseUrl || !serviceRoleKey) {
-    return NextResponse.json({ error: 'Supabase worker configuration is incomplete.' }, { status: 503 })
-  }
-
-  const admin = createAdminClient()
+export const POST = createCronAgentRoute({
+  agentKey: 'office_copilot',
+  workerVersion: 'office-copilot-v1',
+  requireSupabaseWorker: true,
+  supportsDryRun: true,
+}, async ({ admin, worker, dryRun, heartbeat }) => {
+  const batch = readCronBatchConfig('office_copilot')
   const { data: inspections, error } = await admin
     .from('inspection_sessions')
     .select('id,workspace_id,created_by,updated_at')
     .eq('status', 'completed')
-    .order('updated_at', { ascending: true })
-    .limit(25)
+    .order('updated_at', { ascending: batch.ascending })
+    .limit(batch.limit)
 
   if (error) return NextResponse.json({ error: 'Could not read completed inspections.', detail: error.message }, { status: 502 })
   const workspaceIds = (inspections ?? []).map((inspection) => inspection.workspace_id)
-  await writeWorkerHeartbeats(admin, workspaceIds, 'office_copilot', 'starting')
+  await heartbeat(workspaceIds, 'starting')
 
   // Office Copilot is seeded disabled (migration 005). Only workspaces whose office_copilot
   // automation rule is explicitly enabled are processed; a missing rule or read error skips.
@@ -45,6 +40,7 @@ export async function POST(request: NextRequest) {
   let failed = 0
   let skipped = 0
   const failures: Array<{ inspectionId: string; error: string }> = []
+  const planned: Array<Record<string, unknown>> = []
 
   for (const inspection of inspections ?? []) {
     if (!enabledWorkspaces.has(inspection.workspace_id)) { skipped += 1; continue }
@@ -59,8 +55,24 @@ export async function POST(request: NextRequest) {
         .maybeSingle()
 
       const eventKey = `office-copilot:${inspection.id}:${latestPhoto?.updated_at ?? inspection.updated_at}`
+      if (dryRun) {
+        // Read-only: plan the review batch without agent_runs, batches, model calls, or heartbeats.
+        const plan = await planOfficeCopilotForInspection(admin, inspection.workspace_id, inspection.id, inspection.created_by)
+        if ('reason' in plan) { skipped += 1; continue }
+        planned.push({
+          workspaceId: inspection.workspace_id,
+          inspectionId: inspection.id,
+          eventKey,
+          batchKey: officeCopilotBatchKey(inspection.id, eventKey),
+          summary: officeCopilotBatchSummary(plan.leadName),
+          deficiencies: plan.draft.deficiencies,
+          actions: plan.actions,
+        })
+        processed += 1
+        continue
+      }
       await runOfficeCopilot(
-        { supabaseUrl, serviceRoleKey, workerId: process.env.AGENT_WORKER_ID?.trim() || 'vercel-cron', workerVersion: process.env.AGENT_WORKER_VERSION?.trim() || 'office-copilot-v1' },
+        worker,
         inspection.workspace_id,
         inspection.id,
         inspection.created_by,
@@ -76,14 +88,18 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  if (dryRun) {
+    return NextResponse.json({ dryRun: true, processed, skipped, failed, failures, planned }, { status: failed > 0 ? 500 : 200 })
+  }
+
   if (failed > 0) {
-    await writeWorkerHeartbeats(admin, workspaceIds, 'office_copilot', 'degraded', { lastError: failures[0]?.error })
+    await heartbeat(workspaceIds, 'degraded', { lastError: failures[0]?.error })
     return NextResponse.json({ processed, skipped, failed, failures }, { status: 500 })
   }
 
-  await writeWorkerHeartbeats(admin, workspaceIds, 'office_copilot', 'healthy')
+  await heartbeat(workspaceIds, 'healthy')
   return NextResponse.json({ processed, skipped, failed: 0 })
-}
+})
 
 // Vercel Cron invokes scheduled paths with GET; keep POST for manual runs.
 export const GET = POST

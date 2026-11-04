@@ -69,6 +69,7 @@ jobs:
       - run: npm run test:intake-router
       - run: npm run test:office-copilot
       - run: npm run test:agent-cron-routes
+      - run: npm run test:agent-cron-helpers
       - run: npm run test:cron-http
       - run: npm run test:field-device-evidence
       - run: npm run test:release-gate-summary

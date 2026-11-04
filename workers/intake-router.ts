@@ -1,3 +1,4 @@
+import type { SupabaseClient } from '@supabase/supabase-js'
 
 type LeadRecord = {
   id: string
@@ -174,39 +175,8 @@ export async function runIntakeRouter(
     inputReference: { lead_id: leadId },
   }, async () => {
     const supabase = createClient(config.supabaseUrl, config.serviceRoleKey, { auth: { autoRefreshToken: false, persistSession: false } })
-    const { data: lead, error: leadError } = await supabase
-      .from('leads')
-      .select('id,name,address,phone,email,owner_id')
-      .eq('id', leadId)
-      .eq('workspace_id', workspaceId)
-      .maybeSingle()
-    if (leadError) throw leadError
-    if (!lead) throw new Error('Lead was not found in the requested workspace.')
-
-    const { data: existing, error: existingError } = await supabase
-      .from('leads')
-      .select('id,name,address,phone,email,owner_id')
-      .eq('workspace_id', workspaceId)
-      .neq('id', leadId)
-      .limit(200)
-    if (existingError) throw existingError
-
-    const { data: members, error: memberError } = await supabase
-      .from('workspace_members')
-      .select('user_id,role')
-      .eq('workspace_id', workspaceId)
-      .in('role', ['owner', 'admin', 'member'])
-      .order('created_at', { ascending: true })
-      .limit(100)
-    if (memberError) throw memberError
-
-    const plan = planIntakeRouter({
-      lead: toLead(lead as LeadRecord),
-      existingLeads: (existing ?? []).map((row) => toLead(row as LeadRecord)),
-      roundRobinOwnerIds: (members ?? []).map((member) => member.user_id).filter(Boolean),
-      taskCreatorId,
-    })
-    const batchKey = `intake:${leadId}:${eventKey}`
+    const { lead, plan } = await planIntakeRouterForLead(supabase, workspaceId, leadId, taskCreatorId)
+    const batchKey = intakeRouterBatchKey(leadId, eventKey)
     const { data: existingBatch, error: existingBatchError } = await supabase
       .from('agent_action_batches')
       .select('id')
@@ -219,7 +189,7 @@ export async function runIntakeRouter(
       : await persistActionBatch(supabase, {
           workspaceId,
           batchKey,
-          summary: plan.duplicateLeadIds.length ? `Review duplicate lead routing for ${lead.name}` : `Route new lead ${lead.name}`,
+          summary: intakeRouterBatchSummary(lead.name, plan),
           actions: plan.actions,
         })
     return {
@@ -228,6 +198,61 @@ export async function runIntakeRouter(
       approvalState: plan.duplicateLeadIds.length ? ('pending' as const) : ('not_required' as const),
     }
   })
+}
+
+export function intakeRouterBatchKey(leadId: string, eventKey: string): string {
+  return `intake:${leadId}:${eventKey}`
+}
+
+export function intakeRouterBatchSummary(leadName: string, plan: Pick<IntakeRouterPlan, 'duplicateLeadIds'>): string {
+  return plan.duplicateLeadIds.length ? `Review duplicate lead routing for ${leadName}` : `Route new lead ${leadName}`
+}
+
+/**
+ * Read-only planning step shared by the live run and the cron dry-run mode.
+ * Performs workspace-scoped reads only; never writes.
+ */
+export async function planIntakeRouterForLead(
+  supabase: SupabaseClient,
+  workspaceId: string,
+  leadId: string,
+  taskCreatorId: string,
+  now?: string | Date,
+) {
+  const { data: lead, error: leadError } = await supabase
+    .from('leads')
+    .select('id,name,address,phone,email,owner_id')
+    .eq('id', leadId)
+    .eq('workspace_id', workspaceId)
+    .maybeSingle()
+  if (leadError) throw leadError
+  if (!lead) throw new Error('Lead was not found in the requested workspace.')
+
+  const { data: existing, error: existingError } = await supabase
+    .from('leads')
+    .select('id,name,address,phone,email,owner_id')
+    .eq('workspace_id', workspaceId)
+    .neq('id', leadId)
+    .limit(200)
+  if (existingError) throw existingError
+
+  const { data: members, error: memberError } = await supabase
+    .from('workspace_members')
+    .select('user_id,role')
+    .eq('workspace_id', workspaceId)
+    .in('role', ['owner', 'admin', 'member'])
+    .order('created_at', { ascending: true })
+    .limit(100)
+  if (memberError) throw memberError
+
+  const plan = planIntakeRouter({
+    lead: toLead(lead as LeadRecord),
+    existingLeads: (existing ?? []).map((row) => toLead(row as LeadRecord)),
+    roundRobinOwnerIds: (members ?? []).map((member) => member.user_id).filter(Boolean),
+    taskCreatorId,
+    now,
+  })
+  return { lead: lead as LeadRecord, plan }
 }
 
 function toLead(row: LeadRecord): IntakeLead {

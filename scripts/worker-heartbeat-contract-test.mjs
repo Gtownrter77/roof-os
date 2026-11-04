@@ -18,11 +18,14 @@ const routes = [
 ]
 for (const [file, agent] of routes) {
   const source = readFileSync(file, 'utf8')
-  assert.ok(source.includes("workers/heartbeat"), `${file} must import heartbeat helper`)
+  const viaWrapper = source.includes("lib/agents/cron-route") && source.includes(`agentKey: '${agent}'`)
+  assert.ok(source.includes("workers/heartbeat") || viaWrapper, `${file} must import heartbeat helper or the shared cron wrapper`)
   assert.ok(source.includes(`'${agent}'`), `${file} must identify ${agent}`)
   assert.ok(source.includes("'starting'"), `${file} must record starting state`)
   assert.ok(source.includes("'healthy'") && source.includes("'degraded'"), `${file} must report outcome state`)
 }
+const wrapper = readFileSync('lib/agents/cron-route.ts', 'utf8')
+assert.ok(wrapper.includes("from '../../workers/heartbeat'"), 'cron wrapper must use the shared heartbeat helper')
 const status = readFileSync('app/api/status/route.ts', 'utf8')
 assert.ok(status.includes('agent_worker_heartbeats'))
 assert.ok(status.includes('15 * 60 * 1000'))

@@ -1,31 +1,25 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createAdminClient } from '../../../../lib/supabase/admin'
+import { NextResponse } from 'next/server'
+import { createCronAgentRoute } from '../../../../lib/agents/cron-route'
+import { readCronBatchConfig } from '../../../../lib/agents/cron-batch-config'
 import { runInspectionQuality } from '../../../../workers/inspection-quality'
-import { writeWorkerHeartbeats } from '../../../../workers/heartbeat'
 import { defaultWorkspaceSettings, loadWorkspaceSettings } from '../../../../lib/workspace-settings'
 
-export async function POST(request: NextRequest) {
-  const secret = process.env.CRON_SECRET?.trim()
-  const supplied = request.headers.get('authorization')?.replace(/^Bearer\s+/i, '')
-  if (!secret || supplied !== secret) return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 })
-
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim()
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()
-  if (!supabaseUrl || !serviceRoleKey) {
-    return NextResponse.json({ error: 'Supabase worker configuration is incomplete.' }, { status: 503 })
-  }
-
-  const admin = createAdminClient()
+export const POST = createCronAgentRoute({
+  agentKey: 'inspection_quality',
+  workerVersion: 'inspection-quality-v1',
+  requireSupabaseWorker: true,
+}, async ({ admin, worker, heartbeat }) => {
+  const batch = readCronBatchConfig('inspection_quality')
   const { data: inspections, error } = await admin
     .from('inspection_sessions')
     .select('id,workspace_id,created_by,updated_at')
     .eq('status', 'completed')
-    .order('updated_at', { ascending: true })
-    .limit(25)
+    .order('updated_at', { ascending: batch.ascending })
+    .limit(batch.limit)
 
   if (error) return NextResponse.json({ error: 'Could not read completed inspections.', detail: error.message }, { status: 502 })
   const workspaceIds = (inspections ?? []).map((inspection) => inspection.workspace_id)
-  await writeWorkerHeartbeats(admin, workspaceIds, 'inspection_quality', 'starting')
+  await heartbeat(workspaceIds, 'starting')
   const settingsByWorkspace = new Map<string, Awaited<ReturnType<typeof loadWorkspaceSettings>>>()
   for (const workspaceId of [...new Set(workspaceIds)]) {
     settingsByWorkspace.set(workspaceId, await loadWorkspaceSettings(admin, workspaceId))
@@ -51,7 +45,7 @@ export async function POST(request: NextRequest) {
 
       const eventKey = `inspection-quality:${inspection.id}:${latestPhoto?.updated_at ?? inspection.updated_at}`
       await runInspectionQuality(
-        { supabaseUrl, serviceRoleKey, workerId: process.env.AGENT_WORKER_ID?.trim() || 'vercel-cron', workerVersion: process.env.AGENT_WORKER_VERSION?.trim() || 'inspection-quality-v1' },
+        worker,
         inspection.workspace_id,
         inspection.id,
         inspection.created_by,
@@ -68,13 +62,13 @@ export async function POST(request: NextRequest) {
   }
 
   if (failed > 0) {
-    await writeWorkerHeartbeats(admin, workspaceIds, 'inspection_quality', 'degraded', { lastError: failures[0]?.error })
+    await heartbeat(workspaceIds, 'degraded', { lastError: failures[0]?.error })
     return NextResponse.json({ processed, skipped, failed, failures }, { status: 500 })
   }
 
-  await writeWorkerHeartbeats(admin, workspaceIds, 'inspection_quality', 'healthy')
+  await heartbeat(workspaceIds, 'healthy')
   return NextResponse.json({ processed, skipped, failed: 0 })
-}
+})
 
 // Vercel Cron invokes scheduled paths with GET; keep POST for manual runs.
 export const GET = POST

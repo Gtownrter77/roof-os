@@ -28,13 +28,14 @@ for (const route of routes) {
   const source = readFileSync(route.file, 'utf8')
   const has = (marker, message) => assert.ok(source.includes(marker), `${route.file}: ${message ?? marker}`)
 
-  has("process.env.CRON_SECRET?.trim()", 'must read CRON_SECRET')
-  has("if (!secret || supplied !== secret) return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 })", 'must fail closed with 401')
-  has('SUPABASE_SERVICE_ROLE_KEY', 'must require the service-role worker config')
-  has('{ status: 503 }', 'must return 503 when worker config is missing')
-  has('createAdminClient()')
+  // CRON_SECRET (401) and service-role configuration (503) are enforced by the shared wrapper.
+  has("from '../../../../lib/agents/cron-route'", 'must use the shared cron wrapper')
+  has(`export const POST = createCronAgentRoute({\n  agentKey: '${route.agent}',`, 'must declare its agent key on the wrapper')
+  has('requireSupabaseWorker: true', 'must require the service-role worker config (503)')
+  has('supportsDryRun: true', 'must support dry-run mode')
   has(route.table, 'must read its source records')
-  has('.limit(25)', 'must bound each run')
+  has("from '../../../../lib/agents/cron-batch-config'", 'must use the shared batch config')
+  has('.limit(batch.limit)', 'must bound each run')
   has(route.worker, `must import ${route.runner} from its worker`)
   has(`await ${route.runner}(`, `must call ${route.runner}`)
   has(route.eventKey, 'must derive a deterministic per-record event key')
@@ -47,22 +48,40 @@ for (const route of routes) {
   has('skipped += 1', 'must skip disabled workspaces')
 
   // Heartbeats before and after, with this agent's key.
-  has("from '../../../../workers/heartbeat'")
   for (const state of ['starting', 'healthy', 'degraded']) {
-    has(`writeWorkerHeartbeats(admin, workspaceIds, '${route.agent}', '${state}'`, `must write ${state} heartbeat`)
+    has(`await heartbeat(workspaceIds, '${state}'`, `must write ${state} heartbeat`)
   }
-  const startIdx = source.indexOf(`'${route.agent}', 'starting'`)
+  const startIdx = source.indexOf(`heartbeat(workspaceIds, 'starting'`)
   const runIdx = source.indexOf(`await ${route.runner}(`)
-  const healthyIdx = source.indexOf(`'${route.agent}', 'healthy'`)
+  const healthyIdx = source.indexOf(`heartbeat(workspaceIds, 'healthy'`)
   assert.ok(startIdx > 0 && startIdx < runIdx && runIdx < healthyIdx, `${route.file}: heartbeat order must be starting -> run -> healthy`)
 
-  has('export async function POST(request: NextRequest)', 'must export POST')
+  // Dry-run plans without writes: the planner is read-only and the run is skipped.
+  const dryIdx = source.indexOf('if (dryRun) {')
+  assert.ok(dryIdx > 0 && dryIdx < runIdx, `${route.file}: dry-run branch must return before the worker runs`)
+  has("dryRun: true, processed, skipped, failed, failures, planned", 'dry-run must return the planned batches')
   assert.match(source, /export const GET = POST/, `${route.file}: must export GET for Vercel Cron`)
 
   // Free-core / safety boundaries: no paid model keys, no direct outbound messaging.
   for (const forbidden of ['XAI_API_KEY', 'OPENAI_API_KEY', 'twilio', 'stripe', 'request.json()']) {
     assert.ok(!source.includes(forbidden), `${route.file}: must not reference ${forbidden}`)
   }
+}
+
+// Shared wrapper contract: 401 before config, 503 for missing service role, no heartbeats in dry-run.
+const wrapper = readFileSync('lib/agents/cron-route.ts', 'utf8')
+const guard = readFileSync('lib/agents/cron-guard.ts', 'utf8')
+assert.ok(guard.includes('const secret = env.CRON_SECRET?.trim()'), 'cron guard must read CRON_SECRET')
+assert.ok(guard.includes('return Boolean(secret) && supplied === secret'), 'cron guard must fail closed')
+assert.ok(guard.includes('env.SUPABASE_SERVICE_ROLE_KEY?.trim()'), 'cron guard must read the service role key')
+const authIdx = wrapper.indexOf("NextResponse.json({ error: 'Unauthorized.' }, { status: 401 })")
+const configIdx = wrapper.indexOf("NextResponse.json({ error: 'Supabase worker configuration is incomplete.' }, { status: 503 })")
+const adminIdx = wrapper.indexOf('createAdminClient()')
+assert.ok(authIdx > 0 && authIdx < configIdx && configIdx < adminIdx, 'wrapper order must be 401 -> 503 -> admin client')
+assert.ok(wrapper.includes('if (dryRun) return'), 'wrapper heartbeat must be a no-op in dry-run mode')
+assert.ok(wrapper.includes('writeWorkerHeartbeats(admin, workspaceIds, options.agentKey, status, capabilities)'), 'wrapper must write agent-scoped heartbeats')
+for (const file of ['app/api/cron/inspection-quality/route.ts', 'app/api/cron/receptionist-followups/route.ts']) {
+  assert.ok(readFileSync(file, 'utf8').includes('createCronAgentRoute('), `${file} must use the shared cron wrapper`)
 }
 
 // Workspace-scoped photo lookup for Office Copilot event keys.
