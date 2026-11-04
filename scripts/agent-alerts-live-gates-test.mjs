@@ -77,7 +77,7 @@ for (const forbidden of ['twilio', 'resend', 'sendgrid', 'nodemailer', 'fetch(',
   assert.ok(!alertRoute.toLowerCase().includes(forbidden.toLowerCase()), `alerts must stay free/in-app (${forbidden})`)
 }
 const daily = readFileSync('app/api/cron/daily/route.ts', 'utf8')
-assert.ok(daily.lastIndexOf("invoke('agent_alerts', runAgentAlerts, request)") > daily.indexOf("invoke('warranty_expiry', runWarrantyExpiry, request)"), 'alerts run after the agent jobs')
+assert.ok(daily.lastIndexOf("invoke('agent_alerts', runAgentAlerts, request, CRON_ALERTS_TIMEOUT_MS)") > daily.indexOf("invoke('warranty_expiry', runWarrantyExpiry, request)"), 'alerts run after the agent jobs')
 const vercel = JSON.parse(readFileSync('vercel.json', 'utf8'))
 assert.ok((vercel.crons ?? []).length <= 2, 'Hobby plan: at most two crons')
 for (const [file, agent] of [

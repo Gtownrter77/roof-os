@@ -96,6 +96,7 @@
     "test:agent-cron-helpers": "node --experimental-strip-types --no-warnings scripts/agent-cron-helpers-test.mjs",
     "test:agent-backlog-dedupe": "node --experimental-strip-types --no-warnings scripts/agent-backlog-dedupe-test.mjs",
     "test:agent-alerts-live-gates": "node --experimental-strip-types --no-warnings scripts/agent-alerts-live-gates-test.mjs",
+    "test:agent-toggles-daily": "node --experimental-strip-types --no-warnings scripts/agent-toggles-daily-test.mjs",
     "verify:agent-live-gates": "node scripts/verify-agent-live-gates.mjs",
     "test:warranty-expiry": "node scripts/warranty-expiry-contract-test.mjs",
     "test:production-job-invoice": "node --experimental-strip-types --no-warnings scripts/production-job-invoice-test.mjs",

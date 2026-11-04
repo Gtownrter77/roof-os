@@ -1,0 +1,50 @@
+name: ROOF OS Agent Cron (optional, free)
+
+# Optional extra trigger for the daily agent dispatcher, for more than one run a day on the free
+# Vercel Hobby plan (vercel.json stays at two crons). It does nothing until the owner adds both
+# repository secrets ROOF_OS_CRON_URL (deployment base URL) and ROOF_OS_CRON_SECRET (CRON_SECRET).
+# The dispatcher is idempotent per run key, so an extra run never duplicates actions or tasks.
+
+on:
+  schedule:
+    - cron: '17 */6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: agent-cron-schedule
+  cancel-in-progress: false
+
+jobs:
+  dispatch:
+    name: Dispatch daily agent cron
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Call the daily dispatcher when configured
+        env:
+          ROOF_OS_CRON_URL: ${{ secrets.ROOF_OS_CRON_URL }}
+          ROOF_OS_CRON_SECRET: ${{ secrets.ROOF_OS_CRON_SECRET }}
+        run: |
+          set -euo pipefail
+          if [ -z "${ROOF_OS_CRON_URL:-}" ] || [ -z "${ROOF_OS_CRON_SECRET:-}" ]; then
+            echo 'ROOF_OS_CRON_URL or ROOF_OS_CRON_SECRET is not set; nothing to do.'
+            exit 0
+          fi
+          case "$ROOF_OS_CRON_URL" in
+            https://*) ;;
+            *) echo 'ROOF_OS_CRON_URL must start with https://' >&2; exit 1 ;;
+          esac
+          status="$(curl --silent --show-error --max-time 120 --output /tmp/daily.json --write-out '%{http_code}' \
+            --request GET "${ROOF_OS_CRON_URL%/}/api/cron/daily" \
+            --header "Authorization: Bearer $ROOF_OS_CRON_SECRET")"
+          echo "HTTP $status"
+          # The repository is public, so logs show only counts, never workspace or lead details.
+          jq -c '{processed, failed}' /tmp/daily.json 2>/dev/null || echo 'Response was not JSON.'
+          # 207 means some jobs failed; the agent-alerts pass turns that into in-app tasks.
+          case "$status" in
+            200|207) ;;
+            *) exit 1 ;;
+          esac
