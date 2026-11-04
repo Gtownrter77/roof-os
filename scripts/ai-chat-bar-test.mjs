@@ -119,13 +119,49 @@ assert.equal(teamResult.suggestedAction?.href, '/team')
 
 const savedWhisperUrl = process.env.WHISPER_URL
 const savedWhisperWorkerUrl = process.env.WHISPER_WORKER_URL
+const savedFetch = globalThis.fetch
 delete process.env.WHISPER_URL
-delete process.env.WHISPER_WORKER_URL
+process.env.WHISPER_WORKER_URL = 'http://127.0.0.1:8088/worker-prefix/'
 const { processAudioTranscription } = await import('../lib/ai/chat-copilot.ts')
-assert.equal(await processAudioTranscription(new Blob(['test audio'])), null, 'Missing Whisper worker must produce no transcript')
-if (savedWhisperUrl === undefined) delete process.env.WHISPER_URL
-else process.env.WHISPER_URL = savedWhisperUrl
-if (savedWhisperWorkerUrl === undefined) delete process.env.WHISPER_WORKER_URL
-else process.env.WHISPER_WORKER_URL = savedWhisperWorkerUrl
+const workerSource = readFileSync(join(root, 'workers', 'whisper', 'server.py'), 'utf8')
+assert.match(workerSource, /file:\s*UploadFile\s*=\s*File\(\.\.\.\)/, 'Whisper worker must accept the file multipart field')
+try {
+  globalThis.fetch = async (input, init) => {
+    assert.equal(String(input), 'http://127.0.0.1:8088/worker-prefix/transcribe', 'Whisper base URLs must resolve to the worker endpoint')
+    assert.equal(init?.method, 'POST')
+    assert.ok(init?.body instanceof FormData, 'Whisper request must be multipart form data')
+    assert.ok(init.body.get('file') instanceof Blob, 'Whisper request must use the worker file field')
+    assert.equal(init.body.get('audio'), null, 'Whisper request must not use the unsupported audio field')
+    assert.equal(init.body.get('language'), 'en-US')
+    return new Response(JSON.stringify({ text: '  roof inspection requested  ' }), {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    })
+  }
+  assert.equal(
+    await processAudioTranscription(new Blob(['test audio']), 'en-US'),
+    'roof inspection requested',
+    'Whisper client must return trimmed worker transcript text',
+  )
+
+  process.env.WHISPER_WORKER_URL = 'http://127.0.0.1:8088/transcribe'
+  globalThis.fetch = async (input) => {
+    assert.equal(String(input), 'http://127.0.0.1:8088/transcribe', 'An explicit endpoint must not receive a duplicate path')
+    return new Response(JSON.stringify({ text: 'ok' }), { status: 200 })
+  }
+  assert.equal(await processAudioTranscription(new Blob(['test audio'])), 'ok')
+
+  globalThis.fetch = async () => new Response('{}', { status: 503 })
+  assert.equal(await processAudioTranscription(new Blob(['test audio'])), null, 'Unavailable Whisper worker must produce no transcript')
+
+  delete process.env.WHISPER_WORKER_URL
+  assert.equal(await processAudioTranscription(new Blob(['test audio'])), null, 'Missing Whisper worker must produce no transcript')
+} finally {
+  globalThis.fetch = savedFetch
+  if (savedWhisperUrl === undefined) delete process.env.WHISPER_URL
+  else process.env.WHISPER_URL = savedWhisperUrl
+  if (savedWhisperWorkerUrl === undefined) delete process.env.WHISPER_WORKER_URL
+  else process.env.WHISPER_WORKER_URL = savedWhisperWorkerUrl
+}
 
 console.log('ai-chat-bar-test: PASS (copilot routes resolve; missing Whisper is surfaced; team/photo workflows are wired and honestly labeled)')
