@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import twilio from 'twilio'
 import { createCronAgentRoute } from '../../../../lib/agents/cron-route'
 import { readCronBatchConfig } from '../../../../lib/agents/cron-batch-config'
+import { idleEnabledWorkspaces } from '../../../../lib/agents/agent-enablement'
 import { defaultWorkspaceSettings, loadWorkspaceSettings } from '../../../../lib/workspace-settings'
 import { isWithinQuietHours, normalizeStrictE164 } from '../../../../lib/outbound-policy'
 
@@ -122,6 +123,10 @@ export const POST = createCronAgentRoute({
       }
     }
   }
+
+  // Enabled workspaces with no pending work still report in, so a quiet agent can be told
+  // apart from an idle one (see lib/agents/agent-alerts.ts). Disabled workspaces get nothing.
+  await heartbeat(await idleEnabledWorkspaces(admin, 'scheduler', workspaceIds), 'healthy', { idle: true })
 
   if (failed > 0) {
     await heartbeat(workspaceIds, 'degraded', { lastError: failures[0]?.error })

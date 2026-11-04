@@ -32,7 +32,8 @@ export type CronAgentContext = {
 }
 
 export type CronAgentRouteOptions = {
-  agentKey: CronHeartbeatAgent
+  /** Agent whose heartbeats this route writes; null for monitoring routes that write none. */
+  agentKey: CronHeartbeatAgent | null
   /** Default AGENT_WORKER_VERSION for this route. */
   workerVersion: string
   /** Answer 503 'Supabase worker configuration is incomplete.' when the service role is missing. */
@@ -83,6 +84,7 @@ export function createCronAgentRoute(
 
     async function heartbeat(workspaceIds: string[], status: CronHeartbeatStatus, capabilities: Record<string, unknown> = {}) {
       if (dryRun) return
+      if (!options.agentKey) return
       await writeWorkerHeartbeats(admin, workspaceIds, options.agentKey, status, capabilities)
     }
 

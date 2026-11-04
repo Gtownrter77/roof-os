@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createCronAgentRoute } from '../../../../lib/agents/cron-route'
 import { readCronBatchConfig } from '../../../../lib/agents/cron-batch-config'
+import { idleEnabledWorkspaces } from '../../../../lib/agents/agent-enablement'
 import { enabledAutomationWorkspaces, latestInspectionPhotoTimes, selectUnprocessedCandidates } from '../../../../lib/agents/cron-backlog'
 import { officeCopilotBatchKey, officeCopilotBatchSummary, planOfficeCopilotForInspection, runOfficeCopilot } from '../../../../workers/office-copilot'
 
@@ -88,6 +89,10 @@ export const POST = createCronAgentRoute({
   if (dryRun) {
     return NextResponse.json({ dryRun: true, processed, skipped, alreadyProcessed, failed, failures, planned }, { status: failed > 0 ? 500 : 200 })
   }
+
+  // Enabled workspaces with no pending work still report in, so a quiet agent can be told
+  // apart from an idle one (see lib/agents/agent-alerts.ts). Disabled workspaces get nothing.
+  if (!dryRun) await heartbeat(await idleEnabledWorkspaces(admin, 'office_copilot', workspaceIds), 'healthy', { idle: true })
 
   if (failed > 0) {
     await heartbeat(workspaceIds, 'degraded', { lastError: failures[0]?.error })
