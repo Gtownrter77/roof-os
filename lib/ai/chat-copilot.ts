@@ -98,10 +98,15 @@ export async function processAudioTranscription(
     process.env.WHISPER_WORKER_URL?.trim() || process.env.WHISPER_URL?.trim()
   if (!workerUrl) return null
   try {
+    const endpoint = new URL(workerUrl)
+    const endpointPath = endpoint.pathname.replace(/\/+$/, '')
+    if (!endpointPath.endsWith('/transcribe')) {
+      endpoint.pathname = `${endpointPath}/transcribe`
+    }
     const form = new FormData()
-    form.append('audio', audioBlob, 'audio.webm')
+    form.append('file', audioBlob, 'audio.webm')
     form.append('language', language)
-    const response = await fetch(workerUrl, {
+    const response = await fetch(endpoint, {
       method: 'POST',
       body: form,
       signal: AbortSignal.timeout(120_000),

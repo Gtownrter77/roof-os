@@ -10,6 +10,11 @@ type DraftRow = {
   status: string
   latitude: number | null
   longitude: number | null
+  technicianName: string | null
+  technicianLicense: string | null
+  verifiedAt: string | null
+  verificationNotes: string | null
+  verificationSynced: number
   updatedAt: string
 }
 
@@ -54,10 +59,52 @@ type PhotoRow = {
   lastError: string | null
 }
 
-const drafts: DraftRow[] = []
-const measurements: MeasurementRow[] = []
-const photos: PhotoRow[] = []
-let nextId = 1
+const STORAGE_KEY = 'roofos.field.local-db.v1'
+
+type PersistedState = {
+  drafts: DraftRow[]
+  measurements: MeasurementRow[]
+  photos: PhotoRow[]
+  nextId: number
+}
+
+function getStorage(): Storage | null {
+  if (typeof window === 'undefined') return null
+  return window.localStorage
+}
+
+function restoreState(): PersistedState {
+  const empty = { drafts: [] as DraftRow[], measurements: [] as MeasurementRow[], photos: [] as PhotoRow[], nextId: 1 }
+  try {
+    const raw = getStorage()?.getItem(STORAGE_KEY)
+    if (!raw) return empty
+    const parsed = JSON.parse(raw) as Partial<PersistedState>
+    return {
+      drafts: Array.isArray(parsed.drafts) ? parsed.drafts : [],
+      measurements: Array.isArray(parsed.measurements) ? parsed.measurements : [],
+      photos: Array.isArray(parsed.photos) ? parsed.photos : [],
+      nextId: Number.isSafeInteger(parsed.nextId) && Number(parsed.nextId) > 0 ? Number(parsed.nextId) : 1,
+    }
+  } catch {
+    return empty
+  }
+}
+
+const restored = restoreState()
+const drafts: DraftRow[] = restored.drafts
+const measurements: MeasurementRow[] = restored.measurements
+const photos: PhotoRow[] = restored.photos
+let nextId = restored.nextId
+
+function persistState() {
+  const storage = getStorage()
+  if (!storage) return
+  try {
+    storage.setItem(STORAGE_KEY, JSON.stringify({ drafts, measurements, photos, nextId }))
+  } catch {
+    throw new Error('Field data could not be saved in this browser. Free storage space and try again; this change may not survive a reload.')
+  }
+}
 
 function nextRecordId() {
   return nextId++
@@ -70,7 +117,14 @@ function isReady(nextRetryAt: string | null, now: string) {
 export const db = {
   execSync: (_sql: string) => undefined,
 
-  getFirstSync<T>(_sql: string, ...args: unknown[]): T | null {
+  getFirstSync<T>(sql: string, ...args: unknown[]): T | null {
+    if (sql.trimStart().startsWith('SELECT (')) {
+      const draftId = Number(args[0])
+      const queued = new Set(['queued', 'retrying'])
+      const count = measurements.filter((row) => row.draftId === draftId && queued.has(row.syncStatus)).length
+        + photos.filter((row) => row.draftId === draftId && queued.has(row.syncStatus)).length
+      return { n: count } as T
+    }
     const ownerUserId = typeof args[0] === 'string' ? args[0] : null
     const row = drafts
       .filter((draft) => draft.ownerUserId === ownerUserId)
@@ -79,6 +133,14 @@ export const db = {
   },
 
   getAllSync<T>(sql: string, ...args: unknown[]): T[] {
+    if (sql.startsWith('SELECT id, remote_id as remoteId')) {
+      const ownerUserId = typeof args[0] === 'string' ? args[0] : null
+      return drafts
+        .filter((draft) => draft.ownerUserId === ownerUserId)
+        .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+        .map((draft) => ({ ...draft }) as T)
+    }
+
     const draftId = Number(args[0])
     const firstStatus = String(args[1] ?? '')
     const secondStatus = String(args[2] ?? '')
@@ -127,6 +189,12 @@ export const db = {
   },
 
   runSync(sql: string, ...args: unknown[]) {
+    const result = this.runMutation(sql, ...args)
+    persistState()
+    return result
+  },
+
+  runMutation(sql: string, ...args: unknown[]) {
     if (sql.startsWith('INSERT INTO inspection_drafts')) {
       const id = nextRecordId()
       drafts.unshift({
@@ -141,6 +209,11 @@ export const db = {
         status: String(args[6] ?? 'draft'),
         latitude: args[7] == null ? null : Number(args[7]),
         longitude: args[8] == null ? null : Number(args[8]),
+        technicianName: null,
+        technicianLicense: null,
+        verifiedAt: null,
+        verificationNotes: null,
+        verificationSynced: 0,
         updatedAt: String(args[9] ?? new Date(0).toISOString()),
       })
       return { lastInsertRowId: id }
@@ -168,6 +241,26 @@ export const db = {
         row.workspaceId = typeof workspaceId === 'string' ? workspaceId : null
       }
       return { lastInsertRowId: Number(id) || 0 }
+    }
+
+    if (sql.startsWith('UPDATE inspection_drafts SET technician_name')) {
+      const [technicianName, technicianLicense, verifiedAt, verificationNotes, _verificationSynced, updatedAt, id] = args
+      const row = drafts.find((draft) => draft.id === Number(id))
+      if (row) {
+        row.technicianName = typeof technicianName === 'string' ? technicianName : null
+        row.technicianLicense = typeof technicianLicense === 'string' ? technicianLicense : null
+        row.verifiedAt = typeof verifiedAt === 'string' ? verifiedAt : null
+        row.verificationNotes = typeof verificationNotes === 'string' ? verificationNotes : null
+        row.verificationSynced = 0
+        row.updatedAt = String(updatedAt ?? row.updatedAt)
+      }
+      return { lastInsertRowId: Number(id) || 0 }
+    }
+
+    if (sql.startsWith('UPDATE inspection_drafts SET verification_synced = 1')) {
+      const row = drafts.find((draft) => draft.id === Number(args[0]))
+      if (row) row.verificationSynced = 1
+      return { lastInsertRowId: Number(args[0]) || 0 }
     }
 
     if (sql.startsWith('INSERT INTO inspection_measurements_local')) {

@@ -6,7 +6,8 @@ assert.deepEqual(AGENT_KEYS, ['intake_router', 'scheduler', 'inspection_quality'
 const intake = getAgentRegistration('intake_router')
 assert.equal(intake.agentKey, 'intake_router')
 assert.equal(intake.implemented, true)
-assert.match(intake.entryPoint, /intake-router/)
+assert.equal(intake.entryPoint, '/api/cron/intake-router')
+assert.equal(intake.heartbeatSource, 'app/api/cron/intake-router/route.ts')
 
 const quality = getAgentRegistration('inspection_quality')
 assert.equal(quality.implemented, true)
@@ -14,7 +15,8 @@ assert.match(quality.entryPoint, /inspection-quality/)
 
 const office = getAgentRegistration('office_copilot')
 assert.equal(office.implemented, true)
-assert.match(office.entryPoint, /office-copilot/)
+assert.equal(office.entryPoint, '/api/cron/office-copilot')
+assert.equal(office.heartbeatSource, 'app/api/cron/office-copilot/route.ts')
 
 const now = '2026-11-03T20:00:00.000Z'
 assert.deepEqual(

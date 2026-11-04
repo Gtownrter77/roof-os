@@ -45,6 +45,7 @@ jobs:
       - run: npm run verify:security
       - run: npm run test:security-definer-migrations
       - run: npm run test:receptionist
+      - run: npm run test:outbound-policy
       - run: npm run test:aerial
       - run: npm run test:roof-slope
       - run: npm run test:estimate-creation-flow
@@ -67,6 +68,8 @@ jobs:
       - run: npm run test:agent-registry
       - run: npm run test:intake-router
       - run: npm run test:office-copilot
+      - run: npm run test:agent-cron-routes
+      - run: npm run test:cron-http
       - run: npm run test:field-device-evidence
       - run: npm run test:release-gate-summary
       - run: npm run test:field-coach
@@ -86,6 +89,8 @@ jobs:
       - run: npm run test:status-health
       - run: npm run test:ai-report-authority
       - run: npm run test:ai-chat-bar
+      - run: npm run test:canvass-save
+      - run: npm run test:field-localdb-web
       - run: npm run test:invoices-live-data
       - run: npm run test:radar-source
       - run: npm run test:dashboard-weather

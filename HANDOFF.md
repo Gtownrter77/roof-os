@@ -1,3 +1,16 @@
+## 2026-11-04 — Intake Router and Office Copilot cron entry points
+
+- Branch: `feat/cron-intake-router-office-copilot`, based on GitHub `main` `1be8af36520c9a601ee637eb8c49a0a39dcceb6a`. The checkpoint commit SHA is the PR head SHA.
+- Added `app/api/cron/intake-router/route.ts` and `app/api/cron/office-copilot/route.ts`, mirroring `app/api/cron/inspection-quality/route.ts`: `CRON_SECRET` bearer auth (401), service-role config check (503), bounded reads (25 records), `starting` heartbeat, per-record `runIntakeRouter` / `runOfficeCopilot` calls with deterministic event keys, then `healthy` or `degraded` heartbeats. Both export `POST` and `GET`.
+- Intake Router reads `leads` with `status = 'new'`, newest first. `owner_id` is the task creator, and the event key is `intake-router:<lead id>:<updated_at>`. Office Copilot reads completed `inspection_sessions`, uses the workspace-scoped latest photo for the event key, and passes `created_by` as the review-task creator.
+- Per-workspace enablement uses `automation_rules` (`agent_key`, `enabled`), the same gate as the database follow-up trigger. A missing rule or read error skips the record. Office Copilot is seeded disabled by migration 005, so it does nothing until a workspace enables it. The routes add no new `workspace_settings` flag and no migration.
+- `workers/agent-registry.ts` entry points now point to `/api/cron/intake-router` and `/api/cron/office-copilot`, with the route files as heartbeat sources.
+- Both jobs are dispatched by `/api/cron/daily`. `vercel.json` is unchanged because the Hobby plan allows two crons.
+- Tests: new `test:agent-cron-routes` contract (`scripts/agent-cron-routes-contract-test.mjs`). The cron-http, worker-heartbeat, and agent-registry contracts were extended. `test:agent-cron-routes` and `test:cron-http` are now required web CI steps.
+- Local evidence (Node 24, `npm ci --ignore-scripts`): `npm run typecheck` and `npm run lint` passed. Every `npm run` step in the CI web job passed, including release-check, verify:security, two-workspace contract, audit, and the production build with validation-only env (routes listed). After the build, runtime-smoke passed. `git diff --check` passed. A local standalone server returned 401 without auth and 503 with auth but no Supabase config for GET and POST on both routes.
+- No production database, migration, deployment, or real secret was used.
+- Remaining external gates (not done): (1) verify deployed `intake_router` and `office_copilot` heartbeats in `agent_worker_heartbeats` through `/api/cron/heartbeat`; (2) verify two-workspace isolation with live data; (3) verify live runs (idempotent `agent_runs`, action batches, failure-review tasks). Both agents stay pilot-only until these pass.
+- Next: wait for required PR CI, then merge only when green, then verify main.
 
 ## 2026-11-03 — Android Field 0.5.0 integration checkpoint
 
@@ -83,6 +96,20 @@ No Vercel production deployment, APK build, external payment, customer communica
 - Main APK workflow [run 41597966309](https://github.com/Gtownrter77/roof-os/actions/runs/41597966309) completed successfully against that exact SHA. EAS build, APK download, and artifact upload passed. Artifact `roof-os-field-preview-apk` contains `roof-os-field-preview.apk` (78,651,680 bytes); SHA-256 `ab50192a84f4598999ff716619b3519aa3dcea7e528f0a29409858f5eef6b22c`. ZIP integrity passed and `file` identified it as an Android package.
 - The APK is available from the workflow artifact for 14 days and was also downloaded to `/home/ubuntu/roof-os-field-preview-0.5.0.apk` in the Manus workspace. Physical-device installation, authenticated offline reopen/upload, and two-workspace isolation remain unverified. No production database mutation or manual production deployment was performed.
 - Next: install the APK on a physical Android device and test authentication, offline reopen/upload, and two-workspace isolation before treating device-level behavior as verified.
+
+## 2026-11-02 — Local AI and field workflow repair checkpoint
+
+- Working branch: `fix/whisper-multipart-contract-20261102`. The first repair checkpoint commit is `6786b7131a52b4d1ae8995ef5388ee8adbdfe9b4`; its remote branch SHA was independently confirmed equal.
+- Fixed the app/Whisper multipart contract, aligned Ollama status reporting with the runtime host selector, and synchronized local-AI/Whisper operational notes. The AI path remains Ollama/Whisper local-only per the owner direction; live provider reachability was not tested.
+- Added `log_canvass_knock`, a workspace-authorized RPC that checks the workspace conversion flag and commits lead/dedupe/activity writes atomically. The browser now fails closed when settings cannot be verified. Added localStorage-backed field-web persistence and implemented the exact owner-scoped draft query and queued-count read used by the app.
+- Rebuilt Canvass as a responsive field-notes workflow with responsive entry controls, coaching on the side at wide widths, readable outcome badges, and a clear CRM list. Existing disclosure and do-not-knock behavior remain.
+- Local checks passed: production `npm run build`; root `npm run typecheck`; field `npx tsc --noEmit` and `npx expo config --json`; Whisper/status, Canvass transaction, field web persistence, mobile offline-sync, mobile AI-observation security, release, security, route-integrity, field dependency and brace mitigation checks; `git diff --check`.
+- Fresh read-only Supabase checks on 2026-11-02 found the configured active Roof OS project (`xksumagfbegdlapwysps`) at ledger version `20261102025551` (`payment_warranty_lifecycle_guards_legacy_compatible`), the 074 source boundary. They confirmed RLS-enabled leads, lead_activity, workspace_settings and required canvass helpers/settings. A bounded catalog query returned no `public.log_canvass_knock`; migration 075 is absent from that target and has not been applied. Only one active Supabase project was visible; no separate staging project was returned. No database mutation was made.
+- Pull request #376 is open: https://github.com/Gtownrter77/roof-os/pull/376. The first PR CI run (`41393009932`) passed preview-build, mobile, migration-safety, and field-security jobs but failed web at `npm run test:release-evidence`, because the refreshed migration note omitted the literal unverified-boundary term. The wording is restored locally; rerun after the docs checkpoint is pending. Vercel Preview succeeded; this is not a production deployment. No authenticated canvass save or physical-device persistence check has been done.
+- Still open: integrations catalog truthfulness, inventory/removal of non-exempt paid API vendors, full deployment/schema-doc reconciliation, provider execution, staging migration/RLS rehearsal, physical-device release evidence, and production deployment. Merge only after required CI/review is green. Migration 075 remains blocked on staging/backup and production release checks.
+- Next: push the migration-doc wording correction and refreshed database evidence, inspect the new PR checks and review, then address remaining audit items. Do not claim production Canvass atomic writes until the migration is validated and applied to the target.
+
+
 
 
 ## 2026-10-29 — Verified theme release and saved-choice recovery

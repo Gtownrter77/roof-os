@@ -20,8 +20,8 @@ const REGISTRATIONS: Record<AgentKey, AgentRegistration> = {
     agentKey: 'intake_router',
     label: 'Intake and Lead Router',
     implemented: true,
-    entryPoint: 'workers/intake-router.ts',
-    heartbeatSource: 'workers/intake-router.ts',
+    entryPoint: '/api/cron/intake-router',
+    heartbeatSource: 'app/api/cron/intake-router/route.ts',
   },
   scheduler: {
     agentKey: 'scheduler',
@@ -41,8 +41,8 @@ const REGISTRATIONS: Record<AgentKey, AgentRegistration> = {
     agentKey: 'office_copilot',
     label: 'Office Copilot and Report Agent',
     implemented: true,
-    entryPoint: 'workers/office-copilot.ts',
-    heartbeatSource: 'workers/office-copilot.ts',
+    entryPoint: '/api/cron/office-copilot',
+    heartbeatSource: 'app/api/cron/office-copilot/route.ts',
   },
 }
 

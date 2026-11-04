@@ -22,10 +22,16 @@ const retailer = crons.find((cron) => cron.path === '/api/cron/retailer-prices')
 assert.ok(retailer, 'vercel.json must keep the weekly retailer price refresh')
 assert.equal(retailer.schedule, '0 4 * * 1', 'retailer refresh must stay weekly on Monday')
 
-for (const job of ['inspection-quality', 'receptionist-followups', 'warranty-expiry']) {
+for (const job of ['inspection-quality', 'receptionist-followups', 'warranty-expiry', 'intake-router', 'office-copilot']) {
   const route = readFileSync(`app/api/cron/${job}/route.ts`, 'utf8')
   assert.ok(/export (async function GET|const GET\s*=)/.test(route), `${job} must expose GET for manual and dispatcher runs`)
   assert.ok(!crons.some((cron) => cron.path === `/api/cron/${job}`), `${job} must run through the daily dispatcher, not its own Vercel cron`)
+}
+
+const dispatcher = readFileSync('app/api/cron/daily/route.ts', 'utf8')
+for (const [job, label] of [['intake-router', 'intake_router'], ['office-copilot', 'office_copilot']]) {
+  assert.ok(dispatcher.includes(`from '../${job}/route'`), `daily dispatcher must import ${job}`)
+  assert.ok(dispatcher.includes(`invoke('${label}'`), `daily dispatcher must invoke ${label}`)
 }
 
 console.log('cron-http-contract-test: PASS')
