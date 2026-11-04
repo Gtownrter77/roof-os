@@ -31,10 +31,11 @@ async function run(request: NextRequest) {
       invoke('intake_router', runIntakeRouter, request),
       invoke('office_copilot', runOfficeCopilot, request),
     ]))
+    const dispatched = Object.keys(dryResults).length
     const skippedJobs = ['inspection_quality', 'receptionist_followups', 'warranty_expiry']
     for (const job of skippedJobs) dryResults[job] = { status: 204, body: { skipped: 'dry_run_unsupported' } }
     const dryFailed = Object.values(dryResults).filter((result) => result.status >= 500).length
-    return NextResponse.json({ dryRun: true, processed: 2, failed: dryFailed, results: dryResults }, { status: dryFailed ? 207 : 200 })
+    return NextResponse.json({ dryRun: true, processed: dispatched, failed: dryFailed, results: dryResults }, { status: dryFailed ? 207 : 200 })
   }
 
   const results = Object.fromEntries(await Promise.all([

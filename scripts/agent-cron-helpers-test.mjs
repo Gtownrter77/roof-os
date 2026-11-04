@@ -36,14 +36,14 @@ assert.equal(parseDryRunBody('x'.repeat(5000)), null)
 
 // 4. Batch limit/order defaults and env overrides.
 assert.equal(DEFAULT_CRON_BATCH_LIMIT, 25)
-assert.deepEqual(readCronBatchConfig('intake_router', {}), { limit: 25, scanLimit: 100, order: 'newest', ascending: false })
+assert.deepEqual(readCronBatchConfig('intake_router', {}), { limit: 25, order: 'newest', ascending: false })
 assert.equal(readCronBatchConfig('scheduler', {}).order, 'oldest')
 assert.equal(readCronBatchConfig('office_copilot', { AGENT_CRON_BATCH_LIMIT: '10' }).limit, 10)
 assert.equal(readCronBatchConfig('office_copilot', { AGENT_CRON_BATCH_LIMIT: '10', OFFICE_COPILOT_CRON_BATCH_LIMIT: '40' }).limit, 40, 'per-agent override wins')
 assert.equal(readCronBatchConfig('office_copilot', { OFFICE_COPILOT_CRON_BATCH_LIMIT: '100000' }).limit, MAX_CRON_BATCH_LIMIT, 'limit is clamped')
 assert.equal(readCronBatchConfig('office_copilot', { OFFICE_COPILOT_CRON_BATCH_LIMIT: '-3' }).limit, 25, 'invalid limit falls back')
 assert.equal(readCronBatchConfig('office_copilot', { OFFICE_COPILOT_CRON_BATCH_LIMIT: '2.5' }).limit, 25, 'non-integer limit falls back')
-assert.equal(readCronBatchConfig('office_copilot', { OFFICE_COPILOT_CRON_BATCH_LIMIT: '100' }).scanLimit, MAX_CRON_BATCH_LIMIT)
+assert.equal(readCronBatchConfig('office_copilot', { OFFICE_COPILOT_CRON_BATCH_LIMIT: '500' }).limit, MAX_CRON_BATCH_LIMIT)
 assert.equal(readCronBatchConfig('scheduler', { SCHEDULER_CRON_ORDER: 'newest' }).ascending, false)
 assert.equal(readCronBatchConfig('intake_router', { INTAKE_ROUTER_CRON_ORDER: 'sideways' }).order, 'newest', 'invalid order falls back')
 

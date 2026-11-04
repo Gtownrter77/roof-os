@@ -6,8 +6,6 @@ export type CronBatchOrder = 'newest' | 'oldest'
 export type CronBatchConfig = {
   /** Maximum records processed in one run. */
   limit: number
-  /** How many candidate records to read so already-processed ones cannot starve new work. */
-  scanLimit: number
   order: CronBatchOrder
   /** Convenience for Supabase `.order(column, { ascending })`. */
   ascending: boolean
@@ -17,8 +15,6 @@ type Env = Record<string, string | undefined>
 
 export const DEFAULT_CRON_BATCH_LIMIT = 25
 export const MAX_CRON_BATCH_LIMIT = 200
-/** Candidates scanned per processed record when skipping already-handled events. */
-export const CRON_SCAN_MULTIPLIER = 4
 
 export const DEFAULT_CRON_BATCH_ORDER: Record<CronBatchAgent, CronBatchOrder> = {
   // New leads first so a backlog of routed leads cannot starve new intake.
@@ -65,7 +61,6 @@ export function readCronBatchConfig(agent: CronBatchAgent, env: Env = process.en
   const order = parseOrder(env[`${prefix}_CRON_ORDER`]) ?? DEFAULT_CRON_BATCH_ORDER[agent]
   return {
     limit,
-    scanLimit: Math.min(limit * CRON_SCAN_MULTIPLIER, MAX_CRON_BATCH_LIMIT),
     order,
     ascending: order === 'oldest',
   }
