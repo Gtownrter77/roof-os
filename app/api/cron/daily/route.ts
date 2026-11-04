@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { POST as runInspectionQuality } from '../inspection-quality/route'
+import { POST as runIntakeRouter } from '../intake-router/route'
+import { POST as runOfficeCopilot } from '../office-copilot/route'
 import { POST as runReceptionistFollowups } from '../receptionist-followups/route'
 import { POST as runWarrantyExpiry } from '../warranty-expiry/route'
 
@@ -23,7 +25,9 @@ async function run(request: NextRequest) {
   if (!secret || supplied !== secret) return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 })
 
   const results = Object.fromEntries(await Promise.all([
+    invoke('intake_router', runIntakeRouter, request),
     invoke('inspection_quality', runInspectionQuality, request),
+    invoke('office_copilot', runOfficeCopilot, request),
     invoke('receptionist_followups', runReceptionistFollowups, request),
     invoke('warranty_expiry', runWarrantyExpiry, request),
   ]))
