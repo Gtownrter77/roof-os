@@ -1,3 +1,12 @@
+## 2026-11-04 — Agent runtime improvements batch
+
+- Dynamic round-robin for Intake Router: owner selection now uses a deterministic hash of the lead id modulo the eligible member list instead of always taking the first member.
+- Per-agent heartbeat freshness: `AgentRegistration` now carries an optional `freshnessMs`; Intake Router and Office Copilot use 10 minutes, Scheduler and Inspection Quality use 15 minutes. The readiness evaluator falls back to 5 minutes when unset.
+- Explicit action-execution boundary for non-review Intake Router runs: after the action batch is persisted, non-duplicate plans are marked approved and passed to the existing executor so tasks and owner assignments are applied immediately.
+- Workspace feature flags: added `enable_intake_router` and `enable_office_copilot` (default true). New cron routes `app/api/cron/intake-router` and `app/api/cron/office-copilot` check the flags and skip disabled workspaces.
+- Heartbeat probe improvements: `/api/cron/heartbeat` now supports `cursor` + `limit` pagination and a `summaryOnly=true` query parameter that omits the per-workspace detail array.
+- Registry entry points updated to the new cron routes. Remaining external gates unchanged: deployed heartbeats, idempotent live runs, failure-review evidence, and two-workspace isolation.
+
 ## 2026-11-03 — Intake Router and Office Copilot implementation batch
 
 - Branch: `feat/two-bounded-ai-agents-20261103`.

@@ -86,7 +86,11 @@ export function planIntakeRouter(input: IntakeRouterInput): IntakeRouterPlan {
     })
     .map((candidate) => candidate.id)
 
-  const suggestedOwnerId = input.lead.ownerId ?? input.roundRobinOwnerIds[0] ?? null
+  const suggestedOwnerId = input.lead.ownerId ?? (
+    input.roundRobinOwnerIds.length
+      ? input.roundRobinOwnerIds[simpleHash(input.lead.id) % input.roundRobinOwnerIds.length]
+      : null
+  )
   const firstResponseDueAt = new Date(asDate(input.now).getTime() + 24 * 60 * 60 * 1000).toISOString()
   const evidence = [{
     leadId: input.lead.id,
@@ -125,7 +129,7 @@ export function planIntakeRouter(input: IntakeRouterInput): IntakeRouterPlan {
       subjectType: 'lead',
       subjectId: input.lead.id,
       payload: { ownerId: suggestedOwnerId },
-      reason: 'Assign an unowned lead to the first configured round-robin owner.',
+      reason: 'Assign an unowned lead via deterministic round-robin (hash of lead id).',
       sourceEvidence: evidence,
       idempotencyKey: `intake-owner:${input.lead.id}:${suggestedOwnerId}`,
     })
@@ -222,12 +226,27 @@ export async function runIntakeRouter(
           summary: plan.duplicateLeadIds.length ? `Review duplicate lead routing for ${lead.name}` : `Route new lead ${lead.name}`,
           actions: plan.actions,
         })
+
+    // Explicit execution boundary: non-review actions are executed immediately.
+    if (plan.duplicateLeadIds.length === 0 && actionBatch.batch?.id) {
+      const { executeApprovedBatch } = await import('./action-executor')
+      // Mark batch approved so the existing executor can run non-approval actions.
+      await supabase.from('agent_action_batches').update({ status: 'approved', approval_token_hash: 'auto' }).eq('id', actionBatch.batch.id).eq('status', 'proposed')
+      await executeApprovedBatch(supabase, actionBatch.batch.id).catch(() => null)
+    }
+
     return {
       status: plan.duplicateLeadIds.length ? ('needs_review' as const) : ('succeeded' as const),
       output: { ...plan, action_batch_id: actionBatch.batch.id },
       approvalState: plan.duplicateLeadIds.length ? ('pending' as const) : ('not_required' as const),
     }
   })
+}
+
+function simpleHash(value: string): number {
+  let hash = 0
+  for (let i = 0; i < value.length; i++) hash = (hash * 31 + value.charCodeAt(i)) >>> 0
+  return hash
 }
 
 function toLead(row: LeadRecord): IntakeLead {

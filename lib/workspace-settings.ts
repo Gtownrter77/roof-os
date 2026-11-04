@@ -3,6 +3,8 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 export const WORKSPACE_FEATURE_FLAGS = {
   enable_ai_receptionist: true,
   enable_inspection_quality_agent: true,
+  enable_intake_router: true,
+  enable_office_copilot: true,
   enable_voice_copilot_whisper: true,
   enable_auto_followup_tasks: true,
   enable_margin_guard_35: true,
@@ -56,6 +58,16 @@ export const FEATURE_FLAG_ENFORCEMENT: Record<WorkspaceFeatureFlag, FeatureFlagE
     enforced: true,
     surfaces: ['app/api/cron/inspection-quality/route.ts'],
     note: 'Skips the web inspection quality agent for this workspace. The mobile on-device inference runtime is not implemented yet, so this switch does not affect it.',
+  },
+  enable_intake_router: {
+    enforced: true,
+    surfaces: ['app/api/cron/intake-router/route.ts', 'workers/intake-router.ts'],
+    note: 'Skips the Intake Router for this workspace.',
+  },
+  enable_office_copilot: {
+    enforced: true,
+    surfaces: ['app/api/cron/office-copilot/route.ts', 'workers/office-copilot.ts'],
+    note: 'Skips the Office Copilot for this workspace.',
   },
   enable_voice_copilot_whisper: {
     enforced: true,

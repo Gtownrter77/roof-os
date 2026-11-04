@@ -6,6 +6,7 @@ export type AgentRegistration = {
   implemented: boolean
   entryPoint: string | null
   heartbeatSource: string | null
+  freshnessMs?: number
 }
 
 export type HeartbeatRecord = {
@@ -20,8 +21,9 @@ const REGISTRATIONS: Record<AgentKey, AgentRegistration> = {
     agentKey: 'intake_router',
     label: 'Intake and Lead Router',
     implemented: true,
-    entryPoint: 'workers/intake-router.ts',
-    heartbeatSource: 'workers/intake-router.ts',
+    entryPoint: '/api/cron/intake-router',
+    heartbeatSource: 'app/api/cron/intake-router/route.ts',
+    freshnessMs: 10 * 60 * 1000,
   },
   scheduler: {
     agentKey: 'scheduler',
@@ -29,6 +31,7 @@ const REGISTRATIONS: Record<AgentKey, AgentRegistration> = {
     implemented: true,
     entryPoint: '/api/cron/receptionist-followups',
     heartbeatSource: 'app/api/cron/receptionist-followups/route.ts',
+    freshnessMs: 15 * 60 * 1000,
   },
   inspection_quality: {
     agentKey: 'inspection_quality',
@@ -36,13 +39,15 @@ const REGISTRATIONS: Record<AgentKey, AgentRegistration> = {
     implemented: true,
     entryPoint: '/api/cron/inspection-quality',
     heartbeatSource: 'app/api/cron/inspection-quality/route.ts',
+    freshnessMs: 15 * 60 * 1000,
   },
   office_copilot: {
     agentKey: 'office_copilot',
     label: 'Office Copilot and Report Agent',
     implemented: true,
-    entryPoint: 'workers/office-copilot.ts',
-    heartbeatSource: 'workers/office-copilot.ts',
+    entryPoint: '/api/cron/office-copilot',
+    heartbeatSource: 'app/api/cron/office-copilot/route.ts',
+    freshnessMs: 10 * 60 * 1000,
   },
 }
 
@@ -54,7 +59,7 @@ export function evaluateAgentReadiness(
   registration: AgentRegistration,
   heartbeat: HeartbeatRecord | null | undefined,
   now: string | Date = new Date(),
-  freshnessMs = 5 * 60 * 1000,
+  freshnessMs = registration.freshnessMs ?? 5 * 60 * 1000,
 ) {
   if (!registration.implemented) return { ready: false, reason: 'worker_not_registered' as const }
   if (!heartbeat) return { ready: false, reason: 'heartbeat_missing' as const }

@@ -9,15 +9,20 @@ export async function POST(request: NextRequest) {
   const supplied = request.headers.get('authorization')?.replace(/^Bearer\s+/i, '')
   if (!secret || supplied !== secret) return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 })
 
+  const url = new URL(request.url)
+  const summaryOnly = url.searchParams.get('summaryOnly') === 'true'
+  const cursor = url.searchParams.get('cursor')
+  const limit = Math.min(Number(url.searchParams.get('limit') ?? 100) || 100, 500)
+
   const admin = createAdminClient()
-  const { data: workspaces, error } = await admin
-    .from('workspaces')
-    .select('id')
-    .order('created_at', { ascending: true })
-    .limit(100)
+  let query = admin.from('workspaces').select('id').order('created_at', { ascending: true }).limit(limit)
+  if (cursor) query = query.gt('id', cursor)
+  const { data: workspaces, error } = await query
   if (error) return NextResponse.json({ error: 'Could not read staging workspaces.', detail: error.message }, { status: 502 })
 
   const workspaceIds = (workspaces ?? []).map((workspace) => workspace.id)
+  const nextCursor = workspaceIds.length === limit ? workspaceIds[workspaceIds.length - 1] : null
+
   const { data: heartbeats, error: heartbeatError } = workspaceIds.length
     ? await admin
       .from('agent_worker_heartbeats')
@@ -41,7 +46,7 @@ export async function POST(request: NextRequest) {
       entryPoint: registration.entryPoint,
       healthyWorkspaces: workspaceResults.filter((result) => result.ready).length,
       notReadyWorkspaces: workspaceResults.filter((result) => !result.ready).length,
-      workspaces: workspaceResults,
+      ...(summaryOnly ? {} : { workspaces: workspaceResults }),
     }
   })
   const notReady = agents.filter((agent) => agent.notReadyWorkspaces > 0).map((agent) => agent.agentKey)
@@ -49,6 +54,7 @@ export async function POST(request: NextRequest) {
     status: notReady.length ? 'not_ready' : 'healthy',
     heartbeatOnly: true,
     workspaceCount: workspaceIds.length,
+    nextCursor,
     agents,
     ready: notReady.length === 0 && workspaceIds.length > 0,
     notReady,
