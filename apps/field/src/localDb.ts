@@ -59,6 +59,19 @@ CREATE TABLE IF NOT EXISTS inspection_photo_queue (
   retry_count INTEGER NOT NULL DEFAULT 0,
   next_retry_at TEXT,
   last_error TEXT
+);
+CREATE TABLE IF NOT EXISTS inspection_ai_request_queue (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  request_key TEXT NOT NULL UNIQUE,
+  draft_id INTEGER NOT NULL,
+  photo_queue_id INTEGER NOT NULL,
+  feature_key TEXT NOT NULL CHECK (feature_key IN ('caption_album', 'photo_completeness')),
+  status TEXT NOT NULL CHECK (status IN ('waiting_for_upload', 'pending_analysis', 'completed', 'failed')),
+  source_photo_id TEXT,
+  expires_at TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  UNIQUE (photo_queue_id, feature_key)
 );`
 
 export function initLocalDb() {
