@@ -1,3 +1,13 @@
+## 2026-11-04 — Field AI assistance foundations (PR pending)
+
+- Branch: `feat/field-ai-assistance-foundation-20261104`, based on main `33ebc3ddc578c258d4076573af3f6d9f1574f1f6`.
+- Implementation checkpoint: `e8e8cd35b60648dd1dda640e1e5656f0aab6833c` (`feat(field): add offline local AI assistance foundation`). The remote branch SHA was independently checked and matches.
+- Began three Task 3 items: a deterministic photo-evidence guide; durable local request metadata with distinct `waiting_for_upload` and `pending_analysis` states; and default-off feature switches plus request-metadata retention controls. Disabling a feature deletes its queued request metadata. Browser storage has atomic transaction/rollback support for the photo/request capture path.
+- **Strict runtime boundary:** no model is loaded, called, or claimed. Requests remain visibly pending after upload; no AI result is fabricated. The evidence guide uses album labels only and explicitly is not image analysis or proof of coverage. Caption/completeness inference, source hashes, model/version provenance, and technician review remain undone.
+- Local checks passed: root `npm run typecheck`, `npm run release-check`, `npm run verify:security`, `npm run test:field-ai-assistance`, `npm run test:field-localdb-web`, `npm run test:field-coach`, `npm run test:mobile-offline-sync`, `npm run test:mobile-ai-observation-security`, `npm run test:mobile-local-db-migrations`, `npm run test:mobile-release-contract`, `npm run test:release-evidence`, and `git diff --check`; field `npx tsc --noEmit` and `npx expo config --json`; Android `npx expo export:embed --eager --platform android --dev false`; root production `npm run build`.
+- Pending: open PR and wait for GitHub checks. No APK was built or device-tested for this checkpoint; no inference service was enabled. Do not treat this foundation as the completed AI automation feature set.
+- Next: open the PR, wait for green checks, then decide whether the partial foundation should merge before the actual local inference/runtime work is implemented.
+
 ## 2026-11-04 — Workspace agent switches and resilient daily dispatcher (PR D)
 
 - Branch: `feat/agent-toggles-daily-allsettled`, based on PR C. The checkpoint commit SHA is the PR head SHA.
