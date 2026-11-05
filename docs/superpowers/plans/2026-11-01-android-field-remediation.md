@@ -84,6 +84,8 @@
 - [ ] Add operator controls for AI opt-in, data retention, and per-feature disable switches.
 - [ ] Capture model/version, input-photo hashes, source IDs, prompt/contract version, confidence and reviewer decisions for auditability.
 
+Implementation started 2026-11-04 on `feat/field-ai-assistance-foundation-20261104`: the photo evidence guide is rule-based and labeled as guidance, the local queue distinguishes waiting-for-upload from pending-analysis, and the UI adds default-off per-feature controls plus request-metadata retention. The field app still has no inference runtime in this build; no model call or AI result is claimed. The caption/completeness AI execution and provenance fields remain open.
+
 ### Task 4: Accessibility, ergonomics and performance
 
 - [ ] Audit all field controls for accessible labels, roles, hit targets, focus order, screen reader output and high-contrast outdoor use.
@@ -109,4 +111,3 @@
 - On-device inference remains intentionally disabled; the model/runtime are unavailable and no model artifact is bundled. The field coach is deterministic. Existing server photo analysis is workspace-admin gated and depends on Ollama vision configuration; server transcription is feature-flagged but not integrated into the mobile app.
 - Highest-value AI follow-ups: missing-evidence/elevation checklist, photo caption and album suggestions with technician review, voice-to-structured notes with read-back, OCR of product/receipt/claim documents, and estimate draft prefill from verified measurements and workspace price books. No AI output may certify measurements, decide claims/code, approve estimates, send customer communications, or trigger purchases/payments.
 - Physical device validation still required: airplane-mode capture, process kill/restart, reconnect, duplicate retry, auth expiry, workspace switch, large/corrupt image, permission denial and low-storage handling.
-

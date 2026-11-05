@@ -18,6 +18,7 @@ import {
   SafeAreaView,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TextInput,
   View,
@@ -49,6 +50,7 @@ const webAppUrl = process.env.EXPO_PUBLIC_WEB_APP_URL ?? 'https://roof-os-lemon.
 
 import { db, initLocalDb } from './src/localDb'
 import { ensureLocalColumns } from './src/localMigrations'
+import { aiRequestExpiry, parseFieldAiPreferences, photoAiRequestStatusLabel, photoEvidencePrompts, serializeFieldAiPreferences, type FieldAiFeature, type FieldAiPreferences, type FieldAiRequestStatus } from './src/ai/photoAssistance'
 import RadarCinema from './src/RadarCinema'
 import {
   activeAlertHeadline,
@@ -115,6 +117,8 @@ type QueuedPhoto = {
   caption: string | null
   sync_status: string
   last_error: string | null
+  caption_ai_status: FieldAiRequestStatus | null
+  completeness_ai_status: FieldAiRequestStatus | null
 }
 
 const timestamp = () => new Date().toISOString()
@@ -176,12 +180,27 @@ export default function App() {
   const [photoQueue, setPhotoQueue] = useState<QueuedPhoto[]>([])
   const [showTools, setShowTools] = useState(false)
   const [leadQuery, setLeadQuery] = useState('')
+  const [fieldAiPreferences, setFieldAiPreferences] = useState<FieldAiPreferences>(parseFieldAiPreferences(null))
+  const [fieldAiPreferencesLoaded, setFieldAiPreferencesLoaded] = useState(false)
   const draftRef = useRef<Draft | null>(null)
   const syncLock = useRef(false)
 
   useEffect(() => {
     ensureDatabase()
     initLocalDb()
+    db.runSync('DELETE FROM inspection_ai_request_queue WHERE expires_at <= ?', timestamp())
+    void (async () => {
+      try {
+        const saved = Platform.OS === 'web'
+          ? (typeof window !== 'undefined' ? window.localStorage.getItem('roof_os_field_ai_preferences_v1') : null)
+          : await SecureStore.getItemAsync('roof_os_field_ai_preferences_v1')
+        setFieldAiPreferences(parseFieldAiPreferences(saved))
+      } catch {
+        setFieldAiPreferences(parseFieldAiPreferences(null))
+      } finally {
+        setFieldAiPreferencesLoaded(true)
+      }
+    })()
     SecureStore.getItemAsync('roof_os_field_email')
       .then((saved) => {
         if (saved && !email) setEmail(saved)
@@ -280,9 +299,55 @@ export default function App() {
 
   function refreshPhotoQueue(draftId: number) {
     setPhotoQueue(db.getAllSync<QueuedPhoto>(
-      'SELECT id, local_uri, album, caption, sync_status, last_error FROM inspection_photo_queue WHERE draft_id = ? ORDER BY captured_at DESC LIMIT 8',
+      "SELECT id, local_uri, album, caption, sync_status, last_error, (SELECT status FROM inspection_ai_request_queue WHERE photo_queue_id = inspection_photo_queue.id AND feature_key = 'caption_album' LIMIT 1) AS caption_ai_status, (SELECT status FROM inspection_ai_request_queue WHERE photo_queue_id = inspection_photo_queue.id AND feature_key = 'photo_completeness' LIMIT 1) AS completeness_ai_status FROM inspection_photo_queue WHERE draft_id = ? ORDER BY captured_at DESC LIMIT 8",
       draftId,
     ))
+  }
+
+  async function updateFieldAiFeature(feature: FieldAiFeature, enabled: boolean) {
+    if (!fieldAiPreferencesLoaded) return
+    const next = {
+      ...fieldAiPreferences,
+      ...(feature === 'caption_album' ? { photoCaptionAlbumEnabled: enabled } : { photoCompletenessEnabled: enabled }),
+    }
+    try {
+      const serialized = serializeFieldAiPreferences(next)
+      if (Platform.OS === 'web') {
+        if (typeof window !== 'undefined') window.localStorage.setItem('roof_os_field_ai_preferences_v1', serialized)
+      } else {
+        await SecureStore.setItemAsync('roof_os_field_ai_preferences_v1', serialized)
+      }
+      if (!enabled) db.runSync('DELETE FROM inspection_ai_request_queue WHERE feature_key = ?', feature)
+      setFieldAiPreferences(next)
+      if (draftRef.current) refreshPhotoQueue(draftRef.current.id)
+      setNotice(enabled
+        ? 'Opt-in saved. New photos may queue a local AI request; this build has no inference model and will not report an AI result.'
+        : 'AI opt-out saved. Pending requests for this feature were removed from this device.')
+    } catch {
+      setError('AI preference could not be saved. The previous setting remains active.')
+    }
+  }
+
+  async function updateAiRequestRetention(days: FieldAiPreferences['requestRetentionDays']) {
+    if (!fieldAiPreferencesLoaded) return
+    const next = { ...fieldAiPreferences, requestRetentionDays: days }
+    const now = timestamp()
+    try {
+      const serialized = serializeFieldAiPreferences(next)
+      if (Platform.OS === 'web') {
+        if (typeof window !== 'undefined') window.localStorage.setItem('roof_os_field_ai_preferences_v1', serialized)
+      } else {
+        await SecureStore.setItemAsync('roof_os_field_ai_preferences_v1', serialized)
+      }
+      db.runSync(
+        'UPDATE inspection_ai_request_queue SET expires_at = ?, updated_at = ? WHERE status IN (?, ?)',
+        aiRequestExpiry(now, days), now, 'waiting_for_upload', 'pending_analysis',
+      )
+      setFieldAiPreferences(next)
+      setNotice(`AI request metadata will expire after ${days} days. Photo files follow the separate inspection retention policy.`)
+    } catch {
+      setError('AI request retention could not be updated. The previous setting remains active.')
+    }
   }
 
   function selectDraft(row: Draft) {
@@ -542,7 +607,22 @@ export default function App() {
     let pendingCount = 0
     try {
       db.withTransactionSync(() => {
-        result.assets.forEach((asset) => db.runSync('INSERT INTO inspection_photo_queue (draft_id, client_id, local_uri, album, caption, mime_type, file_size_bytes, width, height, captured_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', draftId, clientId('photo'), asset.uri, photoAlbum, photoCaption.trim() || null, asset.mimeType ?? 'image/jpeg', asset.fileSize ?? null, asset.width ?? null, asset.height ?? null, capturedAt))
+        result.assets.forEach((asset) => {
+          const photoInsert = db.runSync('INSERT INTO inspection_photo_queue (draft_id, client_id, local_uri, album, caption, mime_type, file_size_bytes, width, height, captured_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', draftId, clientId('photo'), asset.uri, photoAlbum, photoCaption.trim() || null, asset.mimeType ?? 'image/jpeg', asset.fileSize ?? null, asset.width ?? null, asset.height ?? null, capturedAt)
+          const photoQueueId = Number(photoInsert.lastInsertRowId)
+          const requestedFeatures: Array<[FieldAiFeature, boolean]> = [
+            ['caption_album', fieldAiPreferences.photoCaptionAlbumEnabled],
+            ['photo_completeness', fieldAiPreferences.photoCompletenessEnabled],
+          ]
+          for (const [feature, enabled] of requestedFeatures) {
+            if (!enabled || !photoQueueId) continue
+            db.runSync(
+              'INSERT OR IGNORE INTO inspection_ai_request_queue (request_key, draft_id, photo_queue_id, feature_key, status, source_photo_id, expires_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+              clientId('ai'), draftId, photoQueueId, feature, 'waiting_for_upload', null,
+              aiRequestExpiry(capturedAt, fieldAiPreferences.requestRetentionDays), capturedAt, capturedAt,
+            )
+          }
+        })
         db.runSync('UPDATE inspection_drafts SET photo_count = ?, updated_at = ? WHERE id = ?', count, timestamp(), draftId)
         pendingCount = pendingRowCount(draftId)
       })
@@ -682,7 +762,10 @@ export default function App() {
         if (uploadError && !/already exists|duplicate/i.test(uploadError.message)) throw uploadError
         const { data, error: recordError } = await supabase.from('inspection_photos').upsert({ inspection_id: remoteId, client_id: photo.client_id, workspace_id: workspaceId, uploaded_by: session.user.id, bucket_id: 'inspection-photos', object_path: objectPath, album: photo.album, caption: photo.caption, mime_type: photo.mime_type, file_size_bytes: photo.file_size_bytes, width: photo.width, height: photo.height, captured_at: photo.captured_at, upload_status: 'uploaded' }, { onConflict: 'workspace_id,client_id' }).select('id').single()
         if (recordError) throw recordError
-        db.runSync('UPDATE inspection_photo_queue SET sync_status = ?, remote_id = ?, last_error = NULL, next_retry_at = NULL WHERE id = ?', 'synced', data.id, photo.id)
+        db.withTransactionSync(() => {
+          db.runSync('UPDATE inspection_photo_queue SET sync_status = ?, remote_id = ?, last_error = NULL, next_retry_at = NULL WHERE id = ?', 'synced', data.id, photo.id)
+          db.runSync('UPDATE inspection_ai_request_queue SET status = ?, source_photo_id = ?, updated_at = ? WHERE photo_queue_id = ? AND status = ?', 'pending_analysis', data.id, timestamp(), photo.id, 'waiting_for_upload')
+        })
       }
       if (draftRef.current?.id === draftToSync.id) setPendingUploads(pendingRowCount(draftToSync.id))
       syncSucceeded = true
@@ -725,6 +808,10 @@ export default function App() {
     pitch: Number(pitch),
   })
   const captionAlbum = suggestAlbum(photoCaption)
+  const evidenceAlbums = draft
+    ? db.getAllSync<{ album: string }>('SELECT album FROM inspection_photo_queue WHERE draft_id = ?', draft.id).map((row) => row.album)
+    : photoQueue.map((photo) => photo.album)
+  const evidencePrompts = photoEvidencePrompts(evidenceAlbums, Boolean(squares.trim() && eave.trim()))
 
   if (booting) {
     return (
@@ -844,11 +931,86 @@ export default function App() {
                           ? 'Waiting for connection'
                           : 'Waiting to upload'}
                 </Text>
+                {photoAiRequestStatusLabel(photo.caption_ai_status) ? <Text style={styles.helper}>{photoAiRequestStatusLabel(photo.caption_ai_status)}</Text> : null}
+                {photoAiRequestStatusLabel(photo.completeness_ai_status) ? <Text style={styles.helper}>{photoAiRequestStatusLabel(photo.completeness_ai_status)}</Text> : null}
               </View>
             </View>
           )) : (
             <Text style={styles.helper}>No photos on this inspection yet.</Text>
           )}
+        </View>
+
+        <Text style={styles.sectionTitle}>Photo evidence guide</Text>
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Suggested angles to consider</Text>
+          <Text style={styles.helper}>Uses saved album labels only. This is not image analysis, a damage finding, or proof that evidence is complete.</Text>
+          {evidencePrompts.length ? evidencePrompts.map((item) => (
+            <Pressable
+              key={item.album}
+              style={styles.evidencePrompt}
+              accessibilityRole="button"
+              accessibilityLabel={`${item.title}. ${item.prompt} Tap to select the ${item.album} photo album.`}
+              onPress={() => {
+                setPhotoAlbum(item.album)
+                setPhotoCaption(suggestCaption(item.album))
+                setNotice(`Selected the ${item.album} album. Capture the suggested angle if it is relevant to this property.`)
+              }}
+            >
+              <Text style={styles.leadName}>{item.title}{item.conditional ? ' · if relevant' : ''}</Text>
+              <Text style={styles.helper}>{item.prompt} Tap to set this photo album.</Text>
+            </Pressable>
+          )) : <Text style={styles.helper}>These photo albums are represented. A technician still decides whether each view is useful.</Text>}
+        </View>
+
+        <Text style={styles.sectionTitle}>AI assistance controls</Text>
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Optional local photo requests</Text>
+          <View style={styles.aiPreferenceRow}>
+            <View style={styles.aiPreferenceCopy}>
+              <Text style={styles.leadName}>Caption and album suggestions</Text>
+              <Text style={styles.helper}>Opt in for new photos only.</Text>
+            </View>
+            <Switch
+              value={fieldAiPreferences.photoCaptionAlbumEnabled}
+              onValueChange={(value) => void updateFieldAiFeature('caption_album', value)}
+              disabled={!fieldAiPreferencesLoaded}
+              accessibilityLabel="Enable AI caption and album suggestion requests"
+              accessibilityState={{ checked: fieldAiPreferences.photoCaptionAlbumEnabled, disabled: !fieldAiPreferencesLoaded }}
+              trackColor={{ false: '#aeb9c7', true: '#78a8eb' }}
+              thumbColor={fieldAiPreferences.photoCaptionAlbumEnabled ? colors.blue : '#f4f6f8'}
+            />
+          </View>
+          <View style={styles.aiPreferenceRow}>
+            <View style={styles.aiPreferenceCopy}>
+              <Text style={styles.leadName}>Photo completeness analysis</Text>
+              <Text style={styles.helper}>Opt in for new photos only. The checklist above remains rule-based.</Text>
+            </View>
+            <Switch
+              value={fieldAiPreferences.photoCompletenessEnabled}
+              onValueChange={(value) => void updateFieldAiFeature('photo_completeness', value)}
+              disabled={!fieldAiPreferencesLoaded}
+              accessibilityLabel="Enable AI photo completeness requests"
+              accessibilityState={{ checked: fieldAiPreferences.photoCompletenessEnabled, disabled: !fieldAiPreferencesLoaded }}
+              trackColor={{ false: '#aeb9c7', true: '#78a8eb' }}
+              thumbColor={fieldAiPreferences.photoCompletenessEnabled ? colors.blue : '#f4f6f8'}
+            />
+          </View>
+          <Text style={styles.helper}>AI requests are off by default. No inference model is available in this build; an opted-in request stays visibly pending and no AI result is shown. This build makes no separate AI-service call.</Text>
+          <Text style={[styles.cardTitle, { marginTop: 12 }]}>Keep pending AI request metadata for</Text>
+          <View style={styles.albumRow}>
+            {([7, 30, 90] as const).map((days) => (
+              <Pressable
+                key={days}
+                style={[styles.albumChip, fieldAiPreferences.requestRetentionDays === days && styles.albumChipSelected]}
+                onPress={() => void updateAiRequestRetention(days)}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: fieldAiPreferences.requestRetentionDays === days }}
+              >
+                <Text style={[styles.albumText, fieldAiPreferences.requestRetentionDays === days && styles.albumTextSelected]}>{days} days</Text>
+              </Pressable>
+            ))}
+          </View>
+          <Text style={styles.helper}>Expired request metadata is deleted on app start. This setting does not change inspection-photo retention.</Text>
         </View>
 
         <Pressable style={[styles.secondary, { marginBottom: 14 }]} onPress={() => setShowTools((open) => !open)}>
@@ -1400,6 +1562,9 @@ const styles = StyleSheet.create({
   syncChip: { color: '#d7e6ff', fontSize: 13, fontWeight: '700', marginBottom: 12 },
   cameraButton: { backgroundColor: colors.blue, borderRadius: 16, minHeight: 64, alignItems: 'center', justifyContent: 'center' },
   queueRow: { flexDirection: 'row', gap: 10, alignItems: 'center', paddingVertical: 8 },
+  evidencePrompt: { minHeight: 56, justifyContent: 'center', paddingVertical: 8, borderTopWidth: 1, borderTopColor: colors.border },
+  aiPreferenceRow: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 64, borderTopWidth: 1, borderTopColor: colors.border },
+  aiPreferenceCopy: { flex: 1, paddingVertical: 8 },
   thumb: { width: 56, height: 56, borderRadius: 8, backgroundColor: '#dbe4ef' },
   primary: {
     backgroundColor: '#3e8cff',

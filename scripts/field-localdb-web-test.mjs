@@ -20,10 +20,17 @@ first.db.runSync(
   'INSERT INTO inspection_measurements_local',
   draftId, 'client-measurement-1', 24, 80, 40, 30, 6, 25, 30, 'asphalt', 40.1, -75.2, '2026-11-02T12:01:00.000Z',
 )
-first.db.runSync(
+const photo = first.db.runSync(
   'INSERT INTO inspection_photo_queue',
   draftId, 'client-photo-1', 'file:///photo.jpg', 'roof', 'Front slope', 'image/jpeg', 1024, 640, 480, '2026-11-02T12:02:00.000Z',
 )
+first.db.withTransactionSync(() => {
+  first.db.runSync(
+    'INSERT OR IGNORE INTO inspection_ai_request_queue (request_key, draft_id, photo_queue_id, feature_key, status, source_photo_id, expires_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    'ai-request-1', draftId, photo.lastInsertRowId, 'caption_album', 'waiting_for_upload', null,
+    '2026-11-09T12:02:00.000Z', '2026-11-02T12:02:00.000Z', '2026-11-02T12:02:00.000Z',
+  )
+})
 first.db.runSync(
   'UPDATE inspection_drafts SET technician_name = ?, technician_license = ?, verified_at = ?, verification_notes = ?, verification_synced = 0, updated_at = ? WHERE id = ?',
   'Field Tech', 'LIC-1', '2026-11-02T12:03:00.000Z', 'Reviewed in field', 0, '2026-11-02T12:03:00.000Z', draftId,
@@ -53,6 +60,21 @@ assert.equal(reloaded.db.getAllSync(
   'SELECT id, client_id, local_uri, album, caption, mime_type, file_size_bytes, width, height, captured_at FROM inspection_photo_queue WHERE draft_id = ? AND sync_status IN (?, ?) AND (next_retry_at IS NULL OR next_retry_at <= ?)',
   draftId, 'queued', 'retrying', '2026-11-02T13:00:00.000Z',
 ).length, 1, 'queued photo metadata must survive reload')
+const aiQueueQuery = "SELECT id, local_uri, album, caption, sync_status, last_error, (SELECT status FROM inspection_ai_request_queue WHERE photo_queue_id = inspection_photo_queue.id AND feature_key = 'caption_album' LIMIT 1) AS caption_ai_status, (SELECT status FROM inspection_ai_request_queue WHERE photo_queue_id = inspection_photo_queue.id AND feature_key = 'photo_completeness' LIMIT 1) AS completeness_ai_status FROM inspection_photo_queue WHERE draft_id = ? ORDER BY captured_at DESC LIMIT 8"
+assert.equal(reloaded.db.getAllSync(aiQueueQuery, draftId)[0].caption_ai_status, 'waiting_for_upload', 'request state must survive browser reload')
+reloaded.db.runSync(
+  'UPDATE inspection_ai_request_queue SET status = ?, source_photo_id = ?, updated_at = ? WHERE photo_queue_id = ? AND status = ?',
+  'pending_analysis', 'remote-photo-1', '2026-11-02T13:01:00.000Z', photo.lastInsertRowId, 'waiting_for_upload',
+)
+assert.equal(reloaded.db.getAllSync(aiQueueQuery, draftId)[0].caption_ai_status, 'pending_analysis', 'confirmed upload must promote the AI request state')
+assert.equal(reloaded.db.getAllSync('SELECT album FROM inspection_photo_queue WHERE draft_id = ?', draftId)[0].album, 'roof')
+assert.throws(() => reloaded.db.withTransactionSync(() => {
+  reloaded.db.runSync('DELETE FROM inspection_ai_request_queue WHERE feature_key = ?', 'caption_album')
+  throw new Error('rollback')
+}), /rollback/)
+assert.equal(reloaded.db.getAllSync(aiQueueQuery, draftId)[0].caption_ai_status, 'pending_analysis', 'browser transaction must roll back a partial opt-out mutation')
+reloaded.db.runSync('DELETE FROM inspection_ai_request_queue WHERE feature_key = ?', 'caption_album')
+assert.equal(reloaded.db.getAllSync(aiQueueQuery, draftId)[0].caption_ai_status, null, 'opt-out must remove pending request metadata')
 assert.equal(reloaded.db.getFirstSync('SELECT ((SELECT COUNT(*) ...)) AS n', draftId, draftId).n, 2)
 
 console.log('field-localdb-web-test: PASS')

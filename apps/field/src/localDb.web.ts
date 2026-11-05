@@ -59,12 +59,26 @@ type PhotoRow = {
   lastError: string | null
 }
 
+type AiRequestRow = {
+  id: number
+  requestKey: string
+  draftId: number
+  photoQueueId: number
+  featureKey: string
+  status: string
+  sourcePhotoId: string | null
+  expiresAt: string
+  createdAt: string
+  updatedAt: string
+}
+
 const STORAGE_KEY = 'roofos.field.local-db.v1'
 
 type PersistedState = {
   drafts: DraftRow[]
   measurements: MeasurementRow[]
   photos: PhotoRow[]
+  aiRequests: AiRequestRow[]
   nextId: number
 }
 
@@ -74,7 +88,7 @@ function getStorage(): Storage | null {
 }
 
 function restoreState(): PersistedState {
-  const empty = { drafts: [] as DraftRow[], measurements: [] as MeasurementRow[], photos: [] as PhotoRow[], nextId: 1 }
+  const empty = { drafts: [] as DraftRow[], measurements: [] as MeasurementRow[], photos: [] as PhotoRow[], aiRequests: [] as AiRequestRow[], nextId: 1 }
   try {
     const raw = getStorage()?.getItem(STORAGE_KEY)
     if (!raw) return empty
@@ -83,6 +97,7 @@ function restoreState(): PersistedState {
       drafts: Array.isArray(parsed.drafts) ? parsed.drafts : [],
       measurements: Array.isArray(parsed.measurements) ? parsed.measurements : [],
       photos: Array.isArray(parsed.photos) ? parsed.photos : [],
+      aiRequests: Array.isArray(parsed.aiRequests) ? parsed.aiRequests : [],
       nextId: Number.isSafeInteger(parsed.nextId) && Number(parsed.nextId) > 0 ? Number(parsed.nextId) : 1,
     }
   } catch {
@@ -94,13 +109,14 @@ const restored = restoreState()
 const drafts: DraftRow[] = restored.drafts
 const measurements: MeasurementRow[] = restored.measurements
 const photos: PhotoRow[] = restored.photos
+const aiRequests: AiRequestRow[] = restored.aiRequests
 let nextId = restored.nextId
 
 function persistState() {
   const storage = getStorage()
   if (!storage) return
   try {
-    storage.setItem(STORAGE_KEY, JSON.stringify({ drafts, measurements, photos, nextId }))
+    storage.setItem(STORAGE_KEY, JSON.stringify({ drafts, measurements, photos, aiRequests, nextId }))
   } catch {
     throw new Error('Field data could not be saved in this browser. Free storage space and try again; this change may not survive a reload.')
   }
@@ -114,8 +130,47 @@ function isReady(nextRetryAt: string | null, now: string) {
   return nextRetryAt === null || nextRetryAt <= now
 }
 
+let transactionDepth = 0
+
+export function initLocalDb() {}
+
 export const db = {
   execSync: (_sql: string) => undefined,
+
+  withTransactionSync<T>(callback: () => T): T {
+    const isOuterTransaction = transactionDepth === 0
+    const snapshot = JSON.stringify({ drafts, measurements, photos, aiRequests, nextId })
+    const restoreSnapshot = () => {
+      const prior = JSON.parse(snapshot) as PersistedState
+      drafts.splice(0, drafts.length, ...prior.drafts)
+      measurements.splice(0, measurements.length, ...prior.measurements)
+      photos.splice(0, photos.length, ...prior.photos)
+      aiRequests.splice(0, aiRequests.length, ...prior.aiRequests)
+      nextId = prior.nextId
+    }
+    transactionDepth += 1
+    let result: T
+    try {
+      result = callback()
+    } catch (error) {
+      transactionDepth -= 1
+      if (isOuterTransaction) {
+        restoreSnapshot()
+        persistState()
+      }
+      throw error
+    }
+    transactionDepth -= 1
+    if (isOuterTransaction) {
+      try {
+        persistState()
+      } catch (error) {
+        restoreSnapshot()
+        throw error
+      }
+    }
+    return result
+  },
 
   getFirstSync<T>(sql: string, ...args: unknown[]): T | null {
     if (sql.trimStart().startsWith('SELECT (')) {
@@ -145,6 +200,10 @@ export const db = {
     const firstStatus = String(args[1] ?? '')
     const secondStatus = String(args[2] ?? '')
     const now = String(args[3] ?? '')
+
+    if (sql.startsWith('SELECT album FROM inspection_photo_queue')) {
+      return photos.filter((row) => row.draftId === draftId).map((row) => ({ album: row.album }) as T)
+    }
 
     if (sql.startsWith('SELECT roof_squares, gutter_lf, eave_lf')) {
       return measurements.filter((row) => row.draftId === draftId).sort((a, b) => b.capturedAt.localeCompare(a.capturedAt)).slice(0, 1).map((row) => ({ roof_squares: row.roofSquares, gutter_lf: row.gutterLf, eave_lf: row.eaveLf, rafter_lf: row.rafterLf, pitch: row.pitch, soffit_lf: row.soffitLf, fascia_lf: row.fasciaLf, roof_type: row.roofType }) as T)
@@ -185,12 +244,29 @@ export const db = {
         }) as T)
     }
 
+    if (sql.startsWith('SELECT id, local_uri, album, caption, sync_status, last_error')) {
+      return photos
+        .filter((row) => row.draftId === draftId)
+        .sort((a, b) => b.capturedAt.localeCompare(a.capturedAt))
+        .slice(0, 8)
+        .map((row) => ({
+          id: row.id,
+          local_uri: row.localUri,
+          album: row.album,
+          caption: row.caption,
+          sync_status: row.syncStatus,
+          last_error: row.lastError,
+          caption_ai_status: aiRequests.find((item) => item.photoQueueId === row.id && item.featureKey === 'caption_album')?.status ?? null,
+          completeness_ai_status: aiRequests.find((item) => item.photoQueueId === row.id && item.featureKey === 'photo_completeness')?.status ?? null,
+        }) as T)
+    }
+
     return []
   },
 
   runSync(sql: string, ...args: unknown[]) {
     const result = this.runMutation(sql, ...args)
-    persistState()
+    if (transactionDepth === 0) persistState()
     return result
   },
 
@@ -325,6 +401,54 @@ export const db = {
         lastError: null,
       })
       return { lastInsertRowId: id }
+    }
+
+    if (sql.startsWith('INSERT OR IGNORE INTO inspection_ai_request_queue')) {
+      const [requestKey, draftId, photoQueueId, featureKey, status, sourcePhotoId, expiresAt, createdAt, updatedAt] = args
+      const existing = aiRequests.find((row) => row.requestKey === String(requestKey) || (row.photoQueueId === Number(photoQueueId) && row.featureKey === String(featureKey)))
+      if (existing) return { lastInsertRowId: existing.id }
+      const id = nextRecordId()
+      aiRequests.push({ id, requestKey: String(requestKey), draftId: Number(draftId), photoQueueId: Number(photoQueueId), featureKey: String(featureKey), status: String(status), sourcePhotoId: typeof sourcePhotoId === 'string' ? sourcePhotoId : null, expiresAt: String(expiresAt), createdAt: String(createdAt), updatedAt: String(updatedAt) })
+      return { lastInsertRowId: id }
+    }
+
+    if (sql.startsWith('UPDATE inspection_ai_request_queue SET status = ?, source_photo_id')) {
+      const [status, sourcePhotoId, updatedAt, photoQueueId, previousStatus] = args
+      for (const row of aiRequests) {
+        if (row.photoQueueId === Number(photoQueueId) && row.status === String(previousStatus)) {
+          row.status = String(status)
+          row.sourcePhotoId = typeof sourcePhotoId === 'string' ? sourcePhotoId : null
+          row.updatedAt = String(updatedAt)
+        }
+      }
+      return { lastInsertRowId: 0 }
+    }
+
+    if (sql.startsWith('DELETE FROM inspection_ai_request_queue WHERE feature_key')) {
+      const featureKey = String(args[0])
+      for (let index = aiRequests.length - 1; index >= 0; index--) {
+        if (aiRequests[index].featureKey === featureKey) aiRequests.splice(index, 1)
+      }
+      return { lastInsertRowId: 0 }
+    }
+
+    if (sql.startsWith('DELETE FROM inspection_ai_request_queue WHERE expires_at')) {
+      const now = String(args[0])
+      for (let index = aiRequests.length - 1; index >= 0; index--) {
+        if (aiRequests[index].expiresAt <= now) aiRequests.splice(index, 1)
+      }
+      return { lastInsertRowId: 0 }
+    }
+
+    if (sql.startsWith('UPDATE inspection_ai_request_queue SET expires_at')) {
+      const [expiresAt, updatedAt, firstStatus, secondStatus] = args
+      for (const row of aiRequests) {
+        if (row.status === String(firstStatus) || row.status === String(secondStatus)) {
+          row.expiresAt = String(expiresAt)
+          row.updatedAt = String(updatedAt)
+        }
+      }
+      return { lastInsertRowId: 0 }
     }
 
     if (sql.startsWith('UPDATE inspection_photo_queue SET sync_status = ?, remote_id')) {

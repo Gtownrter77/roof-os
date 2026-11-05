@@ -77,6 +77,7 @@ jobs:
       - run: npm run test:field-device-evidence
       - run: npm run test:release-gate-summary
       - run: npm run test:field-coach
+      - run: npm run test:field-ai-assistance
       - run: npm run test:stale-screens
       - run: npm run test:cinema-theme
       - run: npm run test:dashboard-skin
