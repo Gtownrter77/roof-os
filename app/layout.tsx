@@ -16,8 +16,8 @@ import DashboardSkinTheme from '../components/DashboardSkinTheme'
 import DocumentLang from '../components/DocumentLang'
 
 export const metadata: Metadata = {
-  title: 'ROOF/OS — Storm Command Center',
-  description: 'Storm-driven roofing operations command center',
+  title: 'BAILEY OS — Storm Command Center',
+  description: 'BAILEY OS — Roofing and restoration operations command center',
 }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
