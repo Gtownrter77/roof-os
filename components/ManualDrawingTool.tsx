@@ -5,24 +5,24 @@ import { MapContainer, ImageOverlay, Polygon, useMapEvents } from 'react-leaflet
 import 'leaflet/dist/leaflet.css';
 import * as turf from '@turf/turf';
 
+function MapEvents({ isDrawing, setPoints }: { isDrawing: boolean; setPoints: React.Dispatch<React.SetStateAction<[number, number][]>> }) {
+  useMapEvents({
+    click(e) {
+      if (!isDrawing) return;
+      setPoints((prev) => [...prev, [e.latlng.lat, e.latlng.lng]]);
+    },
+  });
+  return null;
+}
+
 const ManualDrawingTool = ({ imageUrl = '', onAreaCalculated }: { imageUrl?: string; onAreaCalculated?: (area: number) => void }) => {
   const [points, setPoints] = useState<[number, number][]>([]);
   const [isDrawing, setIsDrawing] = useState(false);
 
-  const MapEvents = () => {
-    useMapEvents({
-      click(e) {
-        if (!isDrawing) return;
-        setPoints((prev) => [...prev, [e.latlng.lat, e.latlng.lng]]);
-      },
-    });
-    return null;
-  };
-
   const calculateArea = () => {
     if (points.length < 3) return;
     const polygon = turf.polygon([[...points, points[0]]]);
-    const area = turf.area(polygon); // This is in square meters
+    const area = turf.area(polygon); // square meters
     onAreaCalculated?.(area);
   };
 
@@ -37,7 +37,7 @@ const ManualDrawingTool = ({ imageUrl = '', onAreaCalculated }: { imageUrl?: str
       {imageUrl ? (
         <MapContainer crs={L.CRS.Simple} className="h-full w-full">
           <ImageOverlay url={imageUrl} bounds={[[0, 0], [500, 500]]} />
-          <MapEvents />
+          <MapEvents isDrawing={isDrawing} setPoints={setPoints} />
           {points.length > 0 && <Polygon positions={points} />}
         </MapContainer>
       ) : (
