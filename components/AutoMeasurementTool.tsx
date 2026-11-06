@@ -6,7 +6,7 @@ type AutoMeasurementToolProps = {
   working?: boolean;
   visionAvailable?: boolean;
   onDetect: () => Promise<void> | void;
-  onLocalEstimate: () => { pixelArea: number; squareFeet: number | null };
+  onLocalEstimate: () => void;
 };
 
 export default function AutoMeasurementTool({
@@ -18,7 +18,6 @@ export default function AutoMeasurementTool({
 }: AutoMeasurementToolProps) {
   const [status, setStatus] = useState('Idle');
   const [error, setError] = useState('');
-  const [estimate, setEstimate] = useState('');
 
   const runAutoDetect = async () => {
     if (!hasImage) {
@@ -27,16 +26,10 @@ export default function AutoMeasurementTool({
       return;
     }
     setError('');
-    setEstimate('');
-    const local = onLocalEstimate();
-    setEstimate(
-      local.squareFeet
-        ? `Local footprint estimate: ${Math.round(local.pixelArea).toLocaleString()} px² · ${local.squareFeet.toFixed(1)} sq ft. Draw or edit the plane to refine it.`
-        : `Local footprint estimate: ${Math.round(local.pixelArea).toLocaleString()} px². Add a scale reference to convert to square feet.`,
-    );
+    onLocalEstimate();
 
     if (!visionAvailable) {
-      setStatus('Local estimate ready. Vision analysis is unavailable in this environment.');
+      setStatus('Manual tracing ready. Vision analysis is unavailable; trace the roof boundary and calibrate the image.');
       return;
     }
 
@@ -45,7 +38,7 @@ export default function AutoMeasurementTool({
       await onDetect();
       setStatus('Vision analysis finished. Review every suggested plane, edge, and object before calibration.');
     } catch (err) {
-      setStatus('Vision analysis unavailable. Using the local footprint estimate.');
+      setStatus('Vision analysis unavailable. Manual tracing remains available.');
       setError(err instanceof Error ? err.message : 'Auto-detect could not reach the vision service.');
     }
   };
@@ -54,7 +47,7 @@ export default function AutoMeasurementTool({
     <div className="glass mt-4 rounded-xl p-4">
       <h2 className="font-semibold">Auto-Measurement Tool</h2>
       <p className="text-sm text-slate-400">
-        Estimate the roof footprint from the loaded image. Vision suggestions are used when the local service is reachable; otherwise the estimate stays client-side and non-authoritative.
+        Trace the actual roof boundary and calibrate the image for measurements. Vision suggestions are optional. No footprint is inferred from image dimensions.
       </p>
       <button
         type="button"
@@ -66,7 +59,6 @@ export default function AutoMeasurementTool({
       </button>
       {!hasImage && <p className="mt-2 text-xs text-amber-300">Load an actual image before detection.</p>}
       <p className="mt-2 text-sm text-emerald-400">{status}</p>
-      {estimate && <p className="mt-2 text-sm text-cyan-200">{estimate}</p>}
       {error && <p className="mt-2 text-sm text-red-300">{error}</p>}
     </div>
   );
