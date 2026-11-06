@@ -55,23 +55,29 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Address lookup returned invalid coordinates.' }, { status: 502 })
   }
 
-  const oamUrl = new URL(OAM_META)
-  oamUrl.searchParams.set('bbox', `${longitude - 0.002},${latitude - 0.002},${longitude + 0.002},${latitude + 0.002}`)
-  oamUrl.searchParams.set('has_tiled', 'true')
-  oamUrl.searchParams.set('limit', '10')
-  let openAerialMap: unknown[] = []
+  // Query actual open aerial STAC items rather than treating catalog counts as imagery.
+  let aerial: { status: 'available' | 'unavailable'; tileUrl?: string; attribution?: string; itemId?: string; reason?: string } = { status: 'unavailable', reason: 'No verified open aerial imagery was found for this address.' }
   try {
-    const oamResponse = await fetchWithTimeout(oamUrl, { headers: { 'user-agent': USER_AGENT, accept: 'application/json' }, cache: 'no-store' })
-    if (oamResponse.ok) {
-      const oamPayload: unknown = await oamResponse.json()
-      if (Array.isArray(oamPayload)) {
-        openAerialMap = oamPayload
-      } else if (record(oamPayload)) {
-        const results = Array.isArray(oamPayload.results) ? oamPayload.results : Array.isArray(oamPayload.data) ? oamPayload.data : []
-        openAerialMap = results
-      }
-    }
-  } catch { openAerialMap = [] }
+    const stac = await fetchWithTimeout('https://api.imagery.hotosm.org/stac/search', {
+      method: 'POST', headers: { 'content-type': 'application/json', accept: 'application/geo+json' },
+      body: JSON.stringify({ collections: ['openaerialmap'], intersects: { type: 'Point', coordinates: [longitude, latitude] }, limit: 20 }), cache: 'no-store',
+    })
+    if (stac.ok) {
+      const data: unknown = await stac.json()
+      const features = record(data) && Array.isArray(data.features) ? data.features : []
+      const usable = features.find((feature) => {
+        if (!record(feature) || typeof feature.id !== 'string' || !/^[a-zA-Z0-9_-]+$/.test(feature.id)) return false
+        const properties = record(feature.properties) ? feature.properties : {}
+        const license = typeof properties.license === 'string' ? properties.license.toLowerCase() : ''
+        return ['cc-by-4.0', 'cc0-1.0', 'public-domain', 'cc-by-sa-4.0'].includes(license)
+      })
+      if (record(usable) && typeof usable.id === 'string') {
+        const id = usable.id
+        const props = record(usable.properties) ? usable.properties : {}
+        aerial = { status: 'available', itemId: id, tileUrl: `https://api.imagery.hotosm.org/raster/collections/openaerialmap/items/${id}/tiles/WebMercatorQuad/{z}/{x}/{y}?assets=visual`, attribution: `OpenAerialMap / ${typeof props.license === 'string' ? props.license : 'open imagery'} — credit original imagery provider` }
+      } else aerial = { status: 'unavailable', reason: 'No catalog image with a recognized open license covers this address.' }
+    } else aerial = { status: 'unavailable', reason: 'OpenAerialMap imagery catalog could not be reached.' }
+  } catch { aerial = { status: 'unavailable', reason: 'OpenAerialMap imagery lookup failed.' } }
 
   const query = `[out:json][timeout:15];(way(around:35,${latitude},${longitude})[building];);out geom;`
   const overpassResponse = await fetchWithTimeout(OVERPASS, { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded', 'user-agent': USER_AGENT }, body: new URLSearchParams({ data: query }).toString(), cache: 'no-store' })
@@ -93,5 +99,5 @@ export async function GET(request: NextRequest) {
     return { osmId: element.id ?? null, buildingType, footprintSqFt: Math.round(measurements.areaSqM * FEET_PER_METER * FEET_PER_METER), perimeterFt: Math.round(measurements.perimeterM * FEET_PER_METER), source: 'OpenStreetMap', confidence: 'low' }
   }).filter((candidate): candidate is NonNullable<typeof candidate> => candidate !== null && candidate.footprintSqFt > 0).sort((a, b) => b.footprintSqFt - a.footprintSqFt).slice(0, MAX_BUILDING_CANDIDATES)
 
-  return NextResponse.json({ address, geocode: { latitude, longitude, displayName: typeof geocodeResult.display_name === 'string' ? geocodeResult.display_name : address }, candidates, imagerySources: { openAerialMap: { results: openAerialMap, catalogUrl: oamUrl.toString(), confidence: 'source-dependent', attribution: 'OpenAerialMap imagery is openly licensed per its item metadata; preserve each item’s provider and license.' }, arcgisEarth: { reviewUrl: 'https://www.esri.com/en-us/arcgis/products/arcgis-earth/overview', confidence: 'manual-review', note: 'ArcGIS Earth/ArcGIS imagery requires an authorized Esri account or licensed layer and must retain Esri/provider attribution.' } }, interpretation: 'Building footprint is not roof surface area. Roof pitch, overhangs, dormers, valleys, hips, waste, and gutters require aerial/roof measurement or human verification.', verificationLinks: { officialParcelViewerSearch: 'https://www.arcgis.com/home/search.html?q=parcel%20viewer', cobbExampleParcelViewer: 'https://geo-cobbcountyga.hub.arcgis.com/app/e22d8c597b4e4762bcd2caa6127696e4' }, attribution: '© OpenStreetMap contributors' })
+  return NextResponse.json({ address, geocode: { latitude, longitude, displayName: typeof geocodeResult.display_name === 'string' ? geocodeResult.display_name : address }, candidates, aerial, interpretation: 'Building footprint is not roof surface area. Roof pitch, overhangs, dormers, valleys, hips, waste, and gutters require aerial/roof measurement or human verification.', verificationLinks: { officialParcelViewerSearch: 'https://www.arcgis.com/home/search.html?q=parcel%20viewer', cobbExampleParcelViewer: 'https://geo-cobbcountyga.hub.arcgis.com/app/e22d8c597b4e4762bcd2caa6127696e4' }, attribution: '© OpenStreetMap contributors' })
 }
