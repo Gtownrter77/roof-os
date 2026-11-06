@@ -1,10 +1,11 @@
 'use client'
 import { useRef, useState } from 'react'
+import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
 import { smartBack } from '../../lib/smart-back'
 import { createClient } from '../../lib/supabase/client'
 import RoofSlopeCard from '../../components/RoofSlopeCard'
-import ManualDrawingTool from '../../components/ManualDrawingTool';
+const ManualDrawingTool = dynamic(() => import('../../components/ManualDrawingTool'), { ssr: false })
 import AutoMeasurementTool from '../../components/AutoMeasurementTool';
 type Point = { x: number; y: number }
 type Plane = { id: string; vertices: Point[]; suggested_pitch: string | null; confidence: string; dbId?: string; review_status?: string }
