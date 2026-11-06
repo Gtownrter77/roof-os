@@ -92,13 +92,13 @@ const ManualDrawingTool = ({
             className="h-full w-full"
             style={{ height: '100%', width: '100%', background: '#000' }}
           >
-            {imageUrl ? <ImageOverlay url={imageUrl} bounds={bounds} /> : <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="&copy; OpenStreetMap contributors" maxZoom={19} maxNativeZoom={19} />}
+            {imageUrl ? <ImageOverlay url={imageUrl} bounds={bounds} /> : <TileLayer url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}" attribution="Imagery &copy; Esri and its imagery providers; OpenStreetMap contributors (geocoding)" maxZoom={22} maxNativeZoom={19} />}
             <MapEvents isDrawing={isDrawing} setPoints={setPoints} />
             {points.length > 0 && <Polygon positions={points} pathOptions={{ color: '#16c9ff', weight: 2, fillOpacity: 0.18 }} />}
           </MapContainer>
         </div>
       ) : (
-        <p className="mt-2 text-sm text-slate-400">Enter an address and select Lookup imagery to load the map. No photo upload is required.</p>
+        <p className="mt-2 text-sm text-slate-400">Enter an address and select Lookup imagery to load aerial imagery. No photo upload is required.</p>
       )}
       <p className="mt-2 text-sm text-slate-300">
         {useGeoMap && geoAreaSqFt > 0 ? `${geoAreaSqFt.toFixed(1)} sq ft traced horizontal footprint (not pitched roof area). Verify the roof boundary, pitch and overhangs.` : areaPx > 0
