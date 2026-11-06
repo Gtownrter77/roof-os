@@ -1,7 +1,7 @@
 'use client';
 import React, { useMemo, useState } from 'react';
 import L from 'leaflet';
-import { MapContainer, ImageOverlay, Polygon, useMapEvents } from 'react-leaflet';
+import { MapContainer, ImageOverlay, Polygon, TileLayer, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 
 function MapEvents({ isDrawing, setPoints }: { isDrawing: boolean; setPoints: React.Dispatch<React.SetStateAction<[number, number][]>> }) {
@@ -32,6 +32,7 @@ const ManualDrawingTool = ({
   scalePixels = 0,
   scaleFeet = 0,
   onAreaCalculated,
+  mapCenter,
 }: {
   imageUrl?: string;
   imageWidth?: number;
@@ -39,10 +40,20 @@ const ManualDrawingTool = ({
   scalePixels?: number;
   scaleFeet?: number;
   onAreaCalculated?: (area: number) => void;
+  mapCenter?: { latitude: number; longitude: number } | null;
 }) => {
   const [points, setPoints] = useState<[number, number][]>([]);
   const [isDrawing, setIsDrawing] = useState(false);
   const [areaPx, setAreaPx] = useState(0);
+  const useGeoMap = !imageUrl && Boolean(mapCenter);
+  const earthRadiusMeters = 6371008.8;
+  const geoAreaSqFt = useGeoMap && points.length >= 3 ? (() => {
+    const lat0 = points.reduce((sum, point) => sum + point[0], 0) / points.length * Math.PI / 180;
+    const coords = points.map(([lat, lng]) => [earthRadiusMeters * lng * Math.PI / 180 * Math.cos(lat0), earthRadiusMeters * lat * Math.PI / 180]);
+    let twiceArea = 0;
+    for (let i = 0; i < coords.length; i++) { const a = coords[i], b = coords[(i + 1) % coords.length]; twiceArea += a[0] * b[1] - b[0] * a[1]; }
+    return Math.abs(twiceArea) / 2 * 10.76391041671;
+  })() : 0;
   const width = Math.max(1, imageWidth);
   const height = Math.max(1, imageHeight);
   const bounds = useMemo(() => [[0, 0], [height, width]] as [[number, number], [number, number]], [height, width]);
@@ -51,6 +62,7 @@ const ManualDrawingTool = ({
 
   const calculateArea = () => {
     if (points.length < 3) return;
+    if (useGeoMap) { onAreaCalculated?.(geoAreaSqFt); return; }
     const pixels = shoelacePixels(points);
     setAreaPx(pixels);
     onAreaCalculated?.(pixels);
@@ -71,30 +83,29 @@ const ManualDrawingTool = ({
           </button>
         )}
       </div>
-      {imageUrl ? (
+      {(imageUrl || mapCenter) ? (
         <div className="h-[420px] w-full overflow-hidden rounded-lg border border-white/15">
           <MapContainer
-            crs={L.CRS.Simple}
-            bounds={bounds}
-            maxBounds={bounds}
-            zoomSnap={0.25}
+            key={imageUrl || `${mapCenter?.latitude},${mapCenter?.longitude}`}
+            crs={imageUrl ? L.CRS.Simple : L.CRS.EPSG3857}
+            {...(imageUrl ? { bounds, maxBounds: bounds, zoomSnap: 0.25 } : { center: [mapCenter!.latitude, mapCenter!.longitude] as [number, number], zoom: 20, maxZoom: 22 })}
             className="h-full w-full"
             style={{ height: '100%', width: '100%', background: '#000' }}
           >
-            <ImageOverlay url={imageUrl} bounds={bounds} />
+            {imageUrl ? <ImageOverlay url={imageUrl} bounds={bounds} /> : <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="&copy; OpenStreetMap contributors" maxZoom={19} maxNativeZoom={19} />}
             <MapEvents isDrawing={isDrawing} setPoints={setPoints} />
             {points.length > 0 && <Polygon positions={points} pathOptions={{ color: '#16c9ff', weight: 2, fillOpacity: 0.18 }} />}
           </MapContainer>
         </div>
       ) : (
-        <p className="mt-2 text-sm text-slate-400">Load an inspection image to draw on it.</p>
+        <p className="mt-2 text-sm text-slate-400">Enter an address and select Lookup imagery to load the map. No photo upload is required.</p>
       )}
       <p className="mt-2 text-sm text-slate-300">
-        {areaPx > 0
+        {useGeoMap && geoAreaSqFt > 0 ? `${geoAreaSqFt.toFixed(1)} sq ft traced horizontal footprint (not pitched roof area). Verify the roof boundary, pitch and overhangs.` : areaPx > 0
           ? areaSqFt > 0
             ? `${Math.round(areaPx).toLocaleString()} px² · ${areaSqFt.toFixed(1)} sq ft from the scale reference. Non-authoritative until confirmed.`
             : `${Math.round(areaPx).toLocaleString()} px². Enter a scale reference to convert to square feet.`
-          : 'Click the image to draw a plane. Area is pixel geometry until a scale reference exists.'}
+          : useGeoMap ? 'Click Start Drawing, then click roof corners on the map. Calculate Area uses geographic coordinates; no photo or pixel scale required.' : 'Click the image to draw a plane. Area is pixel geometry until a scale reference exists.'}
       </p>
     </div>
   );
