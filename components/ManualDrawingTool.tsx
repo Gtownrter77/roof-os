@@ -1,7 +1,7 @@
 'use client';
 import React, { useMemo, useState } from 'react';
 import L from 'leaflet';
-import { MapContainer, ImageOverlay, Polygon, useMapEvents } from 'react-leaflet';
+import { MapContainer, ImageOverlay, Polygon, TileLayer, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 
 function MapEvents({ isDrawing, setPoints }: { isDrawing: boolean; setPoints: React.Dispatch<React.SetStateAction<[number, number][]>> }) {
@@ -33,6 +33,8 @@ const ManualDrawingTool = ({
   scaleFeet = 0,
   onAreaCalculated,
   mapCenter,
+  aerialTileUrl,
+  aerialAttribution,
 }: {
   imageUrl?: string;
   imageWidth?: number;
@@ -41,6 +43,8 @@ const ManualDrawingTool = ({
   scaleFeet?: number;
   onAreaCalculated?: (area: number) => void;
   mapCenter?: { latitude: number; longitude: number } | null;
+  aerialTileUrl?: string;
+  aerialAttribution?: string;
 }) => {
   const [points, setPoints] = useState<[number, number][]>([]);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -83,7 +87,7 @@ const ManualDrawingTool = ({
           </button>
         )}
       </div>
-      {imageUrl ? (
+      {(imageUrl || (mapCenter && aerialTileUrl)) ? (
         <div className="h-[420px] w-full overflow-hidden rounded-lg border border-white/15">
           <MapContainer
             key={imageUrl || `${mapCenter?.latitude},${mapCenter?.longitude}`}
@@ -92,13 +96,13 @@ const ManualDrawingTool = ({
             className="h-full w-full"
             style={{ height: '100%', width: '100%', background: '#000' }}
           >
-            <ImageOverlay url={imageUrl} bounds={bounds} />
+            {imageUrl ? <ImageOverlay url={imageUrl} bounds={bounds} /> : <TileLayer url={aerialTileUrl!} attribution={aerialAttribution || 'OpenAerialMap'} maxZoom={22} maxNativeZoom={19} />}
             <MapEvents isDrawing={isDrawing} setPoints={setPoints} />
             {points.length > 0 && <Polygon positions={points} pathOptions={{ color: '#16c9ff', weight: 2, fillOpacity: 0.18 }} />}
           </MapContainer>
         </div>
       ) : (
-        <p className="mt-2 text-sm text-slate-400">Aerial imagery unavailable: no verified, openly licensed image is loaded. Manual tracing is unavailable until a valid aerial image source is found.</p>
+        <p className="mt-2 text-sm text-slate-400">AERIAL IMAGERY UNAVAILABLE — no verified, openly licensed aerial image is loaded for this address.</p>
       )}
       <p className="mt-2 text-sm text-slate-300">
         {useGeoMap && geoAreaSqFt > 0 ? `${geoAreaSqFt.toFixed(1)} sq ft traced horizontal footprint (not pitched roof area). Verify the roof boundary, pitch and overhangs.` : areaPx > 0
