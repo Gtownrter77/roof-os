@@ -21,7 +21,7 @@ export default function AutoMeasurementTool({ hasImage, working = false, onDetec
     setStatus('Requesting local vision analysis…');
     try {
       await onDetect();
-      setStatus('Analysis requested. Review every suggested plane, edge, and object before calibration.');
+      setStatus('Analysis finished. Review every suggested plane, edge, and object before calibration.');
     } catch (err) {
       setStatus('Analysis failed');
       setError(err instanceof Error ? err.message : 'Auto-detect could not be completed.');
