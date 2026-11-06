@@ -54,7 +54,7 @@ export default function MeasurePage() {
 <AutoMeasurementTool
   hasImage={Boolean(file && imageSize.width && imageSize.height)}
   working={working}
-  visionAvailable
+  visionAvailable={process.env.NEXT_PUBLIC_ENABLE_LOCAL_VISION === 'true'}
   onDetect={uploadAndAnalyze}
   onLocalEstimate={() => {
     const width = imageSize.width || 0;
