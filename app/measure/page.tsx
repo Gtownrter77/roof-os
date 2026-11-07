@@ -5,61 +5,397 @@ import { useRouter } from 'next/navigation'
 import { smartBack } from '../../lib/smart-back'
 import { createClient } from '../../lib/supabase/client'
 import RoofSlopeCard from '../../components/RoofSlopeCard'
+
 const ManualDrawingTool = dynamic(() => import('../../components/ManualDrawingTool'), { ssr: false })
-import AutoMeasurementTool from '../../components/AutoMeasurementTool';
-type Point = { x: number; y: number }
-type Plane = { id: string; vertices: Point[]; suggested_pitch: string | null; confidence: string; dbId?: string; review_status?: string }
-type Edge = { id: string; start: Point; end: Point; classification: string; confidence: string; dbId?: string; review_status?: string }
-type Obj = { id: string; position: Point; type: string; confidence: string; dbId?: string; review_status?: string }
-type Suggestion = { image_width: number; image_height: number; planes: Plane[]; edges: Edge[]; objects: Obj[]; warnings: string[] }
-const MIME_EXTENSIONS: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' }
+
+type SolarFacet = {
+  index: number
+  pitchString: string
+  pitchDeg: number
+  azimuthDeg: number
+  areaSqFt: number
+  squares: number
+}
+
+type SolarResult = {
+  measurement: { id: string } | null
+  address: string
+  totalSlopedAreaSqFt: number
+  roofSquares: number
+  predominantPitch: string
+  estimatedPerimeterFt: number
+  segmentCount: number
+  facets: SolarFacet[]
+  warning: string
+  saveError?: string
+}
+
+type ManualSaveState = 'idle' | 'saving' | 'saved' | 'error'
+
 export default function MeasurePage() {
-  const router = useRouter(); const supabase = createClient(); const inputRef = useRef<HTMLInputElement>(null)
-  const [file, setFile] = useState<File | null>(null); const [preview, setPreview] = useState(''); const [imageSize, setImageSize] = useState({ width: 0, height: 0 })
-  const [address, setAddress] = useState(''); const [inspectionId, setInspectionId] = useState(''); const [photoId, setPhotoId] = useState(''); const [measurementId, setMeasurementId] = useState('')
-  const [suggestion, setSuggestion] = useState<Suggestion | null>(null); const [status, setStatus] = useState(''); const [error, setError] = useState(''); const [working, setWorking] = useState(false); const [scalePixels, setScalePixels] = useState(''); const [scaleFeet, setScaleFeet] = useState(''); const [imageryNote, setImageryNote] = useState('');
-  const [manualMode, setManualMode] = useState(false); const [manualArea, setManualArea] = useState(0);
-  function chooseFile(event: React.ChangeEvent<HTMLInputElement>) { const next = event.target.files?.[0] ?? null; event.target.value = ''; if (!next || !MIME_EXTENSIONS[next.type]) { setError('Choose a JPEG, PNG, or WebP inspection image.'); return }; setFile(next); setPreview(URL.createObjectURL(next)); setSuggestion(null); setError(''); const image = new Image(); image.onload = () => setImageSize({ width: image.naturalWidth, height: image.naturalHeight }); image.src = URL.createObjectURL(next) }
-  async function lookupImagery() { setWorking(true); setError(''); try { const { data: workspaceId } = await supabase.rpc('current_workspace_id'); if (!workspaceId || !address.trim()) throw new Error('An active workspace and property address are required.'); const response = await fetch(`/api/measurements/property?workspaceId=${encodeURIComponent(workspaceId)}&address=${encodeURIComponent(address.trim())}`, { cache: 'no-store' }); const payload = await response.json(); if (!response.ok) throw new Error(payload.error || 'Imagery lookup failed.'); const count = payload.imagerySources?.openAerialMap?.results?.length ?? 0; setImageryNote(`Address lookup completed. ${count} OpenAerialMap catalog record(s) found. Catalog metadata is not treated as an image; load an actual private inspection/aerial image before analysis.`) } catch (err) { setError(err instanceof Error ? err.message : 'Imagery lookup failed.') } finally { setWorking(false) } }
-  async function uploadAndAnalyze() {
-    if (!file || !imageSize.width || !imageSize.height) { setError('Select an actual inspection or aerial image first.'); return }
-    setWorking(true); setError(''); setStatus('Uploading the actual image to private inspection storage…')
-    try {
-      const { data: { user } } = await supabase.auth.getUser(); const { data: workspaceId } = await supabase.rpc('current_workspace_id'); if (!user || !workspaceId) throw new Error('Sign in with an active workspace before analyzing.')
-      const { data: inspection, error: inspectionError } = await supabase.from('inspection_sessions').insert({ workspace_id: workspaceId, created_by: user.id, status: 'in_progress' }).select('id').single(); if (inspectionError || !inspection) throw new Error('Could not create an inspection session.')
-      const objectId = crypto.randomUUID(); const extension = MIME_EXTENSIONS[file.type]; const path = `${workspaceId}/${user.id}/${inspection.id}/${objectId}.${extension}`
-      const { error: uploadError } = await supabase.storage.from('inspection-photos').upload(path, file, { contentType: file.type, upsert: false }); if (uploadError) throw new Error('The image could not be uploaded to private storage.')
-      const { error: metadataError } = await supabase.from('inspection_photos').insert({ id: objectId, inspection_id: inspection.id, workspace_id: workspaceId, uploaded_by: user.id, bucket_id: 'inspection-photos', object_path: path, mime_type: file.type, file_size_bytes: file.size, upload_status: 'uploaded' }); if (metadataError) throw new Error('The image metadata could not be saved.')
-      setInspectionId(inspection.id); setPhotoId(objectId); setStatus('Asking the configured AI provider for image-coordinate suggestions…')
-      const response = await fetch('/api/measurements/aerial', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ photoId: objectId, inspectionId: inspection.id, imageWidth: imageSize.width, imageHeight: imageSize.height, address }) }); const payload = await response.json().catch(() => null); if (!response.ok) throw new Error(payload?.error || 'AI analysis could not be completed.')
-      setMeasurementId(payload.measurement.id); setSuggestion(payload.suggestion ?? null); setStatus(payload.cached ? 'Existing suggestions loaded; confirmed geometry was not overwritten.' : 'Suggestions loaded. Review every overlay before calibration or confirmation.')
-    } catch (err) { const message = err instanceof Error ? err.message : 'Analysis failed.'; setError(message); setStatus(''); throw err } finally { setWorking(false) }
+  const router = useRouter()
+  const supabase = createClient()
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  const [address, setAddress] = useState('')
+  const [working, setWorking] = useState(false)
+  const [error, setError] = useState('')
+  const [status, setStatus] = useState('')
+
+  // Solar / auto measurement
+  const [solarResult, setSolarResult] = useState<SolarResult | null>(null)
+
+  // Manual drawing tool
+  const [file, setFile] = useState<File | null>(null)
+  const [preview, setPreview] = useState('')
+  const [imageSize, setImageSize] = useState({ width: 0, height: 0 })
+  const [scalePixels, setScalePixels] = useState('')
+  const [scaleFeet, setScaleFeet] = useState('')
+  const [manualMode, setManualMode] = useState(false)
+  const [manualAreaPx, setManualAreaPx] = useState(0)
+  const [manualSaveState, setManualSaveState] = useState<ManualSaveState>('idle')
+  const [manualNotes, setManualNotes] = useState('')
+
+  const pixelsPerFoot = Number(scalePixels) > 0 && Number(scaleFeet) > 0
+    ? Number(scalePixels) / Number(scaleFeet)
+    : 0
+  const manualAreaSqFt = manualAreaPx > 0 && pixelsPerFoot > 0
+    ? manualAreaPx / (pixelsPerFoot * pixelsPerFoot)
+    : 0
+
+  function chooseFile(event: React.ChangeEvent<HTMLInputElement>) {
+    const next = event.target.files?.[0] ?? null
+    event.target.value = ''
+    if (!next || !['image/jpeg', 'image/png', 'image/webp'].includes(next.type)) {
+      setError('Choose a JPEG, PNG, or WebP inspection image.')
+      return
+    }
+    setFile(next)
+    setPreview(URL.createObjectURL(next))
+    setManualAreaPx(0)
+    setManualSaveState('idle')
+    setError('')
+    const image = new Image()
+    image.onload = () => setImageSize({ width: image.naturalWidth, height: image.naturalHeight })
+    image.src = URL.createObjectURL(next)
   }
-  async function review(kind: 'plane' | 'edge' | 'object', item: Plane | Edge | Obj, action: 'accept' | 'reject' | 'delete' | 'edit', patch: Record<string, unknown> = {}) { if (!measurementId || !item.dbId) return; setWorking(true); try { const response = await fetch('/api/measurements/aerial', { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ aerialMeasurementId: measurementId, kind, suggestionId: item.dbId, action, imageWidth: imageSize.width, imageHeight: imageSize.height, ...patch }) }); const payload = await response.json(); if (!response.ok) throw new Error(payload.error || 'Suggestion update failed.'); setSuggestion((current) => current ? { ...current, [kind === 'plane' ? 'planes' : kind === 'edge' ? 'edges' : 'objects']: current[kind === 'plane' ? 'planes' : kind === 'edge' ? 'edges' : 'objects'].map((entry: any) => entry.dbId === item.dbId ? { ...entry, review_status: action === 'delete' ? 'rejected' : action === 'accept' ? 'accepted' : action === 'reject' ? 'rejected' : 'edited' } : entry) } as Suggestion : current) } catch (err) { setError(err instanceof Error ? err.message : 'Suggestion update failed.') } finally { setWorking(false) } }
-  async function calibrate() { if (!measurementId) return; setWorking(true); setError(''); try { const response = await fetch('/api/measurements/aerial', { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action: 'calibrate', aerialMeasurementId: measurementId, scaleReferencePixels: Number(scalePixels), scaleReferenceFeet: Number(scaleFeet) }) }); const payload = await response.json(); if (!response.ok) throw new Error(payload.error || 'Calibration failed.'); setStatus('Calibration saved. AI suggestions remain non-authoritative until human confirmation.'); } catch (err) { setError(err instanceof Error ? err.message : 'Calibration failed.') } finally { setWorking(false) } }
-  async function confirm() { if (!measurementId) return; setWorking(true); try { const response = await fetch('/api/measurements/aerial', { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action: 'confirm', aerialMeasurementId: measurementId }) }); const payload = await response.json(); if (!response.ok) throw new Error(payload.error || 'Confirmation failed.'); setStatus('Geometry confirmed. Server-side Phase A calculations remain the only source of authoritative quantities.'); } catch (err) { setError(err instanceof Error ? err.message : 'Confirmation failed.') } finally { setWorking(false) } }
-  const visiblePlanes = suggestion?.planes.filter((item) => item.review_status !== 'rejected') ?? []
-  return <main className="space-y-4"><div className="mx-auto max-w-[1240px] p-4 pb-16 md:p-6"><header className="mb-5"><button onClick={() => smartBack(router)} className="mb-2 text-xs text-cyan-300">← Back</button><p className="ops-label">ROOF/OS Phase D · Measurement control</p><h1 className="text-3xl font-black">AI-assisted roof geometry</h1><p className="mt-1 max-w-3xl text-sm text-slate-400"><b className="text-white">AI suggests. Human confirms.</b> Suggestions stay in image coordinates. Calibration and confirmed geometry are required before any authoritative measurement handoff.</p></header><section className="glass rounded-xl p-4"><div className="grid gap-3 md:grid-cols-[1fr_auto]"><label className="text-sm font-medium text-slate-200">Property address<input value={address} onChange={(event) => setAddress(event.target.value)} className="mt-1 w-full rounded-lg border border-white/15 bg-black/25 p-3 text-white placeholder:text-slate-500" placeholder="Enter property address" /></label><div className="flex items-end gap-2"><button onClick={() => void lookupImagery()} disabled={working} className="rounded-lg border border-white/20 px-3 py-2 text-sm text-slate-200 hover:border-cyan-400/60 disabled:opacity-50">Lookup imagery</button><button onClick={() => void router.push('/photo-estimate')} className="rounded-lg border border-white/20 px-3 py-2 text-sm text-cyan-300">Inspection photos</button></div></div>{imageryNote && <p className="mt-3 rounded-lg border border-cyan-400/20 bg-cyan-400/10 p-3 text-xs text-cyan-200">{imageryNote}</p>}<input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={chooseFile} /><div className="mt-4 flex flex-wrap gap-2"><button onClick={() => inputRef.current?.click()} className="rounded-lg bg-slate-700 px-4 py-2 text-sm font-semibold text-white">{file ? 'Replace actual image' : 'Load actual aerial / inspection image'}</button><button onClick={() => void uploadAndAnalyze()} disabled={working || !file} className="rounded-lg bg-gradient-to-r from-blue-600 to-cyan-500 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{working ? 'Working…' : 'Analyze with AI'}</button>
-<button onClick={() => setManualMode(!manualMode)} className="rounded-lg bg-slate-700 px-4 py-2 text-sm font-semibold text-white">{manualMode ? 'Exit Manual Mode' : 'Manual Measurement'}</button>
-</div>{manualMode && (
-  <ManualDrawingTool
-    imageUrl={preview}
-    imageWidth={imageSize.width || 500}
-    imageHeight={imageSize.height || 500}
-    scalePixels={Number(scalePixels) || 0}
-    scaleFeet={Number(scaleFeet) || 0}
-    onAreaCalculated={(area) => setManualArea(area)}
-  />
-)}
-<AutoMeasurementTool
-  hasImage={Boolean(file && imageSize.width && imageSize.height)}
-  working={working}
-  visionAvailable={process.env.NEXT_PUBLIC_ENABLE_LOCAL_VISION === 'true'}
-  onDetect={uploadAndAnalyze}
-  onLocalEstimate={() => {
-    setManualArea(0);
-    setManualMode(true);
-    setStatus('Manual tracing enabled. Draw the actual roof outline and enter a measured scale reference; no roof area has been assumed.');
-  }}
-/>{file && <p className="mt-2 text-xs text-slate-400">{file.name} · {imageSize.width}×{imageSize.height}px · private inspection storage</p>}{error && <p className="mt-3 rounded-lg border border-red-400/30 bg-red-400/10 p-3 text-sm text-red-300" role="alert">{error}</p>}{status && <p className="mt-3 rounded-lg border border-emerald-400/30 bg-emerald-400/10 p-3 text-sm text-emerald-300" role="status">{status}</p>}</section><section className="glass mt-4 rounded-xl p-4"><RoofSlopeCard /></section>{preview && <section className="glass mt-4 rounded-xl p-4"><div className="relative overflow-hidden rounded-lg border border-white/15 bg-black"><img src={preview} alt="Actual uploaded roof inspection image" className="block max-h-[620px] w-full object-contain" />{suggestion && <svg viewBox={`0 0 ${suggestion.image_width} ${suggestion.image_height}`} preserveAspectRatio="none" className="absolute inset-0 h-full w-full"><g>{visiblePlanes.map((plane) => <polygon key={plane.dbId ?? plane.id} points={plane.vertices.map((point) => `${point.x},${point.y}`).join(' ')} fill="rgba(22,201,255,.18)" stroke="#16c9ff" strokeWidth={Math.max(3, suggestion.image_width / 500)} strokeDasharray="12 8" />)}{suggestion.edges.filter((edge) => edge.review_status !== 'rejected').map((edge) => <line key={edge.dbId ?? edge.id} x1={edge.start.x} y1={edge.start.y} x2={edge.end.x} y2={edge.end.y} stroke="#ffbd2e" strokeWidth={Math.max(3, suggestion.image_width / 500)} strokeDasharray="10 6" />)}{suggestion.objects.filter((object) => object.review_status !== 'rejected').map((object) => <circle key={object.dbId ?? object.id} cx={object.position.x} cy={object.position.y} r={Math.max(8, suggestion.image_width / 100)} fill="#ff2d42" stroke="white" strokeWidth="3" />)}</g></svg>}</div>{suggestion && <p className="mt-2 text-xs text-slate-400">Dashed cyan polygons = suggested planes · amber lines = suggested edges · red dots = suggested objects. None are confirmed measurements.</p>}</section>}{suggestion && <section className="mt-4 grid gap-4 lg:grid-cols-3"><div className="glass rounded-xl p-4 lg:col-span-2"><h2 className="font-semibold">Human review queue</h2><p className="mb-3 text-xs text-slate-400">Accept, reject, edit pitch/classification, or delete each suggestion. AI acceptance is never required.</p>{suggestion.planes.map((plane) => <div key={plane.dbId ?? plane.id} className="mb-2 rounded-lg border border-cyan-400/20 bg-cyan-400/10 p-2 text-sm"><div className="flex flex-wrap items-center justify-between gap-2"><span>Plane <b>{plane.id}</b> · {plane.confidence} confidence · {plane.review_status ?? 'pending'}</span><span className="flex gap-1"><button onClick={() => void review('plane', plane, 'accept')} className="rounded bg-emerald-600 px-2 py-1 text-xs text-white">Accept</button><button onClick={() => void review('plane', plane, 'reject')} className="rounded bg-red-600 px-2 py-1 text-xs text-white">Reject</button><button onClick={() => void review('plane', plane, 'edit', { pitch: window.prompt('Suggested pitch description', plane.suggested_pitch ?? '') ?? plane.suggested_pitch })} className="rounded border border-white/20 px-2 py-1 text-xs">Edit pitch</button></span></div></div>)}{suggestion.edges.map((edge) => <div key={edge.dbId ?? edge.id} className="mb-2 rounded-lg border border-amber-400/20 bg-amber-400/10 p-2 text-sm"><div className="flex flex-wrap items-center justify-between gap-2"><span>Edge <b>{edge.id}</b> · {edge.classification} · {edge.review_status ?? 'pending'}</span><span className="flex gap-1"><button onClick={() => void review('edge', edge, 'accept')} className="rounded bg-emerald-600 px-2 py-1 text-xs text-white">Accept</button><button onClick={() => void review('edge', edge, 'reject')} className="rounded bg-red-600 px-2 py-1 text-xs text-white">Reject</button><button onClick={() => void review('edge', edge, 'edit', { classification: window.prompt('Edge classification', edge.classification) ?? edge.classification })} className="rounded border border-white/20 px-2 py-1 text-xs">Edit type</button></span></div></div>)}{suggestion.objects.map((object) => <div key={object.dbId ?? object.id} className="mb-2 rounded-lg border border-red-400/20 bg-red-400/10 p-2 text-sm"><div className="flex flex-wrap items-center justify-between gap-2"><span>Object <b>{object.id}</b> · {object.type} · {object.review_status ?? 'pending'}</span><span className="flex gap-1"><button onClick={() => void review('object', object, 'accept')} className="rounded bg-emerald-600 px-2 py-1 text-xs text-white">Accept</button><button onClick={() => void review('object', object, 'delete')} className="rounded bg-red-600 px-2 py-1 text-xs text-white">Delete</button></span></div></div>)}<button onClick={() => setStatus('Manual geometry remains available: add missing planes, edges, and objects using the existing manual measurement workflow; AI acceptance is never required.')} className="mt-2 rounded border border-white/25 px-3 py-2 text-sm">Add missing geometry manually</button></div><div className="glass rounded-xl p-4"><h2 className="font-semibold">Calibration & confirmation</h2><p className="mt-1 text-xs text-slate-400">Use a known reference in the image. No AI scale is accepted.</p><div className="mt-3 grid gap-2"><input value={scalePixels} onChange={(event) => setScalePixels(event.target.value)} placeholder="Reference pixels" inputMode="decimal" className="rounded-lg border border-white/15 bg-black/25 p-2 text-sm" /><input value={scaleFeet} onChange={(event) => setScaleFeet(event.target.value)} placeholder="Reference feet" inputMode="decimal" className="rounded-lg border border-white/15 bg-black/25 p-2 text-sm" /><button onClick={() => void calibrate()} disabled={working} className="rounded-lg bg-slate-700 px-3 py-2 text-sm text-white disabled:opacity-50">Calibrate image</button><button onClick={() => void confirm()} disabled={working} className="rounded-lg bg-emerald-700 px-3 py-2 text-sm text-white disabled:opacity-50">Confirm reviewed geometry</button></div><p className="mt-3 text-xs text-amber-300">Confirmation does not create square footage, linear feet, roofing squares, or estimates.</p></div></section>}{!suggestion && <section className="glass mt-4 rounded-xl border-dashed p-4 text-sm text-slate-400">Manual measurement remains available even when imagery or AI is unavailable. No fabricated image, geometry, scale, or measurement is shown.</section>}</div></main>
+
+  // ── Auto measurement via Google Solar API ─────────────────────────────────
+  async function runSolarMeasurement() {
+    const trimmed = address.trim()
+    if (!trimmed) { setError('Enter a property address first.'); return }
+    setWorking(true)
+    setError('')
+    setSolarResult(null)
+    setStatus('Looking up address…')
+    try {
+      const { data: workspaceId } = await supabase.rpc('current_workspace_id')
+      if (!workspaceId) throw new Error('No active workspace. Sign in first.')
+      const url = new URL('/api/measurements/solar', window.location.origin)
+      url.searchParams.set('workspaceId', workspaceId as string)
+      url.searchParams.set('address', trimmed)
+      setStatus('Querying Google Solar API for roof segments…')
+      const res = await fetch(url.toString(), { cache: 'no-store' })
+      const payload = await res.json()
+      if (!res.ok) throw new Error(payload.error ?? 'Solar measurement failed.')
+      setSolarResult(payload as SolarResult)
+      setStatus('')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Solar measurement failed.')
+      setStatus('')
+    } finally {
+      setWorking(false)
+    }
+  }
+
+  // ── Manual measurement save ───────────────────────────────────────────────
+  async function saveManualMeasurement() {
+    if (manualAreaSqFt <= 0) {
+      setError('Draw a roof outline and enter a scale reference (pixels and feet) before saving.')
+      return
+    }
+    setManualSaveState('saving')
+    setError('')
+    try {
+      const { data: workspaceId } = await supabase.rpc('current_workspace_id')
+      if (!workspaceId) throw new Error('No active workspace.')
+      const roofSquares = Math.round((manualAreaSqFt / 100) * 100) / 100
+      const res = await fetch('/api/measurements/manual', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          roofAreaSqft: Math.round(manualAreaSqFt * 100) / 100,
+          roofSquares,
+          pitch: scaleFeet ? `~${Math.round(manualAreaSqFt)} sq ft traced` : undefined,
+          sourceReference: file ? `manual-trace:${file.name}` : 'manual-trace',
+          notes: manualNotes.trim() || `Traced from image. Scale: ${scalePixels}px = ${scaleFeet}ft.`,
+        }),
+      })
+      const payload = await res.json()
+      if (!res.ok) throw new Error(payload.error ?? 'Save failed.')
+      setManualSaveState('saved')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Save failed.')
+      setManualSaveState('error')
+    }
+  }
+
+  return (
+    <main className="space-y-4">
+      <div className="mx-auto max-w-[1240px] p-4 pb-16 md:p-6">
+
+        <header className="mb-5">
+          <button onClick={() => smartBack(router)} className="mb-2 text-xs text-cyan-300">← Back</button>
+          <p className="ops-label">ROOF/OS · Measurement</p>
+          <h1 className="text-3xl font-black">Roof Measurement</h1>
+          <p className="mt-1 max-w-3xl text-sm text-slate-400">
+            <b className="text-white">Two paths.</b> Enter an address for satellite-derived measurements via Google Solar API (free, no image upload needed), or load an inspection photo and trace manually.
+          </p>
+        </header>
+
+        {/* ── Path 1: Auto / Solar ── */}
+        <section className="glass rounded-xl p-4">
+          <h2 className="mb-1 text-lg font-semibold">Auto Measurement — Google Solar API</h2>
+          <p className="mb-3 text-xs text-slate-400">
+            Free satellite roof data: sloped area, sq, pitch, and segment count by address. No image upload or Ollama required.
+            Requires <code className="rounded bg-white/10 px-1">GOOGLE_SOLAR_API_KEY</code> in your environment.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <input
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') void runSolarMeasurement() }}
+              placeholder="123 Main St, Springfield, IL"
+              className="flex-1 min-w-[260px] rounded-lg border border-white/15 bg-black/25 p-3 text-white placeholder:text-slate-500 text-sm"
+            />
+            <button
+              onClick={() => void runSolarMeasurement()}
+              disabled={working || !address.trim()}
+              className="rounded-lg bg-cyan-600 px-5 py-2 text-sm font-semibold text-white disabled:opacity-50 hover:bg-cyan-500"
+            >
+              {working ? 'Measuring…' : 'Measure Roof'}
+            </button>
+          </div>
+
+          {status && (
+            <p className="mt-3 rounded-lg border border-emerald-400/30 bg-emerald-400/10 p-3 text-sm text-emerald-300" role="status">
+              {status}
+            </p>
+          )}
+
+          {solarResult && (
+            <div className="mt-4 space-y-3">
+              <div className="rounded-lg border border-cyan-400/20 bg-cyan-400/5 p-4">
+                <p className="text-xs text-slate-400 mb-2">{solarResult.address}</p>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  <div className="rounded-lg bg-white/5 p-3 text-center">
+                    <p className="text-2xl font-black text-cyan-300">{solarResult.totalSlopedAreaSqFt.toLocaleString()}</p>
+                    <p className="text-xs text-slate-400">sq ft (sloped)</p>
+                  </div>
+                  <div className="rounded-lg bg-white/5 p-3 text-center">
+                    <p className="text-2xl font-black text-white">{solarResult.roofSquares.toFixed(1)}</p>
+                    <p className="text-xs text-slate-400">squares</p>
+                  </div>
+                  <div className="rounded-lg bg-white/5 p-3 text-center">
+                    <p className="text-2xl font-black text-white">{solarResult.predominantPitch}</p>
+                    <p className="text-xs text-slate-400">predominant pitch</p>
+                  </div>
+                  <div className="rounded-lg bg-white/5 p-3 text-center">
+                    <p className="text-2xl font-black text-white">{solarResult.segmentCount}</p>
+                    <p className="text-xs text-slate-400">roof facets</p>
+                  </div>
+                </div>
+
+                {solarResult.facets.length > 1 && (
+                  <details className="mt-3">
+                    <summary className="cursor-pointer text-xs text-cyan-300 hover:underline">
+                      Show {solarResult.facets.length} individual facets
+                    </summary>
+                    <div className="mt-2 overflow-x-auto">
+                      <table className="w-full text-xs text-slate-300">
+                        <thead>
+                          <tr className="border-b border-white/10 text-slate-400">
+                            <th className="py-1 pr-3 text-left">#</th>
+                            <th className="py-1 pr-3 text-left">Pitch</th>
+                            <th className="py-1 pr-3 text-left">Azimuth</th>
+                            <th className="py-1 pr-3 text-right">Sq Ft</th>
+                            <th className="py-1 text-right">Squares</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {solarResult.facets.map((f) => (
+                            <tr key={f.index} className="border-b border-white/5">
+                              <td className="py-1 pr-3">{f.index}</td>
+                              <td className="py-1 pr-3">{f.pitchString}</td>
+                              <td className="py-1 pr-3">{f.azimuthDeg}°</td>
+                              <td className="py-1 pr-3 text-right">{f.areaSqFt.toLocaleString()}</td>
+                              <td className="py-1 text-right">{f.squares.toFixed(2)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </details>
+                )}
+
+                {solarResult.measurement?.id && (
+                  <p className="mt-2 text-xs text-emerald-400">
+                    Saved to inspection measurements (ID: {solarResult.measurement.id.slice(0, 8)}…)
+                  </p>
+                )}
+                {solarResult.saveError && (
+                  <p className="mt-2 text-xs text-amber-400">{solarResult.saveError}</p>
+                )}
+              </div>
+              <p className="text-xs text-amber-300 border border-amber-400/20 rounded-lg bg-amber-400/5 p-3">
+                {solarResult.warning}
+              </p>
+            </div>
+          )}
+        </section>
+
+        {/* ── Path 2: Manual / image trace ── */}
+        <section className="glass mt-4 rounded-xl p-4">
+          <h2 className="mb-1 text-lg font-semibold">Manual Measurement — Image Trace</h2>
+          <p className="mb-3 text-xs text-slate-400">
+            Load an aerial or inspection photo, draw the roof outline, enter a known scale reference, and save the calibrated measurement.
+          </p>
+
+          <div className="flex flex-wrap gap-2 mb-3">
+            <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={chooseFile} />
+            <button
+              onClick={() => inputRef.current?.click()}
+              className="rounded-lg bg-slate-700 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-600"
+            >
+              {file ? 'Replace image' : 'Load aerial / inspection image'}
+            </button>
+            <button
+              onClick={() => { setManualMode(!manualMode) }}
+              disabled={!file}
+              className="rounded-lg border border-white/20 px-4 py-2 text-sm font-semibold text-slate-200 disabled:opacity-40 hover:border-cyan-400/60"
+            >
+              {manualMode ? 'Exit Drawing Mode' : 'Draw Roof Outline'}
+            </button>
+          </div>
+
+          {file && (
+            <p className="mb-3 text-xs text-slate-400">{file.name} · {imageSize.width}×{imageSize.height}px</p>
+          )}
+
+          {/* Scale reference inputs — always visible when image loaded */}
+          {file && (
+            <div className="mb-3 flex flex-wrap gap-3 items-end">
+              <label className="text-xs text-slate-300">
+                Known distance (pixels)
+                <input
+                  type="number"
+                  min="1"
+                  value={scalePixels}
+                  onChange={(e) => setScalePixels(e.target.value)}
+                  placeholder="e.g. 240"
+                  className="mt-1 block w-36 rounded-lg border border-white/15 bg-black/25 p-2 text-white text-sm"
+                />
+              </label>
+              <label className="text-xs text-slate-300">
+                Same distance (feet)
+                <input
+                  type="number"
+                  min="0.1"
+                  step="0.1"
+                  value={scaleFeet}
+                  onChange={(e) => setScaleFeet(e.target.value)}
+                  placeholder="e.g. 20"
+                  className="mt-1 block w-36 rounded-lg border border-white/15 bg-black/25 p-2 text-white text-sm"
+                />
+              </label>
+              {pixelsPerFoot > 0 && (
+                <p className="text-xs text-emerald-400 self-end pb-2">
+                  Scale: {pixelsPerFoot.toFixed(2)} px/ft
+                </p>
+              )}
+            </div>
+          )}
+
+          {manualMode && (
+            <ManualDrawingTool
+              imageUrl={preview}
+              imageWidth={imageSize.width || 500}
+              imageHeight={imageSize.height || 500}
+              scalePixels={Number(scalePixels) || 0}
+              scaleFeet={Number(scaleFeet) || 0}
+              onAreaCalculated={(area) => {
+                setManualAreaPx(area)
+                setManualSaveState('idle')
+              }}
+            />
+          )}
+
+          {/* Save manual result */}
+          {manualAreaPx > 0 && (
+            <div className="mt-4 rounded-lg border border-white/10 bg-white/5 p-4 space-y-3">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                <div className="rounded-lg bg-white/5 p-3 text-center">
+                  <p className="text-2xl font-black text-white">{Math.round(manualAreaPx).toLocaleString()}</p>
+                  <p className="text-xs text-slate-400">traced px²</p>
+                </div>
+                <div className="rounded-lg bg-white/5 p-3 text-center">
+                  <p className={`text-2xl font-black ${manualAreaSqFt > 0 ? 'text-cyan-300' : 'text-slate-500'}`}>
+                    {manualAreaSqFt > 0 ? Math.round(manualAreaSqFt).toLocaleString() : '—'}
+                  </p>
+                  <p className="text-xs text-slate-400">sq ft</p>
+                </div>
+                <div className="rounded-lg bg-white/5 p-3 text-center">
+                  <p className={`text-2xl font-black ${manualAreaSqFt > 0 ? 'text-white' : 'text-slate-500'}`}>
+                    {manualAreaSqFt > 0 ? (manualAreaSqFt / 100).toFixed(2) : '—'}
+                  </p>
+                  <p className="text-xs text-slate-400">squares</p>
+                </div>
+              </div>
+
+              {manualAreaSqFt <= 0 && (
+                <p className="text-xs text-amber-400">Enter a scale reference above to convert px² to sq ft.</p>
+              )}
+
+              <label className="block text-xs text-slate-300">
+                Notes (optional)
+                <textarea
+                  value={manualNotes}
+                  onChange={(e) => setManualNotes(e.target.value)}
+                  rows={2}
+                  maxLength={1000}
+                  placeholder="e.g. traced from drone photo, pitch estimated 6/12"
+                  className="mt-1 w-full rounded-lg border border-white/15 bg-black/25 p-2 text-white text-sm resize-none"
+                />
+              </label>
+
+              <button
+                onClick={() => void saveManualMeasurement()}
+                disabled={manualSaveState === 'saving' || manualAreaSqFt <= 0}
+                className="rounded-lg bg-green-600 px-5 py-2 text-sm font-semibold text-white disabled:opacity-50 hover:bg-green-500"
+              >
+                {manualSaveState === 'saving' ? 'Saving…' : manualSaveState === 'saved' ? '✓ Saved' : 'Save Measurement'}
+              </button>
+
+              {manualSaveState === 'saved' && (
+                <p className="text-xs text-emerald-400">
+                  Saved as unverified manual measurement. Review and confirm before use in estimates.
+                </p>
+              )}
+            </div>
+          )}
+        </section>
+
+        <section className="glass mt-4 rounded-xl p-4">
+          <RoofSlopeCard />
+        </section>
+
+        {error && (
+          <p className="mt-3 rounded-lg border border-red-400/30 bg-red-400/10 p-3 text-sm text-red-300" role="alert">
+            {error}
+          </p>
+        )}
+
+      </div>
+    </main>
+  )
 }
