@@ -20,7 +20,7 @@ permissions:
 jobs:
   verify:
     name: Verify staging backup path
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     environment: staging-backup
     timeout-minutes: 20
     steps:
