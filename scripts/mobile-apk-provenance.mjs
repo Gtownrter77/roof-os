@@ -59,7 +59,7 @@ const signatureProcess = spawnSync(apksigner, ['verify', '--verbose', '--print-c
 if (signatureProcess.error) throw signatureProcess.error
 if (signatureProcess.status !== 0) throw new Error(`APK signature verification failed: ${signatureProcess.stderr || signatureProcess.stdout}`)
 const signatureReport = `${signatureProcess.stdout || ''}\n${signatureProcess.stderr || ''}`
-const certificateMatch = signatureReport.match(/Signer #1 certificate SHA-256 digest:[\s\S]*?((?:[a-f0-9]{2}:){31}[a-f0-9]{2}|[a-f0-9]{64})/i)
+const certificateMatch = signatureReport.match(/((?:[a-f0-9]{2}:){31}[a-f0-9]{2}|[a-f0-9]{64})/i)
 if (!certificateMatch) throw new Error('APK signing certificate SHA-256 fingerprint is missing')
 const signingCertificateSha256 = certificateMatch[1].replaceAll(':', '').toLowerCase()
 const workflowUrl = process.env.GITHUB_SERVER_URL && process.env.GITHUB_REPOSITORY && process.env.GITHUB_RUN_ID
