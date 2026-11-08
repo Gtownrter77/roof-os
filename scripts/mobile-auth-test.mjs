@@ -23,9 +23,10 @@ assert.ok(appSource.includes('Show') && appSource.includes('Hide'), 'Mobile app 
 assert.ok(appSource.includes('autoCorrect={false}'), 'Mobile app must disable autocorrect on credentials')
 assert.ok(appSource.includes('roof_os_field_email'), 'Mobile app must remember last email via SecureStore')
 
-// 4. Production Supabase fallback credentials
-assert.ok(appSource.includes('xksumagfbegdlapwysps.supabase.co'), 'Mobile app must have fallback production Supabase URL')
-assert.ok(appSource.includes('sb_publishable_'), 'Mobile app must have fallback publishable anon key')
+// 4. Supabase configuration must fail closed instead of silently targeting production
+assert.ok(appSource.includes('EXPO_PUBLIC_SUPABASE_URL'), 'Mobile app must read the explicit Expo Supabase URL')
+assert.ok(appSource.includes('EXPO_PUBLIC_SUPABASE_ANON_KEY'), 'Mobile app must read the explicit Expo publishable key')
+assert.ok(!appSource.includes('xksumagfbegdlapwysps.supabase.co'), 'Mobile app must not hardcode a production Supabase URL fallback')
 
 // 5. Browser login fallback
 assert.ok(appSource.includes('auth/login'), 'Mobile app must provide direct fallback to web login in browser')
@@ -35,4 +36,4 @@ assert.ok(appSource.includes('Retry this inspection now'), 'Mobile app must expo
 assert.ok(appSource.includes('isSessionExpiryError'), 'Mobile app must classify session expiry separately')
 assert.ok(appSource.includes('session expired'), 'Mobile app must explain re-authentication recovery')
 
-console.log('mobile-auth-test: PASS (auth, sign-out hygiene, retry-now, session recovery, and credentials fallback verified)')
+console.log('mobile-auth-test: PASS (auth, sign-out hygiene, retry-now, session recovery, and fail-closed configuration verified)')

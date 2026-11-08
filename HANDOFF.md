@@ -1184,3 +1184,8 @@ The branch `repair/next-five-live-evidence` contains exactly five items: protect
 - The rerun against that head completed with 14 successful checks, 1 skipped check, 0 failures, and 0 pending. `ROOF OS CI/web` passed on both push and pull request events. Kilo review and other reported checks passed. The `refresh-field-lock (pull_request)` entry is skipped; its push counterpart passed.
 - Vercel reported a completed PR preview deployment. This is preview evidence only, not production deployment evidence.
 - PR #399 is open and mergeable as of this update. Merge is authorized only after the handoff-only follow-up commit's required checks also pass.
+## Current authoritative audit — 2026-11-08
+- Audited clean `main` at `7d9e5712f750a135e22bb4c127a60c74180fb344`; recent PR branches were excluded.
+- This checkpoint bounds transcription uploads, removes the field app's production Supabase fallback, validates estimate foreign-key workspace ownership, requires manager approval before photo-estimate packets, and makes receptionist cron configuration fail closed before admin-client creation.
+- Local checks are evidence only. EAS APK installation, physical-device behavior, live Vercel SHA, production schema parity, live worker/provider execution, two-workspace runtime isolation, and backup/restore remain unverified external gates.
+- The field dependency audit is clean after aligning Expo SDK 57 patch versions and pinning Zod 4.6.6 through the field toolchain override. `npx expo-doctor` reports 21/21 checks passed and field TypeScript passes. Keep this override under review when Expo publishes a native Zod 4-compatible dependency declaration.
