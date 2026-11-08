@@ -21,7 +21,7 @@ for (const marker of [
   'if (syncSucceeded) setLastSyncedAt(new Date().toISOString())',
   'if (draftRef.current?.id === draftToSync.id) setPendingUploads(pendingRowCount(draftToSync.id))',
   'pendingCount = pendingRowCount(draftId)',
-  'function duePendingRowCount(draftId, now = timestamp())',
+  'function duePendingRowCount(draftId: number, now = timestamp())',
   'const dueRows = duePendingRowCount(queuedDraft.id)',
   'pendingRows: dueRows',
   'label="Pending items"',
