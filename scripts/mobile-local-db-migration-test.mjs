@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import { ensureLocalColumns } from '../apps/field/src/localMigrations.ts'
 
 const existing = {
@@ -53,5 +54,13 @@ assert.throws(
   /Unsupported local schema migration/,
   'only known local tables may be altered',
 )
+
+const localDbSource = readFileSync(new URL('../apps/field/src/localDb.ts', import.meta.url), 'utf8')
+for (const marker of [
+  'inspection_drafts_owner_updated_idx',
+  'inspection_measurements_draft_sync_idx',
+  'inspection_photos_draft_sync_idx',
+  'inspection_ai_requests_expiry_idx',
+]) assert.ok(localDbSource.includes(marker), `local database performance index missing: ${marker}`)
 
 console.log('mobile-local-db-migration-test: PASS')

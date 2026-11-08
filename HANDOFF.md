@@ -1189,3 +1189,31 @@ The branch `repair/next-five-live-evidence` contains exactly five items: protect
 - This checkpoint bounds transcription uploads, removes the field app's production Supabase fallback, validates estimate foreign-key workspace ownership, requires manager approval before photo-estimate packets, and makes receptionist cron configuration fail closed before admin-client creation.
 - Local checks are evidence only. EAS APK installation, physical-device behavior, live Vercel SHA, production schema parity, live worker/provider execution, two-workspace runtime isolation, and backup/restore remain unverified external gates.
 - The field dependency audit is clean after aligning Expo SDK 57 patch versions and pinning Zod 4.6.6 through the field toolchain override. `npx expo-doctor` reports 21/21 checks passed and field TypeScript passes. Keep this override under review when Expo publishes a native Zod 4-compatible dependency declaration.
+
+
+## 2026-11-08 PR #402 field reliability checkpoint
+
+- PR #402 remains a draft and unmerged. Its remote head is `e08ae860bad5454c53b985206333b2a08635990d`; local work is based on that PR head and is merging current `origin/main` `3bbd0d9b351505a16dcd96190aba932be6cf725d`. The previous handoff overwrite was caught, the full prior history was restored and verified, and the remote restoration commit `e08ae86` was SHA-verified.
+- The PDF's offline-sync test failure was stale: commit `66ab1ca` already aligned the assertion with the typed helper, and the exact test passed. Before the latest local merge, GitHub showed all required PR checks green on the then-current PR head.
+- Dependency update on the feature branch uses Expo `~57.0.32` / CLI `57.0.33` and official npm `node-forge@1.4.3` with the verified registry integrity. The merged current-main manifest also retains its Zod `4.6.6` override. The field audit was zero-vulnerability before merge; revalidate it after the clean merged install.
+- The current-main merge included changes to the estimate packet manager gate, migration 080 safety checks, and current main handoff/audit notes. Three conflict files were found: `.github/workflows/ci.yml`, `HANDOFF.md`, and `apps/field/package-lock.json`. The workflow is resolved using current main's full workflow plus the PR's mobile runtime contracts; the lockfile is regenerated from the merged manifest; the handoff uses current main as its base and preserves its full history. Finish the handoff resolution and verify every result before committing.
+- Next: run clean root/field installs; field audit, Expo Doctor, TypeScript/config, Android bundle, and all mobile runtime contracts; verify the migration-080 and estimate-packet CI contracts; run root security/release checks and `git diff --check`; commit the main-merge resolution, push to `strengthen/field-app-preservation-20261108`, and verify the exact remote SHA. Then wait for every fresh required check. Do not merge the PR or deploy.
+
+
+### PR #402 merged-main verification update — 2026-11-08
+
+The three merge conflicts are resolved from current main without dropping the PR work. The workflow keeps main's estimate-packet-manager test, migration-080 safety assertions, and `expo-doctor`, then adds the PR's auth, offline-sync, local-DB migration, field-AI, and field-coach contracts. The handoff starts with current main's full prior history and appends these PR notes. The field lock was regenerated with Node 22/npm 10 from the merged manifest, retaining main's Zod 4.6.6 override and the PR's Expo `57.0.32` / CLI `57.0.33` plus official npm `node-forge@1.4.3`.
+
+Post-merge local checks passed: clean root and field installs; field `npm audit` reports **0 vulnerabilities** and `scripts/audit-field-deps.mjs` passes; Expo Doctor reports **21/21**; field TypeScript, Expo config, and Android bundle pass; mobile auth, offline-sync, local-DB migration, field-AI, and field-coach tests pass; braces mitigation, estimate-creation, estimate-packet-manager, and security-definer migration tests pass; `npm run test:all` passes; the production build compiles **139 routes**; runtime smoke, release-check, root security check, production dependency audit, and `git diff --check` pass. The first runtime-smoke invocation was run before the build and failed only because `.next/static` did not exist; after following CI order (build then smoke), it passed.
+
+The merge-resolution tree is locally validated but its merge commit has not yet been pushed. The PR remains draft and unmerged. Next: commit this merge, push to `strengthen/field-app-preservation-20261108`, compare local and remote SHAs, then wait for all fresh required checks on the merged head. No production deployment or production-data operation was performed.
+
+
+### PR #402 merge-resolution push receipt — 2026-11-08
+
+Merge-resolution commit `4c1d7e2c54d07849632bb081dc71fc349d298d7b` is pushed to `strengthen/field-app-preservation-20261108`; `git ls-remote` exactly matched local HEAD. GitHub now shows the PR base as current `main` `3bbd0d9b351505a16dcd96190aba932be6cf725d`, `mergeable: true`, and `mergeable_state: blocked`. At the time of this check, the new runs showed 0 failures, 1 success, 1 skipped, and 12 pending. The PR remains draft and has not been merged or deployed. Wait for all fresh required checks before calling this complete.
+
+
+### PR #402 final verified check result — 2026-11-08
+
+On PR head `84bb1d09f214790b23ed34a2a61b5155879736d9` (remote ref independently matched), GitHub reports base `3bbd0d9b351505a16dcd96190aba932be6cf725d`, `mergeable: true`, and `mergeable_state: clean`. The completed run has **13 successful, 1 skipped, 0 failing, and 0 pending** checks. The only skipped entry is `refresh-field-lock (pull_request)`; its push counterpart succeeded. Vercel's PR preview deployment completed; this is not production deployment. PR #402 remains draft and unmerged by design; no production deployment or production-data operation was performed.
