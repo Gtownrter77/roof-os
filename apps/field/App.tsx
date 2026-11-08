@@ -219,13 +219,13 @@ export default function App() {
       try {
         const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
         if (!mounted) return
-        if (sessionError) {
+        if (sessionError && !authEventObserved) {
           setError('Could not restore your sign-in session. Check your connection and sign in again if needed.')
         } else if (!authEventObserved) {
           setSession(sessionData.session)
         }
       } catch {
-        if (mounted) setError('Could not restore your sign-in session. Your local inspection data remains on this device.')
+        if (mounted && !authEventObserved) setError('Could not restore your sign-in session. Your local inspection data remains on this device.')
       } finally {
         if (mounted) setBooting(false)
       }
