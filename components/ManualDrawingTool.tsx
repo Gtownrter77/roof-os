@@ -110,11 +110,11 @@ const ManualDrawingTool = ({
         <p className="mt-2 text-sm text-slate-400">AERIAL IMAGERY UNAVAILABLE — no verified, openly licensed aerial image is loaded for this address.</p>
       )}
       <p className="mt-2 text-sm text-slate-300">
-        {useGeoMap && geoAreaSqFt > 0 ? `${geoAreaSqFt.toFixed(1)} sq ft traced horizontal footprint (not pitched roof area). Verify the roof boundary, pitch and overhangs.` : areaPx > 0
+        {useGeoMap && geoAreaSqFt > 0 ? `${geoAreaSqFt.toFixed(1)} sq ft · ${(geoAreaSqFt / 100).toFixed(2)} roofing squares traced horizontal footprint. 100 sq ft = 1 square. Not pitched roof area.` : areaPx > 0
           ? areaSqFt > 0
-            ? `${Math.round(areaPx).toLocaleString()} px² · ${areaSqFt.toFixed(1)} sq ft from the scale reference. Non-authoritative until confirmed.`
-            : `${Math.round(areaPx).toLocaleString()} px². Enter a scale reference to convert to square feet.`
-          : useGeoMap ? 'Click Start Drawing, then click roof corners on the map. Calculate Area uses geographic coordinates; no photo or pixel scale required.' : 'Click the image to draw a plane. Area is pixel geometry until a scale reference exists.'}
+            ? `${Math.round(areaPx).toLocaleString()} px² · ${areaSqFt.toFixed(1)} sq ft · ${(areaSqFt / 100).toFixed(2)} roofing squares. 100 sq ft = 1 square.`
+            : `${Math.round(areaPx).toLocaleString()} px². Enter a scale reference to convert to square feet and roofing squares.`
+          : useGeoMap ? 'Click Start Drawing, then click roof corners on the map. Calculate Area uses geographic coordinates; 100 sq ft = 1 roofing square.' : 'Click the image to draw a plane. Area is pixel geometry until a scale reference exists. 100 sq ft = 1 roofing square.'}
       </p>
     </div>
   );

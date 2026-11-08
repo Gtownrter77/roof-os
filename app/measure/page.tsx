@@ -374,10 +374,10 @@ export default function MeasurePage() {
             onAreaCalculated={(result) => setManualArea(result)}
           />}
           {manualArea && <p className="mt-2 rounded border border-cyan-400/20 bg-cyan-400/10 p-3 text-sm text-cyan-100">{manualArea.unit === 'sqft'
-            ? `Manually traced horizontal footprint: ${manualArea.value.toFixed(1)} sq ft. This is not pitched roof surface area.`
+            ? `Manually traced horizontal footprint: ${manualArea.value.toFixed(1)} sq ft · ${(manualArea.value / 100).toFixed(2)} roofing squares. 100 sq ft = 1 square. This is not pitched roof surface area.`
             : manualArea.squareFeet
-              ? `Manually traced area: ${Math.round(manualArea.value).toLocaleString()} px² · ${manualArea.squareFeet.toFixed(1)} sq ft from the scale reference. Non-authoritative until confirmed.`
-              : `Manually traced area: ${Math.round(manualArea.value).toLocaleString()} px². Enter a scale reference to convert to square feet.`}</p>}
+              ? `Manually traced area: ${Math.round(manualArea.value).toLocaleString()} px² · ${manualArea.squareFeet.toFixed(1)} sq ft · ${(manualArea.squareFeet / 100).toFixed(2)} roofing squares. 100 sq ft = 1 square. Non-authoritative until confirmed.`
+              : `Manually traced area: ${Math.round(manualArea.value).toLocaleString()} px². Enter a scale reference to convert to square feet and roofing squares (100 sq ft = 1 square).`}</p>}
           <AutoMeasurementTool
             hasImage={Boolean(file && imageSize.width && imageSize.height)}
             working={working}
