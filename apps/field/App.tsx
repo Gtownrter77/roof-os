@@ -57,15 +57,27 @@ import {
   suggestCaption,
 } from './src/fieldCoach'
 
+const authStorage = Platform.OS === 'web'
+  ? {
+      getItem: async (key: string) => (typeof window === 'undefined' ? null : window.localStorage.getItem(key)),
+      setItem: async (key: string, value: string) => {
+        if (typeof window !== 'undefined') window.localStorage.setItem(key, value)
+      },
+      removeItem: async (key: string) => {
+        if (typeof window !== 'undefined') window.localStorage.removeItem(key)
+      },
+    }
+  : {
+      getItem: SecureStore.getItemAsync,
+      setItem: SecureStore.setItemAsync,
+      removeItem: SecureStore.deleteItemAsync,
+    }
+
 const supabase =
   supabaseUrl && supabaseAnonKey
     ? createClient(supabaseUrl, supabaseAnonKey, {
         auth: {
-          storage: {
-            getItem: SecureStore.getItemAsync,
-            setItem: SecureStore.setItemAsync,
-            removeItem: SecureStore.deleteItemAsync,
-          },
+          storage: authStorage,
           persistSession: true,
           autoRefreshToken: true,
           detectSessionInUrl: false,

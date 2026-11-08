@@ -1,3 +1,11 @@
+## 2026-11-08 — Field app audit fixes
+
+- Branch: `fix/field-app-audit-20261108`.
+- Camera capture used `expo-image-picker` without the Expo config plugin. Native camera/photo permission strings are now declared so Android/iOS builds request access with the correct usage text.
+- Supabase auth storage is platform-aware. Web uses `localStorage`; native keeps SecureStore. This avoids a web SecureStore path that can fail session restore.
+- Local checks: field `npx tsc --noEmit` clean; `node scripts/mobile-auth-test.mjs` and `node scripts/mobile-offline-sync-test.mjs` passed; field `npm audit` reported 0 vulnerabilities; `npx expo-doctor` passed 21/21 on the pre-change tree.
+- No APK was built or device-tested in this checkpoint.
+
 ## 2026-11-04 — Field AI assistance foundations (draft PR #386)
 
 - Branch: `feat/field-ai-assistance-foundation-20261104`, based on main `33ebc3ddc578c258d4076573af3f6d9f1574f1f6`.
