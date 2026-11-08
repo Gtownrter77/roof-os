@@ -50,6 +50,7 @@ jobs:
       - run: npm run test:auto-measurement
       - run: npm run test:roof-slope
       - run: npm run test:estimate-creation-flow
+      - run: npm run test:estimate-packet-manager-gate
       - run: npm run test:crm-missing-spokes
       - run: npm run test:api-security
       - run: npm run test:auth-flow
@@ -146,6 +147,7 @@ jobs:
       - run: npm ci
       - run: npx tsc --noEmit
       - run: npx expo config --json > /tmp/expo-config.json
+      - run: npx --yes expo-doctor
       - name: Verify field app runtime contracts
         run: |
           cd ../..
@@ -266,6 +268,8 @@ jobs:
           grep -q "photo_estimate_workflow_id" supabase/migrations/038_estimate_packet_photo_workflow_source.sql
           grep -q "next_action_owner_id" supabase/migrations/039_crm_missing_spokes.sql
           grep -q "manager_approval_signature" supabase/migrations/042_golden_report_review_controls.sql
+          test -f supabase/migrations/080_estimate_packet_manager_gate.sql
+          grep -q "enforce_photo_estimate_packet_manager_gate" supabase/migrations/080_estimate_packet_manager_gate.sql
           grep -q "lead_score" supabase/migrations/039_crm_missing_spokes.sql
           grep -q "aerial_measurements_workspace_consistency" supabase/migrations/041_aerial_workspace_consistency.sql
           grep -q "roof_planes_workspace_consistency" supabase/migrations/041_aerial_workspace_consistency.sql

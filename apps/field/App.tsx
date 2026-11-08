@@ -35,17 +35,12 @@ const colors = {
   red: '#b42318',
 }
 
-const defaultSupabaseUrl = 'https://xksumagfbegdlapwysps.supabase.co'
-const defaultSupabaseAnonKey = 'sb_publishable_IY9l9DATPN0Qnsm_Vu15NA_kQC095hI'
-
 const supabaseUrl =
   process.env.EXPO_PUBLIC_SUPABASE_URL ||
-  process.env.NEXT_PUBLIC_SUPABASE_URL ||
-  defaultSupabaseUrl
+  process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseAnonKey =
   process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ||
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-  defaultSupabaseAnonKey
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 const webAppUrl = process.env.EXPO_PUBLIC_WEB_APP_URL ?? 'https://roof-os-lemon.vercel.app'
 
 import { db, initLocalDb } from './src/localDb'

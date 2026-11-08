@@ -18,8 +18,9 @@ function twilioConfig() {
 export const POST = createCronAgentRoute({
   agentKey: 'scheduler',
   workerVersion: 'scheduler-cron-v1',
-  // The Twilio follow-up job keeps its original contract: no separate Supabase 503 check.
-  requireSupabaseWorker: false,
+  // This handler reads and updates the Supabase queue, so it requires the
+  // service-role configuration before the shared wrapper creates its admin client.
+  requireSupabaseWorker: true,
   checkConfig: () => twilioConfig()
     ? null
     : NextResponse.json({ error: 'Twilio and receptionist configuration is incomplete.' }, { status: 503 }),

@@ -66,6 +66,10 @@ for (const [, href] of copilotSource.matchAll(/href:\s*'([^']+)'/g)) {
 }
 
 const transcribeRoute = readFileSync(join(root, 'app', 'api', 'ai', 'transcribe', 'route.ts'), 'utf8')
+assert.ok(transcribeRoute.includes('MAX_AUDIO_BYTES'), 'Transcription route must bound audio uploads')
+assert.ok(transcribeRoute.includes('file.size > MAX_AUDIO_BYTES'), 'Transcription route must check Blob size')
+assert.ok(transcribeRoute.includes('AUDIO_TYPES'), 'Transcription route must validate audio MIME types')
+assert.ok(transcribeRoute.includes('content-length'), 'Transcription route must reject oversized requests before parsing multipart data')
 assert.ok(transcribeRoute.includes('sourced: false'), 'Unavailable Whisper must not claim a sourced transcript')
 assert.ok(transcribeRoute.includes('status: 503'), 'Unavailable Whisper must be reported as a service failure')
 assert.ok(!transcribeRoute.includes('sourced: Boolean(text)'), 'A non-empty Unknown placeholder must not be treated as a transcript')
