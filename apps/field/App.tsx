@@ -645,12 +645,29 @@ export default function App() {
         return
       }
       const count = photos + result.assets.length
-      const draftId = saveDraft(address, photos, point, selectedLeadId)
-      if (!draftId) return
+      let draftId = draftRef.current?.id
       const capturedAt = timestamp()
       let pendingCount = 0
       try {
         db.withTransactionSync(() => {
+          if (!draftId) {
+            if (!session?.user.id) throw new Error('An authenticated user is required for local drafts.')
+            const createdClientId = clientId('inspection')
+            const insertResult = db.runSync(
+              'INSERT INTO inspection_drafts (owner_user_id, workspace_id, client_id, lead_id, address, photo_count, status, latitude, longitude, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+              session.user.id,
+              null,
+              createdClientId,
+              selectedLeadId,
+              address,
+              count,
+              'draft',
+              point?.latitude ?? null,
+              point?.longitude ?? null,
+              capturedAt
+            )
+            draftId = insertResult.lastInsertRowId
+          }
           result.assets.forEach((asset) => {
             const photoInsert = db.runSync('INSERT INTO inspection_photo_queue (draft_id, client_id, local_uri, album, caption, mime_type, file_size_bytes, width, height, captured_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', draftId, clientId('photo'), asset.uri, photoAlbum, photoCaption.trim() || null, asset.mimeType ?? 'image/jpeg', asset.fileSize ?? null, asset.width ?? null, asset.height ?? null, capturedAt)
             const photoQueueId = Number(photoInsert.lastInsertRowId)
@@ -667,7 +684,9 @@ export default function App() {
               )
             }
           })
-          db.runSync('UPDATE inspection_drafts SET photo_count = ?, updated_at = ? WHERE id = ?', count, timestamp(), draftId)
+          if (draftRef.current?.id === draftId) {
+            db.runSync('UPDATE inspection_drafts SET photo_count = ?, updated_at = ? WHERE id = ?', count, timestamp(), draftId)
+          }
           pendingCount = pendingRowCount(draftId)
         })
       } catch {
@@ -678,7 +697,7 @@ export default function App() {
       setPhotos(count)
       setPendingUploads(pendingCount)
       setPhotoCaption('')
-      refreshPhotoQueue(draftId)
+      refreshPhotoQueue(draftId!)
       setNotice(`${result.assets.length} photo${result.assets.length === 1 ? '' : 's'} saved to the offline upload queue.`)
       if (session) void syncNow()
     } catch {
