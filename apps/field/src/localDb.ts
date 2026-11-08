@@ -81,6 +81,8 @@ CREATE INDEX IF NOT EXISTS inspection_photos_draft_sync_idx
   ON inspection_photo_queue (draft_id, sync_status, next_retry_at);
 CREATE INDEX IF NOT EXISTS inspection_ai_requests_expiry_idx
   ON inspection_ai_request_queue (expires_at);
+`
+
 export function initLocalDb() {
   db.execSync(CREATE_TABLES_SQL)
 }
