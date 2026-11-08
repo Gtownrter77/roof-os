@@ -1,4 +1,4 @@
-import { roofAreaRangeError } from '../../../../lib/measurements/purchasable-roofing'
+import { purchasableRoofing, roofAreaRangeError } from '../../../../lib/measurements/purchasable-roofing'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '../../../../lib/supabase/server'
 import { isUuid, readJson, requireWorkspaceMember } from '../../../../lib/api-security'
@@ -30,6 +30,7 @@ export async function POST(request: NextRequest) {
     pitch?: string
     notes?: string
     sourceReference?: string
+    allowSixSquareRepairThreshold?: boolean
   }
 
   if (body.roofAreaSqft != null) {
@@ -82,13 +83,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Pitch, notes, or source reference exceeds the supported text length.' }, { status: 400 })
   }
 
+  const order = body.roofAreaSqft != null ? purchasableRoofing(Number(body.roofAreaSqft), body.allowSixSquareRepairThreshold === true) : null
   const { data, error } = await supabase.from('inspection_measurements').insert({
     workspace_id: workspaceId,
     inspection_id: body.inspectionId ?? null,
     source_type: 'manual',
     confidence: 'unverified',
     roof_area_sqft: body.roofAreaSqft ?? null,
-    roof_squares: body.roofSquares ?? null,
+    roof_squares: order?.squares ?? body.roofSquares ?? null,
     gutter_lf: body.gutterLf ?? null,
     ridge_lf: body.ridgeLf ?? null,
     eave_lf: body.eaveLf ?? null,
@@ -96,7 +98,7 @@ export async function POST(request: NextRequest) {
     valley_lf: body.valleyLf ?? null,
     pitch: body.pitch?.trim() || null,
     source_reference: body.sourceReference?.trim() || 'owner-entered',
-    notes: body.notes?.trim() || null,
+    notes: [body.notes?.trim(), order ? `${order.squaresLabel} · ${order.bundles} standard bundles · ${order.jobLabel}` : null].filter(Boolean).join(' ') || null,
     created_by: user.id
   }).select('id,inspection_id,source_type,confidence,roof_area_sqft,roof_squares,gutter_lf,pitch,captured_at').single()
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
 import { smartBack } from '../../lib/smart-back'
@@ -56,6 +56,14 @@ export default function MeasurePage() {
   type ManualArea = { value: number; unit: 'px' | 'sqft'; squareFeet: number | null }
   const [manualArea, setManualArea] = useState<ManualArea | null>(null)
   const [allowSixSquareRepairThreshold, setAllowSixSquareRepairThreshold] = useState(false)
+  useEffect(() => {
+    const saved = window.localStorage.getItem('roofos.allowSixSquareRepairThreshold')
+    if (saved === 'true') setAllowSixSquareRepairThreshold(true)
+  }, [])
+  function setSixSquareSetting(enabled: boolean) {
+    setAllowSixSquareRepairThreshold(enabled)
+    window.localStorage.setItem('roofos.allowSixSquareRepairThreshold', enabled ? 'true' : 'false')
+  }
 
   function chooseFile(event: React.ChangeEvent<HTMLInputElement>) {
     const next = event.target.files?.[0] ?? null
@@ -317,7 +325,8 @@ export default function MeasurePage() {
         body: JSON.stringify({
           inspectionId,
           roofAreaSqft: draftQuantity.roofAreaSqFt,
-          roofSquares: draftQuantity.roofSquares,
+          roofSquares: purchasableRoofing(draftQuantity.roofAreaSqFt, allowSixSquareRepairThreshold)?.squares ?? draftQuantity.roofSquares,
+          allowSixSquareRepairThreshold,
           pitch: `${pitchRisePer12}/12`,
           sourceReference: `aerial-geometry:${measurementId}`,
           notes,
@@ -351,7 +360,7 @@ export default function MeasurePage() {
             </label>
             <div className="flex items-end gap-2">
               <label className="flex items-center gap-2 text-xs text-slate-300">
-                <input type="checkbox" checked={allowSixSquareRepairThreshold} onChange={(event) => setAllowSixSquareRepairThreshold(event.target.checked)} />
+                <input type="checkbox" checked={allowSixSquareRepairThreshold} onChange={(event) => setSixSquareSetting(event.target.checked)} />
                 Owner setting: treat under 6SQ as repair. Off by default. Full replacement still starts at 10SQ.
               </label>
               <button onClick={() => void lookupImagery()} disabled={working} className="rounded-lg border border-white/20 px-3 py-2 text-sm text-slate-200 hover:border-cyan-400/60 disabled:opacity-50">Lookup imagery</button>
