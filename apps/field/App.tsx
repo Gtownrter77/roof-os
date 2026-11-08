@@ -693,7 +693,12 @@ export default function App() {
         setError('Could not save the captured photos to the offline queue. The inspection draft is still on the phone; try again.')
         return
       }
-      saveDraft(address, count, point, selectedLeadId)
+      if (draftRef.current) {
+        const nextDraft = { ...draftRef.current, photoCount: count, updatedAt: timestamp() }
+        draftRef.current = nextDraft
+        setDraft(nextDraft)
+        setDrafts((current) => [nextDraft, ...current.filter((item) => item.id !== nextDraft.id)])
+      }
       setPhotos(count)
       setPendingUploads(pendingCount)
       setPhotoCaption('')
