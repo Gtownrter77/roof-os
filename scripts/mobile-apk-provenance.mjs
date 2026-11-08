@@ -62,7 +62,7 @@ const signatureReport = `${signatureProcess.stdout || ''}\n${signatureProcess.st
 const digestPattern = /((?:[a-f0-9]{2}:){31}[a-f0-9]{2}|[a-f0-9]{64})/i
 const certificateMatch = signatureReport.match(/Signer #1 certificate SHA-256 digest:[\s\S]*?((?:[a-f0-9]{2}:){31}[a-f0-9]{2}|[a-f0-9]{64})/i)
   ?? signatureReport.match(digestPattern)
-if (!certificateMatch?.[0].includes('certificate SHA-256 digest')) {
+if (!certificateMatch || !certificateMatch[0].includes('certificate SHA-256 digest')) {
   console.warn('Signer-specific certificate digest label was absent; using the only available SHA-256 fingerprint from apksigner output')
 }
 if (!certificateMatch) throw new Error('APK signing certificate SHA-256 fingerprint is missing')
