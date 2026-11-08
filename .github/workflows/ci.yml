@@ -146,6 +146,14 @@ jobs:
       - run: npm ci
       - run: npx tsc --noEmit
       - run: npx expo config --json > /tmp/expo-config.json
+      - name: Verify field app runtime contracts
+        run: |
+          cd ../..
+          node scripts/mobile-auth-test.mjs
+          node scripts/mobile-offline-sync-test.mjs
+          node --experimental-strip-types scripts/mobile-local-db-migration-test.mjs
+          node --experimental-strip-types scripts/field-ai-assistance-test.mjs
+          node --experimental-strip-types scripts/field-coach-test.mjs
 
   field-security:
     runs-on: ubuntu-24.04
