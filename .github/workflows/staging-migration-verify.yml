@@ -14,7 +14,7 @@ permissions:
 jobs:
   verify:
     name: Verify staging migration state
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     environment: staging-migration
     timeout-minutes: 20
     steps:

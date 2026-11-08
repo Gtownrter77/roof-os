@@ -14,12 +14,12 @@ permissions:
 jobs:
   rls-smoke:
     name: Two-workspace RLS and private Storage smoke
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     environment: staging-rls
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm

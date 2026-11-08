@@ -14,7 +14,7 @@ permissions:
 jobs:
   probe:
     name: Heartbeat-only staging probe
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     environment: staging-heartbeat
     timeout-minutes: 10
     steps:
