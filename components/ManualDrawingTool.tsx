@@ -41,7 +41,7 @@ const ManualDrawingTool = ({
   imageHeight?: number;
   scalePixels?: number;
   scaleFeet?: number;
-  onAreaCalculated?: (area: number) => void;
+  onAreaCalculated?: (result: { value: number; unit: 'px' | 'sqft'; squareFeet: number | null }) => void;
   mapCenter?: { latitude: number; longitude: number } | null;
   aerialTileUrl?: string;
   aerialAttribution?: string;
@@ -66,10 +66,15 @@ const ManualDrawingTool = ({
 
   const calculateArea = () => {
     if (points.length < 3) return;
-    if (useGeoMap) { onAreaCalculated?.(geoAreaSqFt); return; }
+    if (useGeoMap) {
+      setAreaPx(0);
+      onAreaCalculated?.({ value: geoAreaSqFt, unit: 'sqft', squareFeet: geoAreaSqFt });
+      return;
+    }
     const pixels = shoelacePixels(points);
     setAreaPx(pixels);
-    onAreaCalculated?.(pixels);
+    const squareFeet = pixelsPerFoot > 0 ? pixels / (pixelsPerFoot * pixelsPerFoot) : null;
+    onAreaCalculated?.({ value: pixels, unit: 'px', squareFeet });
   };
 
   return (

@@ -25,8 +25,9 @@ export default function AutoMeasurementTool({ hasImage, working = false, onDetec
       await onDetect()
       setStatus('Local suggestions saved. Review every plane, edge, and object before calibration.')
     } catch (err) {
-      setStatus('Local vision did not complete. No hosted AI fallback was used.')
+      setStatus('Local vision did not complete. No hosted or paid AI was used. Use manual tracing or the OpenStreetMap footprint.')
       setError(err instanceof Error ? err.message : 'Could not reach the local vision service.')
+      onManualFallback()
     }
   }
 

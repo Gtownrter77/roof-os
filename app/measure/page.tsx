@@ -52,7 +52,8 @@ export default function MeasurePage() {
   const [mapCenter, setMapCenter] = useState<{ latitude: number; longitude: number } | null>(null)
   const [addressCandidates, setAddressCandidates] = useState<Array<{ osmId: string | number | null; buildingType: string; footprintSqFt: number; perimeterFt: number }>>([])
   const [manualMode, setManualMode] = useState(false)
-  const [manualArea, setManualArea] = useState(0)
+  type ManualArea = { value: number; unit: 'px' | 'sqft'; squareFeet: number | null }
+  const [manualArea, setManualArea] = useState<ManualArea | null>(null)
 
   function chooseFile(event: React.ChangeEvent<HTMLInputElement>) {
     const next = event.target.files?.[0] ?? null
@@ -102,7 +103,7 @@ export default function MeasurePage() {
       setMapCenter(validGeocode ? { latitude: payload.geocode.latitude, longitude: payload.geocode.longitude } : null)
       const candidates = Array.isArray(payload.candidates) ? payload.candidates : []
       setAddressCandidates(candidates)
-      setManualArea(0)
+      setManualArea(null)
       const aerial = payload.aerial
       const available = validGeocode && aerial?.status === 'available' && typeof aerial.tileUrl === 'string'
       setAerialTileUrl(available ? aerial.tileUrl : '')
@@ -370,15 +371,19 @@ export default function MeasurePage() {
             imageHeight={imageSize.height || 500}
             scalePixels={Number(scalePixels) || 0}
             scaleFeet={Number(scaleFeet) || 0}
-            onAreaCalculated={(area) => setManualArea(area)}
+            onAreaCalculated={(result) => setManualArea(result)}
           />}
-          {manualArea > 0 && <p className="mt-2 rounded border border-cyan-400/20 bg-cyan-400/10 p-3 text-sm text-cyan-100">Manually traced plan area: {manualArea.toLocaleString()} sq ft. Verify whether it represents ground footprint or roof surface before saving.</p>}
+          {manualArea && <p className="mt-2 rounded border border-cyan-400/20 bg-cyan-400/10 p-3 text-sm text-cyan-100">{manualArea.unit === 'sqft'
+            ? `Manually traced horizontal footprint: ${manualArea.value.toFixed(1)} sq ft. This is not pitched roof surface area.`
+            : manualArea.squareFeet
+              ? `Manually traced area: ${Math.round(manualArea.value).toLocaleString()} px² · ${manualArea.squareFeet.toFixed(1)} sq ft from the scale reference. Non-authoritative until confirmed.`
+              : `Manually traced area: ${Math.round(manualArea.value).toLocaleString()} px². Enter a scale reference to convert to square feet.`}</p>}
           <AutoMeasurementTool
             hasImage={Boolean(file && imageSize.width && imageSize.height)}
             working={working}
             onDetect={uploadAndAnalyze}
             onManualFallback={() => {
-              setManualArea(0)
+              setManualArea(null)
               setManualMode(true)
               setStatus(mapCenter ? 'Manual map tracing enabled. The mapped footprint is a ground reference, not roof surface area.' : 'Manual image tracing enabled. Enter a known scale reference before treating traced geometry as dimensions.')
             }}
