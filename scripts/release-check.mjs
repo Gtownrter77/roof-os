@@ -119,6 +119,16 @@ for (const route of routes) {
     && localVisionSource.includes('const timer = setTimeout(() => controller.abort(), boundedTimeout)')
     && localVisionSource.includes('clearTimeout(timer)')
     && localVisionSource.includes('size > MAX_RESPONSE_BYTES')
+  const browserLocalVisionSource = readFileSync(join(root, 'lib', 'ai', 'local-vision-browser.ts'), 'utf8')
+  const boundedBrowserLocalVisionRequest = browserLocalVisionSource.includes("const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]'])")
+    && browserLocalVisionSource.includes('DEFAULT_API_BASE_URL = \'http://localhost:20128/v1\'')
+    && browserLocalVisionSource.includes('MAX_IMAGE_BYTES')
+    && browserLocalVisionSource.includes('MAX_RESPONSE_BYTES')
+    && browserLocalVisionSource.includes('new AbortController()')
+    && browserLocalVisionSource.includes('signal: controller.signal')
+    && browserLocalVisionSource.includes('await fetch(endpoint,')
+    && browserLocalVisionSource.includes('await readBoundedResponse(response)')
+    && browserLocalVisionSource.includes('validateGeometrySuggestion(parsed)')
   const boundedPhotoAnalysisFetch = route === join(root, 'app', 'api', 'photo-estimate', 'analyze', 'route.ts')
     && fetchCallCount === 1
     && (source.match(/new AbortController\(\)/g) ?? []).length === 1
@@ -162,8 +172,8 @@ for (const route of routes) {
     && source.includes('async function boundedBytes(')
     && source.includes('async function fetchBounded(')
     && source.includes('size > maxBytes')
-    && source.includes('analyzePhotosWithOllama(')
-    && boundedLocalVisionRequest
+    && source.includes('validateGeometrySuggestion(body.suggestion)')
+    && boundedBrowserLocalVisionRequest
   // D.3 bounds private-storage reads and the shared local vision request/response.
   if (fetchCallCount > 0 && !boundedPhotoAnalysisFetch && !boundedAerialGeometryFetch && !boundedSidingAnalysisFetch && !boundedStatusHealthFetch && !boundedLocalClaimsFetch) {
     throw new Error(`API route makes a network request without an approved bounded fetch helper: ${route}`)

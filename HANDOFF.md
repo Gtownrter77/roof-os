@@ -1167,3 +1167,12 @@ The branch `repair/next-five-live-evidence` contains exactly five items: protect
 - Build emitted the existing warning about custom `Cache-Control` headers for `/_next/static/(.*)`; compilation, type checking, static generation, and build all completed successfully.
 - Not verified here: live browser-to-Ollama CORS/private-network behavior, live Supabase migration/RPC execution, authenticated user flow, production deployment, device/browser acceptance, or CI/PR checks. Local build is not deployment evidence.
 - Next: commit and push this checkpoint to the branch; independently compare local and remote SHAs; create a PR, wait for checks, and merge only if required gates pass. Then update `HANDOFF.md` with PR/check/deployment evidence and resume the remaining audit tasks: paid API inventory, deployment/schema documentation reconciliation, and the separate Field AI assistance foundation.
+
+
+### PR #399 CI repair — 2026-11-08
+
+- PR: [#399](https://github.com/Gtownrter77/roof-os/pull/399), head initially `d3c298fd3e7e9df32b7660fe6a50e1d60651650c`. The branch push SHA was independently matched with `git ls-remote`.
+- First CI run: both `ROOF OS CI/web` jobs failed in `npm run release-check`; all other completed required checks passed at that point. The cause was a stale static guard that required `analyzePhotosWithOllama()` in the aerial API route even though aerial inference had intentionally moved to the browser.
+- Fixed `scripts/release-check.mjs` to require the browser helper's loopback-host allowlist, default localhost endpoint, image/response size bounds, abort signal, bounded response reader, and strict geometry validation. The aerial API route still must demonstrate a single bounded private-storage fetch and server-side geometry validation. No network safety check was bypassed or removed.
+- Post-fix local verification passed: `npm run release-check` (15 protected routes, headers, secret scan), `npm run test:auto-measurement`, `npm run test:aerial`, `npm run test:ai-vision-endpoint`, and `git diff --check`.
+- New repair commit and CI rerun SHA/status will be recorded after push. PR remains unmerged until required checks finish successfully.
