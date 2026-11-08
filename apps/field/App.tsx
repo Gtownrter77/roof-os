@@ -661,14 +661,19 @@ export default function App() {
               )
             }
           })
-          db.runSync('UPDATE inspection_drafts SET photo_count = ?, updated_at = ? WHERE id = ?', count, timestamp(), draftId)
+          db.runSync('UPDATE inspection_drafts SET photo_count = ?, updated_at = ? WHERE id = ?', count, capturedAt, draftId)
           pendingCount = pendingRowCount(draftId)
         })
       } catch {
         setError('Could not save the captured photos to the offline queue. The inspection draft is still on the phone; try again.')
         return
       }
-      saveDraft(address, count, point, selectedLeadId)
+      if (draftRef.current) {
+        const nextDraft = { ...draftRef.current, photoCount: count, updatedAt: capturedAt }
+        draftRef.current = nextDraft
+        setDraft(nextDraft)
+        setDrafts((current) => [nextDraft, ...current.filter((item) => item.id !== nextDraft.id)])
+      }
       setPhotos(count)
       setPendingUploads(pendingCount)
       setPhotoCaption('')
