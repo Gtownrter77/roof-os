@@ -300,17 +300,32 @@ export default function App() {
     return Number(row?.n ?? 0)
   }
 
+  function duePendingRowCount(draftId: number, now = timestamp()) {
+    const row = db.getFirstSync<{ n: number }>(
+      `SELECT (
+        (SELECT COUNT(*) FROM inspection_measurements_local WHERE draft_id = ? AND sync_status IN ('queued', 'retrying') AND (next_retry_at IS NULL OR next_retry_at <= ?))
+        + (SELECT COUNT(*) FROM inspection_photo_queue WHERE draft_id = ? AND sync_status IN ('queued', 'retrying') AND (next_retry_at IS NULL OR next_retry_at <= ?))
+      ) AS n`,
+      draftId,
+      now,
+      draftId,
+      now,
+    )
+    return Number(row?.n ?? 0)
+  }
+
   async function syncQueuedDrafts() {
     if (!session || !online || syncLock.current) return
     for (const queuedDraft of readLocalDrafts()) {
       const pendingRows = pendingRowCount(queuedDraft.id)
+      const dueRows = duePendingRowCount(queuedDraft.id)
       if (draftRef.current?.id === queuedDraft.id) setPendingUploads(pendingRows)
       if (!draftNeedsSync({
         remoteId: queuedDraft.remoteId,
         verifiedAt: queuedDraft.verifiedAt,
         technicianName: queuedDraft.technicianName,
         verificationSynced: queuedDraft.verificationSynced === 1,
-        pendingRows,
+        pendingRows: dueRows,
       })) continue
       await syncNow(queuedDraft)
     }
