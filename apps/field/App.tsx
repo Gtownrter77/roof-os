@@ -167,6 +167,15 @@ export default function App() {
   const [point, setPoint] = useState<Point | null>(null)
   const [squares, setSquares] = useState('')
   const [allowSixSquareRepairThreshold, setAllowSixSquareRepairThreshold] = useState(false)
+  useEffect(() => {
+    SecureStore.getItemAsync('roofos.allowSixSquareRepairThreshold').then((value) => {
+      if (value === 'true') setAllowSixSquareRepairThreshold(true)
+    }).catch(() => {})
+  }, [])
+  function setSixSquareSetting(enabled: boolean) {
+    setAllowSixSquareRepairThreshold(enabled)
+    SecureStore.setItemAsync('roofos.allowSixSquareRepairThreshold', enabled ? 'true' : 'false').catch(() => {})
+  }
   const [gutters, setGutters] = useState('')
   const [eave, setEave] = useState('')
   const [rafter, setRafter] = useState('')
@@ -1268,7 +1277,7 @@ export default function App() {
             <TextInput value={squares} onChangeText={setSquares} keyboardType="decimal-pad" placeholder="Roof sq" placeholderTextColor="#8b99aa" style={styles.inputHalf} accessibilityLabel="Roof squares" />
             <View style={styles.row}>
               <Text style={styles.secondaryText}>6sq repair threshold</Text>
-              <Switch value={allowSixSquareRepairThreshold} onValueChange={setAllowSixSquareRepairThreshold} />
+              <Switch value={allowSixSquareRepairThreshold} onValueChange={setSixSquareSetting} />
             </View>
             <Text style={styles.helper}>{orderableSquares(Number(squares), true, allowSixSquareRepairThreshold)?.jobLabel ?? '100 sq ft = 1sq. Full replacement starts at 10sq. 6sq only if this toggle is on.'}</Text>
             <TextInput value={gutters} onChangeText={setGutters} keyboardType="decimal-pad" placeholder="Gutter LF" placeholderTextColor="#8b99aa" style={styles.inputHalf} accessibilityLabel="Gutter linear feet" />
