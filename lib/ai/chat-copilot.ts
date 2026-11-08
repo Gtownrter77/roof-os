@@ -1,5 +1,7 @@
 import { askOllama } from './ollama.ts'
 
+const MAX_TRANSCRIPTION_RESPONSE_BYTES = 1 * 1024 * 1024
+
 export type ChatMessage = {
   role: 'user' | 'assistant'
   content: string
@@ -112,7 +114,9 @@ export async function processAudioTranscription(
       signal: AbortSignal.timeout(120_000),
     })
     if (!response.ok) return null
-    const payload = (await response.json()) as { text?: string }
+    const responseText = await response.text()
+    if (Buffer.byteLength(responseText, 'utf8') > MAX_TRANSCRIPTION_RESPONSE_BYTES) return null
+    const payload = JSON.parse(responseText) as { text?: string }
     return payload.text?.trim() || null
   } catch {
     return null

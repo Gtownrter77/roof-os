@@ -42,12 +42,15 @@ export async function POST(request: NextRequest) {
 
   const { data: workflow, error: workflowError } = await supabase
     .from('photo_estimate_workflows')
-    .select('id,workspace_id,inspection_id,status,roof_squares,gutter_lf,approved_by,approved_at,report')
+    .select('id,workspace_id,inspection_id,status,roof_squares,gutter_lf,approved_by,approved_at,report,manager_approved_by,manager_approved_at,manager_approval_name,manager_approval_signature')
     .eq('id', body.photoEstimateWorkflowId)
     .eq('workspace_id', body.workspaceId)
     .maybeSingle()
   if (workflowError) return NextResponse.json({ error: 'Could not load the photo-estimate workflow.' }, { status: 503 })
   if (!workflow) return NextResponse.json({ error: 'Photo-estimate workflow not found in this workspace.' }, { status: 404 })
+  if (!workflow.manager_approved_by || !workflow.manager_approved_at || !workflow.manager_approval_name?.trim() || !workflow.manager_approval_signature?.trim()) {
+    return NextResponse.json({ error: 'Manager approval is required before creating an estimate review packet.' }, { status: 409 })
+  }
 
   const approved = getApprovedPhotoWorkflowQuantities(workflow)
   if (!approved) return NextResponse.json({ error: 'A consistent technician-approved workflow with verified roof and gutter quantities is required.' }, { status: 409 })

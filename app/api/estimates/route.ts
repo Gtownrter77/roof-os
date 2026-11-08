@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '../../../lib/supabase/server'
-import { readJson, requireWorkspaceMember } from '../../../lib/api-security'
+import { isUuid, readJson, requireWorkspaceMember } from '../../../lib/api-security'
 import { getDefaultEstimateTemplate } from '../../../lib/estimates/estimate-types'
 
 const ESTIMATE_STATUSES = ['draft', 'pending_approval', 'approved', 'rejected', 'superseded'] as const
@@ -110,6 +110,33 @@ export async function POST(request: NextRequest) {
   const lineItems = body.line_items ?? []
   if (!Array.isArray(lineItems) || lineItems.length > 200) {
     return NextResponse.json({ error: 'An estimate may contain at most 200 line items.' }, { status: 400 })
+  }
+  if (body.lead_id !== undefined && body.lead_id !== null && !isUuid(body.lead_id)) {
+    return NextResponse.json({ error: 'lead_id must be a valid UUID.' }, { status: 400 })
+  }
+  if (body.template_version_id !== undefined && body.template_version_id !== null && !isUuid(body.template_version_id)) {
+    return NextResponse.json({ error: 'template_version_id must be a valid UUID.' }, { status: 400 })
+  }
+  if (body.price_book_id !== undefined && body.price_book_id !== null && !isUuid(body.price_book_id)) {
+    return NextResponse.json({ error: 'price_book_id must be a valid UUID.' }, { status: 400 })
+  }
+  if (body.lead_id) {
+    const { data, error } = await supabase.from('leads').select('id').eq('id', body.lead_id).eq('workspace_id', workspaceId).maybeSingle()
+    if (error) return NextResponse.json({ error: 'Could not validate lead access.' }, { status: 503 })
+    if (!data) return NextResponse.json({ error: 'The lead does not belong to this workspace.' }, { status: 400 })
+  }
+  if (body.price_book_id) {
+    const { data, error } = await supabase.from('price_books').select('id').eq('id', body.price_book_id).eq('workspace_id', workspaceId).maybeSingle()
+    if (error) return NextResponse.json({ error: 'Could not validate price-book access.' }, { status: 503 })
+    if (!data) return NextResponse.json({ error: 'The price book does not belong to this workspace.' }, { status: 400 })
+  }
+  if (body.template_version_id) {
+    const { data: version, error: versionError } = await supabase.from('estimate_template_versions').select('id,template_id').eq('id', body.template_version_id).maybeSingle()
+    if (versionError) return NextResponse.json({ error: 'Could not validate estimate-template access.' }, { status: 503 })
+    if (!version) return NextResponse.json({ error: 'The estimate template version was not found.' }, { status: 400 })
+    const { data: template, error: templateError } = await supabase.from('estimate_templates').select('id').eq('id', version.template_id).eq('workspace_id', workspaceId).maybeSingle()
+    if (templateError) return NextResponse.json({ error: 'Could not validate estimate-template workspace.' }, { status: 503 })
+    if (!template) return NextResponse.json({ error: 'The estimate template does not belong to this workspace.' }, { status: 400 })
   }
   const allowedCategories = new Set(['material', 'labor', 'allowance', 'fee', 'tax'])
   for (const [index, item] of lineItems.entries()) {
