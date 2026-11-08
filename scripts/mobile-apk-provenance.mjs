@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import { execFileSync } from 'node:child_process'
+import { execFileSync, spawnSync } from 'node:child_process'
 import { readFileSync, statSync, writeFileSync } from 'node:fs'
 import { basename, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -55,7 +55,10 @@ if (binaryPackage !== androidPackage) {
 if (binaryVersion !== appVersion) {
   throw new Error(`APK version mismatch: expected ${appVersion}, found ${binaryVersion}`)
 }
-const signatureReport = execFileSync(apksigner, ['verify', '--verbose', '--print-certs', apkPath], { encoding: 'utf8' })
+const signatureProcess = spawnSync(apksigner, ['verify', '--verbose', '--print-certs', apkPath], { encoding: 'utf8' })
+if (signatureProcess.error) throw signatureProcess.error
+if (signatureProcess.status !== 0) throw new Error(`APK signature verification failed: ${signatureProcess.stderr || signatureProcess.stdout}`)
+const signatureReport = `${signatureProcess.stdout || ''}\n${signatureProcess.stderr || ''}`
 const certificateMatch = signatureReport.match(/Signer #1 certificate SHA-256 digest:[\s\S]*?((?:[a-f0-9]{2}:){31}[a-f0-9]{2})/i)
 if (!certificateMatch) throw new Error('APK signing certificate SHA-256 fingerprint is missing')
 const signingCertificateSha256 = certificateMatch[1].replaceAll(':', '').toLowerCase()
