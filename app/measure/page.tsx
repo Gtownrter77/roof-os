@@ -8,6 +8,7 @@ import { createClient } from '../../lib/supabase/client'
 import { analyzeRoofImageWithLocalOllama } from '../../lib/ai/local-vision-browser'
 import type { GeometrySuggestion } from '../../lib/ai/geometry-contract'
 import { calculateCalibratedRoofDraft } from '../../lib/measurements/calibrated-roof-draft'
+import { purchasableRoofing } from '../../lib/measurements/purchasable-roofing'
 import RoofSlopeCard from '../../components/RoofSlopeCard'
 import AutoMeasurementTool from '../../components/AutoMeasurementTool'
 
@@ -373,11 +374,15 @@ export default function MeasurePage() {
             scaleFeet={Number(scaleFeet) || 0}
             onAreaCalculated={(result) => setManualArea(result)}
           />}
-          {manualArea && <p className="mt-2 rounded border border-cyan-400/20 bg-cyan-400/10 p-3 text-sm text-cyan-100">{manualArea.unit === 'sqft'
-            ? `Manually traced horizontal footprint: ${manualArea.value.toFixed(1)} sq ft · ${(manualArea.value / 100).toFixed(2)} roofing squares. Standard 3-tab/architectural estimate: ${((manualArea.value / 100) * 3).toFixed(1)} bundles. Designer shingles are product-specific and usually more than 3 bundles per square.`
-            : manualArea.squareFeet
-              ? `Manually traced area: ${Math.round(manualArea.value).toLocaleString()} px² · ${manualArea.squareFeet.toFixed(1)} sq ft · ${(manualArea.squareFeet / 100).toFixed(2)} roofing squares · ${((manualArea.squareFeet / 100) * 3).toFixed(1)} standard bundles. 100 sq ft = 1 square = 3 bundles unless the product is a designer shingle.`
-              : `Manually traced area: ${Math.round(manualArea.value).toLocaleString()} px². Enter a scale reference to convert to square feet, roofing squares, and bundles.`}</p>}
+          {manualArea && (() => {
+            const feet = manualArea.unit === 'sqft' ? manualArea.value : manualArea.squareFeet
+            const order = feet ? purchasableRoofing(feet) : null
+            return <p className="mt-2 rounded border border-cyan-400/20 bg-cyan-400/10 p-3 text-sm text-cyan-100">{!order
+              ? `Manually traced area: ${Math.round(manualArea.value).toLocaleString()} px². Enter a scale reference to convert to square feet, roofing squares, and whole bundles.`
+              : manualArea.unit === 'sqft'
+                ? `Manually traced horizontal footprint: ${order.squareFeet.toFixed(1)} sq ft · order ${order.squaresLabel} squares · ${order.bundles} standard bundles. Rounded up to a whole bundle. Designer shingles are product-specific.`
+                : `Manually traced area: ${Math.round(manualArea.value).toLocaleString()} px² · ${order.squareFeet.toFixed(1)} sq ft · order ${order.squaresLabel} squares · ${order.bundles} standard bundles. Rounded up to a whole bundle.`}</p>
+          })()}
           <AutoMeasurementTool
             hasImage={Boolean(file && imageSize.width && imageSize.height)}
             working={working}
@@ -485,8 +490,8 @@ export default function MeasurePage() {
               <div><dt className="text-slate-400">Accepted planes</dt><dd>{draftQuantity.acceptedPlaneCount}</dd></div>
               <div><dt className="text-slate-400">Calibrated plan area</dt><dd>{draftQuantity.planAreaSqFt.toLocaleString()} sq ft</dd></div>
               <div><dt className="text-slate-400">Slope-adjusted roof area</dt><dd>{draftQuantity.roofAreaSqFt.toLocaleString()} sq ft</dd></div>
-              <div><dt className="text-slate-400">Roofing squares</dt><dd>{draftQuantity.roofSquares.toLocaleString()}</dd></div>
-              <div><dt className="text-slate-400">Standard bundles</dt><dd>{(draftQuantity.roofSquares * 3).toFixed(1)} · designer shingles are product-specific</dd></div>
+              <div><dt className="text-slate-400">Order squares</dt><dd>{purchasableRoofing(draftQuantity.roofAreaSqFt)?.squaresLabel ?? draftQuantity.roofSquares}</dd></div>
+              <div><dt className="text-slate-400">Standard bundles</dt><dd>{purchasableRoofing(draftQuantity.roofAreaSqFt)?.bundles ?? Math.ceil(draftQuantity.roofSquares * 3)} whole bundles · designer is product-specific</dd></div>
               <div><dt className="text-slate-400">Measured pitch</dt><dd>{draftQuantity.pitchRisePer12}/12</dd></div>
               <div><dt className="text-slate-400">Slope multiplier</dt><dd>{draftQuantity.slopeMultiplier}</dd></div>
             </dl>

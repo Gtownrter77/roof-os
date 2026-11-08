@@ -3,6 +3,7 @@ import React, { useMemo, useState } from 'react';
 import L from 'leaflet';
 import { MapContainer, ImageOverlay, Polygon, TileLayer, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
+import { purchasableRoofing } from '../lib/measurements/purchasable-roofing';
 
 function MapEvents({ isDrawing, setPoints }: { isDrawing: boolean; setPoints: React.Dispatch<React.SetStateAction<[number, number][]>> }) {
   useMapEvents({
@@ -63,6 +64,8 @@ const ManualDrawingTool = ({
   const bounds = useMemo(() => [[0, 0], [height, width]] as [[number, number], [number, number]], [height, width]);
   const pixelsPerFoot = scalePixels > 0 && scaleFeet > 0 ? scalePixels / scaleFeet : 0;
   const areaSqFt = areaPx > 0 && pixelsPerFoot > 0 ? areaPx / (pixelsPerFoot * pixelsPerFoot) : 0;
+  const imageOrder = areaSqFt > 0 ? purchasableRoofing(areaSqFt) : null;
+  const geoOrder = geoAreaSqFt > 0 ? purchasableRoofing(geoAreaSqFt) : null;
 
   const calculateArea = () => {
     if (points.length < 3) return;
@@ -110,11 +113,11 @@ const ManualDrawingTool = ({
         <p className="mt-2 text-sm text-slate-400">AERIAL IMAGERY UNAVAILABLE — no verified, openly licensed aerial image is loaded for this address.</p>
       )}
       <p className="mt-2 text-sm text-slate-300">
-        {useGeoMap && geoAreaSqFt > 0 ? `${geoAreaSqFt.toFixed(1)} sq ft · ${(geoAreaSqFt / 100).toFixed(2)} squares · ${((geoAreaSqFt / 100) * 3).toFixed(1)} standard bundles. Designer shingles are product-specific.` : areaPx > 0
-          ? areaSqFt > 0
-            ? `${Math.round(areaPx).toLocaleString()} px² · ${areaSqFt.toFixed(1)} sq ft · ${(areaSqFt / 100).toFixed(2)} squares · ${((areaSqFt / 100) * 3).toFixed(1)} standard bundles.`
-            : `${Math.round(areaPx).toLocaleString()} px². Enter a scale reference to convert to square feet, squares, and bundles.`
-          : useGeoMap ? 'Click Start Drawing, then click roof corners. 100 sq ft = 1 square = 3 standard bundles.' : 'Click the image to draw a plane. 100 sq ft = 1 square = 3 standard bundles unless designer.'}
+        {useGeoMap && geoOrder ? `${geoOrder.squareFeet.toFixed(1)} sq ft · order ${geoOrder.squaresLabel} squares · ${geoOrder.bundles} standard bundles. Rounded up to a whole bundle.` : areaPx > 0
+          ? imageOrder
+            ? `${Math.round(areaPx).toLocaleString()} px² · ${imageOrder.squareFeet.toFixed(1)} sq ft · order ${imageOrder.squaresLabel} squares · ${imageOrder.bundles} standard bundles.`
+            : `${Math.round(areaPx).toLocaleString()} px². Enter a scale reference to convert to orderable squares and whole bundles.`
+          : useGeoMap ? 'Click Start Drawing, then click roof corners. Order quantities round up to 23, 23.33, 23.66, or 24 squares.' : 'Click the image to draw a plane. 100 sq ft = 1 square. Order in whole bundles only.'}
       </p>
     </div>
   );
