@@ -694,9 +694,14 @@ export default function App() {
       saveDraft(nextAddress, photos, next)
       let alertLine = ''
       if (online) {
-        const headline = await activeAlertHeadline(next.latitude, next.longitude)
-        setStormHeadline(headline ?? '')
-        if (headline) alertLine = ` Active alert: ${headline}.`
+        try {
+          const headline = await activeAlertHeadline(next.latitude, next.longitude)
+          setStormHeadline(headline ?? '')
+          if (headline) alertLine = ` Active alert: ${headline}.`
+        } catch {
+          // Weather-service failure must not invalidate a successfully captured GPS point.
+          setStormHeadline('')
+        }
       }
       setNotice(
         `Location captured at ${next.latitude.toFixed(5)}, ${next.longitude.toFixed(5)}.${nextAddress.trim() ? ` Address set to ${nextAddress}.` : ''} Confirm it before using it for a claim.${alertLine}`
