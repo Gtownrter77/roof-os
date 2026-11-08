@@ -47,6 +47,7 @@ import { db, initLocalDb } from './src/localDb'
 import { ensureLocalColumns } from './src/localMigrations'
 import { aiRequestExpiry, parseFieldAiPreferences, photoAiRequestStatusLabel, photoEvidencePrompts, serializeFieldAiPreferences, type FieldAiFeature, type FieldAiPreferences, type FieldAiRequestStatus } from './src/ai/photoAssistance'
 import RadarCinema from './src/RadarCinema'
+import { orderableSquares } from './src/orderableSquares'
 import {
   activeAlertHeadline,
   draftNeedsSync,
@@ -57,15 +58,29 @@ import {
   suggestCaption,
 } from './src/fieldCoach'
 
+const authStorage = Platform.OS === 'web'
+  ? {
+      getItem: (key: string) => Promise.resolve(window.localStorage.getItem(key)),
+      setItem: (key: string, value: string) => {
+        window.localStorage.setItem(key, value)
+        return Promise.resolve()
+      },
+      removeItem: (key: string) => {
+        window.localStorage.removeItem(key)
+        return Promise.resolve()
+      },
+    }
+  : {
+      getItem: SecureStore.getItemAsync,
+      setItem: SecureStore.setItemAsync,
+      removeItem: SecureStore.deleteItemAsync,
+    }
+
 const supabase =
   supabaseUrl && supabaseAnonKey
     ? createClient(supabaseUrl, supabaseAnonKey, {
         auth: {
-          storage: {
-            getItem: SecureStore.getItemAsync,
-            setItem: SecureStore.setItemAsync,
-            removeItem: SecureStore.deleteItemAsync,
-          },
+          storage: authStorage,
           persistSession: true,
           autoRefreshToken: true,
           detectSessionInUrl: false,
@@ -151,6 +166,7 @@ export default function App() {
   const [drafts, setDrafts] = useState<Draft[]>([])
   const [point, setPoint] = useState<Point | null>(null)
   const [squares, setSquares] = useState('')
+  const [allowSixSquareRepairThreshold, setAllowSixSquareRepairThreshold] = useState(false)
   const [gutters, setGutters] = useState('')
   const [eave, setEave] = useState('')
   const [rafter, setRafter] = useState('')
@@ -722,8 +738,10 @@ export default function App() {
   }
 
   function saveMeasurements() {
-    const values = { roof: Number(squares), gutter: Number(gutters), eave: Number(eave), rafter: Number(rafter), pitch: Number(pitch), soffit: Number(soffit), fascia: Number(fascia) }
-    if (!Object.values(values).every(Number.isFinite) || values.roof <= 0 || values.gutter < 0 || values.eave <= 0 || values.rafter <= 0 || values.pitch < 0 || values.pitch > 24 || values.soffit < 0 || values.fascia < 0 || !roofType.trim()) { setError('Enter valid roof, eave, rafter, pitch, soffit, fascia, and roof-type inputs.'); return }
+    const entered = Number(squares)
+    const order = orderableSquares(entered, true, allowSixSquareRepairThreshold)
+    const values = { roof: order?.squares ?? entered, gutter: Number(gutters), eave: Number(eave), rafter: Number(rafter), pitch: Number(pitch), soffit: Number(soffit), fascia: Number(fascia) }
+    if (!order || !Object.values(values).every(Number.isFinite) || values.roof <= 0 || values.gutter < 0 || values.eave <= 0 || values.rafter <= 0 || values.pitch < 0 || values.pitch > 24 || values.soffit < 0 || values.fascia < 0 || !roofType.trim()) { setError('Enter valid roof squares, eave, rafter, pitch, soffit, fascia, and roof-type inputs. 100 sq ft = 1sq. Order in whole bundles.'); return }
     const draftId = saveDraft(); if (!draftId) return
     let pendingCount = 0
     try {
@@ -1247,7 +1265,12 @@ export default function App() {
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Draft inputs — unverified</Text>
           <View style={styles.row}>
-            <TextInput value={squares} onChangeText={setSquares} keyboardType="decimal-pad" placeholder="Roof squares" placeholderTextColor="#8b99aa" style={styles.inputHalf} accessibilityLabel="Roof squares" />
+            <TextInput value={squares} onChangeText={setSquares} keyboardType="decimal-pad" placeholder="Roof sq" placeholderTextColor="#8b99aa" style={styles.inputHalf} accessibilityLabel="Roof squares" />
+            <View style={styles.row}>
+              <Text style={styles.secondaryText}>6sq repair threshold</Text>
+              <Switch value={allowSixSquareRepairThreshold} onValueChange={setAllowSixSquareRepairThreshold} />
+            </View>
+            <Text style={styles.helper}>{orderableSquares(Number(squares), true, allowSixSquareRepairThreshold)?.jobLabel ?? '100 sq ft = 1sq. Full replacement starts at 10sq. 6sq only if this toggle is on.'}</Text>
             <TextInput value={gutters} onChangeText={setGutters} keyboardType="decimal-pad" placeholder="Gutter LF" placeholderTextColor="#8b99aa" style={styles.inputHalf} accessibilityLabel="Gutter linear feet" />
           </View>
           <View style={styles.row}>

@@ -2,7 +2,7 @@
   "expo": {
     "name": "ROOF/OS Field",
     "slug": "roof-os-field",
-    "version": "0.5.0",
+    "version": "0.5.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -31,6 +31,13 @@
         "expo-location",
         {
           "locationWhenInUsePermission": "ROOF/OS Field uses your location when you capture GPS to tag inspection evidence to a property and show nearby weather alerts."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "ROOF/OS Field uses your photos to attach inspection evidence.",
+          "cameraPermission": "ROOF/OS Field uses the camera to capture inspection photos and damage evidence."
         }
       ]
     ],
