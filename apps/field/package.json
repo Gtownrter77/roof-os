@@ -6,7 +6,7 @@
   "dependencies": {
     "@react-native-community/netinfo": "^12.0.1",
     "@supabase/supabase-js": "^2.116.0",
-    "expo": "~57.0.26",
+    "expo": "~57.0.32",
     "expo-file-system": "~57.0.0",
     "expo-image-picker": "~57.0.0",
     "expo-linking": "~57.0.0",
@@ -38,7 +38,7 @@
       "uuid": "^11.1.1"
     },
     "braces": "file:vendor/braces",
-    "node-forge": "https://github.com/Krysthyan/forge/archive/ceba34402e329f0365134f23fe19898756527d65.tar.gz",
+    "node-forge": "1.4.3",
     "shell-quote": "^1.11.0",
     "deepmerge": "file:vendor/deepmerge",
     "glob": "14.0.2",
