@@ -110,11 +110,11 @@ const ManualDrawingTool = ({
         <p className="mt-2 text-sm text-slate-400">AERIAL IMAGERY UNAVAILABLE — no verified, openly licensed aerial image is loaded for this address.</p>
       )}
       <p className="mt-2 text-sm text-slate-300">
-        {useGeoMap && geoAreaSqFt > 0 ? `${geoAreaSqFt.toFixed(1)} sq ft · ${(geoAreaSqFt / 100).toFixed(2)} roofing squares traced horizontal footprint. 100 sq ft = 1 square. Not pitched roof area.` : areaPx > 0
+        {useGeoMap && geoAreaSqFt > 0 ? `${geoAreaSqFt.toFixed(1)} sq ft · ${(geoAreaSqFt / 100).toFixed(2)} squares · ${((geoAreaSqFt / 100) * 3).toFixed(1)} standard bundles. Designer shingles are product-specific.` : areaPx > 0
           ? areaSqFt > 0
-            ? `${Math.round(areaPx).toLocaleString()} px² · ${areaSqFt.toFixed(1)} sq ft · ${(areaSqFt / 100).toFixed(2)} roofing squares. 100 sq ft = 1 square.`
-            : `${Math.round(areaPx).toLocaleString()} px². Enter a scale reference to convert to square feet and roofing squares.`
-          : useGeoMap ? 'Click Start Drawing, then click roof corners on the map. Calculate Area uses geographic coordinates; 100 sq ft = 1 roofing square.' : 'Click the image to draw a plane. Area is pixel geometry until a scale reference exists. 100 sq ft = 1 roofing square.'}
+            ? `${Math.round(areaPx).toLocaleString()} px² · ${areaSqFt.toFixed(1)} sq ft · ${(areaSqFt / 100).toFixed(2)} squares · ${((areaSqFt / 100) * 3).toFixed(1)} standard bundles.`
+            : `${Math.round(areaPx).toLocaleString()} px². Enter a scale reference to convert to square feet, squares, and bundles.`
+          : useGeoMap ? 'Click Start Drawing, then click roof corners. 100 sq ft = 1 square = 3 standard bundles.' : 'Click the image to draw a plane. 100 sq ft = 1 square = 3 standard bundles unless designer.'}
       </p>
     </div>
   );
