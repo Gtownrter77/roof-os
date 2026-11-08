@@ -361,7 +361,7 @@ export default function MeasurePage() {
             <div className="flex items-end gap-2">
               <label className="flex items-center gap-2 text-xs text-slate-300">
                 <input type="checkbox" checked={allowSixSquareRepairThreshold} onChange={(event) => setSixSquareSetting(event.target.checked)} />
-                Owner setting: treat under 6SQ as repair. Off by default. Full replacement still starts at 10SQ.
+                Owner setting: treat under 6sq as repair. Off by default. Full replacement still starts at 10sq.
               </label>
               <button onClick={() => void lookupImagery()} disabled={working} className="rounded-lg border border-white/20 px-3 py-2 text-sm text-slate-200 hover:border-cyan-400/60 disabled:opacity-50">Lookup imagery</button>
               <button onClick={() => void router.push('/photo-estimate')} className="rounded-lg border border-white/20 px-3 py-2 text-sm text-cyan-300">Inspection photos</button>
