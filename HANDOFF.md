@@ -1176,3 +1176,11 @@ The branch `repair/next-five-live-evidence` contains exactly five items: protect
 - Fixed `scripts/release-check.mjs` to require the browser helper's loopback-host allowlist, default localhost endpoint, image/response size bounds, abort signal, bounded response reader, and strict geometry validation. The aerial API route still must demonstrate a single bounded private-storage fetch and server-side geometry validation. No network safety check was bypassed or removed.
 - Post-fix local verification passed: `npm run release-check` (15 protected routes, headers, secret scan), `npm run test:auto-measurement`, `npm run test:aerial`, `npm run test:ai-vision-endpoint`, and `git diff --check`.
 - New repair commit and CI rerun SHA/status will be recorded after push. PR remains unmerged until required checks finish successfully.
+
+
+### PR #399 verification update — 2026-11-08
+
+- Repair commit `808a6ddc869e304003952ee95ac9c6f25f216fea` is present on the remote branch; local and remote SHA matched.
+- The rerun against that head completed with 14 successful checks, 1 skipped check, 0 failures, and 0 pending. `ROOF OS CI/web` passed on both push and pull request events. Kilo review and other reported checks passed. The `refresh-field-lock (pull_request)` entry is skipped; its push counterpart passed.
+- Vercel reported a completed PR preview deployment. This is preview evidence only, not production deployment evidence.
+- PR #399 is open and mergeable as of this update. Merge is authorized only after the handoff-only follow-up commit's required checks also pass.
