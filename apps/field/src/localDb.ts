@@ -72,8 +72,15 @@ CREATE TABLE IF NOT EXISTS inspection_ai_request_queue (
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,
   UNIQUE (photo_queue_id, feature_key)
-);`
-
+);
+CREATE INDEX IF NOT EXISTS inspection_drafts_owner_updated_idx
+  ON inspection_drafts (owner_user_id, updated_at DESC);
+CREATE INDEX IF NOT EXISTS inspection_measurements_draft_sync_idx
+  ON inspection_measurements_local (draft_id, sync_status, next_retry_at);
+CREATE INDEX IF NOT EXISTS inspection_photos_draft_sync_idx
+  ON inspection_photo_queue (draft_id, sync_status, next_retry_at);
+CREATE INDEX IF NOT EXISTS inspection_ai_requests_expiry_idx
+  ON inspection_ai_request_queue (expires_at);
 export function initLocalDb() {
   db.execSync(CREATE_TABLES_SQL)
 }
