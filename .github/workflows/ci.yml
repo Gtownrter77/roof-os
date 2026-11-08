@@ -47,6 +47,7 @@ jobs:
       - run: npm run test:receptionist
       - run: npm run test:outbound-policy
       - run: npm run test:aerial
+      - run: npm run test:auto-measurement
       - run: npm run test:roof-slope
       - run: npm run test:estimate-creation-flow
       - run: npm run test:crm-missing-spokes

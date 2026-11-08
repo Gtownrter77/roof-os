@@ -1,65 +1,62 @@
-'use client';
-import React, { useState } from 'react';
+'use client'
+
+import React, { useState } from 'react'
 
 type AutoMeasurementToolProps = {
-  hasImage: boolean;
-  working?: boolean;
-  visionAvailable?: boolean;
-  onDetect: () => Promise<void> | void;
-  onLocalEstimate: () => void;
-};
+  hasImage: boolean
+  working?: boolean
+  onDetect: () => Promise<void> | void
+  onManualFallback: () => void
+}
 
-export default function AutoMeasurementTool({
-  hasImage,
-  working = false,
-  visionAvailable = false,
-  onDetect,
-  onLocalEstimate,
-}: AutoMeasurementToolProps) {
-  const [status, setStatus] = useState('Idle');
-  const [error, setError] = useState('');
+export default function AutoMeasurementTool({ hasImage, working = false, onDetect, onManualFallback }: AutoMeasurementToolProps) {
+  const [status, setStatus] = useState('Idle')
+  const [error, setError] = useState('')
 
-  const runAutoDetect = async () => {
+  async function runAutoDetect() {
     if (!hasImage) {
-      setError('Load an inspection or aerial image first.');
-      setStatus('Waiting for image');
-      return;
+      setError('Load an actual roof image first.')
+      setStatus('Waiting for image')
+      return
     }
-    setError('');
-    onLocalEstimate();
-
-    if (!visionAvailable) {
-      setStatus('Manual tracing ready. Vision analysis is unavailable; trace the roof boundary and calibrate the image.');
-      return;
-    }
-
-    setStatus('Requesting local vision analysis…');
+    setError('')
+    setStatus('Analyzing in your browser with the local vision service…')
     try {
-      await onDetect();
-      setStatus('Vision analysis finished. Review every suggested plane, edge, and object before calibration.');
+      await onDetect()
+      setStatus('Local suggestions saved. Review every plane, edge, and object before calibration.')
     } catch (err) {
-      setStatus('Vision analysis unavailable. Manual tracing remains available.');
-      setError(err instanceof Error ? err.message : 'Auto-detect could not reach the vision service.');
+      setStatus('Local vision did not complete. No hosted AI fallback was used.')
+      setError(err instanceof Error ? err.message : 'Could not reach the local vision service.')
     }
-  };
+  }
 
   return (
-    <div className="glass mt-4 rounded-xl p-4">
+    <section className="glass mt-4 rounded-xl p-4">
       <h2 className="font-semibold">Auto-Measurement Tool</h2>
       <p className="text-sm text-slate-400">
-        Trace the actual roof boundary and calibrate the image for measurements. Vision suggestions are optional. No footprint is inferred from image dimensions.
+        Roof detection runs directly from this browser to the local OpenAI-compatible vision service at localhost:20128. It suggests image-coordinate geometry only; scale and pitch must be measured by a person.
       </p>
-      <button
-        type="button"
-        onClick={() => void runAutoDetect()}
-        disabled={working || !hasImage}
-        className="mt-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
-      >
-        {working ? 'Working…' : 'Detect Roof'}
-      </button>
-      {!hasImage && <p className="mt-2 text-xs text-amber-300">Load an actual image before detection.</p>}
-      <p className="mt-2 text-sm text-emerald-400">{status}</p>
-      {error && <p className="mt-2 text-sm text-red-300">{error}</p>}
-    </div>
-  );
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={() => void runAutoDetect()}
+          disabled={working || !hasImage}
+          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+        >
+          {working ? 'Working…' : 'Detect roof with local AI'}
+        </button>
+        <button
+          type="button"
+          onClick={onManualFallback}
+          disabled={working}
+          className="rounded-lg border border-white/20 px-4 py-2 text-sm font-semibold text-slate-100 disabled:opacity-50"
+        >
+          Use manual tracing
+        </button>
+      </div>
+      {!hasImage && <p className="mt-2 text-xs text-amber-300">Load an actual JPEG, PNG, or WebP image before detection.</p>}
+      <p className="mt-2 text-sm text-emerald-400" role="status">{status}</p>
+      {error && <p className="mt-2 text-sm text-red-300" role="alert">{error}</p>}
+    </section>
+  )
 }

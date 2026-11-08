@@ -6,6 +6,7 @@ const root = new URL('../', import.meta.url)
 const photoRoute = readFileSync(new URL('app/api/photo-estimate/analyze/route.ts', root), 'utf8')
 const aerialRoute = readFileSync(new URL('app/api/measurements/aerial/route.ts', root), 'utf8')
 const sidingRoute = readFileSync(new URL('app/api/siding/analyze/route.ts', root), 'utf8')
+const browserVision = readFileSync(new URL('lib/ai/local-vision-browser.ts', root), 'utf8')
 const helper = readFileSync(new URL('lib/ai/local-vision.mjs', root), 'utf8')
 const workflowSchema = readFileSync(new URL('supabase/migrations/021_photo_estimate_workflows.sql', root), 'utf8')
 const photoSchema = readFileSync(new URL('supabase/migrations/003_status_history_inspection_photos.sql', root), 'utf8')
@@ -42,13 +43,18 @@ assert.ok(photoRoute.includes('MAX_PHOTOS = 50'))
 assert.ok(photoRoute.includes('MAX_TOTAL_BYTES = 30 * 1024 * 1024'))
 assert.ok(photoRoute.includes('fetchBytesWithinBudget(signedUrl.toString(), remaining, deadline)'))
 
-for (const [name, route] of [['photo estimate', photoRoute], ['aerial measurement', aerialRoute], ['siding analysis', sidingRoute]]) {
+for (const [name, route] of [['photo estimate', photoRoute], ['siding analysis', sidingRoute]]) {
   assert.ok(route.includes('analyzePhotosWithOllama('), `${name} route uses local vision`)
   assert.ok(!route.includes('GEMINI_API_KEY'), `${name} route does not require Gemini credentials`)
   assert.ok(!route.includes('generativelanguage.googleapis.com'), `${name} route makes no hosted Gemini request`)
 }
-assert.ok(aerialRoute.includes('validateGeometrySuggestion'))
-assert.ok(aerialRoute.includes('Manual measurement remains available'))
+assert.ok(!aerialRoute.includes('analyzePhotosWithOllama('), 'aerial analysis does not resolve localhost on the hosted server')
+assert.ok(aerialRoute.includes('validateGeometrySuggestion'), 'aerial route revalidates browser-supplied geometry before persistence')
+assert.ok(browserVision.includes('NEXT_PUBLIC_OLLAMA_VISION_API_BASE_URL'))
+assert.ok(browserVision.includes("'http://localhost:20128/v1'"))
+assert.ok(browserVision.includes('LOCAL_HOSTS'))
+assert.ok(browserVision.includes('/chat/completions'))
+assert.ok(browserVision.includes('no hosted AI fallback is used'))
 assert.ok(sidingRoute.includes('validateSidingVisionObservation'))
 assert.ok(sidingRoute.includes('Manual measurement remains available'))
 assert.ok(helper.includes("'http://localhost:20128/v1'"), 'the user-specified local API base is the default')
@@ -106,4 +112,4 @@ try {
   else process.env.OLLAMA_VISION_MODEL = previousModel
 }
 
-console.log('ai-vision-endpoint-test: PASS (local OpenAI-compatible vision requests, no Gemini credential or provider dependency)')
+console.log('ai-vision-endpoint-test: PASS (server-local photo/siding vision plus browser-loopback aerial vision, no hosted model fallback)')
