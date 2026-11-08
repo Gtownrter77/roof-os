@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
 import { smartBack } from '../../lib/smart-back'
@@ -8,6 +8,7 @@ import { createClient } from '../../lib/supabase/client'
 import { analyzeRoofImageWithLocalOllama } from '../../lib/ai/local-vision-browser'
 import type { GeometrySuggestion } from '../../lib/ai/geometry-contract'
 import { calculateCalibratedRoofDraft } from '../../lib/measurements/calibrated-roof-draft'
+import { purchasableRoofing, roofAreaRangeError } from '../../lib/measurements/purchasable-roofing'
 import RoofSlopeCard from '../../components/RoofSlopeCard'
 import AutoMeasurementTool from '../../components/AutoMeasurementTool'
 
@@ -52,7 +53,17 @@ export default function MeasurePage() {
   const [mapCenter, setMapCenter] = useState<{ latitude: number; longitude: number } | null>(null)
   const [addressCandidates, setAddressCandidates] = useState<Array<{ osmId: string | number | null; buildingType: string; footprintSqFt: number; perimeterFt: number }>>([])
   const [manualMode, setManualMode] = useState(false)
-  const [manualArea, setManualArea] = useState(0)
+  type ManualArea = { value: number; unit: 'px' | 'sqft'; squareFeet: number | null }
+  const [manualArea, setManualArea] = useState<ManualArea | null>(null)
+  const [allowSixSquareRepairThreshold, setAllowSixSquareRepairThreshold] = useState(false)
+  useEffect(() => {
+    const saved = window.localStorage.getItem('roofos.allowSixSquareRepairThreshold')
+    if (saved === 'true') setAllowSixSquareRepairThreshold(true)
+  }, [])
+  function setSixSquareSetting(enabled: boolean) {
+    setAllowSixSquareRepairThreshold(enabled)
+    window.localStorage.setItem('roofos.allowSixSquareRepairThreshold', enabled ? 'true' : 'false')
+  }
 
   function chooseFile(event: React.ChangeEvent<HTMLInputElement>) {
     const next = event.target.files?.[0] ?? null
@@ -102,7 +113,7 @@ export default function MeasurePage() {
       setMapCenter(validGeocode ? { latitude: payload.geocode.latitude, longitude: payload.geocode.longitude } : null)
       const candidates = Array.isArray(payload.candidates) ? payload.candidates : []
       setAddressCandidates(candidates)
-      setManualArea(0)
+      setManualArea(null)
       const aerial = payload.aerial
       const available = validGeocode && aerial?.status === 'available' && typeof aerial.tileUrl === 'string'
       setAerialTileUrl(available ? aerial.tileUrl : '')
@@ -292,6 +303,11 @@ export default function MeasurePage() {
 
   async function saveDraftQuantity() {
     if (!draftQuantity || !inspectionId || !measurementId || savedMeasurementId) return
+    const rangeError = roofAreaRangeError(draftQuantity.roofAreaSqFt)
+    if (rangeError) {
+      setError(rangeError)
+      return
+    }
     setWorking(true)
     setError('')
     try {
@@ -309,7 +325,8 @@ export default function MeasurePage() {
         body: JSON.stringify({
           inspectionId,
           roofAreaSqft: draftQuantity.roofAreaSqFt,
-          roofSquares: draftQuantity.roofSquares,
+          roofSquares: purchasableRoofing(draftQuantity.roofAreaSqFt, allowSixSquareRepairThreshold)?.squares ?? draftQuantity.roofSquares,
+          allowSixSquareRepairThreshold,
           pitch: `${pitchRisePer12}/12`,
           sourceReference: `aerial-geometry:${measurementId}`,
           notes,
@@ -342,6 +359,10 @@ export default function MeasurePage() {
               <input value={address} onChange={(event) => setAddress(event.target.value)} className="mt-1 w-full rounded-lg border border-white/15 bg-black/25 p-3 text-white placeholder:text-slate-500" placeholder="Enter property address" />
             </label>
             <div className="flex items-end gap-2">
+              <label className="flex items-center gap-2 text-xs text-slate-300">
+                <input type="checkbox" checked={allowSixSquareRepairThreshold} onChange={(event) => setSixSquareSetting(event.target.checked)} />
+                Owner setting: treat under 6SQ as repair. Off by default. Full replacement still starts at 10SQ.
+              </label>
               <button onClick={() => void lookupImagery()} disabled={working} className="rounded-lg border border-white/20 px-3 py-2 text-sm text-slate-200 hover:border-cyan-400/60 disabled:opacity-50">Lookup imagery</button>
               <button onClick={() => void router.push('/photo-estimate')} className="rounded-lg border border-white/20 px-3 py-2 text-sm text-cyan-300">Inspection photos</button>
             </div>
@@ -370,15 +391,25 @@ export default function MeasurePage() {
             imageHeight={imageSize.height || 500}
             scalePixels={Number(scalePixels) || 0}
             scaleFeet={Number(scaleFeet) || 0}
-            onAreaCalculated={(area) => setManualArea(area)}
+            allowSixSquareRepairThreshold={allowSixSquareRepairThreshold}
+            onAreaCalculated={(result) => setManualArea(result)}
           />}
-          {manualArea > 0 && <p className="mt-2 rounded border border-cyan-400/20 bg-cyan-400/10 p-3 text-sm text-cyan-100">Manually traced plan area: {manualArea.toLocaleString()} sq ft. Verify whether it represents ground footprint or roof surface before saving.</p>}
+          {manualArea && (() => {
+            const feet = manualArea.unit === 'sqft' ? manualArea.value : manualArea.squareFeet
+            const rangeError = feet ? roofAreaRangeError(feet) : null
+            const order = feet && !rangeError ? purchasableRoofing(feet, allowSixSquareRepairThreshold) : null
+            return <p className={`mt-2 rounded p-3 text-sm ${rangeError || order?.jobClass !== 'full-replacement' ? 'border border-amber-400/30 bg-amber-400/10 text-amber-100' : 'border border-cyan-400/20 bg-cyan-400/10 text-cyan-100'}`}>{rangeError
+              ? rangeError
+              : !order
+                ? `Manually traced area: ${Math.round(manualArea.value).toLocaleString()} px². Enter a scale reference to convert to square feet, roofing squares, and whole bundles.`
+                : `${manualArea.unit === 'sqft' ? 'Horizontal footprint' : 'Traced area'}: ${order.squareFeet.toFixed(1)} sq ft · order ${order.squaresLabel} squares · ${order.bundles} standard bundles. ${order.jobLabel}`}</p>
+          })()}
           <AutoMeasurementTool
             hasImage={Boolean(file && imageSize.width && imageSize.height)}
             working={working}
             onDetect={uploadAndAnalyze}
             onManualFallback={() => {
-              setManualArea(0)
+              setManualArea(null)
               setManualMode(true)
               setStatus(mapCenter ? 'Manual map tracing enabled. The mapped footprint is a ground reference, not roof surface area.' : 'Manual image tracing enabled. Enter a known scale reference before treating traced geometry as dimensions.')
             }}
@@ -480,7 +511,9 @@ export default function MeasurePage() {
               <div><dt className="text-slate-400">Accepted planes</dt><dd>{draftQuantity.acceptedPlaneCount}</dd></div>
               <div><dt className="text-slate-400">Calibrated plan area</dt><dd>{draftQuantity.planAreaSqFt.toLocaleString()} sq ft</dd></div>
               <div><dt className="text-slate-400">Slope-adjusted roof area</dt><dd>{draftQuantity.roofAreaSqFt.toLocaleString()} sq ft</dd></div>
-              <div><dt className="text-slate-400">Roofing squares</dt><dd>{draftQuantity.roofSquares.toLocaleString()}</dd></div>
+              <div><dt className="text-slate-400">Order squares</dt><dd>{purchasableRoofing(draftQuantity.roofAreaSqFt, allowSixSquareRepairThreshold)?.squaresLabel ?? draftQuantity.roofSquares}</dd></div>
+              <div><dt className="text-slate-400">Standard bundles</dt><dd>{purchasableRoofing(draftQuantity.roofAreaSqFt, allowSixSquareRepairThreshold)?.bundles ?? Math.ceil(draftQuantity.roofSquares * 3)} whole bundles</dd></div>
+              <div><dt className="text-slate-400">Job class</dt><dd>{purchasableRoofing(draftQuantity.roofAreaSqFt, allowSixSquareRepairThreshold)?.jobLabel ?? 'Full replacement starts at 10 squares.'}</dd></div>
               <div><dt className="text-slate-400">Measured pitch</dt><dd>{draftQuantity.pitchRisePer12}/12</dd></div>
               <div><dt className="text-slate-400">Slope multiplier</dt><dd>{draftQuantity.slopeMultiplier}</dd></div>
             </dl>

@@ -3,6 +3,7 @@ import React, { useMemo, useState } from 'react';
 import L from 'leaflet';
 import { MapContainer, ImageOverlay, Polygon, TileLayer, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
+import { purchasableRoofing } from '../lib/measurements/purchasable-roofing';
 
 function MapEvents({ isDrawing, setPoints }: { isDrawing: boolean; setPoints: React.Dispatch<React.SetStateAction<[number, number][]>> }) {
   useMapEvents({
@@ -35,16 +36,18 @@ const ManualDrawingTool = ({
   mapCenter,
   aerialTileUrl,
   aerialAttribution,
+  allowSixSquareRepairThreshold = false,
 }: {
   imageUrl?: string;
   imageWidth?: number;
   imageHeight?: number;
   scalePixels?: number;
   scaleFeet?: number;
-  onAreaCalculated?: (area: number) => void;
+  onAreaCalculated?: (result: { value: number; unit: 'px' | 'sqft'; squareFeet: number | null }) => void;
   mapCenter?: { latitude: number; longitude: number } | null;
   aerialTileUrl?: string;
   aerialAttribution?: string;
+  allowSixSquareRepairThreshold?: boolean;
 }) => {
   const [points, setPoints] = useState<[number, number][]>([]);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -63,13 +66,20 @@ const ManualDrawingTool = ({
   const bounds = useMemo(() => [[0, 0], [height, width]] as [[number, number], [number, number]], [height, width]);
   const pixelsPerFoot = scalePixels > 0 && scaleFeet > 0 ? scalePixels / scaleFeet : 0;
   const areaSqFt = areaPx > 0 && pixelsPerFoot > 0 ? areaPx / (pixelsPerFoot * pixelsPerFoot) : 0;
+  const imageOrder = areaSqFt > 0 ? purchasableRoofing(areaSqFt, allowSixSquareRepairThreshold) : null;
+  const geoOrder = geoAreaSqFt > 0 ? purchasableRoofing(geoAreaSqFt, allowSixSquareRepairThreshold) : null;
 
   const calculateArea = () => {
     if (points.length < 3) return;
-    if (useGeoMap) { onAreaCalculated?.(geoAreaSqFt); return; }
+    if (useGeoMap) {
+      setAreaPx(0);
+      onAreaCalculated?.({ value: geoAreaSqFt, unit: 'sqft', squareFeet: geoAreaSqFt });
+      return;
+    }
     const pixels = shoelacePixels(points);
     setAreaPx(pixels);
-    onAreaCalculated?.(pixels);
+    const squareFeet = pixelsPerFoot > 0 ? pixels / (pixelsPerFoot * pixelsPerFoot) : null;
+    onAreaCalculated?.({ value: pixels, unit: 'px', squareFeet });
   };
 
   return (
@@ -105,11 +115,11 @@ const ManualDrawingTool = ({
         <p className="mt-2 text-sm text-slate-400">AERIAL IMAGERY UNAVAILABLE — no verified, openly licensed aerial image is loaded for this address.</p>
       )}
       <p className="mt-2 text-sm text-slate-300">
-        {useGeoMap && geoAreaSqFt > 0 ? `${geoAreaSqFt.toFixed(1)} sq ft traced horizontal footprint (not pitched roof area). Verify the roof boundary, pitch and overhangs.` : areaPx > 0
-          ? areaSqFt > 0
-            ? `${Math.round(areaPx).toLocaleString()} px² · ${areaSqFt.toFixed(1)} sq ft from the scale reference. Non-authoritative until confirmed.`
-            : `${Math.round(areaPx).toLocaleString()} px². Enter a scale reference to convert to square feet.`
-          : useGeoMap ? 'Click Start Drawing, then click roof corners on the map. Calculate Area uses geographic coordinates; no photo or pixel scale required.' : 'Click the image to draw a plane. Area is pixel geometry until a scale reference exists.'}
+        {useGeoMap && geoOrder ? `${geoOrder.squareFeet.toFixed(1)} sq ft · order ${geoOrder.squaresLabel} squares · ${geoOrder.bundles} standard bundles. ${geoOrder.jobLabel}` : areaPx > 0
+          ? imageOrder
+            ? `${Math.round(areaPx).toLocaleString()} px² · ${imageOrder.squareFeet.toFixed(1)} sq ft · order ${imageOrder.squaresLabel} squares · ${imageOrder.bundles} standard bundles. ${imageOrder.jobLabel}`
+            : `${Math.round(areaPx).toLocaleString()} px². Enter a scale reference to convert to orderable squares and whole bundles.`
+          : useGeoMap ? 'Click Start Drawing, then click roof corners. Full replacement starts at 10 squares.' : 'Click the image to draw a plane. Full replacement starts at 10 squares. Under 600 sq ft is a repair by default.'}
       </p>
     </div>
   );
