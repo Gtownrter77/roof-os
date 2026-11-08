@@ -113,11 +113,11 @@ const ManualDrawingTool = ({
         <p className="mt-2 text-sm text-slate-400">AERIAL IMAGERY UNAVAILABLE — no verified, openly licensed aerial image is loaded for this address.</p>
       )}
       <p className="mt-2 text-sm text-slate-300">
-        {useGeoMap && geoOrder ? `${geoOrder.squareFeet.toFixed(1)} sq ft · order ${geoOrder.squaresLabel} squares · ${geoOrder.bundles} standard bundles. Rounded up to a whole bundle.` : areaPx > 0
+        {useGeoMap && geoOrder ? `${geoOrder.squareFeet.toFixed(1)} sq ft · order ${geoOrder.squaresLabel} squares · ${geoOrder.bundles} standard bundles. ${geoOrder.jobLabel}` : areaPx > 0
           ? imageOrder
-            ? `${Math.round(areaPx).toLocaleString()} px² · ${imageOrder.squareFeet.toFixed(1)} sq ft · order ${imageOrder.squaresLabel} squares · ${imageOrder.bundles} standard bundles.`
+            ? `${Math.round(areaPx).toLocaleString()} px² · ${imageOrder.squareFeet.toFixed(1)} sq ft · order ${imageOrder.squaresLabel} squares · ${imageOrder.bundles} standard bundles. ${imageOrder.jobLabel}`
             : `${Math.round(areaPx).toLocaleString()} px². Enter a scale reference to convert to orderable squares and whole bundles.`
-          : useGeoMap ? 'Click Start Drawing, then click roof corners. Order quantities round up to 23, 23.33, 23.66, or 24 squares.' : 'Click the image to draw a plane. 100 sq ft = 1 square. Order in whole bundles only.'}
+          : useGeoMap ? 'Click Start Drawing, then click roof corners. Full replacement starts at 10 squares.' : 'Click the image to draw a plane. Full replacement starts at 10 squares. Under 600 sq ft is a repair by default.'}
       </p>
     </div>
   );

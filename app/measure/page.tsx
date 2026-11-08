@@ -55,6 +55,7 @@ export default function MeasurePage() {
   const [manualMode, setManualMode] = useState(false)
   type ManualArea = { value: number; unit: 'px' | 'sqft'; squareFeet: number | null }
   const [manualArea, setManualArea] = useState<ManualArea | null>(null)
+  const [allowSixSquareRepairThreshold, setAllowSixSquareRepairThreshold] = useState(false)
 
   function chooseFile(event: React.ChangeEvent<HTMLInputElement>) {
     const next = event.target.files?.[0] ?? null
@@ -349,6 +350,10 @@ export default function MeasurePage() {
               <input value={address} onChange={(event) => setAddress(event.target.value)} className="mt-1 w-full rounded-lg border border-white/15 bg-black/25 p-3 text-white placeholder:text-slate-500" placeholder="Enter property address" />
             </label>
             <div className="flex items-end gap-2">
+              <label className="flex items-center gap-2 text-xs text-slate-300">
+                <input type="checkbox" checked={allowSixSquareRepairThreshold} onChange={(event) => setAllowSixSquareRepairThreshold(event.target.checked)} />
+                Owner setting: treat under 6SQ as repair. Off by default. Full replacement still starts at 10SQ.
+              </label>
               <button onClick={() => void lookupImagery()} disabled={working} className="rounded-lg border border-white/20 px-3 py-2 text-sm text-slate-200 hover:border-cyan-400/60 disabled:opacity-50">Lookup imagery</button>
               <button onClick={() => void router.push('/photo-estimate')} className="rounded-lg border border-white/20 px-3 py-2 text-sm text-cyan-300">Inspection photos</button>
             </div>
@@ -382,14 +387,12 @@ export default function MeasurePage() {
           {manualArea && (() => {
             const feet = manualArea.unit === 'sqft' ? manualArea.value : manualArea.squareFeet
             const rangeError = feet ? roofAreaRangeError(feet) : null
-            const order = feet && !rangeError ? purchasableRoofing(feet) : null
-            return <p className={`mt-2 rounded p-3 text-sm ${rangeError ? 'border border-amber-400/30 bg-amber-400/10 text-amber-100' : 'border border-cyan-400/20 bg-cyan-400/10 text-cyan-100'}`}>{rangeError
+            const order = feet && !rangeError ? purchasableRoofing(feet, allowSixSquareRepairThreshold) : null
+            return <p className={`mt-2 rounded p-3 text-sm ${rangeError || order?.jobClass !== 'full-replacement' ? 'border border-amber-400/30 bg-amber-400/10 text-amber-100' : 'border border-cyan-400/20 bg-cyan-400/10 text-cyan-100'}`}>{rangeError
               ? rangeError
               : !order
                 ? `Manually traced area: ${Math.round(manualArea.value).toLocaleString()} px². Enter a scale reference to convert to square feet, roofing squares, and whole bundles.`
-                : manualArea.unit === 'sqft'
-                  ? `Manually traced horizontal footprint: ${order.squareFeet.toFixed(1)} sq ft · order ${order.squaresLabel} squares · ${order.bundles} standard bundles. Rounded up to a whole bundle. Designer shingles are product-specific.`
-                  : `Manually traced area: ${Math.round(manualArea.value).toLocaleString()} px² · ${order.squareFeet.toFixed(1)} sq ft · order ${order.squaresLabel} squares · ${order.bundles} standard bundles. Rounded up to a whole bundle.`}</p>
+                : `${manualArea.unit === 'sqft' ? 'Horizontal footprint' : 'Traced area'}: ${order.squareFeet.toFixed(1)} sq ft · order ${order.squaresLabel} squares · ${order.bundles} standard bundles. ${order.jobLabel}`}</p>
           })()}
           <AutoMeasurementTool
             hasImage={Boolean(file && imageSize.width && imageSize.height)}
@@ -498,8 +501,9 @@ export default function MeasurePage() {
               <div><dt className="text-slate-400">Accepted planes</dt><dd>{draftQuantity.acceptedPlaneCount}</dd></div>
               <div><dt className="text-slate-400">Calibrated plan area</dt><dd>{draftQuantity.planAreaSqFt.toLocaleString()} sq ft</dd></div>
               <div><dt className="text-slate-400">Slope-adjusted roof area</dt><dd>{draftQuantity.roofAreaSqFt.toLocaleString()} sq ft</dd></div>
-              <div><dt className="text-slate-400">Order squares</dt><dd>{purchasableRoofing(draftQuantity.roofAreaSqFt)?.squaresLabel ?? draftQuantity.roofSquares}</dd></div>
-              <div><dt className="text-slate-400">Standard bundles</dt><dd>{purchasableRoofing(draftQuantity.roofAreaSqFt)?.bundles ?? Math.ceil(draftQuantity.roofSquares * 3)} whole bundles · designer is product-specific</dd></div>
+              <div><dt className="text-slate-400">Order squares</dt><dd>{purchasableRoofing(draftQuantity.roofAreaSqFt, allowSixSquareRepairThreshold)?.squaresLabel ?? draftQuantity.roofSquares}</dd></div>
+              <div><dt className="text-slate-400">Standard bundles</dt><dd>{purchasableRoofing(draftQuantity.roofAreaSqFt, allowSixSquareRepairThreshold)?.bundles ?? Math.ceil(draftQuantity.roofSquares * 3)} whole bundles</dd></div>
+              <div><dt className="text-slate-400">Job class</dt><dd>{purchasableRoofing(draftQuantity.roofAreaSqFt, allowSixSquareRepairThreshold)?.jobLabel ?? 'Full replacement starts at 10 squares.'}</dd></div>
               <div><dt className="text-slate-400">Measured pitch</dt><dd>{draftQuantity.pitchRisePer12}/12</dd></div>
               <div><dt className="text-slate-400">Slope multiplier</dt><dd>{draftQuantity.slopeMultiplier}</dd></div>
             </dl>
