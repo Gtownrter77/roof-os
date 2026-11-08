@@ -53,6 +53,7 @@ for (const marker of [
   'if (!body.size)',
   'Camera capture failed.',
   'Could not capture the current location.',
+  'Weather-service failure must not invalidate a successfully captured GPS point.',
   'setDrafts(rows)',
   'inspection_verifications',
   'saveTechnicianVerification',
