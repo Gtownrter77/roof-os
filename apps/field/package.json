@@ -2,6 +2,7 @@
   "name": "field",
   "version": "1.0.0",
   "main": "index.ts",
+  "type": "module",
   "dependencies": {
     "@react-native-community/netinfo": "^12.0.1",
     "@supabase/supabase-js": "^2.116.0",
@@ -37,7 +38,7 @@
       "uuid": "^11.1.1"
     },
     "braces": "file:vendor/braces",
-    "node-forge": "github:Krysthyan/forge#ceba34402e329f0365134f23fe19898756527d65",
+    "node-forge": "https://github.com/Krysthyan/forge/archive/ceba34402e329f0365134f23fe19898756527d65.tar.gz",
     "shell-quote": "^1.11.0",
     "deepmerge": "file:vendor/deepmerge",
     "glob": "14.0.2",

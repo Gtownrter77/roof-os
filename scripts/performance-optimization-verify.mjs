@@ -15,10 +15,11 @@ assert.ok(
   'next.config.ts must enable optimizePackageImports for icon tree-shaking'
 )
 assert.ok(
-  nextConfig.includes('/_next/static/(.*)') && nextConfig.includes('Cache-Control'),
-  'next.config.ts must configure immutable cache headers for static assets'
+  !nextConfig.includes("source: '/_next/static/(.*)'") &&
+  !nextConfig.includes('source: "/_next/static/(.*)"'),
+  'next.config.ts must not override Next.js immutable hashed-asset cache headers'
 )
-console.log('✓ Check 1: next.config.ts bundle tree-shaking and static caching verified')
+console.log('✓ Check 1: next.config.ts bundle tree-shaking and native static caching verified')
 
 // 2. Benchmark readJson Memory & Stream Decoding
 const { readJson } = await import('../lib/read-json.ts')
