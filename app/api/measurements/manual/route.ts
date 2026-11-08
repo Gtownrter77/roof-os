@@ -1,3 +1,4 @@
+import { roofAreaRangeError } from '../../../../lib/measurements/purchasable-roofing'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '../../../../lib/supabase/server'
 import { isUuid, readJson, requireWorkspaceMember } from '../../../../lib/api-security'
@@ -31,6 +32,10 @@ export async function POST(request: NextRequest) {
     sourceReference?: string
   }
 
+  if (body.roofAreaSqft != null) {
+    const rangeError = roofAreaRangeError(Number(body.roofAreaSqft))
+    if (rangeError) return NextResponse.json({ error: rangeError }, { status: 400 })
+  }
   if (body.inspectionId) {
     if (!isUuid(body.inspectionId)) return NextResponse.json({ error: 'inspectionId must be a valid UUID.' }, { status: 400 })
     const { data: inspection, error: inspError } = await supabase

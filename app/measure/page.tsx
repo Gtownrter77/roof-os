@@ -8,7 +8,7 @@ import { createClient } from '../../lib/supabase/client'
 import { analyzeRoofImageWithLocalOllama } from '../../lib/ai/local-vision-browser'
 import type { GeometrySuggestion } from '../../lib/ai/geometry-contract'
 import { calculateCalibratedRoofDraft } from '../../lib/measurements/calibrated-roof-draft'
-import { purchasableRoofing } from '../../lib/measurements/purchasable-roofing'
+import { purchasableRoofing, roofAreaRangeError } from '../../lib/measurements/purchasable-roofing'
 import RoofSlopeCard from '../../components/RoofSlopeCard'
 import AutoMeasurementTool from '../../components/AutoMeasurementTool'
 
@@ -294,6 +294,11 @@ export default function MeasurePage() {
 
   async function saveDraftQuantity() {
     if (!draftQuantity || !inspectionId || !measurementId || savedMeasurementId) return
+    const rangeError = roofAreaRangeError(draftQuantity.roofAreaSqFt)
+    if (rangeError) {
+      setError(rangeError)
+      return
+    }
     setWorking(true)
     setError('')
     try {
@@ -376,12 +381,15 @@ export default function MeasurePage() {
           />}
           {manualArea && (() => {
             const feet = manualArea.unit === 'sqft' ? manualArea.value : manualArea.squareFeet
-            const order = feet ? purchasableRoofing(feet) : null
-            return <p className="mt-2 rounded border border-cyan-400/20 bg-cyan-400/10 p-3 text-sm text-cyan-100">{!order
-              ? `Manually traced area: ${Math.round(manualArea.value).toLocaleString()} px². Enter a scale reference to convert to square feet, roofing squares, and whole bundles.`
-              : manualArea.unit === 'sqft'
-                ? `Manually traced horizontal footprint: ${order.squareFeet.toFixed(1)} sq ft · order ${order.squaresLabel} squares · ${order.bundles} standard bundles. Rounded up to a whole bundle. Designer shingles are product-specific.`
-                : `Manually traced area: ${Math.round(manualArea.value).toLocaleString()} px² · ${order.squareFeet.toFixed(1)} sq ft · order ${order.squaresLabel} squares · ${order.bundles} standard bundles. Rounded up to a whole bundle.`}</p>
+            const rangeError = feet ? roofAreaRangeError(feet) : null
+            const order = feet && !rangeError ? purchasableRoofing(feet) : null
+            return <p className={`mt-2 rounded p-3 text-sm ${rangeError ? 'border border-amber-400/30 bg-amber-400/10 text-amber-100' : 'border border-cyan-400/20 bg-cyan-400/10 text-cyan-100'}`}>{rangeError
+              ? rangeError
+              : !order
+                ? `Manually traced area: ${Math.round(manualArea.value).toLocaleString()} px². Enter a scale reference to convert to square feet, roofing squares, and whole bundles.`
+                : manualArea.unit === 'sqft'
+                  ? `Manually traced horizontal footprint: ${order.squareFeet.toFixed(1)} sq ft · order ${order.squaresLabel} squares · ${order.bundles} standard bundles. Rounded up to a whole bundle. Designer shingles are product-specific.`
+                  : `Manually traced area: ${Math.round(manualArea.value).toLocaleString()} px² · ${order.squareFeet.toFixed(1)} sq ft · order ${order.squaresLabel} squares · ${order.bundles} standard bundles. Rounded up to a whole bundle.`}</p>
           })()}
           <AutoMeasurementTool
             hasImage={Boolean(file && imageSize.width && imageSize.height)}
