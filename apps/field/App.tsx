@@ -211,8 +211,10 @@ export default function App() {
     }
     let mounted = true
     let authEventObserved = false
+    let restoredSession: Session | null = null
     const { data } = supabase.auth.onAuthStateChange((_event, next) => {
       authEventObserved = true
+      if (next) restoredSession = next
       if (mounted) setSession(next)
     })
     void (async () => {
@@ -220,12 +222,16 @@ export default function App() {
         const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
         if (!mounted) return
         if (sessionError) {
-          setError('Could not restore your sign-in session. Check your connection and sign in again if needed.')
+          if (!restoredSession) {
+            setError('Could not restore your sign-in session. Check your connection and sign in again if needed.')
+          }
         } else if (!authEventObserved) {
           setSession(sessionData.session)
         }
       } catch {
-        if (mounted) setError('Could not restore your sign-in session. Your local inspection data remains on this device.')
+        if (mounted && !restoredSession) {
+          setError('Could not restore your sign-in session. Your local inspection data remains on this device.')
+        }
       } finally {
         if (mounted) setBooting(false)
       }
