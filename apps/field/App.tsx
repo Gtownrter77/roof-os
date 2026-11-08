@@ -214,12 +214,31 @@ export default function App() {
       setBooting(false)
       return
     }
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session)
-      setBooting(false)
+    let mounted = true
+    let authEventObserved = false
+    const { data } = supabase.auth.onAuthStateChange((_event, next) => {
+      authEventObserved = true
+      if (mounted) setSession(next)
     })
-    const { data } = supabase.auth.onAuthStateChange((_event, next) => setSession(next))
-    return () => data.subscription.unsubscribe()
+    void (async () => {
+      try {
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
+        if (!mounted) return
+        if (sessionError) {
+          setError('Could not restore your sign-in session. Check your connection and sign in again if needed.')
+        } else if (!authEventObserved) {
+          setSession(sessionData.session)
+        }
+      } catch {
+        if (mounted) setError('Could not restore your sign-in session. Your local inspection data remains on this device.')
+      } finally {
+        if (mounted) setBooting(false)
+      }
+    })()
+    return () => {
+      mounted = false
+      data.subscription.unsubscribe()
+    }
   }, [])
 
   useEffect(() => {
@@ -597,74 +616,94 @@ export default function App() {
   }
 
   async function capturePhoto() {
-    const permission = await ImagePicker.requestCameraPermissionsAsync()
-    if (!permission.granted) { Alert.alert('Camera permission needed', 'Allow camera access to capture inspection evidence.'); return }
-    const result = await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], quality: 0.8 })
-    if (result.canceled) return
-    const count = photos + result.assets.length; const draftId = saveDraft(address, photos, point, selectedLeadId)
-    if (!draftId) return
-    const capturedAt = timestamp()
-    let pendingCount = 0
     try {
-      db.withTransactionSync(() => {
-        result.assets.forEach((asset) => {
-          const photoInsert = db.runSync('INSERT INTO inspection_photo_queue (draft_id, client_id, local_uri, album, caption, mime_type, file_size_bytes, width, height, captured_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', draftId, clientId('photo'), asset.uri, photoAlbum, photoCaption.trim() || null, asset.mimeType ?? 'image/jpeg', asset.fileSize ?? null, asset.width ?? null, asset.height ?? null, capturedAt)
-          const photoQueueId = Number(photoInsert.lastInsertRowId)
-          const requestedFeatures: Array<[FieldAiFeature, boolean]> = [
-            ['caption_album', fieldAiPreferences.photoCaptionAlbumEnabled],
-            ['photo_completeness', fieldAiPreferences.photoCompletenessEnabled],
-          ]
-          for (const [feature, enabled] of requestedFeatures) {
-            if (!enabled || !photoQueueId) continue
-            db.runSync(
-              'INSERT OR IGNORE INTO inspection_ai_request_queue (request_key, draft_id, photo_queue_id, feature_key, status, source_photo_id, expires_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-              clientId('ai'), draftId, photoQueueId, feature, 'waiting_for_upload', null,
-              aiRequestExpiry(capturedAt, fieldAiPreferences.requestRetentionDays), capturedAt, capturedAt,
-            )
-          }
+      const permission = await ImagePicker.requestCameraPermissionsAsync()
+      if (!permission.granted) {
+        Alert.alert('Camera permission needed', 'Allow camera access to capture inspection evidence.')
+        return
+      }
+      const result = await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], quality: 0.8 })
+      if (result.canceled) return
+      if (!result.assets.length) {
+        setError('The camera returned no image. Try capturing the photo again.')
+        return
+      }
+      const count = photos + result.assets.length
+      const draftId = saveDraft(address, photos, point, selectedLeadId)
+      if (!draftId) return
+      const capturedAt = timestamp()
+      let pendingCount = 0
+      try {
+        db.withTransactionSync(() => {
+          result.assets.forEach((asset) => {
+            const photoInsert = db.runSync('INSERT INTO inspection_photo_queue (draft_id, client_id, local_uri, album, caption, mime_type, file_size_bytes, width, height, captured_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', draftId, clientId('photo'), asset.uri, photoAlbum, photoCaption.trim() || null, asset.mimeType ?? 'image/jpeg', asset.fileSize ?? null, asset.width ?? null, asset.height ?? null, capturedAt)
+            const photoQueueId = Number(photoInsert.lastInsertRowId)
+            const requestedFeatures: Array<[FieldAiFeature, boolean]> = [
+              ['caption_album', fieldAiPreferences.photoCaptionAlbumEnabled],
+              ['photo_completeness', fieldAiPreferences.photoCompletenessEnabled],
+            ]
+            for (const [feature, enabled] of requestedFeatures) {
+              if (!enabled || !photoQueueId) continue
+              db.runSync(
+                'INSERT OR IGNORE INTO inspection_ai_request_queue (request_key, draft_id, photo_queue_id, feature_key, status, source_photo_id, expires_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                clientId('ai'), draftId, photoQueueId, feature, 'waiting_for_upload', null,
+                aiRequestExpiry(capturedAt, fieldAiPreferences.requestRetentionDays), capturedAt, capturedAt,
+              )
+            }
+          })
+          db.runSync('UPDATE inspection_drafts SET photo_count = ?, updated_at = ? WHERE id = ?', count, timestamp(), draftId)
+          pendingCount = pendingRowCount(draftId)
         })
-        db.runSync('UPDATE inspection_drafts SET photo_count = ?, updated_at = ? WHERE id = ?', count, timestamp(), draftId)
-        pendingCount = pendingRowCount(draftId)
-      })
+      } catch {
+        setError('Could not save the captured photos to the offline queue. The inspection draft is still on the phone; try again.')
+        return
+      }
+      saveDraft(address, count, point, selectedLeadId)
+      setPhotos(count)
+      setPendingUploads(pendingCount)
+      setPhotoCaption('')
+      refreshPhotoQueue(draftId)
+      setNotice(`${result.assets.length} photo${result.assets.length === 1 ? '' : 's'} saved to the offline upload queue.`)
+      if (session) void syncNow()
     } catch {
-      setError('Could not save the captured photos to the offline queue. The inspection draft is still on the phone; try again.')
-      return
+      setError('Camera capture failed. Your existing inspection and queued evidence have not been changed.')
     }
-    saveDraft(address, count, point, selectedLeadId)
-    setPhotos(count); setPendingUploads(pendingCount); setPhotoCaption(''); refreshPhotoQueue(draftId); setNotice(`${result.assets.length} photo${result.assets.length === 1 ? '' : 's'} saved to the offline upload queue.`)
-    if (session) void syncNow()
   }
 
   async function captureLocation() {
-    const permission = await Location.requestForegroundPermissionsAsync()
-    if (!permission.granted) {
-      setError('Location permission is required to attach a property coordinate.')
-      return
-    }
-    const current = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced })
-    const next = { latitude: current.coords.latitude, longitude: current.coords.longitude }
-    setPoint(next)
-    let nextAddress = address
     try {
-      const places = await Location.reverseGeocodeAsync(next)
-      const formatted = formatGeocodedAddress(places[0])
-      if (formatted && !address.trim()) {
-        nextAddress = formatted
-        setAddress(formatted)
+      const permission = await Location.requestForegroundPermissionsAsync()
+      if (!permission.granted) {
+        setError('Location permission is required to attach a property coordinate.')
+        return
       }
+      const current = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced })
+      const next = { latitude: current.coords.latitude, longitude: current.coords.longitude }
+      setPoint(next)
+      let nextAddress = address
+      try {
+        const places = await Location.reverseGeocodeAsync(next)
+        const formatted = formatGeocodedAddress(places[0])
+        if (formatted && !address.trim()) {
+          nextAddress = formatted
+          setAddress(formatted)
+        }
+      } catch {
+        // GPS is still useful if the device cannot resolve a street address.
+      }
+      saveDraft(nextAddress, photos, next)
+      let alertLine = ''
+      if (online) {
+        const headline = await activeAlertHeadline(next.latitude, next.longitude)
+        setStormHeadline(headline ?? '')
+        if (headline) alertLine = ` Active alert: ${headline}.`
+      }
+      setNotice(
+        `Location captured at ${next.latitude.toFixed(5)}, ${next.longitude.toFixed(5)}.${nextAddress.trim() ? ` Address set to ${nextAddress}.` : ''} Confirm it before using it for a claim.${alertLine}`
+      )
     } catch {
-      // GPS is still useful if the device cannot resolve a street address.
+      setError('Could not capture the current location. Check device location services and try again.')
     }
-    saveDraft(nextAddress, photos, next)
-    let alertLine = ''
-    if (online) {
-      const headline = await activeAlertHeadline(next.latitude, next.longitude)
-      setStormHeadline(headline ?? '')
-      if (headline) alertLine = ` Active alert: ${headline}.`
-    }
-    setNotice(
-      `Location captured at ${next.latitude.toFixed(5)}, ${next.longitude.toFixed(5)}.${nextAddress.trim() ? ` Address set to ${nextAddress}.` : ''} Confirm it before using it for a claim.${alertLine}`
-    )
   }
 
   function saveMeasurements() {
@@ -756,7 +795,10 @@ export default function App() {
         try {
           body = await new File(photo.local_uri).arrayBuffer()
         } catch {
-          const response = await fetch(photo.local_uri); body = await response.blob()
+          const response = await fetch(photo.local_uri)
+          if (!response.ok) throw new Error('The captured photo file is no longer available on this device.')
+          body = await response.blob()
+          if (!body.size) throw new Error('The captured photo file is empty and cannot be uploaded.')
         }
         const { error: uploadError } = await supabase.storage.from('inspection-photos').upload(objectPath, body, { contentType: photo.mime_type, upsert: false })
         if (uploadError && !/already exists|duplicate/i.test(uploadError.message)) throw uploadError
