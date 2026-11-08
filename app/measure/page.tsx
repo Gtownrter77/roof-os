@@ -391,6 +391,7 @@ export default function MeasurePage() {
             imageHeight={imageSize.height || 500}
             scalePixels={Number(scalePixels) || 0}
             scaleFeet={Number(scaleFeet) || 0}
+            allowSixSquareRepairThreshold={allowSixSquareRepairThreshold}
             onAreaCalculated={(result) => setManualArea(result)}
           />}
           {manualArea && (() => {

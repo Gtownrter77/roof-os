@@ -36,6 +36,7 @@ const ManualDrawingTool = ({
   mapCenter,
   aerialTileUrl,
   aerialAttribution,
+  allowSixSquareRepairThreshold = false,
 }: {
   imageUrl?: string;
   imageWidth?: number;
@@ -46,6 +47,7 @@ const ManualDrawingTool = ({
   mapCenter?: { latitude: number; longitude: number } | null;
   aerialTileUrl?: string;
   aerialAttribution?: string;
+  allowSixSquareRepairThreshold?: boolean;
 }) => {
   const [points, setPoints] = useState<[number, number][]>([]);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -64,8 +66,8 @@ const ManualDrawingTool = ({
   const bounds = useMemo(() => [[0, 0], [height, width]] as [[number, number], [number, number]], [height, width]);
   const pixelsPerFoot = scalePixels > 0 && scaleFeet > 0 ? scalePixels / scaleFeet : 0;
   const areaSqFt = areaPx > 0 && pixelsPerFoot > 0 ? areaPx / (pixelsPerFoot * pixelsPerFoot) : 0;
-  const imageOrder = areaSqFt > 0 ? purchasableRoofing(areaSqFt) : null;
-  const geoOrder = geoAreaSqFt > 0 ? purchasableRoofing(geoAreaSqFt) : null;
+  const imageOrder = areaSqFt > 0 ? purchasableRoofing(areaSqFt, allowSixSquareRepairThreshold) : null;
+  const geoOrder = geoAreaSqFt > 0 ? purchasableRoofing(geoAreaSqFt, allowSixSquareRepairThreshold) : null;
 
   const calculateArea = () => {
     if (points.length < 3) return;
