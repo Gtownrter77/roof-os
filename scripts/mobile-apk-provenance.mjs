@@ -56,7 +56,7 @@ if (binaryVersion !== appVersion) {
   throw new Error(`APK version mismatch: expected ${appVersion}, found ${binaryVersion}`)
 }
 const signatureReport = execFileSync(apksigner, ['verify', '--verbose', '--print-certs', apkPath], { encoding: 'utf8' })
-const certificateMatch = signatureReport.match(/Signer #1 certificate SHA-256 digest:\s*([a-f0-9:]+)/i)
+const certificateMatch = signatureReport.match(/Signer #1 certificate SHA-256 digest:[\s\S]*?((?:[a-f0-9]{2}:){31}[a-f0-9]{2})/i)
 if (!certificateMatch) throw new Error('APK signing certificate SHA-256 fingerprint is missing')
 const signingCertificateSha256 = certificateMatch[1].replaceAll(':', '').toLowerCase()
 const workflowUrl = process.env.GITHUB_SERVER_URL && process.env.GITHUB_REPOSITORY && process.env.GITHUB_RUN_ID
