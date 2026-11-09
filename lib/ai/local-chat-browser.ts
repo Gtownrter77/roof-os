@@ -9,6 +9,9 @@ export type BrowserLocalChatInput = {
   history?: Array<{ role: 'user' | 'assistant'; content: string }>
   currentPath?: string
   suggestedAction?: { label: string; href: string }
+  systemPrompt?: string
+  maxTokens?: number
+  responseFormat?: 'json_object'
 }
 
 export function getLocalChatEndpoint() {
@@ -70,11 +73,12 @@ export async function askBrowserLocalOllama(input: BrowserLocalChatInput): Promi
         model: getLocalChatModel(),
         stream: false,
         temperature: 0.2,
-        max_tokens: 220,
+        max_tokens: Math.min(700, Math.max(80, input.maxTokens ?? 220)),
+        ...(input.responseFormat === 'json_object' ? { response_format: { type: 'json_object' } } : {}),
         messages: [
           {
             role: 'system',
-            content: 'You are the ROOF/OS operations copilot. Answer in at most two concise sentences. Never invent prices, coverage decisions, measurements, claim outcomes, or customer records. Do not claim to have changed data. If a relevant screen is provided, orient the user to it. You are running locally on the user’s own computer.',
+            content: input.systemPrompt?.slice(0, 8_000) || 'You are the ROOF/OS operations copilot. Answer in at most two concise sentences. Never invent prices, coverage decisions, measurements, claim outcomes, or customer records. Do not claim to have changed data. If a relevant screen is provided, orient the user to it. You are running locally on the user’s own computer.',
           },
           ...history,
           { role: 'user', content: [context, message].filter(Boolean).join('\n\n') },
