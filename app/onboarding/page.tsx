@@ -234,7 +234,7 @@ export default function OnboardingPage() {
             <h2 className="text-xl font-bold">Your Role</h2>
             <p className="text-xs leading-relaxed text-slate-400">This records your preferred role for onboarding context only. It does not grant workspace permissions or change access; an administrator manages those separately.</p>
             <div className="grid grid-cols-2 gap-3">
-              <button type="button" onClick={() => setForm({...form, role: 'owner'})} aria-pressed={form.role === 'owner'} className={`p-4 border-2 rounded-lg text-center ${form.role === 'owner' ? 'border-blue-500 bg-cyan-400/10' : 'border-white/10'}`}>
+              <button type="button" onClick={() => setForm({...form, role: 'owner'})} aria-pressed={form.role === 'owner'} className={`p-4 border-2 rounded-lg text-center ${form.role === 'owner' ? 'border-blue-500 bg-cyan-400/10' : 'border-white/10'} focus-visible:outline-2 focus-visible:outline-cyan-200`}>
                 <span className="text-2xl block">👔</span>
                 <span className="text-sm font-medium">Owner</span>
               </button>
