@@ -9,6 +9,7 @@ on:
       - .github/workflows/mobile-apk.yml
       - apps/field/**
       - scripts/mobile-apk-provenance.mjs
+      - scripts/mobile-apk-signature.mjs
     tags:
       - 'field-v*'
 
