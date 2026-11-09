@@ -36,6 +36,31 @@ begin
 end $$;
 reset role;
 
+-- Direct Data API writes must not bypass the profile allowlist or enum contract.
+set role authenticated;
+select set_config('request.jwt.claim.sub','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',false);
+do $profile_constraints$
+declare rejected boolean := false;
+begin
+  begin
+    update public.workspace_onboarding_profiles
+      set profile='{"companyType":"residential","unapprovedSetting":true}'
+      where workspace_id='11111111-1111-4111-8111-111111111111';
+  exception when check_violation then rejected := true;
+  end;
+  if not rejected then raise exception 'database accepted an unapproved profile key'; end if;
+
+  rejected := false;
+  begin
+    update public.workspace_onboarding_profiles
+      set profile='{"companyType":"automatic_everything"}'
+      where workspace_id='11111111-1111-4111-8111-111111111111';
+  exception when check_violation then rejected := true;
+  end;
+  if not rejected then raise exception 'database accepted an invalid companyType'; end if;
+end $profile_constraints$;
+reset role;
+
 -- A regular member may read the workspace profile but cannot create or edit it.
 set role authenticated;
 select set_config('request.jwt.claim.sub','bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',false);
