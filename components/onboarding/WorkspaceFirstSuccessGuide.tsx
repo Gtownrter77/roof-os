@@ -77,7 +77,7 @@ export default function WorkspaceFirstSuccessGuide({ canEdit, primaryGoal }: { c
 
   return (
     <details className="mt-5 rounded-2xl border border-violet-300/25 bg-violet-950/20 p-4">
-      <summary className="cursor-pointer text-sm font-semibold text-violet-100">
+      <summary className="cursor-pointer text-sm font-semibold text-violet-100 focus-visible:outline-2 focus-visible:outline-violet-200">
         Take your first-success tour
       </summary>
       <p className="mt-2 text-xs leading-relaxed text-slate-300">
@@ -92,7 +92,7 @@ export default function WorkspaceFirstSuccessGuide({ canEdit, primaryGoal }: { c
           <li key={item.href} className="flex items-start gap-3 rounded-xl border border-white/10 bg-black/15 p-3">
             <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-violet-300/15 text-xs font-bold text-violet-100">{index + 1}</span>
             <div className="min-w-0">
-              <Link href={item.href} className="text-sm font-semibold text-cyan-200 underline decoration-cyan-200/40 underline-offset-4 hover:text-cyan-100">{item.title} ↗</Link>
+              <Link href={item.href} className="text-sm font-semibold text-cyan-200 underline decoration-cyan-200/40 underline-offset-4 hover:text-cyan-100 focus-visible:outline-2 focus-visible:outline-cyan-200">{item.title} ↗</Link>
               <p className="mt-1 text-xs leading-relaxed text-slate-400">{item.description}</p>
             </div>
           </li>
