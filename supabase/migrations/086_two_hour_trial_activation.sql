@@ -9,8 +9,8 @@ alter table public.workspaces
 
 create table if not exists public.workspace_trial_claims (
   company_domain text primary key,
-  workspace_id uuid not null unique references public.workspaces(id) on delete cascade,
-  user_id uuid not null unique references auth.users(id) on delete cascade,
+  workspace_id uuid unique references public.workspaces(id) on delete set null,
+  user_id uuid unique references auth.users(id) on delete set null,
   claimed_at timestamptz not null default statement_timestamp()
 );
 
