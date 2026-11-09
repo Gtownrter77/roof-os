@@ -204,8 +204,7 @@ export default function AiChatBar() {
       className={`pointer-events-none fixed z-50 flex flex-col items-end gap-2 ${dockClass}`}
       data-ai-agent="true"
       role="complementary"
-      aria-label="Page AI agent"="region"
-      aria-label="AI Command Bar"
+      aria-label="Page AI agent"
     >
       {isOpen && (
         <div className="pointer-events-auto flex w-[min(100vw-2rem,22rem)] max-h-[min(70vh,28rem)] flex-col overflow-hidden rounded-2xl border border-cyan-500/40 bg-[#080d1a]/95 shadow-[0_12px_40px_rgba(0,0,0,0.8)] backdrop-blur-2xl sm:w-[22rem]">
