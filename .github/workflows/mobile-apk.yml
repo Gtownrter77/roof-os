@@ -7,6 +7,8 @@ on:
       - main
     paths:
       - .github/workflows/mobile-apk.yml
+      - apps/field/**
+      - scripts/mobile-apk-provenance.mjs
     tags:
       - 'field-v*'
 
