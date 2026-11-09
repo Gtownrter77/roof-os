@@ -156,6 +156,16 @@ alter table public.workspace_onboarding_profiles
   check (
     not (profile ? 'primaryGoal')
     or (jsonb_typeof(profile->'primaryGoal') = 'string' and length(profile->>'primaryGoal') <= 240)
+  ),
+
+  -- Completion must be meaningful even for direct authenticated Data API writes.
+  add constraint workspace_onboarding_profiles_completed_profile_check
+  check (
+    status <> 'completed'
+    or (
+      coalesce(profile->>'companyType' in ('residential', 'commercial', 'both'), false)
+      and nullif(btrim(profile->>'primaryGoal'), '') is not null
+    )
   );
 
 comment on column public.workspace_onboarding_profiles.schema_version is
