@@ -52,8 +52,8 @@ async function readBoundedResponse(response: Response) {
   return text
 }
 
-function geometryPrompt(sourceImageReference: string) {
-  return `Analyze this actual roof image as an assistant only. Return exactly one JSON object matching ROOF/OS geometry contract ${GEOMETRY_CONTRACT_VERSION}. Coordinates must be pixels in the supplied image. Set source_image_reference to exactly ${sourceImageReference}. Suggest roof planes as non-self-intersecting polygons, roof edges with classifications eave/rake/ridge/hip/valley/transition/step_flashing/other, and roof objects with types skylight/chimney/hvac/pipe_boot/attic_vent/other. Use low/medium/high confidence as a qualitative label, not a calibrated probability. Do not invent scale, feet, square feet, roofing squares, linear feet, quantities, or confirmed measurements. If the roof is not clearly visible, return empty arrays and a warning. No Markdown or extra keys.`
+function geometryPrompt(sourceImageReference: string, imageWidth: number, imageHeight: number) {
+  return `Analyze this actual roof image as an assistant only. Return exactly one JSON object matching ROOF/OS geometry contract ${GEOMETRY_CONTRACT_VERSION}. Set image_width to exactly ${imageWidth} and image_height to exactly ${imageHeight}. Coordinates must be pixels in the supplied image. Set source_image_reference to exactly ${sourceImageReference}. Suggest roof planes as non-self-intersecting polygons, roof edges with classifications eave/rake/ridge/hip/valley/transition/step_flashing/other, and roof objects with types skylight/chimney/hvac/pipe_boot/attic_vent/other. Use low/medium/high confidence as a qualitative label, not a calibrated probability. Do not invent scale, feet, square feet, roofing squares, linear feet, quantities, or confirmed measurements. If the roof is not clearly visible, return empty arrays and a warning. No Markdown or extra keys.`
 }
 
 export async function analyzeRoofImageWithLocalOllama(file: File, imageWidth: number, imageHeight: number, sourceImageReference = 'local-inspection-image'): Promise<BrowserVisionResult> {
@@ -86,7 +86,7 @@ export async function analyzeRoofImageWithLocalOllama(file: File, imageWidth: nu
         temperature: 0.1,
         response_format: { type: 'json_object' },
         messages: [{ role: 'user', content: [
-          { type: 'text', text: geometryPrompt(sourceImageReference) },
+          { type: 'text', text: geometryPrompt(sourceImageReference, imageWidth, imageHeight) },
           { type: 'image_url', image_url: { url: `data:${file.type};base64,${toBase64(bytes)}` } },
         ] }],
       }),
