@@ -119,7 +119,7 @@ begin
   if public.current_workspace_id() is not null then raise exception 'expired trial remains active workspace'; end if;
 end $$;
 
-do $
+do $$
 begin
   perform set_config('request.jwt.claim.sub','10000000-0000-4000-8000-000000000005',false);
   if not public.is_workspace_member('20000000-0000-4000-8000-000000000005') then raise exception 'existing customer workspace was locked'; end if;
