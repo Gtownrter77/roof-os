@@ -198,16 +198,16 @@ export default function WorkspaceOnboardingPage() {
             </div>
           )}
 
-          <div className="mt-8 flex items-center justify-between gap-3 border-t border-white/10 pt-4">
+          <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-4">
             <button type="button" onClick={() => setStep((current) => Math.max(0, current - 1))} disabled={step === 0} className="rounded-lg border border-white/15 px-4 py-2 text-sm text-slate-200 disabled:opacity-30">Back</button>
-            {step < STEPS.length - 1 ? (
-              <button type="button" onClick={() => setStep((current) => Math.min(STEPS.length - 1, current + 1))} className="rounded-lg bg-cyan-600 px-4 py-2 text-sm font-semibold text-white hover:bg-cyan-500">Next section</button>
-            ) : (
-              <div className="flex flex-wrap justify-end gap-2">
-                <button type="button" onClick={() => void save('draft')} disabled={!canEdit || saving} className="rounded-lg border border-cyan-300/40 px-4 py-2 text-sm font-semibold text-cyan-100 disabled:opacity-40">{saving ? 'Saving…' : 'Save progress'}</button>
+            <div className="flex flex-wrap justify-end gap-2">
+              <button type="button" onClick={() => void save('draft')} disabled={!canEdit || saving} className="rounded-lg border border-cyan-300/40 px-4 py-2 text-sm font-semibold text-cyan-100 disabled:opacity-40">{saving ? 'Saving…' : 'Save progress'}</button>
+              {step < STEPS.length - 1 ? (
+                <button type="button" onClick={() => setStep((current) => Math.min(STEPS.length - 1, current + 1))} className="rounded-lg bg-cyan-600 px-4 py-2 text-sm font-semibold text-white hover:bg-cyan-500">Next section</button>
+              ) : (
                 <button type="button" onClick={() => void save('completed')} disabled={!canEdit || saving} className="rounded-lg bg-cyan-600 px-4 py-2 text-sm font-semibold text-white hover:bg-cyan-500 disabled:opacity-40">Mark setup complete</button>
-              </div>
-            )}
+              )}
+            </div>
           </div>
           {status === 'completed' && <p className="mt-4 text-xs text-emerald-300">This workspace profile is marked complete. You can still update it as an administrator.</p>}
           {error && <p className="mt-4 text-sm text-red-300" role="alert">{error}</p>}
