@@ -25,6 +25,10 @@ assert.doesNotMatch(page, /useEffect\([\s\S]{0,500}save\('completed'\)/)
 
 // The UI must expose all eight setup sections and explain the non-operational boundary.
 assert.match(page, /const STEPS = \['Business', 'Service area', 'Work mix', 'Team', 'Sales & inspection', 'Operations', 'Communication', 'Goal'\]/)
+assert.match(page, /grid-cols-2 gap-2 sm:grid-cols-4/)
+assert.match(page, /TEAM_ROLE_OPTIONS\\.map/)
+assert.match(page, /type=\\"checkbox\\"/)
+assert.doesNotMatch(page, /five guided sections/)
 for (const step of ['Business', 'Service area', 'Work mix', 'Team', 'Sales & inspection', 'Operations', 'Communication', 'Goal']) {
   assert.ok(page.includes(step), `missing onboarding section: ${step}`)
 }
