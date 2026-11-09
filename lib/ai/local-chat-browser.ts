@@ -27,7 +27,7 @@ export function getLocalChatEndpoint() {
     url.search ||
     url.hash
   ) return null
-  return url.toString().replace(/\\/+$/, '')
+  return url.toString().replace(/\/+$/, '')
 }
 
 export function getLocalChatModel() {
@@ -54,7 +54,7 @@ export async function askBrowserLocalOllama(input: BrowserLocalChatInput): Promi
     input.suggestedAction
       ? `Relevant screen: ${input.suggestedAction.label} (${input.suggestedAction.href})`
       : '',
-  ].filter(Boolean).join('\\n')
+  ].filter(Boolean).join('\n')
 
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
@@ -76,7 +76,7 @@ export async function askBrowserLocalOllama(input: BrowserLocalChatInput): Promi
             content: 'You are the ROOF/OS operations copilot. Answer in at most two concise sentences. Never invent prices, coverage decisions, measurements, claim outcomes, or customer records. Do not claim to have changed data. If a relevant screen is provided, orient the user to it. You are running locally on the user’s own computer.',
           },
           ...history,
-          { role: 'user', content: [context, message].filter(Boolean).join('\\n\\n') },
+          { role: 'user', content: [context, message].filter(Boolean).join('\n\n') },
         ],
       }),
     })
@@ -86,7 +86,7 @@ export async function askBrowserLocalOllama(input: BrowserLocalChatInput): Promi
     }
 
     const contentLength = response.headers.get('content-length')
-    if (contentLength && /^\\d+$/.test(contentLength) && Number(contentLength) > MAX_RESPONSE_BYTES) {
+    if (contentLength && /^\d+$/.test(contentLength) && Number(contentLength) > MAX_RESPONSE_BYTES) {
       await response.body?.cancel().catch(() => undefined)
       return null
     }
