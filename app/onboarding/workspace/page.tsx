@@ -153,7 +153,7 @@ export default function WorkspaceOnboardingPage() {
     document.getElementById('step-heading')?.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'center' })
   }
   const hasUnsavedChanges = JSON.stringify(profile) !== JSON.stringify(savedProfile)
-  const canComplete = profile.companyType !== 'unsure' && Boolean(profile.primaryGoal?.trim())
+  const canComplete = ['residential', 'commercial', 'both'].includes(profile.companyType ?? 'unsure') && Boolean(profile.primaryGoal?.trim())
   const savedEntries = Object.entries(savedProfile).filter(([, value]) => {
     if (Array.isArray(value)) return value.length > 0 && !value.every((item) => item === 'unsure')
     return value !== undefined && value !== null && value !== '' && value !== 'unsure'
