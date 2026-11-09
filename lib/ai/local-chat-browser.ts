@@ -90,8 +90,31 @@ export async function askBrowserLocalOllama(input: BrowserLocalChatInput): Promi
       await response.body?.cancel().catch(() => undefined)
       return null
     }
-    const responseText = await response.text()
-    if (new TextEncoder().encode(responseText).byteLength > MAX_RESPONSE_BYTES) return null
+    if (!response.body) return null
+    const reader = response.body.getReader()
+    const chunks: Uint8Array[] = []
+    let totalBytes = 0
+    try {
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        totalBytes += value.byteLength
+        if (totalBytes > MAX_RESPONSE_BYTES) {
+          await reader.cancel().catch(() => undefined)
+          return null
+        }
+        chunks.push(value)
+      }
+    } finally {
+      reader.releaseLock()
+    }
+    const responseBytes = new Uint8Array(totalBytes)
+    let offset = 0
+    for (const chunk of chunks) {
+      responseBytes.set(chunk, offset)
+      offset += chunk.byteLength
+    }
+    const responseText = new TextDecoder().decode(responseBytes)
 
     const payload = JSON.parse(responseText) as {
       choices?: Array<{ message?: { content?: unknown } }>
