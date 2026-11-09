@@ -2,7 +2,7 @@
 \set ON_ERROR_STOP on
 
 -- The migration must explicitly grant only the authenticated operations it needs.
-do $
+do $grant_check$
 begin
   if not has_table_privilege('anon','public.workspace_onboarding_profiles','select') then
     -- expected: anonymous role has no Data API access
@@ -18,7 +18,7 @@ begin
   if has_table_privilege('authenticated','public.workspace_onboarding_profiles','delete') then
     raise exception 'authenticated role unexpectedly has DELETE privilege';
   end if;
-end $;
+end $grant_check$;
 
 -- Workspace A owner can create and read only its own profile.
 set role authenticated;
