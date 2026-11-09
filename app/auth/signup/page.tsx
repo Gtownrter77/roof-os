@@ -36,7 +36,10 @@ export default function SignupPage() {
         <p className="text-sm text-slate-400 text-center mt-1 mb-6">Choose a password so you can sign in without waiting for email links.</p>
         <label className="block text-sm font-medium text-slate-200 mb-1" htmlFor="company">Company name</label>
         <input id="company" type="text" required value={company} onChange={(event) => setCompany(event.target.value)} className="ops-input mb-4" placeholder="Your Roofing Company" />
-        <label className="block text-sm font-medium text-slate-200 mb-1" htmlFor="companyDomain">Company email domain</label>\n        <input id="companyDomain" type="text" required value={companyDomain} onChange={(event) => setCompanyDomain(event.target.value)} className="ops-input mb-4" placeholder="yourcompany.com" autoComplete="organization" />\n        <p className="text-xs text-slate-400 -mt-3 mb-4">Use the domain after the @ in your verified work email. Personal email providers are not eligible.</p>\n        <label className="block text-sm font-medium text-slate-200 mb-1" htmlFor="email">Work email</label>
+        <label className="block text-sm font-medium text-slate-200 mb-1" htmlFor="companyDomain">Company email domain</label>
+        <input id="companyDomain" type="text" required value={companyDomain} onChange={(event) => setCompanyDomain(event.target.value)} className="ops-input mb-4" placeholder="yourcompany.com" autoComplete="organization" />
+        <p className="text-xs text-slate-400 -mt-3 mb-4">Use the domain after the @ in your verified work email. Personal email providers are not eligible.</p>
+        <label className="block text-sm font-medium text-slate-200 mb-1" htmlFor="email">Work email</label>
         <input id="email" type="email" required value={email} onChange={(event) => setEmail(event.target.value)} className="ops-input mb-4" placeholder="you@company.com" />
         <label className="block text-sm font-medium text-slate-200 mb-1" htmlFor="password">Password</label>
         <input id="password" type="password" required minLength={8} value={password} onChange={(event) => setPassword(event.target.value)} className="ops-input mb-4" placeholder="At least 8 characters" />
