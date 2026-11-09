@@ -184,7 +184,7 @@ export default function OnboardingPage() {
                 placeholder="Workspace name not available"
                 aria-describedby="onboarding-company-name-help"
               />
-              <p id="onboarding-company-name-help" className="mt-1 text-xs text-slate-400">This name comes from the active workspace record. Onboarding will not overwrite the workspace name with a separate account-metadata copy.</p>
+              <p id="onboarding-company-name-help" className="mt-1 text-xs text-slate-400">The active workspace record is authoritative. The original signup name is shown only as a fallback if the workspace cannot be read; onboarding never renames the workspace.</p>
             </div>
             <div>
               <label htmlFor="onboarding-company-phone" className="block text-sm font-medium text-slate-200 mb-1">Phone</label>
