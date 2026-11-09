@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
-import { analyzeRoofGeometryWithGemini, GeminiVisionError, getGeminiVisionModel } from '../../../../../lib/ai/gemini-vision.mjs'
+import { analyzeRoofGeometryWithGemini, GeminiVisionError } from '../../../../../lib/ai/gemini-vision.mjs'
 import { GEOMETRY_CONTRACT_VERSION, GeometryContractValidationError, validateGeometrySuggestion } from '../../../../../lib/ai/geometry-contract'
 import { createAdminClient } from '../../../../../lib/supabase/admin'
 import { getSupabaseEnv } from '../../../../../lib/supabase/env'
@@ -11,7 +11,7 @@ export const runtime = 'nodejs'
 export const maxDuration = 120
 
 const BUCKET = 'inspection-photos'
-const MAX_IMAGE_BYTES = 30 * 1024 * 1024
+const MAX_IMAGE_BYTES = 12 * 1024 * 1024
 const STORAGE_TIMEOUT_MS = 15_000
 const PROVIDER_TIMEOUT_MS = 90_000
 const PROMPT = [
@@ -23,7 +23,7 @@ const PROMPT = [
   'If the roof is not clearly visible, return empty arrays and a warning. Do not guess hidden geometry.',
   'Set source_image_reference to the exact source reference provided below.',
   'Every suggestion is unverified and must be reviewed by a human and calibrated before any quantity is calculated.',
-].join('\\n')
+].join('\n')
 
 class RouteError extends Error {
   constructor(readonly status: number, message: string) { super(message) }
@@ -41,9 +41,9 @@ function isExpectedImage(bytes: Buffer, mimeType: string) {
 
 async function readBounded(response: Response) {
   const declared = response.headers.get('content-length')
-  if (declared && /^\\d+$/.test(declared) && Number(declared) > MAX_IMAGE_BYTES) {
+  if (declared && /^\d+$/.test(declared) && Number(declared) > MAX_IMAGE_BYTES) {
     await response.body?.cancel().catch(() => undefined)
-    throw new RouteError(413, 'The selected roof image exceeds the 30 MB limit.')
+    throw new RouteError(413, 'The selected roof image exceeds the 12 MB limit.')
   }
   if (!response.body) throw new RouteError(502, 'The selected roof image could not be read.')
   const reader = response.body.getReader()
@@ -56,7 +56,7 @@ async function readBounded(response: Response) {
       size += value.byteLength
       if (size > MAX_IMAGE_BYTES) {
         await reader.cancel().catch(() => undefined)
-        throw new RouteError(413, 'The selected roof image exceeds the 30 MB limit.')
+        throw new RouteError(413, 'The selected roof image exceeds the 12 MB limit.')
       }
       chunks.push(Buffer.from(value))
     }
@@ -75,7 +75,7 @@ function rejectUnsafeClaims(value: unknown, path = 'root') {
     for (const [key, item] of Object.entries(value)) rejectUnsafeClaims(item, `${path}.${key}`)
     return
   }
-  if (typeof value === 'string' && ( /\\$\\s*\\d|\\b\\d+(?:\\.\\d+)?\\s*(?:sq\\.?\\s*ft|sqft|square feet|linear feet|feet|foot|ft|inches?)\\b|\\b\\d+(?:\\.\\d+)?\\s*(?:\\/|:)\\s*\\d+(?:\\.\\d+)?\\b|\\b(?:certified|verified|guaranteed|engineered|exact measurement)\\b/i.test(value) )) {
+  if (typeof value === 'string' && ( /\$\s*\d|\b\d+(?:\.\d+)?\s*(?:sq\.?\s*ft|sqft|square feet|linear feet|feet|foot|ft|inches?)\b|\b\d+(?:\.\d+)?\s*(?:\/|:)\s*\d+(?:\.\d+)?\b|\b(?:certified|verified|guaranteed|engineered|exact measurement)\b/i.test(value) )) {
     throw new RouteError(502, `Gemini returned an unsupported measurement claim in ${path}. Manual tracing remains available.`)
   }
 }
@@ -124,7 +124,7 @@ export async function POST(request: NextRequest) {
       return jsonError('The photo does not use an authorized private-storage path or supported image type.', 415)
     }
     if (photo.file_size_bytes !== null && Number(photo.file_size_bytes) > MAX_IMAGE_BYTES) {
-      return jsonError('The selected roof image exceeds the 30 MB limit.', 413)
+      return jsonError('The selected roof image exceeds the 12 MB limit.', 413)
     }
 
     const admin = createAdminClient()
@@ -161,7 +161,7 @@ export async function POST(request: NextRequest) {
 
     const hash = createHash('sha256').update(bytes).digest('hex')
     const sourceReference = `inspection-photo:${photoId}:sha256:${hash}`
-    const prompt = `${PROMPT}\\nOriginal image dimensions: ${width} by ${height} pixels.\\nSource reference: ${sourceReference}`
+    const prompt = `${PROMPT}\nOriginal image dimensions: ${width} by ${height} pixels.\nSource reference: ${sourceReference}`
     const result = await analyzeRoofGeometryWithGemini({
       prompt,
       photo: { mimeType: photo.mime_type, bytes },
