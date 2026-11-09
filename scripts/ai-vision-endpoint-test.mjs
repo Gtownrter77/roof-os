@@ -177,4 +177,4 @@ try {
   else process.env.GEMINI_PAID_SERVICE_CONFIRMED = previousPaidConfirmation
 }
 
-console.log('ai-vision-endpoint-test: PASS (local photo/siding vision plus authenticated server-side Gemini aerial geometry)')
+console.log('ai-vision-endpoint-test: PASS (local photo/siding vision, browser-local /measure Ollama integration, and legacy authenticated Gemini route safeguards)')
