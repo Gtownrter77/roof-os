@@ -47,9 +47,9 @@ function LoginPageContent() {
   async function signIn(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setLoading('password'); setError(''); setMessage('')
-    const { error: signInError } = await supabase.auth.signInWithPassword({ email: email.trim(), password })
+    const { data, error: signInError } = await supabase.auth.signInWithPassword({ email: email.trim(), password })
     if (signInError) setError('Sign-in failed. Check your email and password, then try again.')
-    else router.replace(next)
+    else router.replace(data.user?.user_metadata?.request_two_hour_trial === true ? '/trial/activate' : next)
     setLoading(null)
   }
 

@@ -1,10 +1,13 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { analyzePhotosWithOllama, getOllamaVisionApiBaseUrl, getOllamaVisionModel, LocalVisionError } from '../lib/ai/local-vision.mjs'
+import { analyzeRoofGeometryWithGemini, getGeminiVisionModel, GeminiVisionError } from '../lib/ai/gemini-vision.mjs'
 
 const root = new URL('../', import.meta.url)
 const photoRoute = readFileSync(new URL('app/api/photo-estimate/analyze/route.ts', root), 'utf8')
 const aerialRoute = readFileSync(new URL('app/api/measurements/aerial/route.ts', root), 'utf8')
+const aerialGeminiRoute = readFileSync(new URL('app/api/measurements/aerial/ai-suggest/route.ts', root), 'utf8')
+const measurePage = readFileSync(new URL('app/measure/page.tsx', root), 'utf8')
 const sidingRoute = readFileSync(new URL('app/api/siding/analyze/route.ts', root), 'utf8')
 const browserVision = readFileSync(new URL('lib/ai/local-vision-browser.ts', root), 'utf8')
 const helper = readFileSync(new URL('lib/ai/local-vision.mjs', root), 'utf8')
@@ -112,4 +115,65 @@ try {
   else process.env.OLLAMA_VISION_MODEL = previousModel
 }
 
-console.log('ai-vision-endpoint-test: PASS (server-local photo/siding vision plus browser-loopback aerial vision, no hosted model fallback)')
+// Aerial geometry now runs through an authenticated server route and keeps the API key server-side.
+assert.ok(aerialGeminiRoute.includes('analyzeRoofGeometryWithGemini('))
+assert.ok(aerialGeminiRoute.includes('requireWorkspaceMember('))
+assert.ok(aerialGeminiRoute.includes('createAdminClient()'))
+assert.ok(aerialGeminiRoute.includes('consume_public_rate_limit'))
+assert.ok(aerialGeminiRoute.includes('createSignedUrl(photo.object_path, 60)'))
+assert.ok(aerialGeminiRoute.includes('signedUrl.origin !== storageOrigin'))
+assert.ok(aerialGeminiRoute.includes('validateGeometrySuggestion(candidate)'))
+assert.ok(aerialGeminiRoute.includes('rejectUnsafeClaims(suggestion)'))
+assert.ok(!measurePage.includes('local-vision-browser'))
+assert.ok(measurePage.includes('/api/measurements/aerial/ai-suggest'))
+assert.ok(measurePage.includes('file.size > 12 * 1024 * 1024'))
+
+const previousGeminiKey = process.env.GEMINI_API_KEY
+const previousGeminiModel = process.env.GEMINI_VISION_MODEL
+const previousPaidConfirmation = process.env.GEMINI_PAID_SERVICE_CONFIRMED
+try {
+  process.env.GEMINI_API_KEY = 'test-server-only-key'
+  process.env.GEMINI_VISION_MODEL = 'gemini-test-model'
+  delete process.env.GEMINI_PAID_SERVICE_CONFIRMED
+  globalThis.fetch = async () => { throw new Error('Network must not be called before paid-service confirmation.') }
+  await assert.rejects(
+    analyzeRoofGeometryWithGemini({ prompt: 'x', photo: { mimeType: 'image/jpeg', bytes: Buffer.from('x') }, timeoutMs: 1_000 }),
+    (error) => error instanceof GeminiVisionError && error.status === 503,
+  )
+  process.env.GEMINI_PAID_SERVICE_CONFIRMED = 'true'
+  let geminiUrl
+  let geminiInit
+  globalThis.fetch = async (url, init) => {
+    geminiUrl = String(url)
+    geminiInit = init
+    return new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: '{\"ok\":true}' }] } }] }), { status: 200, headers: { 'content-type': 'application/json' } })
+  }
+  assert.equal(getGeminiVisionModel(), 'gemini-test-model')
+  const geminiResult = await analyzeRoofGeometryWithGemini({
+    prompt: 'Return a geometry JSON object.',
+    photo: { mimeType: 'image/jpeg', bytes: Buffer.from('roof-image-fixture') },
+    timeoutMs: 1_000,
+  })
+  assert.equal(geminiUrl, 'https://generativelanguage.googleapis.com/v1beta/models/gemini-test-model:generateContent')
+  assert.equal(new Headers(geminiInit.headers).get('x-goog-api-key'), 'test-server-only-key')
+  assert.ok(!geminiUrl.includes('test-server-only-key'), 'Gemini key must never appear in the request URL')
+  const geminiBody = JSON.parse(geminiInit.body)
+  assert.equal(geminiBody.contents[0].parts[1].inlineData.mimeType, 'image/jpeg')
+  assert.equal(geminiBody.contents[0].parts[1].inlineData.data, Buffer.from('roof-image-fixture').toString('base64'))
+  assert.equal(geminiBody.generationConfig.responseMimeType, 'application/json')
+  assert.deepEqual(geminiResult, { model: 'gemini-test-model', text: '{\"ok\":true}' })
+  globalThis.fetch = async () => new Response('rate limited', { status: 429 })
+  await assert.rejects(
+    analyzeRoofGeometryWithGemini({ prompt: 'x', photo: { mimeType: 'image/png', bytes: Buffer.from('x') }, timeoutMs: 1_000 }),
+    (error) => error instanceof GeminiVisionError && error.status === 429,
+  )
+} finally {
+  if (previousGeminiKey === undefined) delete process.env.GEMINI_API_KEY
+  else process.env.GEMINI_API_KEY = previousGeminiKey
+  if (previousGeminiModel === undefined) delete process.env.GEMINI_VISION_MODEL
+  else process.env.GEMINI_VISION_MODEL = previousGeminiModel
+  if (previousPaidConfirmation === undefined) delete process.env.GEMINI_PAID_SERVICE_CONFIRMED
+  else process.env.GEMINI_PAID_SERVICE_CONFIRMED = previousPaidConfirmation
+}
+
+console.log('ai-vision-endpoint-test: PASS (local photo/siding vision plus authenticated server-side Gemini aerial geometry)')

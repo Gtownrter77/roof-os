@@ -26,14 +26,14 @@ export async function requireWorkspaceMember(
   workspaceId: unknown,
 ) {
   if (!isUuid(workspaceId)) return { response: badRequest('workspaceId must be a valid workspace UUID.') }
-  const { data, error } = await supabase
-    .from('workspace_members')
-    .select('workspace_id')
-    .eq('workspace_id', workspaceId)
-    .eq('user_id', userId).limit(1)
-    .maybeSingle()
+  // Ask the database's canonical membership helper instead of querying the
+  // membership table directly. The trial-expiry migration extends this helper
+  // to reject expired workspaces, including requests that retain an old session.
+  const { data: isMember, error } = await supabase.rpc('is_workspace_member', {
+    target_workspace: workspaceId,
+  })
   if (error) return { response: NextResponse.json({ error: 'Workspace authorization could not be verified.' }, { status: 503 }) }
-  if (!data) return { response: forbidden() }
+  if (!isMember) return { response: forbidden() }
   return { workspaceId }
 }
 

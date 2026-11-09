@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
 
   const { data, error } = await admin
     .from('roof_passports')
-    .select(PUBLIC_FIELDS)
+    .select(`${PUBLIC_FIELDS}, workspace_id`)
     .eq('public_token', token)
     .eq('public_shared', true)
     .limit(1)
@@ -44,5 +44,19 @@ export async function GET(request: NextRequest) {
   if (error) return NextResponse.json({ error: 'Passport could not be loaded.' }, { status: 502 })
   if (!data) return NextResponse.json({ error: 'This passport link is not available.' }, { status: 404 })
 
-  return NextResponse.json({ passport: data }, { headers: { 'Cache-Control': 'no-store' } })
+  // Public share tokens must not outlive a time-limited workspace trial.
+  const { data: workspace, error: workspaceError } = await admin
+    .from('workspaces')
+    .select('trial_expires_at')
+    .eq('id', data.workspace_id)
+    .maybeSingle()
+  if (workspaceError || !workspace) {
+    return NextResponse.json({ error: 'This passport link is not available.' }, { status: 404 })
+  }
+  if (workspace.trial_expires_at && new Date(workspace.trial_expires_at).getTime() <= Date.now()) {
+    return NextResponse.json({ error: 'This passport link is not available.' }, { status: 404 })
+  }
+
+  const { workspace_id: _workspaceId, ...passport } = data
+  return NextResponse.json({ passport }, { headers: { 'Cache-Control': 'no-store' } })
 }

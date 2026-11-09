@@ -15,6 +15,7 @@
     "test:auth-flow": "node scripts/auth-flow-test.mjs",
     "test:invitation-flow": "node scripts/invitation-flow-test.mjs",
     "test:two-workspace-contract": "node scripts/two-workspace-isolation-contract-test.mjs",
+    "test:two-hour-trial-activation": "node scripts/two-hour-trial-activation-contract-test.mjs",
     "audit": "npm audit --omit=dev --audit-level=high",
     "lint": "tsc --noEmit",
     "test:all": "node scripts/test-all.mjs",

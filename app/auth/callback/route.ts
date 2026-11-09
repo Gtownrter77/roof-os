@@ -54,7 +54,11 @@ export async function GET(request: Request) {
       if (error) return callbackFailure(url, next)
     }
 
-    return redirectNoStore(url, new URL(next, url.origin))
+    const { data: { user } } = await supabase.auth.getUser()
+    const destination = user?.user_metadata?.request_two_hour_trial === true
+      ? new URL('/trial/activate', url.origin)
+      : new URL(next, url.origin)
+    return redirectNoStore(url, destination)
   } catch {
     return callbackFailure(url, next)
   }

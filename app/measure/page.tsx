@@ -5,7 +5,6 @@ import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
 import { smartBack } from '../../lib/smart-back'
 import { createClient } from '../../lib/supabase/client'
-import { analyzeRoofImageWithLocalOllama } from '../../lib/ai/local-vision-browser'
 import type { GeometrySuggestion } from '../../lib/ai/geometry-contract'
 import { calculateCalibratedRoofDraft } from '../../lib/measurements/calibrated-roof-draft'
 import { purchasableRoofing, roofAreaRangeError } from '../../lib/measurements/purchasable-roofing'
@@ -142,12 +141,14 @@ export default function MeasurePage() {
       setError('Select an actual inspection or aerial image first.')
       return
     }
+    if (file.size > 12 * 1024 * 1024) {
+      setError('For automatic roof detection, choose an image under 12 MB. Manual tracing can still use larger images.')
+      return
+    }
     setWorking(true)
     setError('')
-    setStatus('Analyzing in this browser with local Ollama. The image is not uploaded until local analysis succeeds…')
+    setStatus('Saving the roof photo to private inspection storage before AI analysis…')
     try {
-      const localResult = await analyzeRoofImageWithLocalOllama(file, imageSize.width, imageSize.height)
-      setStatus('Local geometry suggestion validated. Saving the actual image to private inspection storage…')
 
       const { data: { user } } = await supabase.auth.getUser()
       const { data: workspaceId } = await supabase.rpc('current_workspace_id')
@@ -180,6 +181,14 @@ export default function MeasurePage() {
 
       setInspectionId(inspection.id)
       setPhotoId(objectId)
+      setStatus('Sending the private roof photo to Google Gemini for roof-shape suggestions…')
+      const aiResponse = await fetch('/api/measurements/aerial/ai-suggest', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ photoId: objectId, inspectionId: inspection.id, imageWidth: imageSize.width, imageHeight: imageSize.height }),
+      })
+      const aiPayload = await aiResponse.json().catch(() => null)
+      if (!aiResponse.ok || !aiPayload?.suggestion) throw new Error(aiPayload?.error || 'Google Gemini could not suggest roof geometry.')
       const response = await fetch('/api/measurements/aerial', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
@@ -188,11 +197,11 @@ export default function MeasurePage() {
           inspectionId: inspection.id,
           imageWidth: imageSize.width,
           imageHeight: imageSize.height,
-          suggestion: localResult.suggestion,
+          suggestion: aiPayload.suggestion,
         }),
       })
       const payload = await response.json().catch(() => null)
-      if (!response.ok) throw new Error(payload?.error || 'Validated local geometry could not be saved.')
+      if (!response.ok) throw new Error(payload?.error || 'Validated AI geometry could not be saved.')
       setMeasurementId(payload.measurement.id)
       setSuggestion(payload.suggestion ?? null)
       setCalibrated(false)
@@ -200,11 +209,11 @@ export default function MeasurePage() {
       setSavedMeasurementId('')
       setStatus(payload.cached
         ? 'Existing suggestions loaded. Confirmed geometry was not overwritten.'
-        : `Local ${localResult.model} suggestions saved. Review every shape before calibration and confirmation.`)
+        : `Google ${aiPayload.model} suggestions saved. Review every shape before calibration and confirmation.`)
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Local analysis failed.'
+      const message = err instanceof Error ? err.message : 'Roof AI analysis failed.'
       setError(message)
-      setStatus('No model-hosted fallback was used. Manual tracing remains available.')
+      setStatus('AI did not complete. Your photo remains private; manual tracing is still available.')
       throw err
     } finally {
       setWorking(false)
@@ -312,7 +321,7 @@ export default function MeasurePage() {
     setError('')
     try {
       const notes = [
-        'UNVERIFIED DRAFT. Derived from locally suggested, human-reviewed geometry; not an authoritative estimate quantity.',
+        'UNVERIFIED DRAFT. Derived from AI-suggested, human-reviewed geometry; not an authoritative estimate quantity.',
         'Technician attested that the source is a top-down orthographic image and that the scale applies across it.',
         `Scale reference: ${scalePixels} image pixels = ${scaleFeet} feet (${draftQuantity.pixelsPerFoot} px/ft).`,
         `Human-measured uniform roof pitch: ${pitchRisePer12}/12; slope multiplier ${draftQuantity.slopeMultiplier}.`,
@@ -350,7 +359,7 @@ export default function MeasurePage() {
           <button onClick={() => smartBack(router)} className="mb-2 text-xs text-cyan-300">← Back</button>
           <p className="ops-label">ROOF/OS Phase D · Measurement control</p>
           <h1 className="text-3xl font-black">AI-assisted roof geometry</h1>
-          <p className="mt-1 max-w-3xl text-sm text-slate-400"><b className="text-white">Local AI suggests. Human calibrates and confirms.</b> Geometry is not a quantity until the image, scale, pitch, and every suggestion pass the review gates.</p>
+          <p className="mt-1 max-w-3xl text-sm text-slate-400"><b className="text-white">AI suggests. Human calibrates and confirms.</b> Geometry is not a quantity until the image, scale, pitch, and every suggestion pass the review gates.</p>
         </header>
 
         <section className="glass rounded-xl p-4">
@@ -414,7 +423,7 @@ export default function MeasurePage() {
               setStatus(mapCenter ? 'Manual map tracing enabled. The mapped footprint is a ground reference, not roof surface area.' : 'Manual image tracing enabled. Enter a known scale reference before treating traced geometry as dimensions.')
             }}
           />
-          {file && <p className="mt-2 text-xs text-slate-400">{file.name} · {imageSize.width}×{imageSize.height}px · local analysis runs before private storage upload.</p>}
+          {file && <p className="mt-2 text-xs text-slate-400">{file.name} · {imageSize.width}×{imageSize.height}px · private storage upload happens before Gemini analysis.</p>}
           {error && <p className="mt-3 rounded-lg border border-red-400/30 bg-red-400/10 p-3 text-sm text-red-300" role="alert">{error}</p>}
           {status && <p className="mt-3 rounded-lg border border-emerald-400/30 bg-emerald-400/10 p-3 text-sm text-emerald-300" role="status">{status}</p>}
         </section>
@@ -432,7 +441,7 @@ export default function MeasurePage() {
               </g>
             </svg>}
           </div>
-          {suggestion && <p className="mt-2 text-xs text-slate-400">Dashed cyan polygons = local suggestions · amber lines = suggested edges · red dots = suggested objects. These are not quantities.</p>}
+          {suggestion && <p className="mt-2 text-xs text-slate-400">Dashed cyan polygons = AI suggestions · amber lines = suggested edges · red dots = suggested objects. These are not quantities.</p>}
         </section>}
 
         {suggestion && <section className="mt-4 grid gap-4 lg:grid-cols-3">
@@ -523,7 +532,7 @@ export default function MeasurePage() {
           </div> : <p className="mt-3 rounded-lg border border-white/10 bg-black/20 p-3 text-sm text-slate-400">No quantity yet. Confirm geometry, calibration, top-down image type, measured pitch, and uniform pitch across accepted planes; accept or edit at least one plane.</p>}
         </section>}
 
-        {!suggestion && <section className="glass mt-4 rounded-xl border-dashed p-4 text-sm text-slate-400">Manual measurement remains available even when local imagery or vision is unavailable. No fabricated image, geometry, scale, or measurement is shown.</section>}
+        {!suggestion && <section className="glass mt-4 rounded-xl border-dashed p-4 text-sm text-slate-400">Manual measurement remains available even when AI analysis is unavailable. No fabricated image, geometry, scale, or measurement is shown.</section>}
       </div>
     </main>
   )
