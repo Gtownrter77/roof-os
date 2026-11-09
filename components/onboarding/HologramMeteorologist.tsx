@@ -6,10 +6,9 @@ type Props = { step: number }
 
 const messages = [
   'Welcome aboard. I’m your ROOF/OS weather and roofing operations guide. I’ll help you get your workspace ready, one practical step at a time.',
-  'Let’s start with the company basics. Your service area helps us put local weather and roofing workflows in the right context.',
-  'Every crew works a little differently. Tell me about your work so ROOF/OS can present the right tools and terminology.',
-  'Choose the role that best describes your day-to-day work. I’ll tailor the tour to the responsibilities you select.',
-  'You’re ready for the next step. You stay in control of every setting and every operational decision.'
+  'Let’s start with your company details. Your state helps us put roofing workflows in the right regional context.',
+  'Choose the role that best describes your day-to-day work. I’ll help you find the tools that fit your responsibilities.',
+  'Your setup is ready to save. You stay in control of every setting and every operational decision.',
 ]
 
 export default function HologramMeteorologist({ step }: Props) {
