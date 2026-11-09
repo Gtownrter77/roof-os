@@ -482,6 +482,15 @@ jobs:
           PGUSER: postgres
           PGPASSWORD: ci-synthetic-only
         run: bash scripts/ci/verify-two-hour-trial-postgres.sh
+      - name: Run real PostgreSQL onboarding profile RLS tests
+        shell: bash
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGDATABASE: roofos_authority_ci
+          PGUSER: postgres
+          PGPASSWORD: ci-synthetic-only
+        run: bash scripts/ci/verify-onboarding-profile-postgres.sh
       - name: Run isolated PostgreSQL backup and restore rehearsal
         shell: bash
         env:
