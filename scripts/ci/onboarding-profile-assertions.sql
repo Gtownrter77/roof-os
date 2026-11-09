@@ -43,6 +43,14 @@ begin
 end $$;
 reset role;
 
+-- A workspace admin (not only the owner) may update the reviewed profile.
+set role authenticated;
+select set_config('request.jwt.claim.sub','dddddddd-dddd-4ddd-8ddd-dddddddddddd',false);
+update public.workspace_onboarding_profiles
+  set profile='{"companyType":"commercial"}',updated_by='dddddddd-dddd-4ddd-8ddd-dddddddddddd'
+  where workspace_id='11111111-1111-4111-8111-111111111111';
+reset role;
+
 -- Workspace B owner cannot read or write workspace A's profile.
 set role authenticated;
 select set_config('request.jwt.claim.sub','cccccccc-cccc-4ccc-8ccc-cccccccccccc',false);
