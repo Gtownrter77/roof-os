@@ -145,7 +145,6 @@ export default function MeasurePage() {
     setError('')
     setStatus('Saving the roof photo to private inspection storage before AI analysis…')
     try {
-      const localResult = await analyzeRoofImageWithLocalOllama(file, imageSize.width, imageSize.height)
       setStatus('Local geometry suggestion validated. Saving the actual image to private inspection storage…')
 
       const { data: { user } } = await supabase.auth.getUser()
