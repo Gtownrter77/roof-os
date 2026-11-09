@@ -1217,3 +1217,10 @@ Merge-resolution commit `4c1d7e2c54d07849632bb081dc71fc349d298d7b` is pushed to 
 ### PR #402 final verified check result — 2026-11-08
 
 On PR head `84bb1d09f214790b23ed34a2a61b5155879736d9` (remote ref independently matched), GitHub reports base `3bbd0d9b351505a16dcd96190aba932be6cf725d`, `mergeable: true`, and `mergeable_state: clean`. The completed run has **13 successful, 1 skipped, 0 failing, and 0 pending** checks. The only skipped entry is `refresh-field-lock (pull_request)`; its push counterpart succeeded. Vercel's PR preview deployment completed; this is not production deployment. PR #402 remains draft and unmerged by design; no production deployment or production-data operation was performed.
+
+
+## 2026-11-09 — Ollama endpoint correction
+
+The default OpenAI-compatible Ollama API port is **11434**, not 20128. Updated active local-vision defaults and regression assertions to `http://localhost:11434/v1`. Historical notes above that mention 20128 describe the previous configuration and are superseded by this checkpoint.
+
+Runtime boundary: loopback means the host making the request. A locally running Next.js server can reach Ollama on the same machine at 127.0.0.1:11434. A Vercel function's localhost is the Vercel runtime, not the user's computer; changing the port does not make a hosted function reach desktop Ollama. Do not set a workstation loopback address as a Vercel production endpoint. Browser-local inference also requires the browser helper to be explicitly wired into the UI and Ollama CORS/private-network permissions to allow the exact app origin; the existing helper is not currently imported by the /measure page. Live model reachability remains unverified because no Ollama host is available from this session.
