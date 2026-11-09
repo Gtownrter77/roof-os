@@ -238,15 +238,15 @@ export default function OnboardingPage() {
                 <span className="text-2xl block">👔</span>
                 <span className="text-sm font-medium">Owner</span>
               </button>
-              <button type="button" onClick={() => setForm({...form, role: 'manager'})} aria-pressed={form.role === 'manager'} className={`p-4 border-2 rounded-lg text-center ${form.role === 'manager' ? 'border-blue-500 bg-cyan-400/10' : 'border-white/10'}`}>
+              <button type="button" onClick={() => setForm({...form, role: 'manager'})} aria-pressed={form.role === 'manager'} className={`p-4 border-2 rounded-lg text-center ${form.role === 'manager' ? 'border-blue-500 bg-cyan-400/10' : 'border-white/10'} focus-visible:outline-2 focus-visible:outline-cyan-200`}>
                 <span className="text-2xl block">📋</span>
                 <span className="text-sm font-medium">Manager</span>
               </button>
-              <button type="button" onClick={() => setForm({...form, role: 'inspector'})} aria-pressed={form.role === 'inspector'} className={`p-4 border-2 rounded-lg text-center ${form.role === 'inspector' ? 'border-blue-500 bg-cyan-400/10' : 'border-white/10'}`}>
+              <button type="button" onClick={() => setForm({...form, role: 'inspector'})} aria-pressed={form.role === 'inspector'} className={`p-4 border-2 rounded-lg text-center ${form.role === 'inspector' ? 'border-blue-500 bg-cyan-400/10' : 'border-white/10'} focus-visible:outline-2 focus-visible:outline-cyan-200`}>
                 <span className="text-2xl block">🔍</span>
                 <span className="text-sm font-medium">Inspector</span>
               </button>
-              <button type="button" onClick={() => setForm({...form, role: 'sales'})} aria-pressed={form.role === 'sales'} className={`p-4 border-2 rounded-lg text-center ${form.role === 'sales' ? 'border-blue-500 bg-cyan-400/10' : 'border-white/10'}`}>
+              <button type="button" onClick={() => setForm({...form, role: 'sales'})} aria-pressed={form.role === 'sales'} className={`p-4 border-2 rounded-lg text-center ${form.role === 'sales' ? 'border-blue-500 bg-cyan-400/10' : 'border-white/10'} focus-visible:outline-2 focus-visible:outline-cyan-200`}>
                 <span className="text-2xl block">📞</span>
                 <span className="text-sm font-medium">Sales</span>
               </button>
