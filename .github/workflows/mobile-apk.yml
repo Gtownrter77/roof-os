@@ -90,12 +90,7 @@ jobs:
       - name: Record EAS CLI version
         run: eas --version
 
-      - name: Build Android preview APK with EAS
-        run: eas build --platform android --profile preview --non-interactive --wait
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-
-      - name: Download the exact source build
+      - name: Build Android preview APK locally with EAS
         id: eas
         shell: bash
         env:
@@ -103,15 +98,9 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p ../../artifacts
-          BUILD_ID="$(eas build:list --platform android --status finished --build-profile preview --git-commit-hash "${{ steps.source.outputs.source_sha }}" --limit 1 --json --non-interactive | node -e "let s=''; process.stdin.on('data', d => s += d).on('end', () => { const rows = JSON.parse(s); if (!rows[0]?.id) process.exit(1); process.stdout.write(rows[0].id) })")"
-          test -n "$BUILD_ID"
-          DOWNLOAD_LOG="$(eas build:download --build-id "$BUILD_ID" --non-interactive 2>&1)"
-          printf '%s\n' "$DOWNLOAD_LOG"
-          APK="$(printf '%s\n' "$DOWNLOAD_LOG" | sed -n 's/^Build downloaded to //p' | tail -1)"
-          test -n "$APK"
-          test -f "$APK"
-          cp "$APK" ../../artifacts/roof-os-field-preview.apk
-          echo "build_id=$BUILD_ID" >> "$GITHUB_OUTPUT"
+          eas env:exec preview 'eas build --platform android --profile preview --local --output ../../artifacts/roof-os-field-preview.apk --non-interactive' --non-interactive
+          test -s ../../artifacts/roof-os-field-preview.apk
+          echo "build_id=local-${GITHUB_RUN_ID}" >> "$GITHUB_OUTPUT"
 
       - name: Verify APK binary identity and signature
         shell: bash
