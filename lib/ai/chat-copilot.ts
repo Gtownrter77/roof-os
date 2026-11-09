@@ -1,11 +1,4 @@
-import { askOllama } from './ollama.ts'
-
 const MAX_TRANSCRIPTION_RESPONSE_BYTES = 1 * 1024 * 1024
-
-export type ChatMessage = {
-  role: 'user' | 'assistant'
-  content: string
-}
 
 export type ChatAction = {
   label: string
@@ -125,8 +118,6 @@ export async function processAudioTranscription(
 
 export async function processChatCopilot(input: {
   message: string
-  history?: ChatMessage[]
-  currentPath?: string
 }): Promise<ChatResponse> {
   const query = input.message.trim()
   if (!query) {
@@ -142,38 +133,9 @@ export async function processChatCopilot(input: {
     ? ROOF_OS_NAVIGATION_MAP.find((item) => item.action.href === '/photo-estimate' && item.keywords.test(query))
     : undefined
   const matchedNav = photoMatch || ROOF_OS_NAVIGATION_MAP.find((item) => item.keywords.test(query))
-  const historyBlock = (input.history || [])
-    .slice(-6)
-    .map((item) => `${item.role}: ${item.content}`)
-    .join('\n')
-
-  const llmReply = await askOllama(
-    [
-      'You are the ROOF/OS operations copilot for a roofing company.',
-      'Answer in at most two short sentences.',
-      'Do not invent prices, coverage decisions, measurements, or claim outcomes.',
-      'If a matching screen is provided, mention it and keep the user oriented.',
-      matchedNav ? `The matching screen is ${matchedNav.action.href} (${matchedNav.action.label}).` : 'No screen matched.',
-      input.currentPath ? `Current path: ${input.currentPath}` : '',
-      historyBlock ? `Recent conversation:\n${historyBlock}` : '',
-      `User: ${query}`,
-    ]
-      .filter(Boolean)
-      .join('\n'),
-    { timeoutMs: 2_500 },
-  )
-
-  if (llmReply) {
-    return {
-      reply: llmReply,
-      suggestedAction: matchedNav?.action,
-      quickReplies: getSuggestedQuickReplies(matchedNav?.action.href),
-    }
-  }
-
   if (matchedNav) {
     return {
-      reply: `${matchedNav.defaultReply} Local Ollama is unavailable, so this reply is rule-based navigation. Would you like to open that screen?`,
+      reply: `${matchedNav.defaultReply} Local Ollama could not be reached from this browser, so this is rule-based navigation. Check that Ollama is running, the chat model is installed, and OLLAMA_ORIGINS allows this exact app origin. Would you like to open that screen?`,
       suggestedAction: matchedNav.action,
       quickReplies: getSuggestedQuickReplies(matchedNav.action.href),
     }
@@ -181,7 +143,7 @@ export async function processChatCopilot(input: {
 
   return {
     reply:
-      'Local Ollama is not reachable. I can still open storms, leads, measurements, estimates, reports, or invoices from here.',
+      'Local Ollama could not be reached from this browser. Check that it is running and OLLAMA_ORIGINS allows this exact app origin. I can still open storms, leads, measurements, estimates, reports, or invoices.',
     suggestedAction: { label: 'Go to Command Center', href: '/' },
     quickReplies: ['Track Active Storms', 'Aerial Measurement', 'New Estimate', 'Golden Report'],
   }

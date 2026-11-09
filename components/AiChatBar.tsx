@@ -1,6 +1,7 @@
 'use client'
 
 import { FormEvent, useEffect, useRef, useState } from 'react'
+import { askBrowserLocalOllama } from '../lib/ai/local-chat-browser'
 import { usePathname, useRouter } from 'next/navigation'
 import {
   ArrowRight,
@@ -156,9 +157,7 @@ export default function AiChatBar() {
         signal: AbortSignal.timeout(10_000),
         body: JSON.stringify({
           message: text,
-          currentPath: pathname,
           fields: fields.map(({ key, label, value, type }) => ({ key, label, value, type })),
-          history: messages.slice(-6).map((m) => ({ role: m.role, content: m.content })),
         }),
       })
 
@@ -167,6 +166,14 @@ export default function AiChatBar() {
       }
 
       const data = await response.json()
+      // The API returns deterministic navigation/fill guidance. Run text inference
+      // from this browser so localhost means the user's desktop, not the Vercel host.
+      const localReply = data.refused === true ? null : await askBrowserLocalOllama({
+        message: text,
+        history: messages.slice(-6).map((m) => ({ role: m.role, content: m.content })),
+        currentPath: pathname,
+        suggestedAction: data.suggestedAction,
+      })
       const fills = Array.isArray(data.fills) ? data.fills : []
       const labeled = fills
         .filter((fill: { key?: string; value?: string }) => typeof fill.key === 'string' && typeof fill.value === 'string')
@@ -188,7 +195,7 @@ export default function AiChatBar() {
       const assistantMessage: Message = {
         id: `assistant-${Date.now()}`,
         role: 'assistant',
-        content: data.reply || 'What would you like me to fill on this page?',
+        content: localReply || data.reply || 'What would you like me to fill on this page?',
         action: data.suggestedAction,
       }
       setMessages((prev) => [...prev, assistantMessage])

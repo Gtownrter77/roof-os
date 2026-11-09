@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { askBrowserLocalOllama, getLocalChatEndpoint, getLocalChatModel } from '../lib/ai/local-chat-browser.ts'
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
@@ -168,4 +169,67 @@ try {
   else process.env.WHISPER_WORKER_URL = savedWhisperWorkerUrl
 }
 
-console.log('ai-chat-bar-test: PASS (copilot routes resolve; missing Whisper is surfaced; team/photo workflows are wired and honestly labeled)')
+
+const localChatSource = readFileSync(join(root, 'lib', 'ai', 'local-chat-browser.ts'), 'utf8')
+assert.ok(componentSource.includes('askBrowserLocalOllama'), 'chat UI must call browser-local Ollama')
+assert.ok(!copilotSource.includes('askOllama'), 'server-side copilot must not try to reach the hosting machine localhost')
+assert.ok(localChatSource.includes('LOCAL_HOSTS'), 'browser chat may connect only to loopback')
+assert.ok(localChatSource.includes("credentials: 'omit'"), 'local Ollama requests must not send app cookies')
+assert.ok(routeSource.includes('processChatCopilot'), 'authenticated API route retains deterministic copilot navigation')
+assert.ok(routeSource.includes('refused: true'), 'server permission refusals are explicitly marked')
+assert.ok(componentSource.includes('data.refused === true ? null : await askBrowserLocalOllama'), 'local model cannot overwrite a server-enforced role refusal')
+const serverRequestStart = componentSource.indexOf("fetch('/api/ai/chat'")
+const serverRequestEnd = componentSource.indexOf('const data = await response.json()', serverRequestStart)
+assert.ok(serverRequestStart >= 0 && serverRequestEnd > serverRequestStart, 'server chat request block exists')
+assert.ok(!componentSource.slice(serverRequestStart, serverRequestEnd).includes('history:'), 'chat history stays in the browser and is not sent to the app server')
+assert.ok(!routeSource.includes('history?: unknown'), 'server route does not accept or retain chat history')
+
+const savedChatBase = process.env.NEXT_PUBLIC_OLLAMA_CHAT_API_BASE_URL
+const savedChatModel = process.env.NEXT_PUBLIC_OLLAMA_CHAT_MODEL
+const savedChatFetch = globalThis.fetch
+try {
+  delete process.env.NEXT_PUBLIC_OLLAMA_CHAT_API_BASE_URL
+  process.env.NEXT_PUBLIC_OLLAMA_CHAT_MODEL = 'llama3:test'
+  assert.equal(getLocalChatEndpoint(), 'http://localhost:11434/v1')
+  assert.equal(getLocalChatModel(), 'llama3:test')
+  let requestUrl
+  let requestInit
+  globalThis.fetch = async (url, init) => {
+    requestUrl = url
+    requestInit = init
+    return new Response(JSON.stringify({ choices: [{ message: { content: '  Local answer  ' } }] }), {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    })
+  }
+  assert.equal(await askBrowserLocalOllama({
+    message: 'How do I inspect a roof?',
+    history: [{ role: 'user', content: 'Previous question' }],
+    currentPath: '/measure',
+    suggestedAction: { label: 'Measurements', href: '/measure' },
+  }), 'Local answer')
+  assert.equal(requestUrl, 'http://localhost:11434/v1/chat/completions')
+  assert.equal(requestInit.credentials, 'omit')
+  assert.equal(new Headers(requestInit.headers).get('authorization'), null)
+  const localBody = JSON.parse(requestInit.body)
+  assert.equal(localBody.model, 'llama3:test')
+  assert.equal(localBody.messages.at(-1).role, 'user')
+  assert.match(localBody.messages.at(-1).content, /Current ROOF\/OS page: \/measure/)
+  globalThis.fetch = async () => new Response('x'.repeat(300 * 1024), { status: 200 })
+  assert.equal(await askBrowserLocalOllama({ message: 'test' }), null, 'oversized local model responses are rejected')
+
+  process.env.NEXT_PUBLIC_OLLAMA_CHAT_API_BASE_URL = 'https://example.com/v1'
+  assert.equal(getLocalChatEndpoint(), null, 'remote hosts are rejected')
+  assert.equal(await askBrowserLocalOllama({ message: 'test' }), null, 'remote endpoint is never contacted')
+  process.env.NEXT_PUBLIC_OLLAMA_CHAT_API_BASE_URL = 'http://localhost:11434/v1'
+  globalThis.fetch = async () => { throw new TypeError('CORS blocked') }
+  assert.equal(await askBrowserLocalOllama({ message: 'test' }), null, 'offline/CORS errors preserve fallback behavior')
+} finally {
+  globalThis.fetch = savedChatFetch
+  if (savedChatBase === undefined) delete process.env.NEXT_PUBLIC_OLLAMA_CHAT_API_BASE_URL
+  else process.env.NEXT_PUBLIC_OLLAMA_CHAT_API_BASE_URL = savedChatBase
+  if (savedChatModel === undefined) delete process.env.NEXT_PUBLIC_OLLAMA_CHAT_MODEL
+  else process.env.NEXT_PUBLIC_OLLAMA_CHAT_MODEL = savedChatModel
+}
+
+console.log('ai-chat-bar-test: PASS (browser-local Ollama, loopback-only endpoint, deterministic fallback, copilot navigation and existing workflows)')
