@@ -106,6 +106,8 @@ assert.ok(route.includes('status: 404'), 'foreign estimate is not leaked')
 assert.ok(route.includes(".eq('workspace_id', workspaceId)"), 'queries are workspace scoped')
 assert.ok(route.includes('ACCEPTANCE_DISCLAIMER'), 'route returns the disclaimer')
 assert.ok(route.includes('status: 409'), 'duplicate or state-conflict is a 409')
+assert.ok(route.includes('eventType !== \'waived\' && rawAmount <= 0'), 'non-waiver deposit events require a positive amount')
+assert.ok(route.includes('A waived deposit has no amount.'), 'waivers remain zero-value only')
 assert.ok(!/signature|signed_pdf|docusign|dropbox\.sign/i.test(route), 'no signature feature is claimed')
 assert.ok(!/stripe|authorize\.net|payment_intent|card_number/i.test(route), 'route never charges money')
 
