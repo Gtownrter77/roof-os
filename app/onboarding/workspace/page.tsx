@@ -30,6 +30,13 @@ const EMPTY_PROFILE: OnboardingProfile = {
   primaryGoal: '',
 }
 
+type WorkspaceDefaults = {
+  default_language?: string
+  default_zipcode?: string | null
+  preferred_brands?: Record<string, string>
+  material_search_mode?: 'catalog_only' | 'catalog_and_retailer'
+}
+
 const STEPS = ['Business', 'Service area', 'Work mix', 'Team', 'Sales & inspection', 'Operations', 'Communication', 'Goal']
 type TeamRole = NonNullable<OnboardingProfile['teamRoles']>[number]
 const TEAM_ROLE_OPTIONS: Array<{ value: TeamRole; label: string }> = [
@@ -65,6 +72,9 @@ export default function WorkspaceOnboardingPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
+  const [workspaceDefaults, setWorkspaceDefaults] = useState<WorkspaceDefaults | null>(null)
+  const [defaultsPersisted, setDefaultsPersisted] = useState(false)
+  const [defaultsError, setDefaultsError] = useState('')
 
   useEffect(() => {
     let active = true
@@ -88,6 +98,24 @@ export default function WorkspaceOnboardingPage() {
       }
     }
     void loadProfile()
+    return () => { active = false }
+  }, [])
+
+  useEffect(() => {
+    let active = true
+    async function loadWorkspaceDefaults() {
+      try {
+        const response = await fetch('/api/settings', { cache: 'no-store' })
+        const data = await response.json()
+        if (!response.ok) throw new Error(data.error || 'Could not load workspace defaults.')
+        if (!active) return
+        setWorkspaceDefaults(data.settings ?? null)
+        setDefaultsPersisted(data.persisted === true)
+      } catch (cause) {
+        if (active) setDefaultsError(cause instanceof Error ? cause.message : 'Could not load workspace defaults.')
+      }
+    }
+    void loadWorkspaceDefaults()
     return () => { active = false }
   }, [])
 
@@ -204,6 +232,30 @@ export default function WorkspaceOnboardingPage() {
             )}
           </div>
         </details>
+        <section className="mb-5 rounded-xl border border-white/15 bg-slate-950/55 p-4" aria-labelledby="workspace-defaults-heading">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 id="workspace-defaults-heading" className="text-sm font-semibold text-cyan-100">Existing workspace defaults</h2>
+              <p className="mt-1 text-xs text-slate-400">Read-only snapshot of settings already stored in ROOF/OS. This wizard does not duplicate or change them.</p>
+            </div>
+            {canEdit && <a href="/settings" className="rounded-lg border border-cyan-300/30 px-3 py-2 text-xs font-semibold text-cyan-100 hover:bg-cyan-300/10">Review in Settings</a>}
+          </div>
+          {defaultsError ? (
+            <p className="mt-3 text-xs text-amber-200" role="status">{defaultsError} You can still finish the workspace profile.</p>
+          ) : !workspaceDefaults ? (
+            <p className="mt-3 text-xs text-slate-400" role="status">Loading existing defaults…</p>
+          ) : (
+            <>
+              <dl className="mt-3 grid gap-3 text-xs sm:grid-cols-2">
+                <div><dt className="text-slate-500">Language</dt><dd className="mt-1 font-medium text-slate-200">{workspaceDefaults.default_language || 'Not set'}</dd></div>
+                <div><dt className="text-slate-500">Default service ZIP</dt><dd className="mt-1 font-medium text-slate-200">{workspaceDefaults.default_zipcode || 'Not set'}</dd></div>
+                <div><dt className="text-slate-500">Preferred material brands</dt><dd className="mt-1 font-medium text-slate-200">{Object.entries(workspaceDefaults.preferred_brands ?? {}).map(([category, brand]) => `${category}: ${brand}`).join(' · ') || 'None saved'}</dd></div>
+                <div><dt className="text-slate-500">Material search</dt><dd className="mt-1 font-medium text-slate-200">{workspaceDefaults.material_search_mode === 'catalog_only' ? 'Catalog only' : 'Catalog and retailer'}</dd></div>
+              </dl>
+              <p className="mt-3 text-[11px] text-slate-500">{defaultsPersisted ? 'Saved workspace settings.' : 'Showing system defaults; no workspace override has been saved yet.'} Changes remain in the existing Settings authorization flow.</p>
+            </>
+          )}
+        </section>
 
         {canEdit && setupMode === 'choose' && (
           <section id="setup-mode-choice" className="mb-6 rounded-2xl border border-cyan-300/25 bg-slate-950/65 p-4" aria-labelledby="setup-mode-heading">
