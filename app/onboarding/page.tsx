@@ -17,6 +17,25 @@ export default function OnboardingPage() {
   })
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
+  const [checkingAccess, setCheckingAccess] = useState(true)
+
+  useEffect(() => {
+    let active = true
+    async function routeWorkspaceMembers() {
+      try {
+        const response = await fetch('/api/onboarding/profile', { cache: 'no-store' })
+        if (!response.ok) return
+        const data = await response.json()
+        if (active && data.canEdit === false) router.replace('/onboarding/workspace')
+      } catch {
+        // If the profile endpoint is unavailable, leave the account form usable.
+      } finally {
+        if (active) setCheckingAccess(false)
+      }
+    }
+    void routeWorkspaceMembers()
+    return () => { active = false }
+  }, [router])
 
   useEffect(() => {
     let active = true
@@ -243,6 +262,10 @@ export default function OnboardingPage() {
           </div>
         )
     }
+  }
+
+  if (checkingAccess) {
+    return <main className="ops-bg flex min-h-screen items-center justify-center p-6 text-sm text-slate-300">Checking workspace access…</main>
   }
 
   return (
