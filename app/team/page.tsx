@@ -3,11 +3,13 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { smartBack } from '../../lib/smart-back'
+import { INVITE_LAYERS, type EmployeeLayer } from '../../lib/employee-layers'
 
 type Invitation = {
   id: string
   email: string
   role: 'admin' | 'member' | string
+  employee_layer?: EmployeeLayer | null
   status: string
   expires_at: string
   created_at: string
@@ -17,7 +19,7 @@ export default function TeamPage() {
   const router = useRouter()
   const [invitations, setInvitations] = useState<Invitation[]>([])
   const [email, setEmail] = useState('')
-  const [role, setRole] = useState<'member' | 'admin'>('member')
+  const [role, setRole] = useState<EmployeeLayer>('canvasser')
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
   const [error, setError] = useState('')
@@ -52,7 +54,7 @@ export default function TeamPage() {
       const response = await fetch('/api/team/invitations', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ email: email.trim(), role }),
+        body: JSON.stringify({ email: email.trim(), employeeLayer: role }),
       })
       const payload = await response.json().catch(() => ({}))
       if (!response.ok) throw new Error(payload.error || 'The invitation could not be sent.')
@@ -87,9 +89,10 @@ export default function TeamPage() {
           </label>
           <label className="block text-sm">
             Workspace role
-            <select value={role} onChange={(event) => setRole(event.target.value as 'member' | 'admin')} className="ops-input mt-1 w-full">
-              <option value="member">Member</option>
-              <option value="admin">Admin — elevated workspace permissions</option>
+            <select value={role} onChange={(event) => setRole(event.target.value as EmployeeLayer)} className="ops-input mt-1 w-full">
+              {INVITE_LAYERS.map((layer) => (
+                <option key={layer.id} value={layer.id}>{layer.label} — {layer.ai}</option>
+              ))}
             </select>
           </label>
           <button type="submit" disabled={sending || loading} className="w-full rounded-lg bg-cyan-600 px-4 py-3 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60">
