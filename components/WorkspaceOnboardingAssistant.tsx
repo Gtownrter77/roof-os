@@ -143,12 +143,28 @@ export default function WorkspaceOnboardingAssistant({ profile, onApply }: Props
     })
   }
 
+  function resetConversation() {
+    setMessages([{
+      id: 'welcome-reset',
+      role: 'assistant',
+      content: 'Conversation cleared. Your workspace profile and saved settings were not changed. What would you like to set up next?',
+    }])
+    setDraft('')
+    setPendingProfile(null)
+    setNotice('')
+  }
+
   return (
     <section className="mb-6 overflow-hidden rounded-2xl border border-cyan-300/25 bg-slate-950/70 shadow-lg" aria-labelledby="onboarding-assistant-title" data-onboarding-assistant>
       <div className="border-b border-white/10 px-4 py-4">
-        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-300">Local AI · Owner controlled</p>
-        <h2 id="onboarding-assistant-title" className="mt-1 text-lg font-semibold text-white">Talk through your business setup</h2>
-        <p className="mt-1 text-xs leading-relaxed text-slate-400">Conversation stays in this browser and is sent only to Ollama on this device. Suggestions must be reviewed. Applying one only fills the form; saving remains a separate action.</p>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-300">Local AI · Owner controlled</p>
+            <h2 id="onboarding-assistant-title" className="mt-1 text-lg font-semibold text-white">Talk through your business setup</h2>
+          </div>
+          <button type="button" onClick={resetConversation} disabled={loading} className="shrink-0 rounded-lg border border-white/15 px-2.5 py-1.5 text-[11px] font-semibold text-slate-300 hover:bg-white/5 disabled:opacity-40">Clear chat</button>
+        </div>
+        <p className="mt-2 text-xs leading-relaxed text-slate-400">Conversation stays in this browser and is sent only to Ollama on this device. Suggestions must be reviewed. Applying one only fills the form; saving remains a separate action.</p>
       </div>
 
       <div className="max-h-64 space-y-3 overflow-y-auto px-4 py-3" aria-live="polite">
@@ -173,6 +189,7 @@ export default function WorkspaceOnboardingAssistant({ profile, onApply }: Props
                 <div key={key} className="rounded-lg border border-amber-100/15 bg-black/15 p-2">
                   <p className="text-xs font-semibold text-amber-50">{label}</p>
                   <p className="mt-1 break-words text-xs text-amber-50/80">{Array.isArray(value) ? value.join(', ') : String(value)}</p>
+                  <p className="mt-1 text-[10px] text-amber-100/60">Informational preference only · no operational change</p>
                   <div className="mt-2 flex gap-2">
                     <button type="button" onClick={() => applyField(key)} className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white">Accept</button>
                     <button type="button" onClick={() => skipField(key)} className="rounded-lg border border-white/20 px-3 py-1.5 text-xs font-semibold text-slate-200">Skip</button>
