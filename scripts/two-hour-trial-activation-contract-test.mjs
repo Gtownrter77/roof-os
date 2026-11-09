@@ -40,6 +40,7 @@ assert.ok(login.includes("data.user?.user_metadata?.request_two_hour_trial === t
 assert.ok(activationRoute.includes("supabase.auth.getUser()"), 'activation endpoint requires an authenticated user')
 assert.ok(activationRoute.includes("supabase.rpc('activate_two_hour_workspace_trial'"), 'activation calls the database authority')
 assert.ok(activationRoute.includes("key !== 'companyDomain'"), 'activation rejects unexpected request fields')
+assert.ok(activationRoute.includes('expiresAt <= Date.now()') && activationRoute.includes('status: 410'), 'an expired trial is never shown as newly activated')
 assert.ok(!activationRoute.includes('createAdminClient') && !activationRoute.includes('SUPABASE_SERVICE_ROLE_KEY'), 'activation does not use a service-role bypass')
 assert.ok(publicPassportRoute.includes(".select('trial_expires_at')"), 'public passport lookups check workspace expiry')
 assert.ok(publicPassportRoute.includes('workspace.trial_expires_at') && publicPassportRoute.includes('Date.now()'), 'public passport tokens stop working after trial expiry')
