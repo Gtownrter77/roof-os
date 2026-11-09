@@ -1,10 +1,5 @@
 const MAX_TRANSCRIPTION_RESPONSE_BYTES = 1 * 1024 * 1024
 
-export type ChatMessage = {
-  role: 'user' | 'assistant'
-  content: string
-}
-
 export type ChatAction = {
   label: string
   href: string
@@ -123,8 +118,6 @@ export async function processAudioTranscription(
 
 export async function processChatCopilot(input: {
   message: string
-  history?: ChatMessage[]
-  currentPath?: string
 }): Promise<ChatResponse> {
   const query = input.message.trim()
   if (!query) {
