@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '../../../../lib/supabase/server'
 import { readJson } from '../../../../lib/api-security'
-import { processChatCopilot, type ChatMessage } from '../../../../lib/ai/chat-copilot'
+import { processChatCopilot } from '../../../../lib/ai/chat-copilot'
 import { describeFills, fillPageFields, type PageField } from '../../../../lib/ai/page-filler'
 import { readWorkspaceSettings } from '../../../../lib/workspace-settings'
 import { agentRefusal } from '../../../../lib/layer-gate'
@@ -26,13 +26,10 @@ export async function POST(request: NextRequest) {
 
   const body = parsed.body as {
     message?: unknown
-    history?: unknown
-    currentPath?: unknown
     fields?: unknown
   }
 
   const message = typeof body.message === 'string' ? body.message : ''
-  const currentPath = typeof body.currentPath === 'string' ? body.currentPath : '/'
   const { data: isOwner } = await supabase.rpc('is_system_owner')
   const { data: workspaceId } = await supabase.rpc('current_workspace_id')
   let layer: EmployeeLayer | null = null
@@ -49,23 +46,6 @@ export async function POST(request: NextRequest) {
   }
   const refusal = agentRefusal(layer, message)
   if (refusal) return NextResponse.json({ reply: refusal, fills: [], applied: false })
-  const rawHistory = Array.isArray(body.history) ? body.history : []
-
-  const history: ChatMessage[] = rawHistory
-    .filter((item): item is { role: string; content: string } => {
-      return (
-        item &&
-        typeof item === 'object' &&
-        (item.role === 'user' || item.role === 'assistant') &&
-        typeof item.content === 'string'
-      )
-    })
-    .map((item) => ({
-      role: item.role as 'user' | 'assistant',
-      content: item.content.slice(0, 1000),
-    }))
-    .slice(-8)
-
   const fields: PageField[] = Array.isArray(body.fields)
     ? body.fields
         .filter((item): item is { key: string; label: string; value?: string; type?: string } => {
@@ -93,8 +73,6 @@ export async function POST(request: NextRequest) {
   try {
     const result = await processChatCopilot({
       message,
-      history,
-      currentPath,
     })
 
     return NextResponse.json({
