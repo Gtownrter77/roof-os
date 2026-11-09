@@ -1,7 +1,11 @@
 -- Add an optional, database-enforced expiry to a workspace trial.
 -- NULL means the workspace is not time-limited; existing customers are unchanged.
 alter table public.workspaces
-  add column if not exists trial_expires_at timestamptz;
+  add column if not exists trial_expires_at timestamptz,
+  add column if not exists trial_status text not null default 'active' check (trial_status in ('pending', 'active'));
+
+comment on column public.workspaces.trial_status is
+  'Pending workspaces are inaccessible until a new account owner activates its evaluation.';
 
 comment on column public.workspaces.trial_expires_at is
   'Optional server-enforced access cutoff for temporary demo workspaces. NULL means no trial expiry.';
@@ -22,6 +26,7 @@ as $function$
       on workspace.id = member.workspace_id
     where member.workspace_id = target_workspace
       and member.user_id = auth.uid()
+      and workspace.trial_status <> 'pending'
       and (
         workspace.trial_expires_at is null
         or workspace.trial_expires_at > statement_timestamp()
