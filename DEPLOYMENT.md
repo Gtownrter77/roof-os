@@ -47,14 +47,16 @@ ollama list
 
 If testing a trusted preview, append that exact preview origin separated by a comma. Do not use `*` and do not expose port 11434 to the internet.
 
-3. Fully quit Ollama from its Windows system-tray icon (not just close PowerShell), then start Ollama again from the Start menu so it inherits the updated variable. If it is being run manually instead, start it in a new PowerShell window:
+3. Fully quit Ollama from its Windows system-tray icon. The most reliable test is to start the server directly from a **new PowerShell window** with the origin set in that process:
 
 ```powershell
 $env:OLLAMA_ORIGINS = "https://roof-os-lemon.vercel.app"
 ollama serve
 ```
 
-4. Verify the local service and model:
+Keep that window open while using ROOF/OS. If you prefer the Start-menu app, sign out of Windows and back in after changing the user variable, then launch Ollama; existing Windows processes do not inherit environment changes made after they started.
+
+4. In another PowerShell window, verify the local service and model:
 
 ```powershell
 Invoke-RestMethod http://localhost:11434/api/tags
