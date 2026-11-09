@@ -1,6 +1,24 @@
 -- Exercise migration 092 as three authenticated synthetic users.
 \set ON_ERROR_STOP on
 
+-- The migration must explicitly grant only the authenticated operations it needs.
+do $ begin
+  if not has_table_privilege('anon','public.workspace_onboarding_profiles','select') then
+    -- expected: anonymous role has no Data API access
+    null;
+  else
+    raise exception 'anonymous role unexpectedly has table access';
+  end if;
+  if not has_table_privilege('authenticated','public.workspace_onboarding_profiles','select')
+     or not has_table_privilege('authenticated','public.workspace_onboarding_profiles','insert')
+     or not has_table_privilege('authenticated','public.workspace_onboarding_profiles','update') then
+    raise exception 'authenticated role is missing a required table grant';
+  end if;
+  if has_table_privilege('authenticated','public.workspace_onboarding_profiles','delete') then
+    raise exception 'authenticated role unexpectedly has DELETE privilege';
+  end if;
+end $;
+
 -- Workspace A owner can create and read only its own profile.
 set role authenticated;
 select set_config('request.jwt.claim.sub','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',false);
