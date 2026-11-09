@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { createClient } from '../../../lib/supabase/client'
 
 type TrialResult = {
@@ -27,7 +27,7 @@ export default function TrialActivationPage() {
     return () => { active = false }
   }, [])
 
-  async function activate(event: React.FormEvent<HTMLFormElement>) {
+  async function activate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setLoading(true)
     setError('')
