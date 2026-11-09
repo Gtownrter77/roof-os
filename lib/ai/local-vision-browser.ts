@@ -1,7 +1,7 @@
 import { GEOMETRY_CONTRACT_VERSION, validateGeometrySuggestion } from './geometry-contract'
 import type { GeometrySuggestion } from './geometry-contract'
 
-const DEFAULT_API_BASE_URL = 'http://localhost:20128/v1'
+const DEFAULT_API_BASE_URL = 'http://localhost:11434/v1'
 const DEFAULT_MODEL = 'qwen3-vl:8b'
 const MAX_IMAGE_BYTES = 30 * 1024 * 1024
 const MAX_RESPONSE_BYTES = 2 * 1024 * 1024
@@ -26,7 +26,7 @@ function getLocalEndpoint() {
     throw new BrowserLocalVisionError('The local vision URL is invalid.')
   }
   if (!['http:', 'https:'].includes(url.protocol) || !LOCAL_HOSTS.has(url.hostname.toLowerCase()) || url.username || url.password || url.search || url.hash) {
-    throw new BrowserLocalVisionError('Local-only vision accepts only a loopback URL such as http://localhost:20128/v1.')
+    throw new BrowserLocalVisionError('Local-only vision accepts only a loopback URL such as http://localhost:11434/v1.')
   }
   return url.toString().replace(/\/+$/, '')
 }
@@ -122,7 +122,7 @@ export async function analyzeRoofImageWithLocalOllama(file: File, imageWidth: nu
     if (error instanceof BrowserLocalVisionError) throw error
     if (controller.signal.aborted) throw new BrowserLocalVisionError('Local vision timed out. The selected image was not uploaded.')
     if (error instanceof TypeError) {
-      throw new BrowserLocalVisionError('Could not reach localhost:20128. Start the local vision service and allow this app origin through its CORS/private-network settings; no hosted AI fallback is used.')
+      throw new BrowserLocalVisionError('Could not reach localhost:11434. Start the local vision service and allow this app origin through its CORS/private-network settings; no hosted AI fallback is used.')
     }
     throw new BrowserLocalVisionError('Local vision failed before the image was uploaded.')
   } finally {
