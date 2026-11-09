@@ -208,6 +208,9 @@ try {
   assert.equal(localBody.model, 'llama3:test')
   assert.equal(localBody.messages.at(-1).role, 'user')
   assert.match(localBody.messages.at(-1).content, /Current ROOF\/OS page: \/measure/)
+  globalThis.fetch = async () => new Response('x'.repeat(300 * 1024), { status: 200 })
+  assert.equal(await askBrowserLocalOllama({ message: 'test' }), null, 'oversized local model responses are rejected')
+
   process.env.NEXT_PUBLIC_OLLAMA_CHAT_API_BASE_URL = 'https://example.com/v1'
   assert.equal(getLocalChatEndpoint(), null, 'remote hosts are rejected')
   assert.equal(await askBrowserLocalOllama({ message: 'test' }), null, 'remote endpoint is never contacted')
