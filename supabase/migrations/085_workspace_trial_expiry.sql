@@ -51,6 +51,7 @@ as $function$
     where member.workspace_id = target_workspace
       and member.user_id = auth.uid()
       and member.role in ('owner', 'admin')
+      and workspace.trial_status <> 'pending'
       and (
         workspace.trial_expires_at is null
         or workspace.trial_expires_at > statement_timestamp()
