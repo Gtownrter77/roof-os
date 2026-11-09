@@ -108,6 +108,10 @@ export default function SettingsPage() {
         setTaxSource(pricingPayload.taxSource ?? '')
         if (pricingPayload.rates) setLaborRates(pricingPayload.rates as Record<string, number>)
       }
+      if (agentsResponse.ok) {
+        const agentsPayload = await agentsResponse.json().catch(() => ({}))
+        setIsSystemOwner(agentsPayload.canEdit === true)
+      }
       setLoaded(true)
     }).catch(() => {
       setLoaded(true)
