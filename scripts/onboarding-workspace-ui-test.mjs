@@ -54,6 +54,8 @@ assert.match(tour, /onSelectSection\(current\.section\)/)
 
 // The local onboarding assistant can only propose validated fields; owner action applies them and save remains separate.
 assert.match(assistant, /askBrowserLocalOllama/)
+assert.match(assistant, /eight guided sections below/)
+assert.doesNotMatch(assistant, /five guided sections/)
 assert.match(assistant, /validateOnboardingProfile\(candidate\)/)
 assert.match(assistant, /Review each suggested profile detail/)
 assert.match(assistant, /Accept/)
