@@ -207,40 +207,40 @@ export default function OnboardingPage() {
   return (
     <div className="ops-bg flex min-h-screen items-center justify-center p-4">
       <div className="w-full max-w-4xl grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(300px,0.85fr)] items-start">
-      <div className="glass rounded-2xl max-w-md w-full p-6">
-        {/* Progress */}
-        <div className="flex justify-between mb-6">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="flex-1">
-              <div className={`h-1 mx-1 rounded ${i <= step ? 'bg-blue-600' : 'bg-white/10'}`} />
-            </div>
-          ))}
-        </div>
+        <div className="glass rounded-2xl max-w-md w-full p-6">
+          {/* Progress */}
+          <div className="flex justify-between mb-6">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="flex-1">
+                <div className={`h-1 mx-1 rounded ${i <= step ? 'bg-blue-600' : 'bg-white/10'}`} />
+              </div>
+            ))}
+          </div>
 
-        {/* Content */}
-        <div className="min-h-[300px]">
-          {renderStep()}
-          {error && <p className="text-sm text-red-300 mt-4" role="alert">{error}</p>}
-        </div>
+          {/* Content */}
+          <div className="min-h-[300px]">
+            {renderStep()}
+            {error && <p className="text-sm text-red-300 mt-4" role="alert">{error}</p>}
+          </div>
 
-        {/* Navigation */}
-        <div className="flex justify-between mt-6">
-          <button 
-            onClick={handleBack}
-            className={`px-6 py-2 rounded-lg ${step > 1 ? 'bg-white/10 text-slate-200' : 'invisible'}`}
-          >
-            Back
-          </button>
-          <button 
-            onClick={() => void handleNext()}
-            disabled={saving}
-            className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold disabled:opacity-60"
-          >
-            {saving ? 'Saving…' : step === 4 ? '🚀 Get Started' : 'Next →'}
-          </button>
+          {/* Navigation */}
+          <div className="flex justify-between mt-6">
+            <button 
+              onClick={handleBack}
+              className={`px-6 py-2 rounded-lg ${step > 1 ? 'bg-white/10 text-slate-200' : 'invisible'}`}
+            >
+              Back
+            </button>
+            <button 
+              onClick={() => void handleNext()}
+              disabled={saving}
+              className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold disabled:opacity-60"
+            >
+              {saving ? 'Saving…' : step === 4 ? '🚀 Get Started' : 'Next →'}
+            </button>
+          </div>
         </div>
-      </div>
-      <HologramMeteorologist step={step} />
+        <HologramMeteorologist step={step} />
       </div>
     </div>
   )
