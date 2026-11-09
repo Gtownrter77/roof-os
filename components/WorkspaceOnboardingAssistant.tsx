@@ -117,16 +117,30 @@ export default function WorkspaceOnboardingAssistant({ profile, onApply }: Props
     setLoading(false)
   }
 
-  function applySuggestion() {
-    if (!pendingProfile) return
-    const validated = validateOnboardingProfile({ ...profile, ...pendingProfile })
+  function applyField(key: keyof OnboardingProfile) {
+    if (!pendingProfile || !(key in pendingProfile)) return
+    const validated = validateOnboardingProfile({ ...profile, [key]: pendingProfile[key] })
     if (!validated.profile) {
       setNotice('That suggestion did not pass profile validation. Nothing was applied.')
       return
     }
     onApply(validated.profile)
-    setPendingProfile(null)
-    setNotice('Suggestion applied to the form. Review it, then choose Save progress when you are ready.')
+    setPendingProfile((current) => {
+      if (!current) return null
+      const remaining = { ...current }
+      delete remaining[key]
+      return Object.keys(remaining).length ? remaining : null
+    })
+    setNotice('Suggestion applied to the form only. Review it, then choose Save progress when you are ready.')
+  }
+
+  function skipField(key: keyof OnboardingProfile) {
+    setPendingProfile((current) => {
+      if (!current) return null
+      const remaining = { ...current }
+      delete remaining[key]
+      return Object.keys(remaining).length ? remaining : null
+    })
   }
 
   return (
@@ -149,11 +163,23 @@ export default function WorkspaceOnboardingAssistant({ profile, onApply }: Props
 
       {pendingProfile && (
         <div className="mx-4 mb-3 rounded-xl border border-amber-300/35 bg-amber-950/30 p-3">
-          <p className="text-sm font-semibold text-amber-100">Review suggested profile details</p>
-          <pre className="mt-2 max-h-32 overflow-auto whitespace-pre-wrap break-words text-xs text-amber-50/90">{JSON.stringify(pendingProfile, null, 2)}</pre>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <button type="button" onClick={applySuggestion} className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-bold text-white">Apply to form</button>
-            <button type="button" onClick={() => setPendingProfile(null)} className="rounded-lg border border-white/20 px-3 py-2 text-xs font-semibold text-slate-200">Dismiss</button>
+          <p className="text-sm font-semibold text-amber-100">Review each suggested profile detail</p>
+          <p className="mt-1 text-xs text-amber-100/70">Accept or skip each item separately. Accepted items only fill the form; they are not saved yet.</p>
+          <div className="mt-3 space-y-2">
+            {Object.entries(pendingProfile).map(([rawKey, value]) => {
+              const key = rawKey as keyof OnboardingProfile
+              const label = key.replace(/([A-Z])/g, ' $1').replace(/^./, (letter) => letter.toUpperCase())
+              return (
+                <div key={key} className="rounded-lg border border-amber-100/15 bg-black/15 p-2">
+                  <p className="text-xs font-semibold text-amber-50">{label}</p>
+                  <p className="mt-1 break-words text-xs text-amber-50/80">{Array.isArray(value) ? value.join(', ') : String(value)}</p>
+                  <div className="mt-2 flex gap-2">
+                    <button type="button" onClick={() => applyField(key)} className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white">Accept</button>
+                    <button type="button" onClick={() => skipField(key)} className="rounded-lg border border-white/20 px-3 py-1.5 text-xs font-semibold text-slate-200">Skip</button>
+                  </div>
+                </div>
+              )
+            })}
           </div>
         </div>
       )}
