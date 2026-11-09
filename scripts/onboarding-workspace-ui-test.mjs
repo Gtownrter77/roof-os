@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 
 const page = readFileSync(new URL('../app/onboarding/workspace/page.tsx', import.meta.url), 'utf8')
+const accountBasicsPage = readFileSync(new URL('../app/onboarding/page.tsx', import.meta.url), 'utf8')
 const api = readFileSync(new URL('../app/api/onboarding/profile/route.ts', import.meta.url), 'utf8')
 const validator = readFileSync(new URL('../lib/onboarding-profile.ts', import.meta.url), 'utf8')
 const migration = readFileSync(new URL('../supabase/migrations/092_workspace_onboarding_profiles.sql', import.meta.url), 'utf8')
@@ -41,5 +42,12 @@ assert.match(migration, /enable row level security/i)
 assert.match(migration, /public\.is_workspace_member\(workspace_id\)/)
 assert.match(migration, /public\.is_workspace_admin\(workspace_id\)/)
 assert.match(migration, /auth\.uid\(\) = updated_by/)
+
+// The legacy account form saves only account basics and hands off to workspace setup.
+assert.match(accountBasicsPage, /onboarding_basics_saved_at/)
+assert.doesNotMatch(accountBasicsPage, /onboarding_completed_at/)
+assert.match(accountBasicsPage, /router\.push\('\/onboarding\/workspace'\)/)
+assert.match(accountBasicsPage, /Account basics saved/)
+assert.match(accountBasicsPage, /workspace setup is next/i)
 
 console.log('Workspace onboarding UI contract tests passed.')
