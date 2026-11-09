@@ -58,7 +58,7 @@ declare
     'foo_' || '.com'
   ];
 begin
-  if not ('roofingco.com' ~ '^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*\\.[a-z]{2,}
+  if not ('roofingco.com' ~ '^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*\.[a-z]{2,}
 create trigger on_auth_user_created_workspace
 after insert on auth.users
 for each row execute function public.handle_new_user_workspace();
