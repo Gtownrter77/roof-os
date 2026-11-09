@@ -19,7 +19,8 @@ if [ -z "$(psql_db postgres -tAc "select 1 from pg_database where datname='$DB'"
 fi
 psql_db "$DB" -f scripts/ci/onboarding-profile-baseline.sql
 psql_db "$DB" -f supabase/migrations/092_workspace_onboarding_profiles.sql
+psql_db "$DB" -f supabase/migrations/093_workspace_onboarding_profile_v2.sql
 psql_db "$DB" -f scripts/ci/onboarding-profile-assertions.sql
 
-echo 'ONBOARDING PROFILE MIGRATION 092: isolated PostgreSQL RLS and workspace-isolation tests passed. Supabase Auth/Storage integration remains untested.'
-echo '**Onboarding profile migration 092: isolated PostgreSQL RLS/workspace-isolation tests PASSED. Supabase Auth/Storage integration not exercised.**' >> "$GITHUB_STEP_SUMMARY"
+echo 'ONBOARDING PROFILE MIGRATIONS 092+093: isolated PostgreSQL RLS, workspace-isolation, and v2 profile-contract tests passed. Supabase Auth/Storage integration remains untested.'
+echo '**Onboarding profile migrations 092+093: isolated PostgreSQL RLS/workspace-isolation and v2 profile-contract tests PASSED. Supabase Auth/Storage integration not exercised.**' >> "$GITHUB_STEP_SUMMARY"
