@@ -350,7 +350,7 @@ export default function MeasurePage() {
           <button onClick={() => smartBack(router)} className="mb-2 text-xs text-cyan-300">← Back</button>
           <p className="ops-label">ROOF/OS Phase D · Measurement control</p>
           <h1 className="text-3xl font-black">AI-assisted roof geometry</h1>
-          <p className="mt-1 max-w-3xl text-sm text-slate-400"><b className="text-white">Local AI suggests. Human calibrates and confirms.</b> Geometry is not a quantity until the image, scale, pitch, and every suggestion pass the review gates.</p>
+          <p className="mt-1 max-w-3xl text-sm text-slate-400"><b className="text-white">AI suggests. Human calibrates and confirms.</b> Geometry is not a quantity until the image, scale, pitch, and every suggestion pass the review gates.</p>
         </header>
 
         <section className="glass rounded-xl p-4">
