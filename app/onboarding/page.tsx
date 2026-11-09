@@ -105,6 +105,9 @@ export default function OnboardingPage() {
                 <span className="text-sm font-medium">Analytics</span>
               </div>
             </div>
+            <button type="button" onClick={() => router.push('/onboarding/workspace')} className="mt-5 w-full rounded-lg border border-cyan-300/35 px-4 py-3 text-sm font-semibold text-cyan-100 hover:bg-cyan-300/10">
+              Configure detailed workspace preferences
+            </button>
           </div>
         )
       case 2:
