@@ -5,6 +5,7 @@ import type { OnboardingProfile, OnboardingProfileStatus } from '../../../lib/on
 import WorkspaceOnboardingAssistant from '../../../components/WorkspaceOnboardingAssistant'
 import WorkspaceSetupTour from '../../../components/onboarding/WorkspaceSetupTour'
 import WorkspaceFirstSuccessGuide from '../../../components/onboarding/WorkspaceFirstSuccessGuide'
+import { createClient } from '../../../lib/supabase/client'
 
 const EMPTY_PROFILE: OnboardingProfile = {
   companyType: 'unsure',
@@ -30,6 +31,8 @@ const EMPTY_PROFILE: OnboardingProfile = {
   businessHours: '',
   primaryGoal: '',
 }
+
+type RolePreference = 'owner' | 'manager' | 'inspector' | 'sales'
 
 type WorkspaceDefaults = {
   default_language?: string
@@ -102,6 +105,7 @@ export default function WorkspaceOnboardingPage() {
   const [workspaceDefaults, setWorkspaceDefaults] = useState<WorkspaceDefaults | null>(null)
   const [defaultsPersisted, setDefaultsPersisted] = useState(false)
   const [defaultsError, setDefaultsError] = useState('')
+  const [rolePreference, setRolePreference] = useState<RolePreference>('owner')
 
   useEffect(() => {
     let active = true
@@ -125,6 +129,24 @@ export default function WorkspaceOnboardingPage() {
       }
     }
     void loadProfile()
+    return () => { active = false }
+  }, [])
+
+  useEffect(() => {
+    let active = true
+    async function loadRolePreference() {
+      try {
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        const preference = user?.user_metadata?.onboarding_role_preference
+        if (active && ['owner', 'manager', 'inspector', 'sales'].includes(preference)) {
+          setRolePreference(preference as RolePreference)
+        }
+      } catch {
+        // The tour falls back to the general owner/team route order.
+      }
+    }
+    void loadRolePreference()
     return () => { active = false }
   }, [])
 
@@ -531,10 +553,10 @@ export default function WorkspaceOnboardingPage() {
           <section className="rounded-2xl border border-violet-300/25 bg-violet-950/20 p-5" aria-labelledby="team-orientation-heading">
             <h2 id="team-orientation-heading" className="text-lg font-semibold text-violet-100">You’re joining an existing workspace</h2>
             <p className="mt-2 text-sm leading-relaxed text-slate-300">Workspace-level company setup is managed by an administrator. You do not need to complete the owner profile. You can review saved preferences above and use this short orientation to find the work areas available to your role.</p>
-            <WorkspaceFirstSuccessGuide canEdit={false} primaryGoal={savedProfile.primaryGoal} />
+            <WorkspaceFirstSuccessGuide canEdit={false} primaryGoal={savedProfile.primaryGoal} rolePreference={rolePreference} />
           </section>
         )}
-        {canEdit && status === 'completed' && !hasUnsavedChanges && <WorkspaceFirstSuccessGuide canEdit={true} primaryGoal={savedProfile.primaryGoal} />}
+        {canEdit && status === 'completed' && !hasUnsavedChanges && <WorkspaceFirstSuccessGuide canEdit={true} primaryGoal={savedProfile.primaryGoal} rolePreference={rolePreference} />}
       </div>
     </main>
   )
