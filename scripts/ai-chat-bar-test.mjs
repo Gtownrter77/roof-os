@@ -171,6 +171,11 @@ try {
 
 
 const localChatSource = readFileSync(join(root, 'lib', 'ai', 'local-chat-browser.ts'), 'utf8')
+const proxySource = readFileSync(join(root, 'proxy.ts'), 'utf8')
+assert.ok(proxySource.includes("http://localhost:11434"), 'CSP must allow the default desktop Ollama origin')
+assert.ok(proxySource.includes("http://127.0.0.1:11434"), 'CSP must allow IPv4 loopback Ollama')
+assert.ok(proxySource.includes("http://[::1]:11434"), 'CSP must allow IPv6 loopback Ollama')
+assert.ok(clientSource.includes("url.protocol !== 'http:'") && clientSource.includes("url.port !== '11434'"), 'browser Ollama endpoint must match the narrowly allowed CSP origin')
 assert.ok(componentSource.includes('askBrowserLocalOllama'), 'chat UI must call browser-local Ollama')
 assert.ok(!copilotSource.includes('askOllama'), 'server-side copilot must not try to reach the hosting machine localhost')
 assert.ok(localChatSource.includes('LOCAL_HOSTS'), 'browser chat may connect only to loopback')
