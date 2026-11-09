@@ -44,6 +44,18 @@ as $function$
   end;
 $function$;
 
+-- Reclassify any legacy "completed" row that does not meet the explicit completion rule.
+-- The profile answers are preserved; only the inaccurate completion state is corrected.
+update public.workspace_onboarding_profiles
+set status = 'draft',
+    completed_at = null,
+    updated_at = now()
+where status = 'completed'
+  and (
+    not coalesce(profile->>'companyType' in ('residential', 'commercial', 'both'), false)
+    or nullif(btrim(profile->>'primaryGoal'), '') is null
+  );
+
 alter table public.workspace_onboarding_profiles
   add constraint workspace_onboarding_profiles_allowed_fields_v2_check
   check (profile - ARRAY[
