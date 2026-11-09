@@ -14,6 +14,7 @@ const messages = [
 
 export default function HologramMeteorologist({ step }: Props) {
   const [speaking, setSpeaking] = useState(false)
+  const [visible, setVisible] = useState(true)
   const [speechAvailable, setSpeechAvailable] = useState(false)
   const message = messages[Math.min(Math.max(step - 1, 0), messages.length - 1)]
 
@@ -49,10 +50,18 @@ export default function HologramMeteorologist({ step }: Props) {
     window.speechSynthesis.speak(utterance)
   }
 
+  if (!visible) {
+    return <button type="button" onClick={() => setVisible(true)} className="w-full max-w-md rounded-xl border border-cyan-300/30 bg-slate-950/80 px-4 py-3 text-left text-sm font-semibold text-cyan-100 hover:bg-cyan-950/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-200">Show your virtual meteorologist</button>
+  }
+
   return (
     <aside className="relative w-full max-w-md overflow-hidden rounded-2xl border border-cyan-300/25 bg-slate-950/80 p-5 shadow-[0_0_45px_rgba(34,211,238,0.12)]" aria-label="Virtual meteorologist onboarding guide">
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_20%,rgba(34,211,238,0.17),transparent_62%)]" />
       <div className="relative flex min-h-[270px] flex-col items-center justify-center">
+        <div className="absolute right-0 top-0 flex items-center gap-2">
+          <span className="rounded-full border border-cyan-300/20 px-2 py-1 text-[10px] uppercase tracking-wider text-cyan-100/60">Weather desk</span>
+          <button type="button" onClick={() => { window.speechSynthesis?.cancel(); setSpeaking(false); setVisible(false) }} aria-expanded={visible} className="rounded-md px-2 py-1 text-xs text-cyan-100/70 hover:bg-cyan-300/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-200">Hide guide</button>
+        </div>
         <div className="relative mb-4 flex h-44 w-44 items-center justify-center">
           <div aria-hidden="true" className="absolute inset-2 rounded-full border border-cyan-300/20 shadow-[0_0_35px_rgba(34,211,238,0.16)]" />
           <div aria-hidden="true" className="absolute inset-0 rounded-full border border-dashed border-cyan-200/20 motion-safe:animate-[spin_28s_linear_infinite]" />
@@ -73,6 +82,7 @@ export default function HologramMeteorologist({ step }: Props) {
           </svg>
           <span aria-hidden="true" className="absolute bottom-2 h-3 w-28 rounded-full bg-cyan-300/20 blur-md" />
         </div>
+        <div className="mb-3 flex items-center gap-3 text-[11px] text-cyan-100/60" aria-hidden="true"><span>◌ RADAR</span><span>⌁ WIND</span><span>☂ RAIN</span></div>
         <p className="text-xs font-bold uppercase tracking-[0.24em] text-cyan-200">ROOF/OS Weather Desk</p>
         <h2 className="mt-1 text-xl font-semibold text-white">Your virtual meteorologist</h2>
         <p className="mt-1 text-xs text-cyan-100/65">Holographic guide · Setup host</p>
