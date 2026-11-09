@@ -528,10 +528,10 @@ export default function WorkspaceOnboardingPage() {
           <section className="rounded-2xl border border-violet-300/25 bg-violet-950/20 p-5" aria-labelledby="team-orientation-heading">
             <h2 id="team-orientation-heading" className="text-lg font-semibold text-violet-100">You’re joining an existing workspace</h2>
             <p className="mt-2 text-sm leading-relaxed text-slate-300">Workspace-level company setup is managed by an administrator. You do not need to complete the owner profile. You can review saved preferences above and use this short orientation to find the work areas available to your role.</p>
-            <WorkspaceFirstSuccessGuide canEdit={false} />
+            <WorkspaceFirstSuccessGuide canEdit={false} primaryGoal={savedProfile.primaryGoal} />
           </section>
         )}
-        {canEdit && status === 'completed' && !hasUnsavedChanges && <WorkspaceFirstSuccessGuide canEdit={true} />}
+        {canEdit && status === 'completed' && !hasUnsavedChanges && <WorkspaceFirstSuccessGuide canEdit={true} primaryGoal={savedProfile.primaryGoal} />}
       </div>
     </main>
   )
