@@ -6,6 +6,8 @@ const accountBasicsPage = readFileSync(new URL('../app/onboarding/page.tsx', imp
 const api = readFileSync(new URL('../app/api/onboarding/profile/route.ts', import.meta.url), 'utf8')
 const validator = readFileSync(new URL('../lib/onboarding-profile.ts', import.meta.url), 'utf8')
 const migration = readFileSync(new URL('../supabase/migrations/092_workspace_onboarding_profiles.sql', import.meta.url), 'utf8')
+const assistant = readFileSync(new URL('../components/WorkspaceOnboardingAssistant.tsx', import.meta.url), 'utf8')
+const localChat = readFileSync(new URL('../lib/ai/local-chat-browser.ts', import.meta.url), 'utf8')
 
 // The screen must load only the active authenticated workspace profile and avoid caching it.
 assert.match(page, /fetch\('\/api\/onboarding\/profile', \{ cache: 'no-store' \}\)/)
@@ -24,7 +26,22 @@ for (const step of ['Business', 'Service area', 'Work mix', 'Workflow', 'Goal'])
   assert.ok(page.includes(step), `missing onboarding section: ${step}`)
 }
 assert.match(page, /does not change pricing, permissions, crew assignments, customer records, integrations, or live operations/)
-assert.match(page, /AI recommendations are not connected in this phase/)
+assert.match(page, /<WorkspaceOnboardingAssistant/)
+assert.match(page, /Optional local AI suggestions require owner review and never save automatically/)
+assert.match(page, /onApply=\{\(nextProfile\)/)
+
+// The local onboarding assistant can only propose validated fields; owner action applies them and save remains separate.
+assert.match(assistant, /askBrowserLocalOllama/)
+assert.match(assistant, /validateOnboardingProfile\(candidate\)/)
+assert.match(assistant, /Apply to form/)
+assert.match(assistant, /Dismiss/)
+assert.match(assistant, /Nothing is saved automatically/)
+assert.match(assistant, /Conversation stays in this browser and is sent only to Ollama on this device/)
+assert.match(assistant, /setPendingProfile\(Object\.keys\(suggestions\)\.length \? suggestions : null\)/)
+assert.match(assistant, /onApply\(validated\.profile\)/)
+assert.match(localChat, /response_format: \{ type: 'json_object' \}/)
+assert.match(localChat, /input\.systemPrompt\?\.slice\(0, 8_000\)/)
+assert.match(localChat, /credentials: 'omit'/)
 
 // API writes require an authenticated workspace administrator and strict field allowlisting.
 assert.match(api, /Authentication required/)
