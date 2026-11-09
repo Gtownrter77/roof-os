@@ -19,7 +19,6 @@ if [ -z "$(psql_db postgres -tAc "select 1 from pg_database where datname='$DB'"
 fi
 psql_db "$DB" -f scripts/ci/onboarding-profile-baseline.sql
 psql_db "$DB" -f supabase/migrations/092_workspace_onboarding_profiles.sql
-psql_db "$DB" -c "grant select,insert,update on public.workspace_onboarding_profiles to authenticated"
 psql_db "$DB" -f scripts/ci/onboarding-profile-assertions.sql
 
 echo 'ONBOARDING PROFILE MIGRATION 092: isolated PostgreSQL RLS and workspace-isolation tests passed. Supabase Auth/Storage integration remains untested.'
