@@ -34,8 +34,8 @@ export default function OnboardingPage() {
       icon: '⚙️'
     },
     { 
-      title: 'Ready to Go! 🎉',
-      description: 'You\'re all set to start using ROOF/OS.',
+      title: 'Account basics saved',
+      description: 'Your account basics are saved. Continue with your workspace setup next.',
       icon: '🎊'
     }
   ]
@@ -60,7 +60,7 @@ export default function OnboardingPage() {
         onboarding_phone: form.phone.trim(),
         onboarding_state: form.state,
         onboarding_role_preference: form.role,
-        onboarding_completed_at: new Date().toISOString(),
+        onboarding_basics_saved_at: new Date().toISOString(),
       },
     })
     if (updateError) {
@@ -70,7 +70,7 @@ export default function OnboardingPage() {
     }
 
     setSaving(false)
-    router.push('/')
+    router.push('/onboarding/workspace')
   }
 
   const handleBack = () => {
@@ -189,13 +189,13 @@ export default function OnboardingPage() {
         return (
           <div className="text-center">
             <div className="text-6xl mb-4">🎊</div>
-            <h2 className="text-2xl font-bold mb-2">You're All Set!</h2>
-            <p className="text-slate-400">Your ROOF/OS account is ready to go.</p>
+            <h2 className="text-2xl font-bold mb-2">Account basics saved</h2>
+            <p className="text-slate-400">One more step: tell ROOF/OS how your roofing business works. You can save progress and finish later.</p>
             <div className="mt-6 bg-emerald-400/10 border border-emerald-400/30 rounded-lg p-4">
               <p className="text-sm text-green-800">
-                ✅ Onboarding preferences saved<br />
-                ✅ Account configuration saved<br />
-                ✅ Ready to start
+                ✅ Account basics saved<br />
+                ⏭️ Workspace setup is next<br />
+                ⏭️ Guided onboarding is not finished yet
               </p>
             </div>
           </div>
@@ -234,7 +234,7 @@ export default function OnboardingPage() {
             disabled={saving}
             className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold disabled:opacity-60"
           >
-            {saving ? 'Saving…' : step === 4 ? '🚀 Get Started' : 'Next →'}
+            {saving ? 'Saving…' : step === 4 ? 'Continue workspace setup' : 'Next →'}
           </button>
         </div>
       </div>
