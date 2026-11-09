@@ -151,4 +151,11 @@ assert.throws(() => quantityMath.calculateCalibratedRoofDraft({
   geometryConfirmed: false,
 }), /Confirm reviewed geometry/)
 
+const autoMeasurementUi = readFileSync(new URL('../components/AutoMeasurementTool.tsx', import.meta.url), 'utf8')
+assert.match(autoMeasurementUi, /localhost:11434/)
+assert.match(autoMeasurementUi, /qwen3-vl:8b/)
+assert.match(autoMeasurementUi, /does not include an Ollama server on Android by default/)
+assert.match(autoMeasurementUi, /Trace roof manually/)
+assert.doesNotMatch(autoMeasurementUi, /Google Gemini/)
+
 console.log('auto-measurement-local-and-quantity-test: PASS (loopback-only browser inference, image payload, no remote fallback, validated geometry, orthographic/scale/pitch gates, draft area and squares)')
