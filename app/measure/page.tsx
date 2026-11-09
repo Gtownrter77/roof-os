@@ -143,7 +143,7 @@ export default function MeasurePage() {
     }
     setWorking(true)
     setError('')
-    setStatus('Analyzing in this browser with local Ollama. The image is not uploaded until local analysis succeeds…')
+    setStatus('Saving the roof photo to private inspection storage before AI analysis…')
     try {
       const localResult = await analyzeRoofImageWithLocalOllama(file, imageSize.width, imageSize.height)
       setStatus('Local geometry suggestion validated. Saving the actual image to private inspection storage…')
