@@ -3,6 +3,32 @@
 -- allowlist directly while retaining the existing object-shape check.
 begin;
 
+-- Migration 092 installed a table-level v1 profile-key allowlist. PostgreSQL
+-- ANDs CHECK constraints, so leaving that constraint in place would reject
+-- every v2-only key even after the v2 allowlist below accepts it. Identify the
+-- old constraint by its definition rather than relying on a generated name.
+do $drop_v1_allowlist$
+declare
+  old_constraint name;
+begin
+  select conname
+    into old_constraint
+  from pg_constraint
+  where conrelid = 'public.workspace_onboarding_profiles'::regclass
+    and contype = 'c'
+    and pg_get_constraintdef(oid) like '%profile - ARRAY%'
+    and pg_get_constraintdef(oid) like '%yearsInBusinessBand%' = false
+    and pg_get_constraintdef(oid) like '%primaryGoal%';
+
+  if old_constraint is not null then
+    execute format(
+      'alter table public.workspace_onboarding_profiles drop constraint %I',
+      old_constraint
+    );
+  end if;
+end;
+$drop_v1_allowlist$;
+
 alter table public.workspace_onboarding_profiles
   drop constraint if exists workspace_onboarding_profiles_schema_version_check;
 
