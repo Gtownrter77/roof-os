@@ -94,6 +94,10 @@ export default function WorkspaceOnboardingPage() {
   const selectTourSection = useCallback((section: number) => setStep(section), [])
   const hasUnsavedChanges = JSON.stringify(profile) !== JSON.stringify(savedProfile)
   const canComplete = profile.companyType !== 'unsure' && Boolean(profile.primaryGoal?.trim())
+  const savedEntries = Object.entries(savedProfile).filter(([, value]) => {
+    if (Array.isArray(value)) return value.length > 0
+    return value !== undefined && value !== null && value !== '' && value !== 'unsure'
+  })
 
   function update<K extends keyof OnboardingProfile>(key: K, value: OnboardingProfile[K]) {
     setProfile((current) => ({ ...current, [key]: value }))
@@ -173,6 +177,34 @@ export default function WorkspaceOnboardingPage() {
           These are reviewed workspace preferences only. Saving them does not change pricing, permissions, crew assignments, customer records, integrations, or live operations. Optional local AI suggestions require owner review and never save automatically.
         </div>
 
+        <details className="mb-5 rounded-xl border border-white/15 bg-slate-950/55 p-4">
+          <summary className="cursor-pointer text-sm font-semibold text-cyan-100">Review saved workspace preferences ({savedEntries.length})</summary>
+          <div className="mt-3 space-y-3">
+            <p className="text-xs text-slate-400">{updatedAt ? `Last saved ${new Date(updatedAt).toLocaleString()}` : 'No saved profile timestamp yet.'} These are the last values confirmed by the workspace profile API, not unsaved form edits.</p>
+            {savedEntries.length === 0 ? (
+              <p className="text-xs text-slate-300">No saved preferences yet. Complete a section and choose Save progress when ready.</p>
+            ) : (
+              <div className="space-y-2">
+                {savedEntries.map(([rawKey, value]) => {
+                  const key = rawKey as keyof OnboardingProfile
+                  const label = key.replace(/([A-Z])/g, ' $1').replace(/^./, (letter) => letter.toUpperCase())
+                  return (
+                    <div key={key} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-white/10 bg-black/15 p-3">
+                      <div className="min-w-0">
+                        <p className="text-xs font-semibold text-white">{label}</p>
+                        <p className="break-words text-xs text-slate-300">{Array.isArray(value) ? value.join(', ') : String(value)}</p>
+                      </div>
+                      {canEdit && (
+                        <button type="button" onClick={() => resetProfileField(key)} disabled={saving} className="shrink-0 rounded-lg border border-amber-200/25 px-2.5 py-1.5 text-[11px] font-semibold text-amber-100 disabled:opacity-40">Reset this answer</button>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        </details>
+
         {canEdit && setupMode === 'choose' && (
           <section id="setup-mode-choice" className="mb-6 rounded-2xl border border-cyan-300/25 bg-slate-950/65 p-4" aria-labelledby="setup-mode-heading">
             <h2 id="setup-mode-heading" className="text-lg font-semibold text-white">How would you like to build your setup?</h2>
@@ -194,9 +226,6 @@ export default function WorkspaceOnboardingPage() {
           <>
             <WorkspaceOnboardingAssistant
               profile={profile}
-              savedProfile={savedProfile}
-              savedAt={updatedAt}
-              onResetField={resetProfileField}
               onApply={(nextProfile) => {
                 setProfile(nextProfile)
                 setNotice('Assistant suggestion applied to the form. Review it, then save when ready.')
