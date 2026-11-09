@@ -130,9 +130,17 @@ assert.ok(measurePage.includes('file.size > 12 * 1024 * 1024'))
 
 const previousGeminiKey = process.env.GEMINI_API_KEY
 const previousGeminiModel = process.env.GEMINI_VISION_MODEL
+const previousPaidConfirmation = process.env.GEMINI_PAID_SERVICE_CONFIRMED
 try {
   process.env.GEMINI_API_KEY = 'test-server-only-key'
   process.env.GEMINI_VISION_MODEL = 'gemini-test-model'
+  delete process.env.GEMINI_PAID_SERVICE_CONFIRMED
+  globalThis.fetch = async () => { throw new Error('Network must not be called before paid-service confirmation.') }
+  await assert.rejects(
+    analyzeRoofGeometryWithGemini({ prompt: 'x', photo: { mimeType: 'image/jpeg', bytes: Buffer.from('x') }, timeoutMs: 1_000 }),
+    (error) => error instanceof GeminiVisionError && error.status === 503,
+  )
+  process.env.GEMINI_PAID_SERVICE_CONFIRMED = 'true'
   let geminiUrl
   let geminiInit
   globalThis.fetch = async (url, init) => {
@@ -164,6 +172,8 @@ try {
   else process.env.GEMINI_API_KEY = previousGeminiKey
   if (previousGeminiModel === undefined) delete process.env.GEMINI_VISION_MODEL
   else process.env.GEMINI_VISION_MODEL = previousGeminiModel
+  if (previousPaidConfirmation === undefined) delete process.env.GEMINI_PAID_SERVICE_CONFIRMED
+  else process.env.GEMINI_PAID_SERVICE_CONFIRMED = previousPaidConfirmation
 }
 
 console.log('ai-vision-endpoint-test: PASS (local photo/siding vision plus authenticated server-side Gemini aerial geometry)')
