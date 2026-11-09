@@ -56,8 +56,8 @@ export default function OnboardingPage() {
       icon: '⚙️'
     },
     { 
-      title: 'Account basics saved',
-      description: 'Your account basics are saved. Continue with your workspace setup next.',
+      title: 'Review and continue',
+      description: 'Review your account basics, save them, and continue to your workspace setup.',
       icon: '🎊'
     }
   ]
