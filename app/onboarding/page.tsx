@@ -57,7 +57,7 @@ export default function OnboardingPage() {
     },
     { 
       title: 'Review and continue',
-      description: 'Review your account basics, save them, and continue to your workspace setup.',
+      description: 'Review your account basics, save them, and continue. Your workspace setup is next.',
       icon: '🎊'
     }
   ]
