@@ -92,14 +92,19 @@ export default function WorkspaceOnboardingAssistant({ profile, savedProfile, sa
     setLoading(true)
 
     const history = nextMessages.slice(-6).map(({ role, content }) => ({ role, content }))
-    const response = await askBrowserLocalOllama({
+    let response: string | null = null
+    try {
+      response = await askBrowserLocalOllama({
       message: `Current workspace profile draft: ${JSON.stringify(profile)}\nOwner's message: ${message}`,
       history: history.slice(0, -1),
       currentPath: '/onboarding/workspace',
       maxTokens: 700,
       responseFormat: 'json_object',
       systemPrompt: SYSTEM_PROMPT,
-    })
+      })
+    } catch {
+      response = null
+    }
 
     if (!response) {
       setMessages((current) => [...current, {
