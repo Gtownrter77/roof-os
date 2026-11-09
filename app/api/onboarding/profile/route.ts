@@ -58,6 +58,9 @@ export async function PUT(request: NextRequest) {
   if (!validated.profile) return NextResponse.json({ error: validated.error ?? 'Invalid onboarding profile.' }, { status: 400 })
   const status = body.status ?? 'draft'
   if (status !== 'draft' && status !== 'completed') return NextResponse.json({ error: 'Status must be draft or completed.' }, { status: 400 })
+  if (status === 'completed' && !validated.profile.companyType) {
+    return NextResponse.json({ error: 'Choose a business type or select “not sure” before completing setup.' }, { status: 400 })
+  }
 
   const now = new Date().toISOString()
   const { data, error } = await supabase
