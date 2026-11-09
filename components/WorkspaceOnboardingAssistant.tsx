@@ -101,7 +101,7 @@ export default function WorkspaceOnboardingAssistant({ profile, onApply }: Props
       setMessages((current) => [...current, {
         id: `fallback-${Date.now()}`,
         role: 'assistant',
-        content: 'Your local Ollama assistant is not reachable right now. Nothing was changed. You can keep using the five guided sections below, save a draft, and return later.',
+        content: 'Your local Ollama assistant is not reachable right now. Nothing was changed. You can keep using the eight guided sections below, save a draft, and return later.',
       }])
       setLoading(false)
       return
