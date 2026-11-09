@@ -5,6 +5,9 @@ import { processChatCopilot, type ChatMessage } from '../../../../lib/ai/chat-co
 import { describeFills, fillPageFields, type PageField } from '../../../../lib/ai/page-filler'
 import { readWorkspaceSettings } from '../../../../lib/workspace-settings'
 
+// Open-source only. This route uses local Ollama and deterministic fill.
+// It does not call OpenAI, Anthropic, Gemini, or any paid measurement service.
+
 export async function POST(request: NextRequest) {
   const supabase = await createClient()
   const {

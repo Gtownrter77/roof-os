@@ -32,6 +32,10 @@ function quoted(instruction: string) {
 }
 
 /**
+ * Open-source only.
+ * No OpenAI, Anthropic, Gemini, Xactimate, EagleView, Hover, AccuLynx, or JobNimbus calls.
+ * Fill is deterministic. Local Ollama is the only optional model, and it is open-source.
+ */
  * Fill labeled page fields from a plain instruction.
  * Deterministic first so the agent works without a model.
  * Returns only fields the instruction actually named.
