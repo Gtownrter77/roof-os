@@ -94,7 +94,7 @@ assert.doesNotMatch(page, /fetch\('\/api\/settings', \{ method: 'PUT'/)
 assert.match(page, /<WorkspaceFirstSuccessGuide canEdit=\{canEdit\} \/>/)
 assert.match(firstSuccess, /const ADMIN_TOUR/)
 assert.match(firstSuccess, /const TEAM_TOUR/)
-for (const route of ['/leads', '/inspections', '/measure', '/estimate', '/jobs', '/calendar', '/settings']) {
+for (const route of ['/leads', '/inspections', '/measure', '/estimate', '/jobs', '/calendar', '/warranty', '/settings']) {
   assert.ok(firstSuccess.includes(route), `first-success tour is missing ${route}`)
 }
 assert.match(firstSuccess, /No demo records are created/)
