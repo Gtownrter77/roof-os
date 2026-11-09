@@ -3,6 +3,10 @@ name: ROOF OS Mobile APK
 on:
   workflow_dispatch:
   push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/mobile-apk.yml
     tags:
       - 'field-v*'
 
