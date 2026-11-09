@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
     layer = (member?.employee_layer as EmployeeLayer | null) ?? (member?.role === 'admin' ? 'operations' : 'canvasser')
   }
   const refusal = agentRefusal(layer, message)
-  if (refusal) return NextResponse.json({ reply: refusal, fills: [], applied: false })
+  if (refusal) return NextResponse.json({ reply: refusal, fills: [], applied: false, refused: true })
   const fields: PageField[] = Array.isArray(body.fields)
     ? body.fields
         .filter((item): item is { key: string; label: string; value?: string; type?: string } => {
