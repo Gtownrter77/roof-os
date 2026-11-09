@@ -177,6 +177,14 @@ export default function MeasurePage() {
 
       setInspectionId(inspection.id)
       setPhotoId(objectId)
+      setStatus('Sending the private roof photo to Google Gemini for roof-shape suggestions…')
+      const aiResponse = await fetch('/api/measurements/aerial/ai-suggest', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ photoId: objectId, inspectionId: inspection.id, imageWidth: imageSize.width, imageHeight: imageSize.height }),
+      })
+      const aiPayload = await aiResponse.json().catch(() => null)
+      if (!aiResponse.ok || !aiPayload?.suggestion) throw new Error(aiPayload?.error || 'Google Gemini could not suggest roof geometry.')
       const response = await fetch('/api/measurements/aerial', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
