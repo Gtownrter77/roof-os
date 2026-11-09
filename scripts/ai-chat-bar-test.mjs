@@ -220,6 +220,16 @@ try {
   assert.equal(localBody.model, 'llama3:test')
   assert.equal(localBody.messages.at(-1).role, 'user')
   assert.match(localBody.messages.at(-1).content, /Current ROOF\/OS page: \/measure/)
+  await askBrowserLocalOllama({
+    message: 'Suggest only confirmed business profile fields',
+    systemPrompt: 'Return a JSON object only.',
+    maxTokens: 500,
+    responseFormat: 'json_object',
+  })
+  const structuredBody = JSON.parse(requestInit.body)
+  assert.equal(structuredBody.max_tokens, 500, 'onboarding can request a bounded structured response')
+  assert.deepEqual(structuredBody.response_format, { type: 'json_object' }, 'onboarding requests JSON mode')
+  assert.equal(structuredBody.messages[0].content, 'Return a JSON object only.', 'onboarding can supply its own constrained local system prompt')
   globalThis.fetch = async () => new Response('x'.repeat(300 * 1024), { status: 200 })
   assert.equal(await askBrowserLocalOllama({ message: 'test' }), null, 'oversized local model responses are rejected')
 
