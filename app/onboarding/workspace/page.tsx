@@ -149,7 +149,8 @@ export default function WorkspaceOnboardingPage() {
 
   function focusProfileField(key: keyof OnboardingProfile) {
     setStep(PROFILE_FIELD_SECTIONS[key])
-    document.getElementById('step-heading')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
+    document.getElementById('step-heading')?.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'center' })
   }
   const hasUnsavedChanges = JSON.stringify(profile) !== JSON.stringify(savedProfile)
   const canComplete = profile.companyType !== 'unsure' && Boolean(profile.primaryGoal?.trim())
