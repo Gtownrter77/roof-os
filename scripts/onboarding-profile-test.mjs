@@ -97,6 +97,7 @@ assert.ok(!migration.includes('security definer'), 'onboarding profile migration
 
 assert.ok(migrationV2.includes('schema_version = 2'), 'v2 migration must advance the profile schema')
 assert.ok(migrationV2.includes('workspace_onboarding_profiles_allowed_fields_v2_check'), 'v2 migration must add the field allowlist')
+assert.ok(migrationV2.includes('workspace_onboarding_profiles_completed_profile_check'), 'v2 migration must prevent incomplete profiles from being marked complete')
 assert.ok(migrationV2.includes('teamRoles'), 'v2 migration must constrain team roles')
 assert.ok(migrationV2.includes('businessHours'), 'v2 migration must constrain business hours')
 assert.ok(migrationV2.includes('create or replace function public.onboarding_jsonb_string_array_is_valid'), 'v2 migration must define its array validator')
