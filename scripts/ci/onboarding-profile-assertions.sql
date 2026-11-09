@@ -61,6 +61,42 @@ begin
 end $profile_constraints$;
 reset role;
 
+-- Direct writes must also respect array shape, item limits, ZIP format, contact enums and text length.
+set role authenticated;
+select set_config('request.jwt.claim.sub','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',false);
+do $profile_bounds$
+declare rejected boolean;
+begin
+  rejected := false;
+  begin
+    update public.workspace_onboarding_profiles set profile='{"serviceZipCodes":["3012"]}'
+      where workspace_id='11111111-1111-4111-8111-111111111111';
+  exception when check_violation then rejected := true; end;
+  if not rejected then raise exception 'database accepted malformed service ZIP'; end if;
+
+  rejected := false;
+  begin
+    update public.workspace_onboarding_profiles set profile='{"customerContactPreferences":["fax"]}'
+      where workspace_id='11111111-1111-4111-8111-111111111111';
+  exception when check_violation then rejected := true; end;
+  if not rejected then raise exception 'database accepted unsupported contact preference'; end if;
+
+  rejected := false;
+  begin
+    update public.workspace_onboarding_profiles set profile=jsonb_build_object('primaryGoal',repeat('x',241))
+      where workspace_id='11111111-1111-4111-8111-111111111111';
+  exception when check_violation then rejected := true; end;
+  if not rejected then raise exception 'database accepted overlong primary goal'; end if;
+
+  rejected := false;
+  begin
+    update public.workspace_onboarding_profiles set profile=jsonb_build_object('roofingSystems',to_jsonb(array(select repeat('x',1) from generate_series(1,13))))
+      where workspace_id='11111111-1111-4111-8111-111111111111';
+  exception when check_violation then rejected := true; end;
+  if not rejected then raise exception 'database accepted too many roofing systems'; end if;
+end $profile_bounds$;
+reset role;
+
 -- A regular member may read the workspace profile but cannot create or edit it.
 set role authenticated;
 select set_config('request.jwt.claim.sub','bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',false);
