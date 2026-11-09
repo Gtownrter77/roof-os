@@ -240,7 +240,7 @@ export default function WorkspaceOnboardingPage() {
         <details className="mb-5 rounded-xl border border-white/15 bg-slate-950/55 p-4">
           <summary className="cursor-pointer text-sm font-semibold text-cyan-100">Review saved workspace preferences ({savedEntries.length})</summary>
           <div className="mt-3 space-y-3">
-            <p className="text-xs text-slate-400">{updatedAt ? `Last saved ${new Date(updatedAt).toLocaleString()}` : 'No saved profile timestamp yet.'} These are the last values confirmed by the workspace profile API, not unsaved form edits.</p>
+            <p className="text-xs text-slate-400">{updatedAt ? `Last saved ${new Date(updatedAt).toLocaleString()}` : 'No saved profile timestamp yet.'} These are the last values confirmed by the workspace profile API, not unsaved form edits. Each save records the actor, changed fields, source, confidence, and explicit unknowns in an append-only workspace audit record.</p>
             {savedEntries.length === 0 ? (
               <p className="text-xs text-slate-300">No saved preferences yet. Complete a section and choose Save progress when ready.</p>
             ) : (
