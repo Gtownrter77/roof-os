@@ -25,14 +25,14 @@ import {
 } from 'react-native'
 
 const colors = {
-  ink: '#102033',
-  blue: '#1769e0',
-  pale: '#eef5ff',
-  green: '#138a5b',
-  border: '#dbe4ef',
-  muted: '#607086',
-  white: '#fff',
-  red: '#b42318',
+  ink: '#f7f9ff',
+  blue: '#16b8ff',
+  pale: '#0d1628',
+  green: '#19eb77',
+  border: '#1e2a44',
+  muted: '#95a5c1',
+  white: '#0c1526',
+  red: '#ff2c3f',
 }
 
 const supabaseUrl =
@@ -946,15 +946,32 @@ export default function App() {
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={styles.header}>
           <View>
-            <Text style={styles.eyebrow}>ROOF/OS FIELD</Text>
-            <Text style={styles.title}>Field inspection</Text>
-            <Text style={styles.subtitle}>{online ? 'Connected to workspace' : 'Working offline'}</Text>
+            <Text style={styles.eyebrow}>ROOF/OS INSPECTOR</Text>
+            <Text style={styles.title}>Owner / inspector</Text>
+            <Text style={styles.subtitle}>{online ? 'Linked to desktop workspace' : 'Working offline · will sync to desktop'}</Text>
           </View>
           <View style={styles.avatar}>
             <Text style={styles.avatarText}>{(session.user.email?.[0] ?? 'R').toUpperCase()}</Text>
           </View>
           <Pressable style={styles.secondary} onPress={() => void signOut()} accessibilityLabel="Sign out">
             <Text style={styles.secondaryText}>Sign out</Text>
+          </Pressable>
+        </View>
+
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>Desktop bridge</Text>
+          <Text style={styles.helper}>This app is the inspector console. The desktop is the system of record. Open the matching screen there.</Text>
+          <Pressable style={styles.secondary} onPress={() => Linking.openURL(`${webAppUrl}/measure`)}>
+            <Text style={styles.secondaryText}>Open measurements on desktop</Text>
+          </Pressable>
+          <Pressable style={[styles.secondary, { marginTop: 10 }]} onPress={() => Linking.openURL(`${webAppUrl}/photo-estimate`)}>
+            <Text style={styles.secondaryText}>Open inspection photos on desktop</Text>
+          </Pressable>
+          <Pressable style={[styles.secondary, { marginTop: 10 }]} onPress={() => Linking.openURL(`${webAppUrl}/reports`)}>
+            <Text style={styles.secondaryText}>Open reports on desktop</Text>
+          </Pressable>
+          <Pressable style={[styles.secondary, { marginTop: 10 }]} onPress={() => Linking.openURL(webAppUrl)}>
+            <Text style={styles.secondaryText}>Open desktop home</Text>
           </Pressable>
         </View>
 
@@ -1270,7 +1287,7 @@ export default function App() {
           ) : null}
         </View>
 
-        <Text style={styles.sectionTitle}>Manual measurement review</Text>
+        <Text style={styles.sectionTitle}>Manual measurement · inspector</Text>
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Draft inputs — unverified</Text>
           <View style={styles.row}>
@@ -1362,7 +1379,7 @@ export default function App() {
         </Pressable>
         {notice ? <Text style={styles.notice}>{notice}</Text> : null}
         {error ? <Text style={styles.error}>{error}</Text> : null}
-        <Text style={styles.footer}>Field release 0.5.0 · local drafts remain until server confirmation.</Text>
+        <Text style={styles.footer}>Inspector release 0.5.0 · drafts sync to the desktop workspace.</Text>
       </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -1623,8 +1640,8 @@ function Checklist({
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#f7f9fc' },
-  center: { flex: 1, backgroundColor: '#f7f9fc', justifyContent: 'center', padding: 24 },
+  safe: { flex: 1, backgroundColor: '#050812' },
+  center: { flex: 1, backgroundColor: '#050812', justifyContent: 'center', padding: 24 },
   content: { padding: 20, paddingBottom: 40 },
   header: {
     flexDirection: 'row',
@@ -1639,15 +1656,15 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: colors.ink,
+    backgroundColor: colors.blue,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarText: { color: colors.white, fontWeight: '800' },
-  hero: { backgroundColor: colors.ink, borderRadius: 22, padding: 22, marginBottom: 14 },
-  heroLabel: { color: '#9dc4ff', fontWeight: '800', fontSize: 11, letterSpacing: 1.4 },
-  heroTitle: { color: colors.white, fontSize: 24, fontWeight: '800', marginTop: 8 },
-  heroText: { color: '#cad7e8', lineHeight: 21, marginTop: 8, marginBottom: 18 },
+  avatarText: { color: '#050812', fontWeight: '800' },
+  hero: { backgroundColor: '#0c1526', borderColor: colors.border, borderWidth: 1, borderRadius: 22, padding: 22, marginBottom: 14 },
+  heroLabel: { color: colors.blue, fontWeight: '800', fontSize: 11, letterSpacing: 1.4 },
+  heroTitle: { color: colors.ink, fontSize: 24, fontWeight: '800', marginTop: 8 },
+  heroText: { color: colors.muted, lineHeight: 21, marginTop: 8, marginBottom: 18 },
   syncChip: { color: '#d7e6ff', fontSize: 13, fontWeight: '700', marginBottom: 12 },
   cameraButton: { backgroundColor: colors.blue, borderRadius: 16, minHeight: 64, alignItems: 'center', justifyContent: 'center' },
   queueRow: { flexDirection: 'row', gap: 10, alignItems: 'center', paddingVertical: 8 },
@@ -1698,7 +1715,7 @@ const styles = StyleSheet.create({
   authTitle: { color: colors.ink, fontSize: 28, fontWeight: '800', marginVertical: 8 },
   authTabRow: {
     flexDirection: 'row',
-    backgroundColor: '#eef3f9',
+    backgroundColor: '#10192c',
     borderRadius: 10,
     padding: 4,
     marginBottom: 16,
