@@ -11,7 +11,18 @@ create table if not exists public.workspace_onboarding_profiles (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   completed_at timestamptz,
-  check ((status = 'completed' and completed_at is not null) or (status = 'draft' and completed_at is null))
+  check ((status = 'completed' and completed_at is not null) or (status = 'draft' and completed_at is null)),
+  -- Enforce the API's top-level allowlist at the database boundary as well.
+  check (profile - ARRAY[
+    'companyType', 'serviceZipCodes', 'roofingSystems', 'relatedServices',
+    'crewCountBand', 'leadSources', 'inspectionStyle', 'estimateWorkflow',
+    'productionWorkflow', 'customerContactPreferences', 'primaryGoal'
+  ]::text[] = '{}'::jsonb),
+  check (not (profile ? 'companyType') or coalesce(profile->>'companyType' in ('residential','commercial','both','unsure'), false)),
+  check (not (profile ? 'crewCountBand') or coalesce(profile->>'crewCountBand' in ('solo','2-5','6-10','11-25','26+','unsure'), false)),
+  check (not (profile ? 'inspectionStyle') or coalesce(profile->>'inspectionStyle' in ('manual','photo_first','drone_assisted','mixed','unsure'), false)),
+  check (not (profile ? 'estimateWorkflow') or coalesce(profile->>'estimateWorkflow' in ('owner_priced','estimator_priced','external','unsure'), false)),
+  check (not (profile ? 'productionWorkflow') or coalesce(profile->>'productionWorkflow' in ('in_house','subcontracted','mixed','unsure'), false))
 );
 
 alter table public.workspace_onboarding_profiles enable row level security;
