@@ -47,7 +47,17 @@ declare
   candidate text;
   invalid_domains text[] := array['foo.-bar.com','foo.bar-.com','foo..bar.com','-foo.com','foo-.com',repeat('a',64)||'.com','foo.com-','foo.c','foo_.com'];
 begin
-  if not ('roofingco.com' ~ '^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*\.[a-z]{2,}
+  if not ('roofingco.com' ~ ('^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*\.[a-z]{2,}' || chr(36))) then
+    raise exception 'valid company domain rejected';
+  end if;
+  foreach candidate in array invalid_domains loop
+    begin
+      perform public.activate_two_hour_workspace_trial(candidate);
+      raise exception 'malformed company domain unexpectedly accepted: %', candidate;
+    exception when invalid_parameter_value then null;
+    end;
+  end loop;
+end $domain_validation$;
 create trigger on_auth_user_created_workspace
 after insert on auth.users
 for each row execute function public.handle_new_user_workspace();
