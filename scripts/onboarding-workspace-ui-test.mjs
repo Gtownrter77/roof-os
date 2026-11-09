@@ -21,7 +21,7 @@ assert.match(page, /You can review this workspace profile, but only a workspace 
 // Saving and completion are explicit user actions; navigation alone must not write.
 assert.match(page, /onClick=\{\(\) => void save\('draft'\)\}/)
 assert.match(page, /onClick=\{\(\) => void save\('completed'\)\}/)
-assert.match(page, /const canComplete = profile\.companyType !== 'unsure' && Boolean\(profile\.primaryGoal\?\.trim\(\)\)/)
+assert.match(page, /const canComplete = \['residential', 'commercial', 'both'\]\.includes\(profile\.companyType \?\? 'unsure'\) && Boolean\(profile\.primaryGoal\?\.trim\(\)\)/)
 assert.match(page, /disabled=\{!canEdit \|\| saving \|\| !canComplete\}/)
 assert.match(page, /Choose Residential, Commercial, or Both/)
 assert.match(page, /Unsaved changes/)
