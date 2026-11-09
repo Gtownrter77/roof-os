@@ -8,6 +8,7 @@ const validator = readFileSync(new URL('../lib/onboarding-profile.ts', import.me
 const migration = readFileSync(new URL('../supabase/migrations/092_workspace_onboarding_profiles.sql', import.meta.url), 'utf8')
 const assistant = readFileSync(new URL('../components/WorkspaceOnboardingAssistant.tsx', import.meta.url), 'utf8')
 const localChat = readFileSync(new URL('../lib/ai/local-chat-browser.ts', import.meta.url), 'utf8')
+const tour = readFileSync(new URL('../components/onboarding/WorkspaceSetupTour.tsx', import.meta.url), 'utf8')
 
 // The screen must load only the active authenticated workspace profile and avoid caching it.
 assert.match(page, /fetch\('\/api\/onboarding\/profile', \{ cache: 'no-store' \}\)/)
@@ -29,6 +30,13 @@ assert.match(page, /does not change pricing, permissions, crew assignments, cust
 assert.match(page, /<WorkspaceOnboardingAssistant/)
 assert.match(page, /Optional local AI suggestions require owner review and never save automatically/)
 assert.match(page, /onApply=\{\(nextProfile\)/)
+assert.match(page, /<WorkspaceSetupTour onSelectSection=\{selectTourSection\}/)
+assert.match(page, /id="workspace-save-progress"/)
+assert.match(tour, /Take the guided tour/)
+assert.match(tour, /Interactive workspace setup tour/)
+assert.match(tour, /Meet your local setup guide/)
+assert.match(tour, /Save when you are ready/)
+assert.match(tour, /onSelectSection\(current\.section\)/)
 
 // The local onboarding assistant can only propose validated fields; owner action applies them and save remains separate.
 assert.match(assistant, /askBrowserLocalOllama/)
