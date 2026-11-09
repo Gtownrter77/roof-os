@@ -281,6 +281,10 @@ jobs:
           test -f supabase/migrations/093_workspace_onboarding_profile_v2.sql
           grep -q "schema_version = 2" supabase/migrations/093_workspace_onboarding_profile_v2.sql
           grep -q "workspace_onboarding_profiles_allowed_fields_v2_check" supabase/migrations/093_workspace_onboarding_profile_v2.sql
+          grep -q "create or replace function public.onboarding_jsonb_string_array_is_valid" supabase/migrations/093_workspace_onboarding_profile_v2.sql
+          grep -q "workspace_onboarding_profiles_team_roles_check" supabase/migrations/093_workspace_onboarding_profile_v2.sql
+          grep -q "workspace_onboarding_profiles_contact_preferences_check" supabase/migrations/093_workspace_onboarding_profile_v2.sql
+          if grep -qi "security definer" supabase/migrations/093_workspace_onboarding_profile_v2.sql; then exit 1; fi
           grep -q "public.is_workspace_admin(workspace_id)" supabase/migrations/092_workspace_onboarding_profiles.sql
           grep -q "public.is_workspace_member(workspace_id)" supabase/migrations/092_workspace_onboarding_profiles.sql
           grep -q "auth.uid() = updated_by" supabase/migrations/092_workspace_onboarding_profiles.sql
