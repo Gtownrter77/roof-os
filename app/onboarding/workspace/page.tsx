@@ -366,6 +366,7 @@ export default function WorkspaceOnboardingPage() {
               )}
             </div>
           </div>
+          {step === 7 && !profile.primaryGoal?.trim() && <p className="mt-3 text-xs text-amber-200" role="status">Add your first goal above to enable “Mark setup complete”. You can still save a draft at any time.</p>}
           {status === 'completed' && <p className="mt-4 text-xs text-emerald-300">This workspace profile is marked complete. You can still update it as an administrator.</p>}
           {error && <p className="mt-4 text-sm text-red-300" role="alert">{error}</p>}
           {notice && <p className="mt-4 text-sm text-emerald-300" role="status" aria-live="polite">{notice}</p>}
