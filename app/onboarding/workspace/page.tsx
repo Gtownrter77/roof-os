@@ -309,6 +309,7 @@ export default function WorkspaceOnboardingPage() {
           <>
             <WorkspaceOnboardingAssistant
               profile={profile}
+              savedSnapshot={savedProfile}
               onEditField={focusProfileField}
               onApply={(nextProfile) => {
                 setProfile(nextProfile)
