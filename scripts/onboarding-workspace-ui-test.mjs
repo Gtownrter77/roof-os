@@ -20,6 +20,7 @@ assert.match(page, /You can review this workspace profile, but only a workspace 
 // Saving and completion are explicit user actions; navigation alone must not write.
 assert.match(page, /onClick=\{\(\) => void save\('draft'\)\}/)
 assert.match(page, /onClick=\{\(\) => void save\('completed'\)\}/)
+assert.match(page, /disabled=\{!canEdit \|\| saving \|\| !profile\.primaryGoal\?\.trim\(\)\}/)
 assert.match(page, /setStep\(\(current\) => Math\.min\(STEPS\.length - 1, current \+ 1\)\)/)
 assert.doesNotMatch(page, /useEffect\([\s\S]{0,500}save\('completed'\)/)
 
