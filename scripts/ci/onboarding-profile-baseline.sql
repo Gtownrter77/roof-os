@@ -38,7 +38,8 @@ as $$ select exists (
 insert into auth.users(id) values
  ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),
  ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'),
- ('cccccccc-cccc-4ccc-8ccc-cccccccccccc');
+ ('cccccccc-cccc-4ccc-8ccc-cccccccccccc'),
+ ('dddddddd-dddd-4ddd-8ddd-dddddddddddd');
 
 insert into public.workspaces(id,name,created_by) values
  ('11111111-1111-4111-8111-111111111111','Synthetic Workspace A','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),
@@ -47,7 +48,8 @@ insert into public.workspaces(id,name,created_by) values
 insert into public.workspace_members(workspace_id,user_id,role) values
  ('11111111-1111-4111-8111-111111111111','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','owner'),
  ('11111111-1111-4111-8111-111111111111','bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb','member'),
- ('22222222-2222-4222-8222-222222222222','cccccccc-cccc-4ccc-8ccc-cccccccccccc','owner');
+ ('22222222-2222-4222-8222-222222222222','cccccccc-cccc-4ccc-8ccc-cccccccccccc','owner'),
+ ('11111111-1111-4111-8111-111111111111','dddddddd-dddd-4ddd-8ddd-dddddddddddd','admin');
 
 grant usage on schema auth, public to authenticated;
 grant execute on function auth.uid() to authenticated;
