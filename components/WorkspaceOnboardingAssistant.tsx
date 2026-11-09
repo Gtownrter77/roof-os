@@ -192,11 +192,6 @@ export default function WorkspaceOnboardingAssistant({ profile, onApply, onEditF
     setNotice('')
   }
 
-  const savedEntries = Object.entries(savedProfile).filter(([, value]) => {
-    if (Array.isArray(value)) return value.length > 0
-    return value !== undefined && value !== null && value !== '' && value !== 'unsure'
-  })
-
   return (
     <section className="mb-6 overflow-hidden rounded-2xl border border-cyan-300/25 bg-slate-950/70 shadow-lg" aria-labelledby="onboarding-assistant-title" data-onboarding-assistant>
       <div className="border-b border-white/10 px-4 py-4">
