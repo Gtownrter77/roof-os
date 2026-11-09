@@ -94,7 +94,7 @@ export function validateOnboardingProfile(input: unknown): { profile?: Onboardin
     }
     const normalized = [...new Set((value as string[]).map((item) => item.trim()).filter(Boolean))]
     if (key === 'serviceZipCodes') {
-      if (normalized.some((item) => !/^\\d{5}$/.test(item))) return { error: 'Service ZIP codes must contain five digits.' }
+      if (normalized.some((item) => !/^\d{5}$/.test(item))) return { error: 'Service ZIP codes must contain five digits.' }
       profile.serviceZipCodes = normalized
     } else if (key === 'teamRoles') {
       const allowedRoles = arrayAllowedValues.teamRoles as readonly string[]
