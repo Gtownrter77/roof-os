@@ -67,7 +67,7 @@ export default function OnboardingPage() {
       setError('Enter your company name to continue.')
       return
     }
-    if (step === 2 && form.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$.test(form.email.trim())) {
+    if (step === 2 && form.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
       setError('Enter a valid contact email, or leave the field blank.')
       return
     }
