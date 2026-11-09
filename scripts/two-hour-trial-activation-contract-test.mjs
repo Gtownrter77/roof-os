@@ -30,7 +30,7 @@ assert.ok(callback.includes("user?.user_metadata?.request_two_hour_trial === tru
 
 assert.ok(activationRoute.includes("supabase.auth.getUser()"), 'activation endpoint requires an authenticated user')
 assert.ok(activationRoute.includes("supabase.rpc('activate_two_hour_workspace_trial'"), 'activation calls the database authority')
-assert.ok(activationRoute.includes("key === 'companyDomain'"), 'activation rejects unexpected request fields')
+assert.ok(activationRoute.includes("key !== 'companyDomain'"), 'activation rejects unexpected request fields')
 assert.ok(!activationRoute.includes('createAdminClient') && !activationRoute.includes('SUPABASE_SERVICE_ROLE_KEY'), 'activation does not use a service-role bypass')
 assert.ok(activationPage.includes("fetch('/api/trials/activate'"), 'activation UI calls the protected endpoint')
 assert.ok(activationPage.includes('Start my 2-hour trial'))
