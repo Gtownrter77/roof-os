@@ -181,7 +181,7 @@ export default function OnboardingPage() {
                 readOnly
                 value={form.companyName}
                 className="ops-input"
-                placeholder="Loading workspace name…"
+                placeholder="Workspace name not available"
                 aria-describedby="onboarding-company-name-help"
               />
               <p id="onboarding-company-name-help" className="mt-1 text-xs text-slate-400">This name comes from the active workspace record. Onboarding will not overwrite the workspace name with a separate account-metadata copy.</p>
