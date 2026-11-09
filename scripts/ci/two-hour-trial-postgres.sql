@@ -41,22 +41,11 @@ create table public.user_active_workspaces (
 \ir ../../supabase/migrations/088_strict_trial_company_domain_labels.sql
 \ir ../../supabase/migrations/089_correct_trial_domain_regex_escaping.sql
 
--- Exercise the final migration's exact domain-label validator, not only 086's
--- original implementation. Invalid labels must fail before account lookup.
-do $
+-- Exercise the final validator against malformed labels in the isolated CI database.
+do $domain_validation$
 declare
   candidate text;
-  invalid_domains text[] := array[
-    'foo.-bar.com',
-    'foo.bar-.com',
-    'foo..bar.com',
-    '-foo.com',
-    'foo-.com',
-    repeat('a', 64) || '.com',
-    'foo.com-',
-    'foo.c',
-    'foo_' || '.com'
-  ];
+  invalid_domains text[] := array['foo.-bar.com','foo.bar-.com','foo..bar.com','-foo.com','foo-.com',repeat('a',64)||'.com','foo.com-','foo.c','foo_.com'];
 begin
   if not ('roofingco.com' ~ '^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*\.[a-z]{2,}
 create trigger on_auth_user_created_workspace
@@ -159,17 +148,16 @@ end $$;
 
 \echo 'two-hour-trial-postgres: PASS'
 ) then
-    raise exception 'valid company domain was rejected by the strict regex';
+    raise exception 'valid company domain rejected';
   end if;
   foreach candidate in array invalid_domains loop
     begin
       perform public.activate_two_hour_workspace_trial(candidate);
       raise exception 'malformed company domain unexpectedly accepted: %', candidate;
-    exception when invalid_parameter_value then
-      null;
+    exception when invalid_parameter_value then null;
     end;
   end loop;
-end $;
+end $domain_validation$;
 
 create trigger on_auth_user_created_workspace
 after insert on auth.users
