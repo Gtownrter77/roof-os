@@ -81,7 +81,7 @@ assert.ok(route.includes("supabase.rpc('is_workspace_admin'"), 'profile API must
 assert.ok(route.includes("'profile', 'status'"), 'profile API must reject unknown request properties')
 assert.ok(route.includes('validateOnboardingProfile'), 'profile API must validate profile payloads')
 assert.ok(route.includes('updated_by: user.id'), 'profile writes must be attributed to the signed-in user')
-assert.ok(route.includes("status === 'completed' && (!validated.profile.companyType || !validated.profile.primaryGoal?.trim())"), 'completion must include a business type and a non-empty first goal')
+assert.ok(route.includes("status === 'completed' && (!validated.profile.companyType || validated.profile.companyType === 'unsure' || !validated.profile.primaryGoal?.trim())"), 'completion must include an explicit business type and a non-empty first goal')
 assert.ok(!route.includes('service_role'), 'profile API must not use service-role credentials')
 assert.ok(!route.includes('/api/settings'), 'profile API must not bypass operational settings authorization')
 
