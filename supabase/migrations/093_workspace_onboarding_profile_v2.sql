@@ -16,11 +16,11 @@ alter table public.workspace_onboarding_profiles
 
 -- Pure validation helper: no table access, elevated privileges, or side effects.
 create or replace function public.onboarding_jsonb_string_array_is_valid(
-  p_value jsonb,
-  p_max_items integer,
-  p_max_length integer,
-  p_pattern text default null,
-  p_allowed_values text[] default null
+  value jsonb,
+  max_items integer,
+  max_chars integer,
+  item_pattern text default null,
+  allowed_values text[] default null
 )
 returns boolean
 language sql
@@ -28,17 +28,17 @@ immutable
 parallel safe
 as $function$
   select case
-    when p_value is null or jsonb_typeof(p_value) <> 'array' then false
-    when jsonb_array_length(p_value) > p_max_items then false
+    when value is null or jsonb_typeof(value) <> 'array' then false
+    when jsonb_array_length(value) > max_items then false
     else not exists (
       select 1
-      from jsonb_array_elements(p_value) as element(value)
+      from jsonb_array_elements(value) as element(value)
       where jsonb_typeof(element.value) <> 'string'
-        or length(element.value #>> '{}') > p_max_length
-        or (p_pattern is not null and (element.value #>> '{}') !~ p_pattern)
+        or length(element.value #>> '{}') > max_chars
+        or (item_pattern is not null and (element.value #>> '{}') !~ item_pattern)
         or (
-          p_allowed_values is not null
-          and not ((element.value #>> '{}') = any(p_allowed_values))
+          allowed_values is not null
+          and not ((element.value #>> '{}') = any(allowed_values))
         )
     )
   end;
