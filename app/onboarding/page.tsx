@@ -71,7 +71,7 @@ export default function OnboardingPage() {
     }
 
     setSaving(false)
-    setStep(2)
+    router.push('/onboarding/workspace')
   }
 
   const handleBack = () => {
