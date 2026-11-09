@@ -117,6 +117,9 @@ assert.match(page, /<WorkspaceFirstSuccessGuide canEdit=\{false\} \/>/)
 assert.match(page, /<WorkspaceFirstSuccessGuide canEdit=\{true\} \/>/)
 assert.match(firstSuccess, /const ADMIN_TOUR/)
 assert.match(firstSuccess, /const TEAM_TOUR/)
+assert.match(firstSuccess, /primaryGoal/)
+assert.match(firstSuccess, /First priority:/)
+assert.match(page, /primaryGoal=\{savedProfile\.primaryGoal\}/)
 for (const route of ['/leads', '/inspections', '/measure', '/estimate', '/jobs', '/calendar', '/warranty', '/settings']) {
   assert.ok(firstSuccess.includes(route), `first-success tour is missing ${route}`)
 }
