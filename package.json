@@ -119,7 +119,8 @@
     "test:passport-rate-limit-privacy": "node scripts/passport-rate-limit-privacy-test.mjs",
     "test:security-definer-search-path": "node scripts/security-definer-search-path-test.mjs",
     "test:passport-rate-limit-rls": "node scripts/passport-rate-limit-rls-test.mjs",
-    "test:onboarding-profile": "node --experimental-strip-types scripts/onboarding-profile-test.mjs"
+    "test:onboarding-profile": "node --experimental-strip-types scripts/onboarding-profile-test.mjs",
+    "test:onboarding-workspace-ui": "node scripts/onboarding-workspace-ui-test.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.2",
