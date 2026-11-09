@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import type { OnboardingProfile, OnboardingProfileStatus } from '../../../lib/onboarding-profile'
+import WorkspaceOnboardingAssistant from '../../../components/WorkspaceOnboardingAssistant'
 
 const EMPTY_PROFILE: OnboardingProfile = {
   companyType: 'unsure',
@@ -110,8 +111,18 @@ export default function WorkspaceOnboardingPage() {
         </header>
 
         <div className="mb-5 rounded-xl border border-cyan-300/20 bg-cyan-950/25 p-3 text-xs leading-relaxed text-cyan-100/80">
-          These are reviewed workspace preferences only. Saving them does not change pricing, permissions, crew assignments, customer records, integrations, or live operations. AI recommendations are not connected in this phase.
+          These are reviewed workspace preferences only. Saving them does not change pricing, permissions, crew assignments, customer records, integrations, or live operations. Optional local AI suggestions require owner review and never save automatically.
         </div>
+
+        {canEdit && (
+          <WorkspaceOnboardingAssistant
+            profile={profile}
+            onApply={(nextProfile) => {
+              setProfile(nextProfile)
+              setNotice('Assistant suggestion applied to the form. Review it, then save when ready.')
+            }}
+          />
+        )}
 
         {!canEdit && (
           <div className="mb-5 rounded-xl border border-amber-300/30 bg-amber-950/25 p-3 text-sm text-amber-100" role="status">
