@@ -90,6 +90,8 @@ export default function SettingsPage() {
   const [message, setMessage] = useState('')
   const [refreshing, setRefreshing] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [ownerEmailConfirm, setOwnerEmailConfirm] = useState('')
+  const [ownerPhraseConfirm, setOwnerPhraseConfirm] = useState('')
 
   useEffect(() => {
     setRadarPrefs(loadRadarLayerPrefs())
@@ -124,7 +126,7 @@ export default function SettingsPage() {
     setSaving(true)
     setMessage('Saving owner settings & feature toggles…')
     try {
-      const settingsResponse = await fetch('/api/settings', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(settings) })
+      const settingsResponse = await fetch('/api/settings', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ...settings, ownerAuthorization: { email: ownerEmailConfirm, confirmation: ownerPhraseConfirm } }) })
       const settingsPayload = await settingsResponse.json().catch(() => ({}))
       if (!settingsResponse.ok) {
         setMessage(settingsPayload.error ?? 'Could not save workspace settings.')
@@ -526,7 +528,20 @@ export default function SettingsPage() {
           </div>
         </section>
 
-        <button onClick={save} disabled={!loaded || saving} className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3.5 rounded-lg font-bold text-sm disabled:opacity-50">
+        <section className="glass rounded-xl p-4 border-l-4 border-red-500 space-y-3">
+          <h2 className="font-bold text-sm text-white">Owner 2-part authorization</h2>
+          <p className="text-xs text-slate-400">Settings cannot change until both parts are completed by the owner.</p>
+          <label className="block text-xs text-slate-300">
+            Part 1 · Confirm owner email
+            <input value={ownerEmailConfirm} onChange={(e) => setOwnerEmailConfirm(e.target.value)} className="ops-input mt-1" placeholder="owner@email" autoComplete="email" />
+          </label>
+          <label className="block text-xs text-slate-300">
+            Part 2 · Type AUTHORIZE SETTINGS
+            <input value={ownerPhraseConfirm} onChange={(e) => setOwnerPhraseConfirm(e.target.value)} className="ops-input mt-1" placeholder="AUTHORIZE SETTINGS" />
+          </label>
+        </section>
+
+        <button onClick={save} disabled={!loaded || saving || !ownerEmailConfirm.trim() || ownerPhraseConfirm.trim() !== 'AUTHORIZE SETTINGS'} className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3.5 rounded-lg font-bold text-sm disabled:opacity-50">
           {saving ? 'Saving Settings…' : '💾 Save All Master Settings & Toggles'}
         </button>
 

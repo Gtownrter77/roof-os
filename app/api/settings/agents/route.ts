@@ -36,7 +36,20 @@ export async function PUT(request: NextRequest) {
   if (!isAdmin) return NextResponse.json({ error: 'Workspace administrator access is required to change agent switches.' }, { status: 403 })
   const parsedBody = await readJson(request)
   if ('error' in parsedBody) return NextResponse.json({ error: parsedBody.error }, { status: parsedBody.status })
-  const update = parseAgentToggleUpdate(parsedBody.body)
+  const body = parsedBody.body as Record<string, unknown>
+  const authorization = body.ownerAuthorization
+  if (!authorization || typeof authorization !== 'object') {
+    return NextResponse.json({ error: 'Owner 2-part authorization is required before settings can change.' }, { status: 403 })
+  }
+  const ownerEmail = String((authorization as { email?: unknown }).email ?? '').trim().toLowerCase()
+  const confirmation = String((authorization as { confirmation?: unknown }).confirmation ?? '').trim()
+  if (!user.email || ownerEmail !== user.email.toLowerCase()) {
+    return NextResponse.json({ error: 'Part 1 failed. Owner email does not match the signed-in owner.' }, { status: 403 })
+  }
+  if (confirmation !== 'AUTHORIZE SETTINGS') {
+    return NextResponse.json({ error: 'Part 2 failed. Type AUTHORIZE SETTINGS to confirm.' }, { status: 403 })
+  }
+  const update = parseAgentToggleUpdate(body)
   if ('error' in update) return NextResponse.json({ error: update.error }, { status: 400 })
 
   const { data, error } = await supabase

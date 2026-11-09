@@ -10,6 +10,8 @@ export default function AgentSwitches() {
   const [canEdit, setCanEdit] = useState(false)
   const [busy, setBusy] = useState<string | null>(null)
   const [message, setMessage] = useState('')
+  const [ownerEmailConfirm, setOwnerEmailConfirm] = useState('')
+  const [ownerPhraseConfirm, setOwnerPhraseConfirm] = useState('')
 
   useEffect(() => {
     fetch('/api/settings/agents')
@@ -28,7 +30,7 @@ export default function AgentSwitches() {
     setBusy(agent.agentKey)
     setMessage('')
     try {
-      const response = await fetch('/api/settings/agents', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ agent_key: agent.agentKey, enabled }) })
+      const response = await fetch('/api/settings/agents', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ agent_key: agent.agentKey, enabled, ownerAuthorization: { email: ownerEmailConfirm, confirmation: ownerPhraseConfirm } }) })
       const payload = await response.json().catch(() => ({}))
       if (!response.ok) { setMessage(payload.error ?? 'Agent switch save failed.'); return }
       setAgents((current) => current.map((item) => item.agentKey === agent.agentKey ? { ...item, enabled } : item))
@@ -44,8 +46,14 @@ export default function AgentSwitches() {
     <section className="glass rounded-xl p-4 border-l-4 border-violet-500 space-y-3" aria-labelledby="agent-switches-title">
       <h2 id="agent-switches-title" className="font-bold text-sm text-white">Workspace agents</h2>
       <p className="text-xs text-slate-400">
-        Turns each background agent on or off for this workspace. Saved right away. {canEdit ? '' : 'Only the system owner can change these.'}
+        Turns each background agent on or off for this workspace. Saved right away. {canEdit ? 'Owner 2-part authorization is required.' : 'Only the system owner can change these.'}
       </p>
+      {canEdit && (
+        <div className="space-y-2">
+          <input value={ownerEmailConfirm} onChange={(e) => setOwnerEmailConfirm(e.target.value)} className="ops-input" placeholder="Part 1 · owner email" />
+          <input value={ownerPhraseConfirm} onChange={(e) => setOwnerPhraseConfirm(e.target.value)} className="ops-input" placeholder="Part 2 · AUTHORIZE SETTINGS" />
+        </div>
+      )}
       <div className="space-y-2 text-xs">
         {agents.map((agent) => (
           <div key={agent.agentKey} className="flex justify-between items-start p-2 border rounded bg-white/5 gap-3">
@@ -58,7 +66,7 @@ export default function AgentSwitches() {
             <button
               type="button"
               onClick={() => toggle(agent)}
-              disabled={!canEdit || busy !== null || agent.enabled === null}
+              disabled={!canEdit || busy !== null || agent.enabled === null || !ownerEmailConfirm.trim() || ownerPhraseConfirm.trim() !== 'AUTHORIZE SETTINGS'}
               aria-pressed={agent.enabled === true}
               aria-label={agent.label}
               className={`w-11 h-6 shrink-0 flex items-center rounded-full p-1 transition-colors disabled:opacity-50 ${agent.enabled ? 'bg-emerald-600' : 'bg-slate-600'}`}
