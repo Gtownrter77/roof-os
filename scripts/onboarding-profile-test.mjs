@@ -102,6 +102,17 @@ assert.ok(migrationV2.includes('businessHours'), 'v2 migration must constrain bu
 assert.ok(migrationV2.includes('create or replace function public.onboarding_jsonb_string_array_is_valid'), 'v2 migration must define its array validator')
 assert.ok(migrationV2.includes('immutable'), 'the SQL array validator must be immutable')
 assert.ok(migrationV2.includes('workspace_onboarding_profiles_service_zip_codes_check'), 'v2 migration must constrain service ZIP codes')
+for (const constraint of [
+  'workspace_onboarding_profiles_company_type_check',
+  'workspace_onboarding_profiles_crew_count_check',
+  'workspace_onboarding_profiles_inspection_style_check',
+  'workspace_onboarding_profiles_estimate_workflow_check',
+  'workspace_onboarding_profiles_production_workflow_check',
+  'workspace_onboarding_profiles_team_roles_check',
+  'workspace_onboarding_profiles_contact_preferences_check',
+]) {
+  assert.ok(migrationV2.includes(constraint), `v2 migration must add ${constraint}`)
+}
 assert.ok(!migrationV2.includes('security definer'), 'the SQL array validator must not use elevated privileges')
 
 console.log('onboarding-profile-test: PASS')
