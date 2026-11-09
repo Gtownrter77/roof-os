@@ -94,6 +94,7 @@ export function validateOnboardingProfile(input: unknown): { profile?: Onboardin
     }
     const normalized = [...new Set((value as string[]).map((item) => item.trim()).filter(Boolean))]
     if (key === 'serviceZipCodes') {
+      // V1 serves US roofing businesses; international postal formats are intentionally out of scope.
       if (normalized.some((item) => !/^\d{5}$/.test(item))) return { error: 'Service ZIP codes must contain five digits.' }
       profile.serviceZipCodes = normalized
     } else if (key === 'teamRoles') {

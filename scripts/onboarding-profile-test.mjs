@@ -60,6 +60,7 @@ for (const invalid of [
   { customerContactPreferences: ['fax'] },
   { customerContactPreferences: ['phone', 'email', 'text', 'unsure', 'extra'] },
   { serviceZipCodes: ['3012'] },
+  { serviceZipCodes: ['30127x'] },
   { serviceZipCodes: Array.from({ length: 21 }, (_, i) => String(30000 + i)) },
   { roofingSystems: ['x'.repeat(81)] },
   { relatedServices: ['x'.repeat(81)] },
