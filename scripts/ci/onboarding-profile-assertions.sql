@@ -2,7 +2,8 @@
 \set ON_ERROR_STOP on
 
 -- The migration must explicitly grant only the authenticated operations it needs.
-do $ begin
+do $
+begin
   if not has_table_privilege('anon','public.workspace_onboarding_profiles','select') then
     -- expected: anonymous role has no Data API access
     null;
