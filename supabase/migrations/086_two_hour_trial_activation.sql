@@ -17,6 +17,32 @@ create table if not exists public.workspace_trial_claims (
 alter table public.workspace_trial_claims enable row level security;
 revoke all on table public.workspace_trial_claims from public, anon, authenticated;
 
+-- New accounts start with a locked workspace. Only the explicit activation RPC
+-- can unlock it, so password login or a skipped callback cannot bypass the trial.
+create or replace function public.handle_new_user_workspace()
+returns trigger
+language plpgsql
+security definer
+set search_path to ''
+as $function$
+declare
+  v_workspace_id uuid;
+begin
+  insert into public.workspaces (name, created_by, trial_status)
+  values (
+    coalesce(nullif(new.raw_user_meta_data->>'company_name', ''), 'My Roofing Company'),
+    new.id,
+    'pending'
+  )
+  returning id into v_workspace_id;
+
+  insert into public.workspace_members (workspace_id, user_id, role)
+  values (v_workspace_id, new.id, 'owner');
+
+  return new;
+end;
+$function$;
+
 create or replace function public.activate_two_hour_workspace_trial(p_company_domain text)
 returns jsonb
 language plpgsql
@@ -30,6 +56,7 @@ declare
   v_email_confirmed_at timestamptz;
   v_domain text := lower(trim(coalesce(p_company_domain, '')));
   v_workspace_id uuid;
+  v_trial_status text;
   v_started_at timestamptz;
   v_expires_at timestamptz;
 begin
@@ -77,8 +104,8 @@ begin
     raise exception using errcode = '42501', message = 'An owner workspace is required to activate a trial.';
   end if;
 
-  select trial_started_at, trial_expires_at
-    into v_started_at, v_expires_at
+  select trial_started_at, trial_expires_at, trial_status
+    into v_started_at, v_expires_at, v_trial_status
     from public.workspaces
    where id = v_workspace_id;
 
@@ -91,6 +118,10 @@ begin
     );
   end if;
 
+  if v_trial_status <> 'pending' then
+    raise exception using errcode = '42501', message = 'This workspace is not eligible for a new free trial.';
+  end if;
+
   insert into public.workspace_trial_claims(company_domain, workspace_id, user_id)
   values (v_domain, v_workspace_id, v_user_id);
 
@@ -99,7 +130,8 @@ begin
 
   update public.workspaces
      set trial_started_at = v_started_at,
-         trial_expires_at = v_expires_at
+         trial_expires_at = v_expires_at,
+         trial_status = 'active'
    where id = v_workspace_id;
 
   return jsonb_build_object(
