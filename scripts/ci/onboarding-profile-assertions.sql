@@ -76,6 +76,13 @@ begin
 
   rejected := false;
   begin
+    update public.workspace_onboarding_profiles set profile='{"serviceZipCodes":["30127x"]}'
+      where workspace_id='11111111-1111-4111-8111-111111111111';
+  exception when check_violation then rejected := true; end;
+  if not rejected then raise exception 'database accepted a ZIP with trailing characters'; end if;
+
+  rejected := false;
+  begin
     update public.workspace_onboarding_profiles set profile='{"customerContactPreferences":["fax"]}'
       where workspace_id='11111111-1111-4111-8111-111111111111';
   exception when check_violation then rejected := true; end;
