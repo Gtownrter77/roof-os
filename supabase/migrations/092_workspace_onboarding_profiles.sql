@@ -11,7 +11,7 @@ create table if not exists public.workspace_onboarding_profiles (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   completed_at timestamptz,
-  check ((status = 'completed' and completed_at is not null) or status = 'draft')
+  check ((status = 'completed' and completed_at is not null) or (status = 'draft' and completed_at is null))
 );
 
 alter table public.workspace_onboarding_profiles enable row level security;
