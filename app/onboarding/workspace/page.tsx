@@ -55,6 +55,8 @@ function listValue(value: string[] | undefined) {
 
 export default function WorkspaceOnboardingPage() {
   const [profile, setProfile] = useState<OnboardingProfile>(EMPTY_PROFILE)
+  const [savedProfile, setSavedProfile] = useState<OnboardingProfile>(EMPTY_PROFILE)
+  const [updatedAt, setUpdatedAt] = useState<string | null>(null)
   const [status, setStatus] = useState<OnboardingProfileStatus>('draft')
   const [step, setStep] = useState(0)
   const [canEdit, setCanEdit] = useState(false)
@@ -72,7 +74,10 @@ export default function WorkspaceOnboardingPage() {
         const data = await response.json()
         if (!response.ok) throw new Error(data.error || 'Could not load workspace setup.')
         if (!active) return
-        setProfile({ ...EMPTY_PROFILE, ...(data.profile ?? {}) })
+        const loadedProfile = { ...EMPTY_PROFILE, ...(data.profile ?? {}) }
+        setProfile(loadedProfile)
+        setSavedProfile(loadedProfile)
+        setUpdatedAt(typeof data.updatedAt === 'string' ? data.updatedAt : null)
         setStatus(data.status === 'completed' ? 'completed' : 'draft')
         setCanEdit(data.canEdit === true)
         setSetupMode(data.canEdit === true ? 'choose' : 'manual')
@@ -106,7 +111,10 @@ export default function WorkspaceOnboardingPage() {
       })
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || 'Could not save workspace setup.')
-      setProfile({ ...EMPTY_PROFILE, ...(data.profile ?? profile) })
+      const persistedProfile = { ...EMPTY_PROFILE, ...(data.profile ?? profile) }
+      setProfile(persistedProfile)
+      setSavedProfile(persistedProfile)
+      setUpdatedAt(typeof data.updated_at === 'string' ? data.updated_at : null)
       setStatus(data.status === 'completed' ? 'completed' : 'draft')
       setNotice(nextStatus === 'completed' ? 'Workspace setup marked complete.' : 'Progress saved. You can return and continue later.')
     } catch (cause) {
@@ -114,6 +122,21 @@ export default function WorkspaceOnboardingPage() {
     } finally {
       setSaving(false)
     }
+  }
+
+  function resetProfileField(key: keyof OnboardingProfile) {
+    const emptyValue: Partial<OnboardingProfile> = {
+      serviceZipCodes: [], roofingSystems: [], relatedServices: [], teamRoles: [], leadSources: [],
+      customerContactPreferences: ['unsure'], businessHours: '', primaryGoal: '',
+      companyType: 'unsure', yearsInBusinessBand: 'unsure', crewCountBand: 'unsure',
+      inspectionStyle: 'unsure', photoEvidenceWorkflow: 'unsure', estimateWorkflow: 'unsure',
+      approvalWorkflow: 'unsure', productionWorkflow: 'unsure', schedulingWorkflow: 'unsure',
+      materialWorkflow: 'unsure', permitWorkflow: 'unsure', qualityControlWorkflow: 'unsure',
+      closeoutWorkflow: 'unsure', warrantyWorkflow: 'unsure',
+    }
+    if (!(key in emptyValue)) return
+    setProfile((current) => ({ ...current, [key]: emptyValue[key] }))
+    setNotice('Answer cleared in the form only. Choose Save progress to persist the change.')
   }
 
   const inputClass = 'mt-1 w-full rounded-xl border border-white/15 bg-slate-950/70 px-3 py-2.5 text-sm text-white placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400 disabled:opacity-60'
