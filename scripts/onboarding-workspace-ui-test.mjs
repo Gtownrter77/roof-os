@@ -9,6 +9,7 @@ const migration = readFileSync(new URL('../supabase/migrations/092_workspace_onb
 const assistant = readFileSync(new URL('../components/WorkspaceOnboardingAssistant.tsx', import.meta.url), 'utf8')
 const localChat = readFileSync(new URL('../lib/ai/local-chat-browser.ts', import.meta.url), 'utf8')
 const tour = readFileSync(new URL('../components/onboarding/WorkspaceSetupTour.tsx', import.meta.url), 'utf8')
+const hologram = readFileSync(new URL('../components/onboarding/HologramMeteorologist.tsx', import.meta.url), 'utf8')
 
 // The screen must load only the active authenticated workspace profile and avoid caching it.
 assert.match(page, /fetch\('\/api\/onboarding\/profile', \{ cache: 'no-store' \}\)/)
@@ -74,5 +75,11 @@ assert.doesNotMatch(accountBasicsPage, /onboarding_completed_at/)
 assert.match(accountBasicsPage, /router\.push\('\/onboarding\/workspace'\)/)
 assert.match(accountBasicsPage, /Account basics saved/)
 assert.match(accountBasicsPage, /workspace setup is next/i)
+assert.match(accountBasicsPage, /<HologramMeteorologist step=\{step\} \/>/)
+assert.match(accountBasicsPage, /onClick=\{\(\) => setStep\(2\)\}/)
+assert.match(hologram, /speechSynthesis/)
+assert.match(hologram, /Voice is optional and starts only when you press the button/)
+assert.match(hologram, /not displaying a live forecast/)
+assert.match(hologram, /Your account basics are saved\. Next, we’ll configure your workspace profile/)
 
 console.log('Workspace onboarding UI contract tests passed.')
