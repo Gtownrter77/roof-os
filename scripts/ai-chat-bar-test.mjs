@@ -178,6 +178,11 @@ assert.ok(localChatSource.includes("credentials: 'omit'"), 'local Ollama request
 assert.ok(routeSource.includes('processChatCopilot'), 'authenticated API route retains deterministic copilot navigation')
 assert.ok(routeSource.includes('refused: true'), 'server permission refusals are explicitly marked')
 assert.ok(componentSource.includes('data.refused === true ? null : await askBrowserLocalOllama'), 'local model cannot overwrite a server-enforced role refusal')
+const serverRequestStart = componentSource.indexOf("fetch('/api/ai/chat'")
+const serverRequestEnd = componentSource.indexOf('const data = await response.json()', serverRequestStart)
+assert.ok(serverRequestStart >= 0 && serverRequestEnd > serverRequestStart, 'server chat request block exists')
+assert.ok(!componentSource.slice(serverRequestStart, serverRequestEnd).includes('history:'), 'chat history stays in the browser and is not sent to the app server')
+assert.ok(!routeSource.includes('history?: unknown'), 'server route does not accept or retain chat history')
 
 const savedChatBase = process.env.NEXT_PUBLIC_OLLAMA_CHAT_API_BASE_URL
 const savedChatModel = process.env.NEXT_PUBLIC_OLLAMA_CHAT_MODEL
