@@ -119,7 +119,7 @@ const ManualDrawingTool = ({
           ? imageOrder
             ? `${Math.round(areaPx).toLocaleString()} px² · ${imageOrder.squareFeet.toFixed(1)} sq ft · order ${imageOrder.squaresLabel} squares · ${imageOrder.bundles} standard bundles. ${imageOrder.jobLabel}`
             : `${Math.round(areaPx).toLocaleString()} px². Enter a scale reference to convert to orderable squares and whole bundles.`
-          : useGeoMap ? 'Click Start Drawing, then click roof corners. Full replacement starts at 10 squares.' : 'Click the image to draw a plane. Full replacement starts at 10 squares. Under 600 sq ft is a repair by default.'}
+          : useGeoMap ? 'Tap Start Drawing, then tap each roof corner (or click with a mouse). Full replacement starts at 10 squares.' : 'Tap Start Drawing, then tap each roof corner on the image (or click with a mouse). Full replacement starts at 10 squares. Under 600 sq ft is a repair by default.'}
       </p>
     </div>
   );
