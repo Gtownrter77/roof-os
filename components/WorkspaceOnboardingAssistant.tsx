@@ -17,7 +17,6 @@ type Props = {
   onApply: (profile: OnboardingProfile) => void
   onEditField: (key: keyof OnboardingProfile) => void
   busy: boolean
-  onBusyChange: (busy: boolean) => void
 }
 
 const SYSTEM_PROMPT = `You are the ROOF/OS onboarding guide for roofing businesses.
@@ -66,7 +65,7 @@ function parseAssistantResult(raw: string): AssistantResult | null {
   }
 }
 
-export default function WorkspaceOnboardingAssistant({ profile, savedSnapshot, onApply, onEditField, busy, onBusyChange }: Props) {
+export default function WorkspaceOnboardingAssistant({ profile, savedSnapshot, onApply, onEditField, busy }: Props) {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 'welcome',
@@ -90,7 +89,6 @@ export default function WorkspaceOnboardingAssistant({ profile, savedSnapshot, o
     setPendingProfile(null)
     setNotice('')
     setLoading(true)
-    onBusyChange(true)
 
     const history = nextMessages.slice(-6).map(({ role, content }) => ({ role, content }))
     try {
@@ -137,7 +135,6 @@ export default function WorkspaceOnboardingAssistant({ profile, savedSnapshot, o
       }])
     } finally {
       setLoading(false)
-      onBusyChange(false)
     }
   }
 
