@@ -418,7 +418,7 @@ export default function MeasurePage() {
               setStatus(mapCenter ? 'Manual map tracing enabled. The mapped footprint is a ground reference, not roof surface area.' : 'Manual image tracing enabled. Enter a known scale reference before treating traced geometry as dimensions.')
             }}
           />
-          {file && <p className="mt-2 text-xs text-slate-400">{file.name} · {imageSize.width}×{imageSize.height}px · private storage upload happens before local Ollama analysis.</p>}
+          {file && <p className="mt-2 text-xs text-slate-400">{file.name} · {imageSize.width}×{imageSize.height}px · saved privately before local Ollama analysis. Requires Ollama model qwen3-vl:8b and this site's origin allowed in OLLAMA_ORIGINS.</p>}
           {error && <p className="mt-3 rounded-lg border border-red-400/30 bg-red-400/10 p-3 text-sm text-red-300" role="alert">{error}</p>}
           {status && <p className="mt-3 rounded-lg border border-emerald-400/30 bg-emerald-400/10 p-3 text-sm text-emerald-300" role="status">{status}</p>}
         </section>
