@@ -20,7 +20,7 @@ assert.deepEqual(
   'fallback extracts a single SHA-256 fingerprint from alternate output',
 )
 assert.throws(
-  () => extractSigningCertificateSha256(`Certificate SHA-256: ${fingerprint}\\nOther SHA-256: ${'cd'.repeat(32)}`),
+  () => extractSigningCertificateSha256(['Certificate SHA-256: ' + fingerprint, 'Other SHA-256: ' + 'cd'.repeat(32)].join('\\n')),
   /multiple SHA-256 fingerprints/,
   'ambiguous signing output is rejected',
 )
