@@ -53,6 +53,31 @@ const TEAM_ROLE_OPTIONS: Array<{ value: TeamRole; label: string }> = [
   { value: 'other', label: 'Other' },
 ]
 
+const PROFILE_FIELD_SECTIONS: Record<keyof OnboardingProfile, number> = {
+  companyType: 0,
+  yearsInBusinessBand: 0,
+  serviceZipCodes: 1,
+  roofingSystems: 2,
+  relatedServices: 2,
+  crewCountBand: 0,
+  teamRoles: 3,
+  leadSources: 2,
+  inspectionStyle: 4,
+  photoEvidenceWorkflow: 4,
+  estimateWorkflow: 4,
+  approvalWorkflow: 4,
+  productionWorkflow: 5,
+  schedulingWorkflow: 5,
+  materialWorkflow: 5,
+  permitWorkflow: 5,
+  qualityControlWorkflow: 5,
+  closeoutWorkflow: 5,
+  warrantyWorkflow: 5,
+  customerContactPreferences: 6,
+  businessHours: 6,
+  primaryGoal: 7,
+}
+
 function splitList(value: string) {
   return [...new Set(value.split(',').map((item) => item.trim()).filter(Boolean))]
 }
@@ -121,6 +146,11 @@ export default function WorkspaceOnboardingPage() {
   }, [])
 
   const selectTourSection = useCallback((section: number) => setStep(section), [])
+
+  function focusProfileField(key: keyof OnboardingProfile) {
+    setStep(PROFILE_FIELD_SECTIONS[key])
+    document.getElementById('step-heading')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }
   const hasUnsavedChanges = JSON.stringify(profile) !== JSON.stringify(savedProfile)
   const canComplete = profile.companyType !== 'unsure' && Boolean(profile.primaryGoal?.trim())
   const savedEntries = Object.entries(savedProfile).filter(([, value]) => {
@@ -279,6 +309,7 @@ export default function WorkspaceOnboardingPage() {
           <>
             <WorkspaceOnboardingAssistant
               profile={profile}
+              onEditField={focusProfileField}
               onApply={(nextProfile) => {
                 setProfile(nextProfile)
                 setNotice('Assistant suggestion applied to the form. Review it, then save when ready.')
