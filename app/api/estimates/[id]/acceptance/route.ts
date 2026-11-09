@@ -147,6 +147,9 @@ export async function POST(
     if (!Number.isFinite(rawAmount) || rawAmount < 0) {
       return NextResponse.json({ error: 'Enter a valid deposit amount.' }, { status: 400 })
     }
+    if (eventType !== 'waived' && rawAmount <= 0) {
+      return NextResponse.json({ error: 'Enter an amount greater than zero for this deposit event.' }, { status: 400 })
+    }
 
     const method = body.method === undefined || body.method === null || body.method === ''
       ? null
