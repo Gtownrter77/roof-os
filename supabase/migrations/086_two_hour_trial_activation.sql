@@ -25,7 +25,8 @@ as $function$
 declare
   v_user_id uuid := auth.uid();
   v_email text;
-  v_email_domain text;\n  v_email_confirmed_at timestamptz;
+  v_email_domain text;
+  v_email_confirmed_at timestamptz;
   v_domain text := lower(trim(coalesce(p_company_domain, '')));
   v_workspace_id uuid;
   v_started_at timestamptz;
@@ -41,7 +42,12 @@ begin
     raise exception using errcode = '22023', message = 'Enter a valid company email domain.';
   end if;
 
-  select lower(email), email_confirmed_at\n    into v_email, v_email_confirmed_at\n    from auth.users where id = v_user_id;\n  if v_email_confirmed_at is null then\n    raise exception using errcode = '28000', message = 'Verify your work email before activating a trial.';\n  end if;
+  select lower(email), email_confirmed_at
+    into v_email, v_email_confirmed_at
+    from auth.users where id = v_user_id;
+  if v_email_confirmed_at is null then
+    raise exception using errcode = '28000', message = 'Verify your work email before activating a trial.';
+  end if;
   v_email_domain := split_part(coalesce(v_email, ''), '@', 2);
   if v_email_domain = '' or v_email_domain <> v_domain then
     raise exception using errcode = '22023', message = 'Use a verified work email matching your company domain.';
