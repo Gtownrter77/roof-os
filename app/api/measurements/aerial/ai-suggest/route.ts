@@ -148,7 +148,7 @@ export async function POST(request: NextRequest) {
     const timer = setTimeout(() => controller.abort(), STORAGE_TIMEOUT_MS)
     let bytes: Buffer
     try {
-      const response = await fetch(signedUrl.toString(), { signal: controller.signal, cache: 'no-store' })
+      const response = await fetch(signedUrl.toString(), { signal: controller.signal, cache: 'no-store', redirect: 'error' })
       if (!response.ok) throw new RouteError(502, 'The selected roof photo could not be retrieved from private storage.')
       bytes = await readBounded(response)
     } catch (error) {
