@@ -7,8 +7,8 @@ import { readWorkspaceSettings } from '../../../../lib/workspace-settings'
 import { agentRefusal } from '../../../../lib/layer-gate'
 import type { EmployeeLayer } from '../../../../lib/employee-layers'
 
-// Open-source only. This route uses local Ollama and deterministic fill.
-// It does not call OpenAI, Anthropic, Gemini, or any paid measurement service.
+// Open-source only. This route handles authentication, permissions, navigation, and deterministic field fill.
+// Chat inference runs directly from the user's browser to loopback Ollama; this route calls no model provider.
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient()
