@@ -69,7 +69,7 @@ export default function WorkspaceOnboardingAssistant({ profile, savedSnapshot, o
     {
       id: 'welcome',
       role: 'assistant',
-      content: 'Let’s set up ROOF/OS around the way your roofing company actually works. Tell me about your business in your own words. I’ll suggest profile details for you to review; nothing is saved automatically.',
+      content: 'Let’s set up ROOF/OS around the way your roofing company actually works. Tell me about your business in your own words. I’ll suggest profile details for you to review. Nothing is saved automatically.',
     },
   ])
   const [draft, setDraft] = useState('')
