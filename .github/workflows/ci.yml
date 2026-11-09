@@ -150,6 +150,340 @@ jobs:
       - run: npx tsc --noEmit
       - run: npx expo config --json > /tmp/expo-config.json
       - run: npx --yes expo-doctor
+      - name: Verify generated Gradle wrapper network timeout
+        run: |
+          npx expo prebuild --platform android --no-install
+          grep -Eq '^networkTimeout=120000        run: |
+          cd ../..
+          node scripts/mobile-auth-test.mjs
+          node scripts/mobile-offline-sync-test.mjs
+          node --experimental-strip-types scripts/mobile-local-db-migration-test.mjs
+          node --experimental-strip-types scripts/field-ai-assistance-test.mjs
+          node --experimental-strip-types scripts/field-coach-test.mjs
+
+  field-security:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/field/package-lock.json
+      - run: npm ci
+        working-directory: apps/field
+      - run: node scripts/test-field-deepmerge-mitigation.cjs
+      - run: node scripts/audit-field-deps.mjs
+
+  preview-build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm ci
+        working-directory: apps/field
+      - name: Build without deployment-only secrets
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ''
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ''
+        run: npm run build
+      - run: npx tsc --noEmit
+
+  # This job pushes a refreshed lockfile, so never run it on pull_request events.
+  # Fork PR branch names must not be resolved against and written to the base repository.
+  refresh-field-lock:
+    if: github.event_name == 'push' && github.ref != 'refs/heads/main'
+    permissions:
+      contents: write
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Refresh from branch head
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin "${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}"
+          git checkout -B "${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}" "origin/${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}"
+      - run: npm install --package-lock-only --ignore-scripts
+        working-directory: apps/field
+      - name: Commit refreshed field lock
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- apps/field/package-lock.json; then
+            echo 'Field lock already current.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add apps/field/package-lock.json
+          git commit -m 'fix(field): refresh Expo dependency lockfile'
+          git push origin HEAD:${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}
+
+  migration-safety:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: roofos_authority_ci
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ci-synthetic-only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d roofos_authority_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 15
+    steps:
+      - uses: actions/checkout@v5
+      - name: Check migration order and required policies
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(find supabase/migrations -maxdepth 1 -name '*.sql' | wc -l)" -ge 24
+          grep -q "enable row level security" supabase/migrations/008_claims_line_items_agent_readiness.sql
+          grep -q "enable row level security" supabase/migrations/009_agent_runtime_claims_imports.sql
+          grep -q "monthly_limit" supabase/migrations/010_retailer_price_cache.sql
+          grep -q "retailer_price_watchlist" supabase/migrations/011_weekly_retailer_refresh.sql
+          grep -q "storm_evidence" supabase/migrations/012_inspection_measurements_storms.sql
+          grep -q "drone_captures" supabase/migrations/013_drone_capture_evidence.sql
+          grep -q "is_system_owner" supabase/migrations/014_system_owner_lock.sql
+          grep -q "local_tax_rate" supabase/migrations/015_owner_price_book_local_tax.sql
+          grep -q "agent_runs" supabase/migrations/016_align_agent_runs_runtime_contract.sql
+          grep -q "workspace_invitations" supabase/migrations/017_team_invites_atomic_price_books.sql
+          grep -q "save_owner_price_book" supabase/migrations/017_team_invites_atomic_price_books.sql
+          grep -q "supplements" supabase/migrations/018_supplement_review_records.sql
+          grep -q "material_catalog" supabase/migrations/019_material_catalog_workspace_settings.sql
+          grep -q "agent_runs_workspace_agent_event_key" supabase/migrations/021_agent_runs_idempotency_contract.sql
+          grep -q "photo_estimate_workflows" supabase/migrations/022_photo_estimate_workflows.sql
+          grep -q "lowes" supabase/migrations/025_lowes_retailer_provider.sql
+          grep -q "is_workspace_admin" supabase/migrations/026_supplement_review_admin_guard.sql
+          grep -q "photo_estimate_workflows_update" supabase/migrations/027_photo_estimate_admin_guard.sql
+          grep -q "photo_estimate_workflow_id" supabase/migrations/038_estimate_packet_photo_workflow_source.sql
+          grep -q "next_action_owner_id" supabase/migrations/039_crm_missing_spokes.sql
+          grep -q "manager_approval_signature" supabase/migrations/042_golden_report_review_controls.sql
+          test -f supabase/migrations/080_estimate_packet_manager_gate.sql
+          grep -q "enforce_photo_estimate_packet_manager_gate" supabase/migrations/080_estimate_packet_manager_gate.sql
+          grep -q "lead_score" supabase/migrations/039_crm_missing_spokes.sql
+          grep -q "aerial_measurements_workspace_consistency" supabase/migrations/041_aerial_workspace_consistency.sql
+          grep -q "roof_planes_workspace_consistency" supabase/migrations/041_aerial_workspace_consistency.sql
+          grep -q "manager_approval_signature" supabase/migrations/042_golden_report_review_controls.sql
+          grep -q "is_valid_approved_photo_estimate_packet" supabase/migrations/038_estimate_packet_photo_workflow_source.sql
+          grep -q "siding_measurements" supabase/migrations/044_siding_measurements.sql
+          grep -q "ai_observation" supabase/migrations/045_siding_ai_observations.sql
+          grep -q "verified_by" supabase/migrations/046_siding_measurement_verification.sql
+          grep -q "is_valid_approved_siding_estimate_packet" supabase/migrations/047_siding_estimate_packet_authority.sql
+          grep -q "siding_measurement_id" supabase/migrations/047_siding_estimate_packet_authority.sql
+          grep -q "scale_reference_pixels" supabase/migrations/048_aerial_calibration_reference.sql
+          grep -q "pixels_per_foot" supabase/migrations/048_aerial_calibration_reference.sql
+          grep -q "estimate_review_packets_insert_approved_workflow" supabase/migrations/038_estimate_packet_photo_workflow_source.sql
+          grep -q "accept_workspace_invitation" supabase/migrations/028_invitation_acceptance_transaction.sql
+          grep -q "query month must be the current UTC month" supabase/migrations/035_retailer_quota_hardening.sql
+          grep -q "monthly limit is fixed at 100" supabase/migrations/035_retailer_quota_hardening.sql
+          grep -q "drop policy if exists agent_runs_select" supabase/migrations/009_agent_runtime_claims_imports.sql
+          test -f supabase/migrations/050_mobile_technician_verification.sql
+          test -f supabase/migrations/052_mobile_field_measurement_inputs.sql
+          test -f supabase/migrations/054_mobile_ai_observations.sql
+          test -f supabase/migrations/057_workspace_feature_flags.sql
+          grep -q "enable_auto_followup_tasks" supabase/migrations/057_workspace_feature_flags.sql
+          grep -q "enable_ai_receptionist" supabase/migrations/057_workspace_feature_flags.sql
+          grep -q "receptionist_payment_links add column if not exists expires_at" supabase/migrations/057_workspace_feature_flags.sql
+          grep -q "enable row level security" supabase/migrations/054_mobile_ai_observations.sql
+          grep -q "AI observation provenance is immutable after insertion" supabase/migrations/054_mobile_ai_observations.sql
+          grep -q "AI observation and inspection must belong to the same workspace" supabase/migrations/054_mobile_ai_observations.sql
+          grep -q "public.is_workspace_admin(workspace_id)" supabase/migrations/054_mobile_ai_observations.sql
+          test -f supabase/migrations/085_workspace_trial_expiry.sql
+          grep -q "trial_expires_at" supabase/migrations/085_workspace_trial_expiry.sql
+          grep -q "trial_status <> 'pending'" supabase/migrations/085_workspace_trial_expiry.sql
+          test -f supabase/migrations/086_two_hour_trial_activation.sql
+          grep -q "interval '2 hours'" supabase/migrations/086_two_hour_trial_activation.sql
+          grep -q "email_confirmed_at" supabase/migrations/086_two_hour_trial_activation.sql
+          grep -q "handle_new_user_workspace" supabase/migrations/086_two_hour_trial_activation.sql
+          test -f supabase/migrations/053_agent_action_ledger.sql
+          grep -q "is_estimate_admin" supabase/migrations/059_estimate_approval_admin_guard.sql
+          grep -q "An approved estimate is immutable" supabase/migrations/059_estimate_approval_admin_guard.sql
+          grep -q "supplement_review_drafts" supabase/migrations/060_supplement_specialist_agent5.sql
+          grep -q "enable row level security" supabase/migrations/060_supplement_specialist_agent5.sql
+          grep -q "prevent_duplicate_lead" supabase/migrations/061_lead_deduplication.sql
+          grep -q "lead_phone_digits" supabase/migrations/061_lead_deduplication.sql
+          grep -q "enforce_inspection_appointment" supabase/migrations/062_inspection_appointment_gate.sql
+          grep -q "An inspection must be assigned to a workspace member" supabase/migrations/062_inspection_appointment_gate.sql
+          test -f app/api/inspections/\[id\]/packet/route.ts
+          grep -q "urlsIncluded: false" lib/inspection/packet.ts
+          grep -q "Agent 3 has not reviewed this inspection yet" app/inspections/\[id\]/page.tsx
+          grep -q "estimate_acceptances" supabase/migrations/063_estimate_acceptance_deposit.sql
+          grep -q "A recorded estimate acceptance is immutable" supabase/migrations/063_estimate_acceptance_deposit.sql
+          grep -q "estimate_deposit_events" supabase/migrations/063_estimate_acceptance_deposit.sql
+          grep -q "Not an electronic signature" supabase/migrations/063_estimate_acceptance_deposit.sql
+          grep -q "v_refunded_count > 0" supabase/migrations/065_deposit_ledger_order.sql
+          grep -q "never from UUID ordering" supabase/migrations/065_deposit_ledger_order.sql
+          grep -q "production_jobs" supabase/migrations/064_production_job_handoff.sql
+          grep -q "The production handoff source evidence is immutable" supabase/migrations/064_production_job_handoff.sql
+          grep -q "A production job needs at least one approved scope line item" supabase/migrations/064_production_job_handoff.sql
+          grep -q "A lost lead cannot be handed off to production" supabase/migrations/064_production_job_handoff.sql
+          grep -q "supplement_review_drafts_idempotency_idx" supabase/migrations/066_supplement_review_idempotency.sql
+          grep -q "idempotency_key" supabase/migrations/066_supplement_review_idempotency.sql
+          grep -q "production_job_assignments" supabase/migrations/067_production_job_schedule.sql
+          grep -q "production_job_materials" supabase/migrations/067_production_job_schedule.sql
+          grep -q "A production assignment cannot be deleted; cancel it instead" supabase/migrations/067_production_job_schedule.sql
+          grep -q "A material line cannot be deleted; cancel it instead" supabase/migrations/067_production_job_schedule.sql
+          grep -q "Invalid assignment status transition" supabase/migrations/067_production_job_schedule.sql
+          grep -q "Invalid material status transition" supabase/migrations/067_production_job_schedule.sql
+          grep -q "production_job_readiness" supabase/migrations/068_production_job_readiness.sql
+          grep -q "A prebuild readiness record cannot be deleted; record a new decision instead" supabase/migrations/068_production_job_readiness.sql
+          grep -q "The readiness job and workspace are immutable" supabase/migrations/068_production_job_readiness.sql
+          grep -q "permit_checked_by" supabase/migrations/068_production_job_readiness.sql
+          grep -q "weather_checked_at" supabase/migrations/068_production_job_readiness.sql
+          grep -q "Never supplied by the browser" supabase/migrations/068_production_job_readiness.sql
+          grep -q "production_job_updates" supabase/migrations/069_field_work_change_orders.sql
+          grep -q "production_job_change_orders" supabase/migrations/069_field_work_change_orders.sql
+          grep -q "A field update cannot be deleted; add a correcting update instead" supabase/migrations/069_field_work_change_orders.sql
+          grep -q "A field update is append-only; add a correcting update instead" supabase/migrations/069_field_work_change_orders.sql
+          grep -q "A decided change order is immutable" supabase/migrations/069_field_work_change_orders.sql
+          grep -q "The change order request fields are immutable; only the decision may change" supabase/migrations/069_field_work_change_orders.sql
+          grep -q "production_job_punch_items" supabase/migrations/070_qc_punch_closeout.sql
+          grep -q "production_job_closeouts" supabase/migrations/070_qc_punch_closeout.sql
+          grep -q "A resolved punch item is immutable" supabase/migrations/070_qc_punch_closeout.sql
+          grep -q "A punch item cannot be deleted; resolve it or record a new item" supabase/migrations/070_qc_punch_closeout.sql
+          grep -q "A supervisor closeout is immutable" supabase/migrations/070_qc_punch_closeout.sql
+          grep -q "A supervisor closeout is blocked by % unresolved critical punch item(s)" supabase/migrations/070_qc_punch_closeout.sql
+          grep -q "A production job needs a supervisor closeout before completion" supabase/migrations/070_qc_punch_closeout.sql
+          grep -q "production_job_punch_items" supabase/migrations/070_qc_punch_closeout.sql
+          grep -q "production_job_change_orders" supabase/migrations/071_production_invoice.sql
+          grep -q "A resolved punch item is immutable" supabase/migrations/070_qc_punch_closeout.sql
+          grep -q "A punch item cannot be deleted; resolve it or record a new item" supabase/migrations/070_qc_punch_closeout.sql
+          grep -q "A supervisor closeout is immutable" supabase/migrations/070_qc_punch_closeout.sql
+          grep -q "A supervisor closeout is blocked by % unresolved critical punch item(s)" supabase/migrations/070_qc_punch_closeout.sql
+          grep -q "A production job needs a supervisor closeout before completion" supabase/migrations/070_qc_punch_closeout.sql
+          grep -q "A cancelled production job cannot be invoiced" supabase/migrations/071_production_invoice.sql
+          test -f scripts/ci/production-job-invoice-assertions.sql
+          test -f scripts/ci/production-job-lifecycle-assertions.sql
+          test -f scripts/ci/verify-restore-postgres.sh
+          grep -q "A payment attempt requires an issued invoice" supabase/migrations/074_payment_warranty_guards.sql
+          grep -q "An invoice with a successful payment cannot be voided" supabase/migrations/074_payment_warranty_guards.sql
+          grep -q "A warranty requires a completed production job" supabase/migrations/074_payment_warranty_guards.sql
+          grep -q "A revoked warranty is immutable" supabase/migrations/074_payment_warranty_guards.sql
+          grep -q "A revoked Roof Passport is immutable" supabase/migrations/074_payment_warranty_guards.sql
+           test -f supabase/migrations/075_harden_security_definer_triggers.sql
+           grep -q "p.prorettype = 'trigger'::regtype" supabase/migrations/075_harden_security_definer_triggers.sql
+           grep -q "REVOKE EXECUTE ON FUNCTION %s FROM PUBLIC, anon, authenticated" supabase/migrations/075_harden_security_definer_triggers.sql
+           test -f scripts/ci/security-definer-trigger-assertions.sql
+           test -f supabase/migrations/076_private_passport_rate_limit.sql
+           grep -q "set search_path = ''" supabase/migrations/076_private_passport_rate_limit.sql
+           grep -q "revoke all on table public.public_access_rate_limits" supabase/migrations/076_private_passport_rate_limit.sql
+           test -f scripts/ci/passport-rate-limit-privacy-assertions.sql
+           test -f supabase/migrations/077_harden_remaining_security_definers.sql
+           grep -q "p.prosecdef" supabase/migrations/077_harden_remaining_security_definers.sql
+           grep -q "ALTER FUNCTION %s SET search_path = %L" supabase/migrations/077_harden_remaining_security_definers.sql
+           test -f scripts/ci/security-definer-search-path-assertions.sql
+           test -f supabase/migrations/078_explicitly_deny_public_rate_limit_clients.sql
+           grep -q "deny_client_roles" supabase/migrations/078_explicitly_deny_public_rate_limit_clients.sql
+           test -f scripts/ci/passport-rate-limit-rls-assertions.sql
+          grep -q "The approved scope does not reconcile with the accepted total and tax" supabase/migrations/071_production_invoice.sql
+          grep -q "A production invoice cannot be deleted; void it instead" supabase/migrations/071_production_invoice.sql
+          grep -q "A void invoice is immutable" supabase/migrations/071_production_invoice.sql
+          grep -q "enforce_production_invoice" supabase/migrations/071_production_invoice.sql
+          grep -q "create extension if not exists pgcrypto" supabase/migrations/053_agent_action_ledger.sql
+          grep -q "approval hashes do not match the current action batch" supabase/migrations/053_agent_action_ledger.sql
+          grep -q "get diagnostics updated_count = row_count" supabase/migrations/053_agent_action_ledger.sql
+          grep -q "revoke all on function public.approve_agent_action_batch" supabase/migrations/053_agent_action_ledger.sql
+          grep -q "set search_path = public" supabase/migrations/053_agent_action_ledger.sql
+          grep -q "inspection_verifications" supabase/migrations/050_mobile_technician_verification.sql
+          grep -q "rafter_lf" supabase/migrations/052_mobile_field_measurement_inputs.sql
+          grep -q "soffit_lf" supabase/migrations/052_mobile_field_measurement_inputs.sql
+          grep -q "fascia_lf" supabase/migrations/052_mobile_field_measurement_inputs.sql
+          grep -q "roof_type" supabase/migrations/052_mobile_field_measurement_inputs.sql
+          grep -q "isCronPath" proxy.ts
+          grep -q "safeNextPath" app/auth/callback/route.ts app/auth/login/page.tsx lib/safe-next.ts
+          grep -q "Workspace administrator access is required" app/api/claims/capout/route.ts
+          grep -q "signed URL for an authorized ROOF/OS inspection asset" app/api/claims/capout/route.ts
+          test -f app/api/team/invitations/accept/route.ts
+          test -f app/team/invitations/accept/page.tsx
+          grep -q "accept_workspace_invitation" app/api/team/invitations/accept/route.ts
+          if grep -RInE 'CAPOUT_API_KEY=|RAPIDAPI_KEY=|SUPABASE_SERVICE_ROLE_KEY=' --exclude=.env.example --exclude-dir=.git --exclude-dir=.github .; then exit 1; fi
+      - name: Run real PostgreSQL estimate authority SQL/RLS tests
+        shell: bash
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGDATABASE: roofos_authority_ci
+          PGUSER: postgres
+          PGPASSWORD: ci-synthetic-only
+        run: bash scripts/ci/verify-estimate-authority-postgres.sh
+      - name: Run real PostgreSQL Agent 5 supplement RLS/trigger tests
+        shell: bash
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGDATABASE: roofos_authority_ci
+          PGUSER: postgres
+          PGPASSWORD: ci-synthetic-only
+        run: bash scripts/ci/verify-supplement-specialist-postgres.sh
+      - name: Run real PostgreSQL lead dedup trigger tests
+        shell: bash
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGDATABASE: roofos_authority_ci
+          PGUSER: postgres
+          PGPASSWORD: ci-synthetic-only
+        run: bash scripts/ci/verify-lead-dedup-postgres.sh
+      - name: Run real PostgreSQL inspection appointment trigger tests
+        shell: bash
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGDATABASE: roofos_authority_ci
+          PGUSER: postgres
+          PGPASSWORD: ci-synthetic-only
+        run: bash scripts/ci/verify-inspection-appointment-postgres.sh
+      - name: Run real PostgreSQL estimate acceptance and deposit tests
+        shell: bash
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGDATABASE: roofos_authority_ci
+          PGUSER: postgres
+          PGPASSWORD: ci-synthetic-only
+        run: bash scripts/ci/verify-estimate-acceptance-postgres.sh
+      - name: Run real PostgreSQL production job handoff tests
+        shell: bash
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGDATABASE: roofos_authority_ci
+          PGUSER: postgres
+          PGPASSWORD: ci-synthetic-only
+        run: bash scripts/ci/verify-production-job-postgres.sh
+      - name: Run real PostgreSQL two-hour trial activation and expiry tests
+        shell: bash
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGDATABASE: roofos_authority_ci
+          PGUSER: postgres
+          PGPASSWORD: ci-synthetic-only
+        run: bash scripts/ci/verify-two-hour-trial-postgres.sh
+      - name: Run isolated PostgreSQL backup and restore rehearsal
+        shell: bash
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGDATABASE: roofos_authority_ci
+          PGUSER: postgres
+          PGPASSWORD: ci-synthetic-only
+        run: bash scripts/ci/verify-restore-postgres.sh
+ android/gradle/wrapper/gradle-wrapper.properties
       - name: Verify field app runtime contracts
         run: |
           cd ../..
