@@ -73,11 +73,6 @@ export function fillPageFields(instruction: string, fields: PageField[]): PageFi
       continue
     }
 
-    if (/note|comment|description|summary/i.test(label) && quotes.length) {
-      fills.push({ key: field.key, value: quotes[quotes.length - 1] })
-      continue
-    }
-
     if (/name|technician|inspector|owner/i.test(label)) {
       const named = text.match(/(?:name|technician|inspector|owner)\s+(?:is|to|=|:)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,2})/)
       if (named) fills.push({ key: field.key, value: named[1] })

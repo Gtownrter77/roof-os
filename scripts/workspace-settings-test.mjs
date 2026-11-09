@@ -14,11 +14,13 @@ const root = new URL('..', import.meta.url).pathname
 const read = (path) => readFileSync(join(root, path), 'utf8')
 
 // 1. Every owner toggle is persisted on the workspace settings row.
-const migration = read('supabase/migrations/057_workspace_feature_flags.sql')
 for (const flag of WORKSPACE_FEATURE_FLAG_KEYS) {
-  assert.ok(migration.includes(`${flag} boolean not null default true`), `migration 057 must persist ${flag}`)
+  const migration = flag === 'yolo_mode' ? read('supabase/migrations/081_owner_yolo_mode.sql') : read('supabase/migrations/057_workspace_feature_flags.sql')
+  const expectedDefault = flag === 'yolo_mode' ? 'false' : 'true'
+  assert.ok(migration.includes(`${flag} boolean not null default ${expectedDefault}`), `the owning migration must persist ${flag}`)
 }
-assert.ok(migration.includes('receptionist_payment_links add column if not exists expires_at'), 'payment link expiry must be recorded on the ledger')
+const featureMigration = read('supabase/migrations/057_workspace_feature_flags.sql')
+assert.ok(featureMigration.includes('receptionist_payment_links add column if not exists expires_at'), 'payment link expiry must be recorded on the ledger')
 
 // 2. The settings API stores the flags, returns merged defaults, and requires administration to write.
 const settingsRoute = read('app/api/settings/route.ts')
@@ -71,7 +73,7 @@ const defaults = defaultWorkspaceSettings()
 assert.equal(defaults.price_refresh_frequency, 'weekly')
 assert.equal(defaults.default_language, 'en-US')
 assert.equal(defaults.material_search_mode, 'catalog_and_retailer')
-for (const flag of WORKSPACE_FEATURE_FLAG_KEYS) assert.equal(defaults[flag], true, `${flag} must default to on`)
+for (const flag of WORKSPACE_FEATURE_FLAG_KEYS) assert.equal(defaults[flag], flag === 'yolo_mode' ? false : true, `${flag} must use its documented default`)
 
 const merged = readWorkspaceSettings({ enable_ai_receptionist: false, default_language: 'es-US', preferred_brands: { shingles: 'GAF' } })
 assert.equal(merged.enable_ai_receptionist, false)

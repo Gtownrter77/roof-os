@@ -143,7 +143,7 @@ export const FEATURE_FLAG_ENFORCEMENT: Record<WorkspaceFeatureFlag, FeatureFlagE
   },
   yolo_mode: {
     enforced: true,
-    surfaces: ['app/api/ai/chat/route.ts', 'components/AiChatBar.tsx', 'apps/field/App.tsx'],
+    surfaces: ['app/api/ai/chat/route.ts', 'components/AiChatBar.tsx'],
     note: 'Owner only. Off requires human approval before the AI agent applies a step. On lets the owner agent run the process start to finish. Canvassers never get YOLO MODE.',
   },
 }

@@ -175,7 +175,8 @@ export default function AiChatBar() {
           value: fill.value,
           label: fields.find((field) => field.key === fill.key)?.label || fill.key,
         }))
-      if (data.yoloMode) {
+      // The API response is the server-enforced yolo_mode decision; never infer it locally.
+      if (data.needsApproval !== true && data.yoloMode === true) {
         for (const fill of labeled) {
           const field = fields.find((item) => item.key === fill.key)
           if (field) applyFill(field, fill.value)
@@ -216,7 +217,7 @@ export default function AiChatBar() {
     <div
       className={`pointer-events-none fixed z-50 flex flex-col items-end gap-2 ${dockClass}`}
       data-ai-agent="true"
-      role="complementary"
+      role="region"
       aria-label="Page AI agent"
     >
       {isOpen && (
