@@ -72,8 +72,26 @@ const TEAM_TOUR: TourItem[] = [
   },
 ]
 
-export default function WorkspaceFirstSuccessGuide({ canEdit, primaryGoal }: { canEdit: boolean; primaryGoal?: string }) {
-  const items = canEdit ? ADMIN_TOUR : TEAM_TOUR
+type RolePreference = 'owner' | 'manager' | 'inspector' | 'sales'
+
+const ADMIN_TOUR_ORDER: Record<RolePreference, string[]> = {
+  owner: ['/leads', '/inspections', '/measure', '/estimate', '/jobs', '/calendar', '/warranty', '/settings'],
+  manager: ['/jobs', '/calendar', '/inspections', '/estimate', '/leads', '/measure', '/warranty', '/settings'],
+  inspector: ['/inspections', '/measure', '/leads', '/estimate', '/jobs', '/calendar', '/warranty', '/settings'],
+  sales: ['/leads', '/estimate', '/inspections', '/measure', '/jobs', '/calendar', '/warranty', '/settings'],
+}
+
+const TEAM_TOUR_ORDER: Record<RolePreference, string[]> = {
+  owner: ['/leads', '/inspections', '/measure', '/calendar'],
+  manager: ['/calendar', '/inspections', '/leads', '/measure'],
+  inspector: ['/inspections', '/measure', '/leads', '/calendar'],
+  sales: ['/leads', '/inspections', '/measure', '/calendar'],
+}
+
+export default function WorkspaceFirstSuccessGuide({ canEdit, primaryGoal, rolePreference = 'owner' }: { canEdit: boolean; primaryGoal?: string; rolePreference?: RolePreference }) {
+  const baseItems = canEdit ? ADMIN_TOUR : TEAM_TOUR
+  const order = canEdit ? ADMIN_TOUR_ORDER[rolePreference] : TEAM_TOUR_ORDER[rolePreference]
+  const items = order.map((href) => baseItems.find((item) => item.href === href)).filter((item): item is TourItem => Boolean(item))
 
   return (
     <details className="mt-5 rounded-2xl border border-violet-300/25 bg-violet-950/20 p-4">
@@ -82,7 +100,7 @@ export default function WorkspaceFirstSuccessGuide({ canEdit, primaryGoal }: { c
       </summary>
       <p className="mt-2 text-xs leading-relaxed text-slate-300">
         {canEdit
-          ? 'A guided map of the real ROOF/OS workflow, from a lead through inspection, estimate, and production.'
+          ? 'A guided map of the real ROOF/OS workflow, ordered for your selected day-to-day role.'
           : 'A short orientation to the main work areas. Open only the areas your workspace role allows.'}
         {' '}No demo records are created and no operational action is started by this tour.
       </p>
