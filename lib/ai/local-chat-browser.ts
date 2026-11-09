@@ -20,7 +20,8 @@ export function getLocalChatEndpoint() {
     return null
   }
   if (
-    !['http:', 'https:'].includes(url.protocol) ||
+    url.protocol !== 'http:' ||
+    url.port !== '11434' ||
     !LOCAL_HOSTS.has(url.hostname.toLowerCase()) ||
     url.username ||
     url.password ||

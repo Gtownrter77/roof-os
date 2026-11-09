@@ -37,7 +37,7 @@ function applySecurityPolicy(response: NextResponse, nonce: string) {
     "frame-ancestors 'none'",
     "form-action 'self'",
     "img-src 'self' data: blob: https://*.supabase.co https://tiles.openfreemap.org https://opengeo.ncep.noaa.gov https://mesonet.agron.iastate.edu",
-    "connect-src 'self' https://*.supabase.co https://api.weather.gov https://api.capout.ai https://*.rapidapi.com https://tiles.openfreemap.org https://opengeo.ncep.noaa.gov https://mesonet.agron.iastate.edu",
+    "connect-src 'self' http://localhost:11434 http://127.0.0.1:11434 http://[::1]:11434 https://*.supabase.co https://api.weather.gov https://api.capout.ai https://*.rapidapi.com https://tiles.openfreemap.org https://opengeo.ncep.noaa.gov https://mesonet.agron.iastate.edu",
     "style-src 'self' 'unsafe-inline'",
     `script-src 'self' 'nonce-${nonce}'`,
     "worker-src 'self' blob:",

@@ -171,6 +171,11 @@ try {
 
 
 const localChatSource = readFileSync(join(root, 'lib', 'ai', 'local-chat-browser.ts'), 'utf8')
+const proxySource = readFileSync(join(root, 'proxy.ts'), 'utf8')
+assert.ok(proxySource.includes("http://localhost:11434"), 'CSP must allow the default desktop Ollama origin')
+assert.ok(proxySource.includes("http://127.0.0.1:11434"), 'CSP must allow IPv4 loopback Ollama')
+assert.ok(proxySource.includes("http://[::1]:11434"), 'CSP must allow IPv6 loopback Ollama')
+assert.ok(localChatSource.includes("url.protocol !== 'http:'") && localChatSource.includes("url.port !== '11434'"), 'browser Ollama endpoint must match the narrowly allowed CSP origin')
 assert.ok(componentSource.includes('askBrowserLocalOllama'), 'chat UI must call browser-local Ollama')
 assert.ok(!copilotSource.includes('askOllama'), 'server-side copilot must not try to reach the hosting machine localhost')
 assert.ok(localChatSource.includes('LOCAL_HOSTS'), 'browser chat may connect only to loopback')
@@ -221,6 +226,10 @@ try {
   process.env.NEXT_PUBLIC_OLLAMA_CHAT_API_BASE_URL = 'https://example.com/v1'
   assert.equal(getLocalChatEndpoint(), null, 'remote hosts are rejected')
   assert.equal(await askBrowserLocalOllama({ message: 'test' }), null, 'remote endpoint is never contacted')
+  process.env.NEXT_PUBLIC_OLLAMA_CHAT_API_BASE_URL = 'http://localhost:11435/v1'
+  assert.equal(getLocalChatEndpoint(), null, 'non-default local ports are rejected by the CSP-aligned client')
+  process.env.NEXT_PUBLIC_OLLAMA_CHAT_API_BASE_URL = 'https://localhost:11434/v1'
+  assert.equal(getLocalChatEndpoint(), null, 'unexpected local HTTPS endpoints are rejected')
   process.env.NEXT_PUBLIC_OLLAMA_CHAT_API_BASE_URL = 'http://localhost:11434/v1'
   globalThis.fetch = async () => { throw new TypeError('CORS blocked') }
   assert.equal(await askBrowserLocalOllama({ message: 'test' }), null, 'offline/CORS errors preserve fallback behavior')
