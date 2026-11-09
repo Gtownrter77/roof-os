@@ -278,6 +278,9 @@ jobs:
           grep -q "manager_approval_signature" supabase/migrations/042_golden_report_review_controls.sql
           test -f supabase/migrations/080_estimate_packet_manager_gate.sql
           test -f supabase/migrations/092_workspace_onboarding_profiles.sql
+          test -f supabase/migrations/093_workspace_onboarding_profile_v2.sql
+          grep -q "schema_version = 2" supabase/migrations/093_workspace_onboarding_profile_v2.sql
+          grep -q "workspace_onboarding_profiles_allowed_fields_v2_check" supabase/migrations/093_workspace_onboarding_profile_v2.sql
           grep -q "public.is_workspace_admin(workspace_id)" supabase/migrations/092_workspace_onboarding_profiles.sql
           grep -q "public.is_workspace_member(workspace_id)" supabase/migrations/092_workspace_onboarding_profiles.sql
           grep -q "auth.uid() = updated_by" supabase/migrations/092_workspace_onboarding_profiles.sql
