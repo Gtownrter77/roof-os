@@ -226,6 +226,10 @@ try {
   process.env.NEXT_PUBLIC_OLLAMA_CHAT_API_BASE_URL = 'https://example.com/v1'
   assert.equal(getLocalChatEndpoint(), null, 'remote hosts are rejected')
   assert.equal(await askBrowserLocalOllama({ message: 'test' }), null, 'remote endpoint is never contacted')
+  process.env.NEXT_PUBLIC_OLLAMA_CHAT_API_BASE_URL = 'http://localhost:11435/v1'
+  assert.equal(getLocalChatEndpoint(), null, 'non-default local ports are rejected by the CSP-aligned client')
+  process.env.NEXT_PUBLIC_OLLAMA_CHAT_API_BASE_URL = 'https://localhost:11434/v1'
+  assert.equal(getLocalChatEndpoint(), null, 'unexpected local HTTPS endpoints are rejected')
   process.env.NEXT_PUBLIC_OLLAMA_CHAT_API_BASE_URL = 'http://localhost:11434/v1'
   globalThis.fetch = async () => { throw new TypeError('CORS blocked') }
   assert.equal(await askBrowserLocalOllama({ message: 'test' }), null, 'offline/CORS errors preserve fallback behavior')
