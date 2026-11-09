@@ -227,7 +227,7 @@ export default function WorkspaceOnboardingAssistant({ profile, onApply, onEditF
       {pendingProfile && (
         <div className="mx-4 mb-3 rounded-xl border border-amber-300/35 bg-amber-950/30 p-3">
           <p className="text-sm font-semibold text-amber-100">Review each suggested profile detail</p>
-          <p className="mt-1 text-xs text-amber-100/70">Accept or skip each item separately. Accepted items only fill the form; they are not saved yet.</p>
+          <p className="mt-1 text-xs text-amber-100/70">Accept, edit, reject, or skip each item separately. Accepted or edited items only fill the form; nothing is saved yet.</p>
           <div className="mt-3 space-y-2">
             {Object.entries(pendingProfile).map(([rawKey, value]) => {
               const key = rawKey as keyof OnboardingProfile
