@@ -268,6 +268,7 @@ export default function WorkspaceOnboardingPage() {
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <h2 id="workspace-defaults-heading" className="text-sm font-semibold text-cyan-100">Existing workspace defaults</h2>
+              <p className="mt-1 text-[10px] font-semibold uppercase tracking-wider text-emerald-200">Existing supported settings · read only</p>
               <p className="mt-1 text-xs text-slate-400">Read-only snapshot of settings already stored in ROOF/OS. This wizard does not duplicate or change them.</p>
             </div>
             {canEdit && <a href="/settings" className="rounded-lg border border-cyan-300/30 px-3 py-2 text-xs font-semibold text-cyan-100 hover:bg-cyan-300/10">Review in Settings</a>}
