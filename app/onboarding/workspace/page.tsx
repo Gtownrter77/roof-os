@@ -31,6 +31,19 @@ const EMPTY_PROFILE: OnboardingProfile = {
 }
 
 const STEPS = ['Business', 'Service area', 'Work mix', 'Team', 'Sales & inspection', 'Operations', 'Communication', 'Goal']
+type TeamRole = NonNullable<OnboardingProfile['teamRoles']>[number]
+const TEAM_ROLE_OPTIONS: Array<{ value: TeamRole; label: string }> = [
+  { value: 'owner', label: 'Owner' },
+  { value: 'manager', label: 'Manager' },
+  { value: 'sales', label: 'Sales' },
+  { value: 'estimator', label: 'Estimator' },
+  { value: 'project_manager', label: 'Project manager' },
+  { value: 'inspector', label: 'Inspector' },
+  { value: 'foreman', label: 'Foreman' },
+  { value: 'installer', label: 'Installer' },
+  { value: 'office', label: 'Office' },
+  { value: 'other', label: 'Other' },
+]
 
 function splitList(value: string) {
   return [...new Set(value.split(',').map((item) => item.trim()).filter(Boolean))]
@@ -141,7 +154,7 @@ export default function WorkspaceOnboardingPage() {
               </button>
               <button type="button" onClick={() => setSetupMode('manual')} className="rounded-xl border border-white/20 bg-white/5 p-4 text-left hover:bg-white/10">
                 <span className="block text-sm font-semibold text-white">I’ll configure it myself</span>
-                <span className="mt-1 block text-xs leading-relaxed text-slate-300">Go straight to the five guided sections. No AI conversation is needed.</span>
+                <span className="mt-1 block text-xs leading-relaxed text-slate-300">Go straight to the eight guided sections. No AI conversation is needed.</span>
               </button>
             </div>
           </section>
@@ -179,7 +192,7 @@ export default function WorkspaceOnboardingPage() {
 
         {(setupMode !== 'choose' || !canEdit) && (
           <>
-        <nav aria-label="Workspace setup steps" className="mb-6 grid grid-cols-5 gap-2">
+        <nav aria-label="Workspace setup steps" className="mb-6 grid grid-cols-2 gap-2 sm:grid-cols-4">
           {STEPS.map((name, index) => (
             <button key={name} type="button" onClick={() => setStep(index)} aria-current={step === index ? 'step' : undefined} className={`rounded-lg border px-2 py-2 text-xs font-semibold transition ${step === index ? 'border-cyan-300 bg-cyan-400/15 text-cyan-100' : 'border-white/10 bg-white/5 text-slate-400 hover:text-white'}`}>
               <span className="block text-[10px] opacity-70">{index + 1}</span>{name}
@@ -230,10 +243,28 @@ export default function WorkspaceOnboardingPage() {
           )}
 
           {step === 3 && (
-            <div className="space-y-4">
-              <p className="text-sm text-slate-300">Describe the roles your company uses in general. Do not enter employee names or personal details.</p>
-              {listField('Team roles', profile.teamRoles, (value) => update('teamRoles', value as NonNullable<OnboardingProfile['teamRoles']>), 'Allowed roles: owner, manager, sales, estimator, project_manager, inspector, foreman, installer, office, other.')}
-            </div>
+            <fieldset className="space-y-4">
+              <legend className="text-sm text-slate-300">Which roles does your company use? Select all that apply. Do not enter employee names or personal details.</legend>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {TEAM_ROLE_OPTIONS.map(({ value, label }) => (
+                  <label key={value} className="flex items-center gap-3 rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-slate-200">
+                    <input
+                      type="checkbox"
+                      checked={(profile.teamRoles ?? []).includes(value)}
+                      disabled={!canEdit}
+                      onChange={(event) => {
+                        const current = profile.teamRoles ?? []
+                        update('teamRoles', event.target.checked
+                          ? [...current, value]
+                          : current.filter((role) => role !== value))
+                      }}
+                      className="h-4 w-4 accent-cyan-400"
+                    />
+                    {label}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
           )}
 
           {step === 4 && (
