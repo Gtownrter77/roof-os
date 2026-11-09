@@ -21,7 +21,7 @@ reset role;
 set role authenticated;
 select set_config('request.jwt.claim.sub','bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',false);
 do $$
-declare denied boolean := false;
+declare denied boolean := false; affected integer := 0;
 begin
   if (select count(*) from public.workspace_onboarding_profiles) <> 1 then
     raise exception 'workspace member should read its workspace profile';
@@ -32,14 +32,11 @@ begin
   exception when insufficient_privilege then denied := true;
   end;
   if not denied then raise exception 'workspace member unexpectedly inserted a profile'; end if;
-  denied := false;
-  begin
-    update public.workspace_onboarding_profiles
-      set profile='{"companyType":"commercial"}',updated_by='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
-      where workspace_id='11111111-1111-4111-8111-111111111111';
-  exception when insufficient_privilege then denied := true;
-  end;
-  if not denied then raise exception 'workspace member unexpectedly updated a profile'; end if;
+  update public.workspace_onboarding_profiles
+    set profile='{"companyType":"commercial"}',updated_by='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
+    where workspace_id='11111111-1111-4111-8111-111111111111';
+  get diagnostics affected = row_count;
+  if affected <> 0 then raise exception 'workspace member unexpectedly updated a profile'; end if;
 end $$;
 reset role;
 
