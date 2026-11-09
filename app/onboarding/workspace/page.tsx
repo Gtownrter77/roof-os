@@ -1,8 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import type { OnboardingProfile, OnboardingProfileStatus } from '../../../lib/onboarding-profile'
 import WorkspaceOnboardingAssistant from '../../../components/WorkspaceOnboardingAssistant'
+import WorkspaceSetupTour from '../../../components/onboarding/WorkspaceSetupTour'
 
 const EMPTY_PROFILE: OnboardingProfile = {
   companyType: 'unsure',
@@ -58,6 +59,8 @@ export default function WorkspaceOnboardingPage() {
     void loadProfile()
     return () => { active = false }
   }, [])
+
+  const selectTourSection = useCallback((section: number) => setStep(section), [])
 
   function update<K extends keyof OnboardingProfile>(key: K, value: OnboardingProfile[K]) {
     setProfile((current) => ({ ...current, [key]: value }))
@@ -123,6 +126,8 @@ export default function WorkspaceOnboardingPage() {
             }}
           />
         )}
+
+        {canEdit && <WorkspaceSetupTour onSelectSection={selectTourSection} />}
 
         {!canEdit && (
           <div className="mb-5 rounded-xl border border-amber-300/30 bg-amber-950/25 p-3 text-sm text-amber-100" role="status">
@@ -212,7 +217,7 @@ export default function WorkspaceOnboardingPage() {
           <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-4">
             <button type="button" onClick={() => setStep((current) => Math.max(0, current - 1))} disabled={step === 0} className="rounded-lg border border-white/15 px-4 py-2 text-sm text-slate-200 disabled:opacity-30">Back</button>
             <div className="flex flex-wrap justify-end gap-2">
-              <button type="button" onClick={() => void save('draft')} disabled={!canEdit || saving} className="rounded-lg border border-cyan-300/40 px-4 py-2 text-sm font-semibold text-cyan-100 disabled:opacity-40">{saving ? 'Saving…' : 'Save progress'}</button>
+              <button id="workspace-save-progress" type="button" onClick={() => void save('draft')} disabled={!canEdit || saving} className="rounded-lg border border-cyan-300/40 px-4 py-2 text-sm font-semibold text-cyan-100 disabled:opacity-40">{saving ? 'Saving…' : 'Save progress'}</button>
               {step < STEPS.length - 1 ? (
                 <button type="button" onClick={() => setStep((current) => Math.min(STEPS.length - 1, current + 1))} className="rounded-lg bg-cyan-600 px-4 py-2 text-sm font-semibold text-white hover:bg-cyan-500">Next section</button>
               ) : (
