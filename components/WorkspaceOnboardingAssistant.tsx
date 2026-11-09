@@ -215,13 +215,19 @@ export default function WorkspaceOnboardingAssistant({ profile, onApply }: Props
             {Object.entries(pendingProfile).map(([rawKey, value]) => {
               const key = rawKey as keyof OnboardingProfile
               const label = key.replace(/([A-Z])/g, ' $1').replace(/^./, (letter) => letter.toUpperCase())
+              const currentValue = profile[key]
+              const describe = (entry: unknown) => {
+                if (Array.isArray(entry)) return entry.length ? entry.join(', ') : 'Not set'
+                return entry === undefined || entry === null || entry === '' ? 'Not set' : String(entry)
+              }
               return (
                 <div key={key} className="rounded-lg border border-amber-100/15 bg-black/15 p-2">
                   <p className="text-xs font-semibold text-amber-50">{label}</p>
-                  <p className="mt-1 break-words text-xs text-amber-50/80">{Array.isArray(value) ? value.join(', ') : String(value)}</p>
-                  <p className="mt-1 text-[10px] text-amber-100/60">Informational preference only · no operational change</p>
+                  <p className="mt-2 text-xs text-slate-400">Before: <span className="text-slate-200">{describe(currentValue)}</span></p>
+                  <p className="mt-1 break-words text-xs text-amber-50/90">Proposed: {describe(value)}</p>
+                  <p className="mt-1 text-[10px] text-amber-100/60">Impact: informational preference only · no operational change. Apply to the form, then edit it in the matching section below if needed.</p>
                   <div className="mt-2 flex gap-2">
-                    <button type="button" onClick={() => applyField(key)} className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white">Accept</button>
+                    <button type="button" onClick={() => applyField(key)} className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white">Apply to form</button>
                     <button type="button" onClick={() => skipField(key)} className="rounded-lg border border-white/20 px-3 py-1.5 text-xs font-semibold text-slate-200">Skip</button>
                   </div>
                 </div>
