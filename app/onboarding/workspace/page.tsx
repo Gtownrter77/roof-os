@@ -243,17 +243,17 @@ export default function WorkspaceOnboardingPage() {
             <div className="space-y-4">
               <p className="text-sm text-slate-300">What kind of roofing work does your company primarily handle?</p>
               <label className={labelClass}>Business type
-                <select className={inputClass} value={profile.companyType ?? 'unsure'} disabled={!canEdit} onChange={(event) => update('companyType', event.target.value as NonNullable<OnboardingProfile['companyType']>)}>
+                <select className={inputClass} value={profile.companyType ?? 'unsure'} disabled={!canEdit || saving} onChange={(event) => update('companyType', event.target.value as NonNullable<OnboardingProfile['companyType']>)}>
                   <option value="unsure">Not sure yet</option><option value="residential">Residential</option><option value="commercial">Commercial</option><option value="both">Both</option>
                 </select>
               </label>
               <label className={labelClass}>Years in business (optional)
-                <select className={inputClass} value={profile.yearsInBusinessBand ?? 'unsure'} disabled={!canEdit} onChange={(event) => update('yearsInBusinessBand', event.target.value as NonNullable<OnboardingProfile['yearsInBusinessBand']>)}>
+                <select className={inputClass} value={profile.yearsInBusinessBand ?? 'unsure'} disabled={!canEdit || saving} onChange={(event) => update('yearsInBusinessBand', event.target.value as NonNullable<OnboardingProfile['yearsInBusinessBand']>)}>
                   <option value="unsure">Prefer not to say / not sure</option><option value="0-1">Less than 2 years</option><option value="2-5">2–5 years</option><option value="6-10">6–10 years</option><option value="11-20">11–20 years</option><option value="20+">More than 20 years</option>
                 </select>
               </label>
               <label className={labelClass}>Approximate crew size
-                <select className={inputClass} value={profile.crewCountBand ?? 'unsure'} disabled={!canEdit} onChange={(event) => update('crewCountBand', event.target.value as NonNullable<OnboardingProfile['crewCountBand']>)}>
+                <select className={inputClass} value={profile.crewCountBand ?? 'unsure'} disabled={!canEdit || saving} onChange={(event) => update('crewCountBand', event.target.value as NonNullable<OnboardingProfile['crewCountBand']>)}>
                   <option value="unsure">Not sure</option><option value="solo">Just me</option><option value="2-5">2–5</option><option value="6-10">6–10</option><option value="11-25">11–25</option><option value="26+">26+</option>
                 </select>
               </label>
@@ -303,22 +303,22 @@ export default function WorkspaceOnboardingPage() {
           {step === 4 && (
             <div className="space-y-4">
               <label className={labelClass}>Inspection approach
-                <select className={inputClass} value={profile.inspectionStyle ?? 'unsure'} disabled={!canEdit} onChange={(event) => update('inspectionStyle', event.target.value as NonNullable<OnboardingProfile['inspectionStyle']>)}>
+                <select className={inputClass} value={profile.inspectionStyle ?? 'unsure'} disabled={!canEdit || saving} onChange={(event) => update('inspectionStyle', event.target.value as NonNullable<OnboardingProfile['inspectionStyle']>)}>
                   <option value="unsure">Not sure</option><option value="manual">Manual inspection</option><option value="photo_first">Photo-first</option><option value="drone_assisted">Drone-assisted</option><option value="mixed">A mix of approaches</option>
                 </select>
               </label>
               <label className={labelClass}>Photo and evidence workflow
-                <select className={inputClass} value={profile.photoEvidenceWorkflow ?? 'unsure'} disabled={!canEdit} onChange={(event) => update('photoEvidenceWorkflow', event.target.value as NonNullable<OnboardingProfile['photoEvidenceWorkflow']>)}>
+                <select className={inputClass} value={profile.photoEvidenceWorkflow ?? 'unsure'} disabled={!canEdit || saving} onChange={(event) => update('photoEvidenceWorkflow', event.target.value as NonNullable<OnboardingProfile['photoEvidenceWorkflow']>)}>
                   <option value="unsure">Not sure</option><option value="phone_photos">Phone photos</option><option value="drone_photos">Drone photos</option><option value="mixed">Phone and drone photos</option>
                 </select>
               </label>
               <label className={labelClass}>Estimate workflow
-                <select className={inputClass} value={profile.estimateWorkflow ?? 'unsure'} disabled={!canEdit} onChange={(event) => update('estimateWorkflow', event.target.value as NonNullable<OnboardingProfile['estimateWorkflow']>)}>
+                <select className={inputClass} value={profile.estimateWorkflow ?? 'unsure'} disabled={!canEdit || saving} onChange={(event) => update('estimateWorkflow', event.target.value as NonNullable<OnboardingProfile['estimateWorkflow']>)}>
                   <option value="unsure">Not sure</option><option value="owner_priced">Owner reviews pricing</option><option value="estimator_priced">Estimator prepares pricing</option><option value="external">Pricing handled externally</option>
                 </select>
               </label>
               <label className={labelClass}>Estimate approval workflow
-                <select className={inputClass} value={profile.approvalWorkflow ?? 'unsure'} disabled={!canEdit} onChange={(event) => update('approvalWorkflow', event.target.value as NonNullable<OnboardingProfile['approvalWorkflow']>)}>
+                <select className={inputClass} value={profile.approvalWorkflow ?? 'unsure'} disabled={!canEdit || saving} onChange={(event) => update('approvalWorkflow', event.target.value as NonNullable<OnboardingProfile['approvalWorkflow']>)}>
                   <option value="unsure">Not sure</option><option value="owner_approval">Owner approval</option><option value="manager_approval">Manager approval</option><option value="external">Approval handled externally</option>
                 </select>
               </label>
@@ -328,37 +328,37 @@ export default function WorkspaceOnboardingPage() {
           {step === 5 && (
             <div className="space-y-4">
               <label className={labelClass}>Production workflow
-                <select className={inputClass} value={profile.productionWorkflow ?? 'unsure'} disabled={!canEdit} onChange={(event) => update('productionWorkflow', event.target.value as NonNullable<OnboardingProfile['productionWorkflow']>)}>
+                <select className={inputClass} value={profile.productionWorkflow ?? 'unsure'} disabled={!canEdit || saving} onChange={(event) => update('productionWorkflow', event.target.value as NonNullable<OnboardingProfile['productionWorkflow']>)}>
                   <option value="unsure">Not sure</option><option value="in_house">In-house crews</option><option value="subcontracted">Subcontractors</option><option value="mixed">A mix of both</option>
                 </select>
               </label>
               <label className={labelClass}>Scheduling workflow
-                <select className={inputClass} value={profile.schedulingWorkflow ?? 'unsure'} disabled={!canEdit} onChange={(event) => update('schedulingWorkflow', event.target.value as NonNullable<OnboardingProfile['schedulingWorkflow']>)}>
+                <select className={inputClass} value={profile.schedulingWorkflow ?? 'unsure'} disabled={!canEdit || saving} onChange={(event) => update('schedulingWorkflow', event.target.value as NonNullable<OnboardingProfile['schedulingWorkflow']>)}>
                   <option value="unsure">Not sure</option><option value="calendar">Calendar</option><option value="spreadsheet">Spreadsheet</option><option value="software">Other software</option><option value="manual">Manual coordination</option>
                 </select>
               </label>
               <label className={labelClass}>Materials workflow
-                <select className={inputClass} value={profile.materialWorkflow ?? 'unsure'} disabled={!canEdit} onChange={(event) => update('materialWorkflow', event.target.value as NonNullable<OnboardingProfile['materialWorkflow']>)}>
+                <select className={inputClass} value={profile.materialWorkflow ?? 'unsure'} disabled={!canEdit || saving} onChange={(event) => update('materialWorkflow', event.target.value as NonNullable<OnboardingProfile['materialWorkflow']>)}>
                   <option value="unsure">Not sure</option><option value="owner_ordered">Owner orders materials</option><option value="crew_pickup">Crew pickup</option><option value="supplier_delivery">Supplier delivery</option><option value="mixed">A mix of methods</option>
                 </select>
               </label>
               <label className={labelClass}>Permit workflow
-                <select className={inputClass} value={profile.permitWorkflow ?? 'unsure'} disabled={!canEdit} onChange={(event) => update('permitWorkflow', event.target.value as NonNullable<OnboardingProfile['permitWorkflow']>)}>
+                <select className={inputClass} value={profile.permitWorkflow ?? 'unsure'} disabled={!canEdit || saving} onChange={(event) => update('permitWorkflow', event.target.value as NonNullable<OnboardingProfile['permitWorkflow']>)}>
                   <option value="unsure">Not sure</option><option value="in_house">Handled in-house</option><option value="subcontracted">Handled by another party</option><option value="not_applicable">Not applicable to our work</option>
                 </select>
               </label>
               <label className={labelClass}>Quality control
-                <select className={inputClass} value={profile.qualityControlWorkflow ?? 'unsure'} disabled={!canEdit} onChange={(event) => update('qualityControlWorkflow', event.target.value as NonNullable<OnboardingProfile['qualityControlWorkflow']>)}>
+                <select className={inputClass} value={profile.qualityControlWorkflow ?? 'unsure'} disabled={!canEdit || saving} onChange={(event) => update('qualityControlWorkflow', event.target.value as NonNullable<OnboardingProfile['qualityControlWorkflow']>)}>
                   <option value="unsure">Not sure</option><option value="checklist">Checklist</option><option value="manager_walkthrough">Manager walkthrough</option><option value="photo_review">Photo review</option><option value="mixed">A mix of methods</option>
                 </select>
               </label>
               <label className={labelClass}>Job closeout
-                <select className={inputClass} value={profile.closeoutWorkflow ?? 'unsure'} disabled={!canEdit} onChange={(event) => update('closeoutWorkflow', event.target.value as NonNullable<OnboardingProfile['closeoutWorkflow']>)}>
+                <select className={inputClass} value={profile.closeoutWorkflow ?? 'unsure'} disabled={!canEdit || saving} onChange={(event) => update('closeoutWorkflow', event.target.value as NonNullable<OnboardingProfile['closeoutWorkflow']>)}>
                   <option value="unsure">Not sure</option><option value="owner_review">Owner review</option><option value="office_review">Office review</option><option value="mixed">A mix of both</option>
                 </select>
               </label>
               <label className={labelClass}>Warranty handling
-                <select className={inputClass} value={profile.warrantyWorkflow ?? 'unsure'} disabled={!canEdit} onChange={(event) => update('warrantyWorkflow', event.target.value as NonNullable<OnboardingProfile['warrantyWorkflow']>)}>
+                <select className={inputClass} value={profile.warrantyWorkflow ?? 'unsure'} disabled={!canEdit || saving} onChange={(event) => update('warrantyWorkflow', event.target.value as NonNullable<OnboardingProfile['warrantyWorkflow']>)}>
                   <option value="unsure">Not sure</option><option value="manufacturer">Manufacturer warranty</option><option value="company">Company warranty</option><option value="both">Both</option>
                 </select>
               </label>
@@ -368,12 +368,12 @@ export default function WorkspaceOnboardingPage() {
           {step === 6 && (
             <div className="space-y-4">
               <label className={labelClass}>Customer contact preferences
-                <select className={inputClass} value={(profile.customerContactPreferences ?? ['unsure']).join(',')} disabled={!canEdit} onChange={(event) => update('customerContactPreferences', event.target.value.split(',') as NonNullable<OnboardingProfile['customerContactPreferences']>)}>
+                <select className={inputClass} value={(profile.customerContactPreferences ?? ['unsure']).join(',')} disabled={!canEdit || saving} onChange={(event) => update('customerContactPreferences', event.target.value.split(',') as NonNullable<OnboardingProfile['customerContactPreferences']>)}>
                   <option value="unsure">Not sure</option><option value="phone">Phone</option><option value="email">Email</option><option value="text">Text</option><option value="phone,email">Phone and email</option><option value="phone,text">Phone and text</option><option value="email,text">Email and text</option><option value="phone,email,text">All three</option>
                 </select>
               </label>
               <label className={labelClass}>Business hours (optional)
-                <input className={inputClass} maxLength={80} value={profile.businessHours ?? ''} disabled={!canEdit} onChange={(event) => update('businessHours', event.target.value)} placeholder="Example: Monday-Friday, 8 AM-5 PM" />
+                <input className={inputClass} maxLength={80} value={profile.businessHours ?? ''} disabled={!canEdit || saving} onChange={(event) => update('businessHours', event.target.value)} placeholder="Example: Monday-Friday, 8 AM-5 PM" />
               </label>
               <p className="text-xs text-slate-400">These are communication preferences only. ROOF/OS will not send messages or activate an outside provider.</p>
             </div>
@@ -382,7 +382,7 @@ export default function WorkspaceOnboardingPage() {
           {step === 7 && (
             <div className="space-y-4">
               <label className={labelClass}>What would you most like ROOF/OS to help improve first?
-                <textarea className={inputClass + ' min-h-32 resize-y'} maxLength={240} value={profile.primaryGoal ?? ''} disabled={!canEdit} onChange={(event) => update('primaryGoal', event.target.value)} placeholder="Example: make the handoff from inspection to estimate easier." />
+                <textarea className={inputClass + ' min-h-32 resize-y'} maxLength={240} value={profile.primaryGoal ?? ''} disabled={!canEdit || saving} onChange={(event) => update('primaryGoal', event.target.value)} placeholder="Example: make the handoff from inspection to estimate easier." />
               </label>
               <p className="text-xs text-slate-400">Your answer is saved as a preference. It does not create jobs, change company policy, or activate any feature.</p>
             </div>
