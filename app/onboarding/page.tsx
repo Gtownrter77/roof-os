@@ -58,6 +58,7 @@ export default function OnboardingPage() {
         const allowedStates = ['GA', 'AL', 'SC', 'NC', 'FL', 'TN']
         const allowedRoles = ['owner', 'manager', 'inspector', 'sales']
         setForm((current) => ({
+          ...current,
           phone: typeof metadata.onboarding_phone === 'string' ? metadata.onboarding_phone : current.phone,
           email: typeof metadata.onboarding_contact_email === 'string' ? metadata.onboarding_contact_email : typeof user.email === 'string' ? user.email : current.email,
           state: typeof metadata.onboarding_state === 'string' && allowedStates.includes(metadata.onboarding_state) ? metadata.onboarding_state : current.state,
