@@ -16,6 +16,10 @@ create table if not exists public.workspace_onboarding_profiles (
 
 alter table public.workspace_onboarding_profiles enable row level security;
 
+-- Make Data API exposure explicit; RLS controls rows, GRANT controls table access.
+revoke all on table public.workspace_onboarding_profiles from public, anon, authenticated;
+grant select, insert, update on table public.workspace_onboarding_profiles to authenticated;
+
 drop policy if exists workspace_onboarding_profiles_select on public.workspace_onboarding_profiles;
 drop policy if exists workspace_onboarding_profiles_insert on public.workspace_onboarding_profiles;
 drop policy if exists workspace_onboarding_profiles_update on public.workspace_onboarding_profiles;
