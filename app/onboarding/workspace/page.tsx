@@ -362,7 +362,7 @@ export default function WorkspaceOnboardingPage() {
               {step < STEPS.length - 1 ? (
                 <button type="button" onClick={() => setStep((current) => Math.min(STEPS.length - 1, current + 1))} className="rounded-lg bg-cyan-600 px-4 py-2 text-sm font-semibold text-white hover:bg-cyan-500">Next section</button>
               ) : (
-                <button type="button" onClick={() => void save('completed')} disabled={!canEdit || saving} className="rounded-lg bg-cyan-600 px-4 py-2 text-sm font-semibold text-white hover:bg-cyan-500 disabled:opacity-40">Mark setup complete</button>
+                <button type="button" onClick={() => void save('completed')} disabled={!canEdit || saving || !profile.primaryGoal?.trim()} title={!profile.primaryGoal?.trim() ? 'Add your first goal in the Goal section before completing setup.' : undefined} className="rounded-lg bg-cyan-600 px-4 py-2 text-sm font-semibold text-white hover:bg-cyan-500 disabled:opacity-40">Mark setup complete</button>
               )}
             </div>
           </div>
