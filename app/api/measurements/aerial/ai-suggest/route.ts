@@ -115,16 +115,17 @@ export async function POST(request: NextRequest) {
     if (!photo || photo.uploaded_by !== user.id || photo.bucket_id !== BUCKET || photo.upload_status !== 'uploaded') {
       return jsonError('The selected roof photo is not available to this user in this workspace.', 403)
     }
-    const extension = photo.mime_type === 'image/jpeg' ? /\\.jpe?g$/i
-      : photo.mime_type === 'image/png' ? /\\.png$/i
-      : photo.mime_type === 'image/webp' ? /\\.webp$/i : null
-    const expectedPath = `${workspaceId}/${user.id}/${inspectionId}/`
-    if (!extension || !photo.object_path.startsWith(expectedPath) || !extension.test(photo.object_path)
-      || !photo.object_path.endsWith(`${photoId}.${photo.object_path.split('.').pop()}`)) {
+    const extension = photo.mime_type === 'image/jpeg' ? 'jpg'
+      : photo.mime_type === 'image/png' ? 'png'
+      : photo.mime_type === 'image/webp' ? 'webp' : null
+    const expectedPath = `${workspaceId}/${user.id}/${inspectionId}/${photoId}.${extension}`
+    if (!extension || photo.object_path !== expectedPath) {
       return jsonError('The photo does not use an authorized private-storage path or supported image type.', 415)
     }
-    if (photo.file_size_bytes !== null && Number(photo.file_size_bytes) > MAX_IMAGE_BYTES) {
-      return jsonError('The selected roof image exceeds the 12 MB limit.', 413)
+    if (photo.file_size_bytes !== null) {
+      const declaredSize = Number(photo.file_size_bytes)
+      if (!Number.isSafeInteger(declaredSize) || declaredSize < 1) return jsonError('The photo has invalid size metadata.', 400)
+      if (declaredSize > MAX_IMAGE_BYTES) return jsonError('The selected roof image exceeds the 12 MB limit.', 413)
     }
 
     const admin = createAdminClient()
