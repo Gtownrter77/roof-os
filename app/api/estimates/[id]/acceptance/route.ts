@@ -147,6 +147,11 @@ export async function POST(
     if (!Number.isFinite(rawAmount) || rawAmount < 0) {
       return NextResponse.json({ error: 'Enter a valid deposit amount.' }, { status: 400 })
     }
+    // The ledger stores numeric(12,2): reject fractional cents and values outside
+    // its representable range here instead of surfacing a database overflow as 502.
+    if (rawAmount > 9_999_999_999.99 || Number(rawAmount.toFixed(2)) !== rawAmount) {
+      return NextResponse.json({ error: 'Deposit amounts must fit the ledger limit and use no more than two decimal places.' }, { status: 400 })
+    }
     if (eventType !== 'waived' && rawAmount <= 0) {
       return NextResponse.json({ error: 'Enter an amount greater than zero for this deposit event.' }, { status: 400 })
     }
