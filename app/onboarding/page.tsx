@@ -141,7 +141,7 @@ export default function OnboardingPage() {
           <div className="space-y-4">
             <h2 className="text-xl font-bold">Company Details</h2>
             <div>
-              <label className="block text-sm font-medium text-slate-200 mb-1">Company Name *</label>
+              <label htmlFor="onboarding-company-name" className="block text-sm font-medium text-slate-200 mb-1">Company Name *</label>
               <input 
                 id="onboarding-company-name"
                 type="text"
@@ -154,7 +154,7 @@ export default function OnboardingPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-200 mb-1">Phone</label>
+              <label htmlFor="onboarding-company-phone" className="block text-sm font-medium text-slate-200 mb-1">Phone</label>
               <input 
                 id="onboarding-company-phone"
                 type="tel"
@@ -166,7 +166,7 @@ export default function OnboardingPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-200 mb-1">Contact Email</label>
+              <label htmlFor="onboarding-contact-email" className="block text-sm font-medium text-slate-200 mb-1">Contact Email</label>
               <input 
                 id="onboarding-contact-email"
                 type="email"
@@ -178,7 +178,7 @@ export default function OnboardingPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-200 mb-1">State</label>
+              <label htmlFor="onboarding-company-state" className="block text-sm font-medium text-slate-200 mb-1">State</label>
               <select 
                 id="onboarding-company-state"
                 value={form.state}
