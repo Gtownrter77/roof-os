@@ -59,7 +59,7 @@ export default function TeamPage() {
       const payload = await response.json().catch(() => ({}))
       if (!response.ok) throw new Error(payload.error || 'The invitation could not be sent.')
       setEmail('')
-      setRole('member')
+      setRole('canvasser')
       setMessage(`Invitation email sent to ${payload.invitation?.email ?? 'the new member'}.`)
       await loadInvitations()
     } catch (sendError) {
