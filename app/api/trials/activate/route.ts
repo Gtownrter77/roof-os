@@ -40,5 +40,8 @@ export async function POST(request: Request) {
   }
 
   await supabase.auth.updateUser({ data: { request_two_hour_trial: false, trial_company_domain: null } })
+  const expiresAt = typeof data?.expires_at === 'string' ? Date.parse(data.expires_at) : Number.NaN
+  if (!Number.isFinite(expiresAt)) return NextResponse.json({ error: 'Trial expiry could not be verified.' }, { status: 503 })
+  if (expiresAt <= Date.now()) return NextResponse.json({ error: 'This two-hour trial has ended. Contact ROOF/OS to continue.' }, { status: 410 })
   return NextResponse.json({ trial: data }, { headers: { 'Cache-Control': 'no-store' } })
 }
