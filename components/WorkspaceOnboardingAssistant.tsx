@@ -14,6 +14,7 @@ type AssistantResult = {
 type Props = {
   profile: OnboardingProfile
   onApply: (profile: OnboardingProfile) => void
+  onEditField: (key: keyof OnboardingProfile) => void
 }
 
 const SYSTEM_PROMPT = `You are the ROOF/OS onboarding guide for roofing businesses.
@@ -62,7 +63,7 @@ function parseAssistantResult(raw: string): AssistantResult | null {
   }
 }
 
-export default function WorkspaceOnboardingAssistant({ profile, onApply }: Props) {
+export default function WorkspaceOnboardingAssistant({ profile, onApply, onEditField }: Props) {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 'welcome',
@@ -157,6 +158,22 @@ export default function WorkspaceOnboardingAssistant({ profile, onApply }: Props
       delete remaining[key]
       return Object.keys(remaining).length ? remaining : null
     })
+    setNotice('Skipped for now. No value was applied.')
+  }
+
+  function rejectField(key: keyof OnboardingProfile) {
+    setPendingProfile((current) => {
+      if (!current) return null
+      const remaining = { ...current }
+      delete remaining[key]
+      return Object.keys(remaining).length ? remaining : null
+    })
+    setNotice('Suggestion rejected. Your workspace profile was not changed.')
+  }
+
+  function editField(key: keyof OnboardingProfile) {
+    applyField(key)
+    onEditField(key)
   }
 
   function startPreferenceChange() {
@@ -226,9 +243,11 @@ export default function WorkspaceOnboardingAssistant({ profile, onApply }: Props
                   <p className="mt-2 text-xs text-slate-400">Before: <span className="text-slate-200">{describe(currentValue)}</span></p>
                   <p className="mt-1 break-words text-xs text-amber-50/90">Proposed: {describe(value)}</p>
                   <p className="mt-1 text-[10px] text-amber-100/60">Impact: informational preference only · no operational change. Apply to the form, then edit it in the matching section below if needed.</p>
-                  <div className="mt-2 flex gap-2">
-                    <button type="button" onClick={() => applyField(key)} className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white">Apply to form</button>
-                    <button type="button" onClick={() => skipField(key)} className="rounded-lg border border-white/20 px-3 py-1.5 text-xs font-semibold text-slate-200">Skip</button>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <button type="button" onClick={() => applyField(key)} className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white">Accept</button>
+                    <button type="button" onClick={() => editField(key)} className="rounded-lg border border-cyan-200/30 px-3 py-1.5 text-xs font-semibold text-cyan-100">Edit in form</button>
+                    <button type="button" onClick={() => rejectField(key)} className="rounded-lg border border-white/20 px-3 py-1.5 text-xs font-semibold text-slate-200">Reject</button>
+                    <button type="button" onClick={() => skipField(key)} className="rounded-lg border border-white/20 px-3 py-1.5 text-xs font-semibold text-slate-400">Skip</button>
                   </div>
                 </div>
               )
