@@ -300,6 +300,11 @@ jobs:
           grep -q "AI observation provenance is immutable after insertion" supabase/migrations/054_mobile_ai_observations.sql
           grep -q "AI observation and inspection must belong to the same workspace" supabase/migrations/054_mobile_ai_observations.sql
           grep -q "public.is_workspace_admin(workspace_id)" supabase/migrations/054_mobile_ai_observations.sql
+          test -f supabase/migrations/085_workspace_trial_expiry.sql
+          grep -q "trial_expires_at" supabase/migrations/085_workspace_trial_expiry.sql
+          test -f supabase/migrations/086_two_hour_trial_activation.sql
+          grep -q "interval '2 hours'" supabase/migrations/086_two_hour_trial_activation.sql
+          grep -q "email_confirmed_at" supabase/migrations/086_two_hour_trial_activation.sql
           test -f supabase/migrations/053_agent_action_ledger.sql
           grep -q "is_estimate_admin" supabase/migrations/059_estimate_approval_admin_guard.sql
           grep -q "An approved estimate is immutable" supabase/migrations/059_estimate_approval_admin_guard.sql
@@ -456,6 +461,15 @@ jobs:
           PGUSER: postgres
           PGPASSWORD: ci-synthetic-only
         run: bash scripts/ci/verify-production-job-postgres.sh
+      - name: Run real PostgreSQL two-hour trial activation and expiry tests
+        shell: bash
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGDATABASE: roofos_authority_ci
+          PGUSER: postgres
+          PGPASSWORD: ci-synthetic-only
+        run: bash scripts/ci/verify-two-hour-trial-postgres.sh
       - name: Run isolated PostgreSQL backup and restore rehearsal
         shell: bash
         env:
