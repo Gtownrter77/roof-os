@@ -8,7 +8,7 @@ const messages = [
   'Welcome aboard. I’m your ROOF/OS weather and roofing operations guide. I’ll help you get your workspace ready, one practical step at a time.',
   'Let’s start with your company details. Your state helps us put roofing workflows in the right regional context.',
   'Choose the role that best describes your day-to-day work. I’ll help you find the tools that fit your responsibilities.',
-  'Your account basics are saved. Next, we’ll configure your workspace profile. You stay in control of every setting and operational decision.',
+  'Review your account basics, then press Save and continue. I’ll take you to workspace setup next. You stay in control of every setting and operational decision.',
 ]
 
 export default function HologramMeteorologist({ step }: Props) {
