@@ -190,13 +190,13 @@ export default function OnboardingPage() {
         return (
           <div className="text-center">
             <div className="text-6xl mb-4">🎊</div>
-            <h2 className="text-2xl font-bold mb-2">Account basics saved</h2>
-            <p className="text-slate-400">One more step: tell ROOF/OS how your roofing business works. You can save progress and finish later.</p>
-            <div className="mt-6 bg-emerald-400/10 border border-emerald-400/30 rounded-lg p-4">
-              <p className="text-sm text-green-800">
-                ✅ Account basics saved<br />
-                ⏭️ Workspace setup is next<br />
-                ⏭️ Guided onboarding is not finished yet
+            <h2 className="text-2xl font-bold mb-2">Review your account basics</h2>
+            <p className="text-slate-400">When you continue, ROOF/OS will save these account details and open workspace setup. Guided onboarding is not finished yet.</p>
+            <div className="mt-6 bg-cyan-400/10 border border-cyan-400/30 rounded-lg p-4">
+              <p className="text-sm text-cyan-100">
+                ✓ Company details entered<br />
+                ✓ Account role selected<br />
+                ⏭️ Save and continue to workspace setup
               </p>
             </div>
           </div>
@@ -236,7 +236,7 @@ export default function OnboardingPage() {
             disabled={saving}
             className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold disabled:opacity-60"
           >
-            {saving ? 'Saving…' : step === 4 ? 'Continue workspace setup' : 'Next →'}
+            {saving ? 'Saving…' : step === 4 ? 'Save and continue workspace setup' : 'Next →'}
           </button>
         </div>
       </div>
