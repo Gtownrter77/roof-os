@@ -21,19 +21,23 @@ export default function OnboardingPage() {
   useEffect(() => {
     let active = true
     async function restoreAccountBasics() {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!active || !user) return
-      const metadata = user.user_metadata ?? {}
-      const allowedStates = ['GA', 'AL', 'SC', 'NC', 'FL', 'TN']
-      const allowedRoles = ['owner', 'manager', 'inspector', 'sales']
-      setForm((current) => ({
-        companyName: typeof metadata.company_name === 'string' ? metadata.company_name : current.companyName,
-        phone: typeof metadata.onboarding_phone === 'string' ? metadata.onboarding_phone : current.phone,
-        email: typeof metadata.onboarding_contact_email === 'string' ? metadata.onboarding_contact_email : current.email,
-        state: typeof metadata.onboarding_state === 'string' && allowedStates.includes(metadata.onboarding_state) ? metadata.onboarding_state : current.state,
-        role: typeof metadata.onboarding_role_preference === 'string' && allowedRoles.includes(metadata.onboarding_role_preference) ? metadata.onboarding_role_preference : current.role,
-      }))
+      try {
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!active || !user) return
+        const metadata = user.user_metadata ?? {}
+        const allowedStates = ['GA', 'AL', 'SC', 'NC', 'FL', 'TN']
+        const allowedRoles = ['owner', 'manager', 'inspector', 'sales']
+        setForm((current) => ({
+          companyName: typeof metadata.company_name === 'string' ? metadata.company_name : current.companyName,
+          phone: typeof metadata.onboarding_phone === 'string' ? metadata.onboarding_phone : current.phone,
+          email: typeof metadata.onboarding_contact_email === 'string' ? metadata.onboarding_contact_email : current.email,
+          state: typeof metadata.onboarding_state === 'string' && allowedStates.includes(metadata.onboarding_state) ? metadata.onboarding_state : current.state,
+          role: typeof metadata.onboarding_role_preference === 'string' && allowedRoles.includes(metadata.onboarding_role_preference) ? metadata.onboarding_role_preference : current.role,
+        }))
+      } catch {
+        if (active) setError('Saved account details could not be restored. You can enter them again here.')
+      }
     }
     void restoreAccountBasics()
     return () => { active = false }
@@ -78,25 +82,28 @@ export default function OnboardingPage() {
     }
 
     setSaving(true)
-    const supabase = createClient()
-    const { error: updateError } = await supabase.auth.updateUser({
-      data: {
-        company_name: form.companyName.trim(),
-        onboarding_contact_email: form.email.trim(),
-        onboarding_phone: form.phone.trim(),
-        onboarding_state: form.state,
-        onboarding_role_preference: form.role,
-        onboarding_basics_saved_at: new Date().toISOString(),
-      },
-    })
-    if (updateError) {
-      setError('Could not save your onboarding details. Nothing was marked complete.')
+    try {
+      const supabase = createClient()
+      const { error: updateError } = await supabase.auth.updateUser({
+        data: {
+          company_name: form.companyName.trim(),
+          onboarding_contact_email: form.email.trim(),
+          onboarding_phone: form.phone.trim(),
+          onboarding_state: form.state,
+          onboarding_role_preference: form.role,
+          onboarding_basics_saved_at: new Date().toISOString(),
+        },
+      })
+      if (updateError) {
+        setError('Could not save your onboarding details. Nothing was marked complete.')
+        return
+      }
+      router.push('/onboarding/workspace')
+    } catch {
+      setError('Could not save your onboarding details. Check your connection and try again.')
+    } finally {
       setSaving(false)
-      return
     }
-
-    setSaving(false)
-    router.push('/onboarding/workspace')
   }
 
   const handleBack = () => {
