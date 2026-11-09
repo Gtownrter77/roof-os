@@ -201,6 +201,11 @@ export default function WorkspaceOnboardingPage() {
                   <option value="unsure">Not sure yet</option><option value="residential">Residential</option><option value="commercial">Commercial</option><option value="both">Both</option>
                 </select>
               </label>
+              <label className={labelClass}>Years in business (optional)
+                <select className={inputClass} value={profile.yearsInBusinessBand ?? 'unsure'} disabled={!canEdit} onChange={(event) => update('yearsInBusinessBand', event.target.value as NonNullable<OnboardingProfile['yearsInBusinessBand']>)}>
+                  <option value="unsure">Prefer not to say / not sure</option><option value="0-1">Less than 2 years</option><option value="2-5">2–5 years</option><option value="6-10">6–10 years</option><option value="11-20">11–20 years</option><option value="20+">More than 20 years</option>
+                </select>
+              </label>
               <label className={labelClass}>Approximate crew size
                 <select className={inputClass} value={profile.crewCountBand ?? 'unsure'} disabled={!canEdit} onChange={(event) => update('crewCountBand', event.target.value as NonNullable<OnboardingProfile['crewCountBand']>)}>
                   <option value="unsure">Not sure</option><option value="solo">Just me</option><option value="2-5">2–5</option><option value="6-10">6–10</option><option value="11-25">11–25</option><option value="26+">26+</option>
