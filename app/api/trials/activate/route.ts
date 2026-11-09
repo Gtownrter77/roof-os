@@ -39,5 +39,5 @@ export async function POST(request: Request) {
     }, { status })
   }
 
-  return NextResponse.json({ trial: data }, { headers: { 'Cache-Control': 'no-store' } })
+  await supabase.auth.updateUser({ data: { request_two_hour_trial: false, trial_company_domain: null } })\n  return NextResponse.json({ trial: data }, { headers: { 'Cache-Control': 'no-store' } })
 }
