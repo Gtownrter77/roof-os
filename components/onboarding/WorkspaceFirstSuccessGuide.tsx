@@ -30,7 +30,7 @@ const ADMIN_TOUR: TourItem[] = [
   {
     title: 'Production jobs',
     href: '/jobs',
-    description: 'Jobs appear after an accepted estimate is deliberately handed off; this tour creates none.',
+    description: 'Open an existing job to review crew, materials, readiness, field updates, QC, invoice, and closeout. Jobs still require an accepted estimate handoff; this tour creates or assigns nothing.',
   },
   {
     title: 'Calendar and scheduling',
