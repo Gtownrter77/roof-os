@@ -133,6 +133,7 @@ jobs:
       - run: npm run test:ai-vision-endpoint
       - run: npm run test:workspace-settings
       - run: npm run test:onboarding-profile
+      - run: npm run test:onboarding-workspace-ui
       - run: npm run audit
 
   mobile:
