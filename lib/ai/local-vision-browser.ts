@@ -121,7 +121,7 @@ export async function analyzeRoofImageWithLocalOllama(file: File, imageWidth: nu
     return { model, suggestion }
   } catch (error) {
     if (error instanceof BrowserLocalVisionError) throw error
-    if (controller.signal.aborted) throw new BrowserLocalVisionError('Local vision timed out. The selected image was not uploaded.')
+    if (controller.signal.aborted) throw new BrowserLocalVisionError('Local vision timed out. The photo remains in private inspection storage; manual tracing is still available.')
     if (error instanceof TypeError) {
       throw new BrowserLocalVisionError('Could not reach localhost:11434. Start the local vision service and allow this app origin through its CORS/private-network settings; no hosted AI fallback is used.')
     }
