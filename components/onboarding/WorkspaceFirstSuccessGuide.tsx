@@ -72,7 +72,7 @@ const TEAM_TOUR: TourItem[] = [
   },
 ]
 
-export default function WorkspaceFirstSuccessGuide({ canEdit }: { canEdit: boolean }) {
+export default function WorkspaceFirstSuccessGuide({ canEdit, primaryGoal }: { canEdit: boolean; primaryGoal?: string }) {
   const items = canEdit ? ADMIN_TOUR : TEAM_TOUR
 
   return (
@@ -86,6 +86,7 @@ export default function WorkspaceFirstSuccessGuide({ canEdit }: { canEdit: boole
           : 'A short orientation to the main work areas. Open only the areas your workspace role allows.'}
         {' '}No demo records are created and no operational action is started by this tour.
       </p>
+      {primaryGoal && <p className="mt-2 rounded-lg border border-violet-200/15 bg-black/15 p-3 text-xs text-violet-100">First priority: {primaryGoal}</p>}
       <ol className="mt-4 space-y-3">
         {items.map((item, index) => (
           <li key={item.href} className="flex items-start gap-3 rounded-xl border border-white/10 bg-black/15 p-3">
