@@ -23,8 +23,9 @@ assert.match(page, /onClick=\{\(\) => void save\('completed'\)\}/)
 assert.match(page, /setStep\(\(current\) => Math\.min\(STEPS\.length - 1, current \+ 1\)\)/)
 assert.doesNotMatch(page, /useEffect\([\s\S]{0,500}save\('completed'\)/)
 
-// The UI must expose all five setup sections and explain the non-operational boundary.
-for (const step of ['Business', 'Service area', 'Work mix', 'Workflow', 'Goal']) {
+// The UI must expose all eight setup sections and explain the non-operational boundary.
+assert.match(page, /const STEPS = \['Business', 'Service area', 'Work mix', 'Team', 'Sales & inspection', 'Operations', 'Communication', 'Goal'\]/)
+for (const step of ['Business', 'Service area', 'Work mix', 'Team', 'Sales & inspection', 'Operations', 'Communication', 'Goal']) {
   assert.ok(page.includes(step), `missing onboarding section: ${step}`)
 }
 assert.match(page, /does not change pricing, permissions, crew assignments, customer records, integrations, or live operations/)
@@ -38,7 +39,7 @@ assert.match(page, /setSetupMode\('manual'\)/)
 assert.match(page, /assistantEnabled=\{setupMode === 'assistant'\}/)
 assert.match(page, /Optional local AI suggestions require owner review and never save automatically/)
 assert.match(page, /onApply=\{\(nextProfile\)/)
-assert.match(page, /<WorkspaceSetupTour onSelectSection=\{selectTourSection\}/)
+assert.match(page, /<WorkspaceSetupTour key=\{setupMode\} assistantEnabled=\{setupMode === 'assistant'\} onSelectSection=\{selectTourSection\}/)
 assert.match(page, /id="workspace-save-progress"/)
 assert.match(tour, /Take the guided tour/)
 assert.match(tour, /assistantEnabled \? TOUR_STEPS : TOUR_STEPS\.slice\(1\)/)
