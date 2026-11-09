@@ -141,6 +141,10 @@ export default function MeasurePage() {
       setError('Select an actual inspection or aerial image first.')
       return
     }
+    if (file.size > 12 * 1024 * 1024) {
+      setError('For automatic roof detection, choose an image under 12 MB. Manual tracing can still use larger images.')
+      return
+    }
     setWorking(true)
     setError('')
     setStatus('Saving the roof photo to private inspection storage before AI analysis…')
