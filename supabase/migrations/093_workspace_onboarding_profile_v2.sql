@@ -196,6 +196,9 @@ create table if not exists public.workspace_onboarding_profile_events (
 
 alter table public.workspace_onboarding_profile_events enable row level security;
 
+create index if not exists workspace_onboarding_profile_events_workspace_created_idx
+  on public.workspace_onboarding_profile_events (workspace_id, created_at desc);
+
 drop policy if exists workspace_onboarding_profile_events_select on public.workspace_onboarding_profile_events;
 drop policy if exists workspace_onboarding_profile_events_insert on public.workspace_onboarding_profile_events;
 
