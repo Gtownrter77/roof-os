@@ -11,8 +11,8 @@ append-only deposit ledger.
 ## What this is not
 
 - **Not an e-signature.** No signature image, signed PDF, certificate or signing provider is stored or claimed.
-- **Not a payment.** Nothing charges a card, moves money or contacts a payment processor.
-- **Not a contract.** A signed contract remains a separate document and process.
+- **Not proof of settled payment.** A `received` event is an immutable staff-entered ledger record; it does not query a bank, card processor or payment provider. Nothing charges a card or moves money.
+- **Not a contract.** No signed contract, signature image, signed PDF, certificate or signing-provider record is captured here. Any required signed agreement remains a separate document and process.
 
 The UI states this next to the record button.
 
@@ -52,6 +52,7 @@ none ──requested──> requested ──received──> received ──refun
 
 - Source and state machine: `npm run test:estimate-acceptance`.
 - Real PostgreSQL trigger/RLS/immutability: `scripts/ci/verify-estimate-acceptance-postgres.sh` in `migration-safety`, on a dedicated disposable database.
-- Supabase Auth/API: **not tested** — no credentials.
+- Supabase Auth/API and browser/customer flow: **not tested** — no connected staging credentials or real customer rehearsal.
 - Production: untouched.
-- Gate 2 is **not** closed by this change. Recorded acceptance still has to be exercised in a real customer flow, and the sales→production job handoff (Day 14) is not built.
+- Day 14 sales→production handoff is implemented separately in migration `064_production_job_handoff.sql`; see [production-handoff.md](../jobs/production-handoff.md). Its database trigger and disposable-PostgreSQL assertions are not proof of a real customer-flow test.
+- Gate 2 remains **open** until the end-to-end workflow is exercised in staging, any required signed contract is handled through the approved separate process, and deposit receipt is reconciled against real financial evidence. This feature records staff-entered acceptance/deposit events; it does not execute a contract or verify settlement.
