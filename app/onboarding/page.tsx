@@ -191,9 +191,9 @@ export default function OnboardingPage() {
             <p className="text-slate-400">Your ROOF/OS account is ready to go.</p>
             <div className="mt-6 bg-emerald-400/10 border border-emerald-400/30 rounded-lg p-4">
               <p className="text-sm text-green-800">
-                ✅ Onboarding preferences saved<br />
-                ✅ Account configuration saved<br />
-                ✅ Ready to start
+                ✅ Company and contact details ready to save<br />
+                ✅ Role preference selected<br />
+                ✅ Ready to continue after saving
               </p>
             </div>
           </div>
