@@ -174,8 +174,20 @@ for (const route of routes) {
     && source.includes('size > maxBytes')
     && source.includes('validateGeometrySuggestion(body.suggestion)')
     && boundedBrowserLocalVisionRequest
+  const boundedAerialGeminiFetch = route === join(root, 'app', 'api', 'measurements', 'aerial', 'ai-suggest', 'route.ts')
+    && fetchCallCount === 1
+    && (source.match(/new AbortController\(\)/g) ?? []).length === 1
+    && source.includes('setTimeout(() => controller.abort(), STORAGE_TIMEOUT_MS)')
+    && source.includes('clearTimeout(timer)')
+    && source.includes("redirect: 'error'")
+    && source.includes('signedUrl.origin !== storageOrigin')
+    && source.includes('async function readBounded(response: Response)')
+    && source.includes('size > MAX_IMAGE_BYTES')
+    && source.includes('requireWorkspaceMember')
+    && source.includes("consume_public_rate_limit")
+    && source.includes('analyzeRoofGeometryWithGemini(')
   // D.3 bounds private-storage reads and the shared local vision request/response.
-  if (fetchCallCount > 0 && !boundedPhotoAnalysisFetch && !boundedAerialGeometryFetch && !boundedSidingAnalysisFetch && !boundedStatusHealthFetch && !boundedLocalClaimsFetch) {
+  if (fetchCallCount > 0 && !boundedPhotoAnalysisFetch && !boundedAerialGeometryFetch && !boundedAerialGeminiFetch && !boundedSidingAnalysisFetch && !boundedStatusHealthFetch && !boundedLocalClaimsFetch) {
     throw new Error(`API route makes a network request without an approved bounded fetch helper: ${route}`)
   }
 }
