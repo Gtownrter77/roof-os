@@ -3,6 +3,7 @@ import { execFileSync, spawnSync } from 'node:child_process'
 import { readFileSync, statSync, writeFileSync } from 'node:fs'
 import { basename, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { extractSigningCertificateSha256 } from './mobile-apk-signature.mjs'
 
 function requiredEnv(name) {
   const value = process.env[name]?.trim()
@@ -59,14 +60,12 @@ const signatureProcess = spawnSync(apksigner, ['verify', '--verbose', '--print-c
 if (signatureProcess.error) throw signatureProcess.error
 if (signatureProcess.status !== 0) throw new Error(`APK signature verification failed: ${signatureProcess.stderr || signatureProcess.stdout}`)
 const signatureReport = `${signatureProcess.stdout || ''}\n${signatureProcess.stderr || ''}`
-const digestPattern = /((?:[a-f0-9]{2}:){31}[a-f0-9]{2}|[a-f0-9]{64})/i
-const certificateMatch = signatureReport.match(/Signer #1 certificate SHA-256 digest:[\s\S]*?((?:[a-f0-9]{2}:){31}[a-f0-9]{2}|[a-f0-9]{64})/i)
-  ?? signatureReport.match(digestPattern)
-if (!certificateMatch || !certificateMatch[0].includes('certificate SHA-256 digest')) {
-  console.warn('Signer-specific certificate digest label was absent; using the only available SHA-256 fingerprint from apksigner output')
+const certificate = extractSigningCertificateSha256(signatureReport)
+if (certificate.source === 'fallback') {
+  console.warn('Signer-specific certificate digest label was absent; using the unambiguous SHA-256 fingerprint from apksigner output')
 }
-if (!certificateMatch) throw new Error('APK signing certificate SHA-256 fingerprint is missing')
-const signingCertificateSha256 = certificateMatch[1].replaceAll(':', '').toLowerCase()
+const signingCertificateSha256 = certificate.fingerprint
+
 const workflowUrl = process.env.GITHUB_SERVER_URL && process.env.GITHUB_REPOSITORY && process.env.GITHUB_RUN_ID
   ? `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`
   : null
