@@ -151,4 +151,22 @@ assert.throws(() => quantityMath.calculateCalibratedRoofDraft({
   geometryConfirmed: false,
 }), /Confirm reviewed geometry/)
 
+const autoMeasurementUi = readFileSync(new URL('../components/AutoMeasurementTool.tsx', import.meta.url), 'utf8')
+assert.match(autoMeasurementUi, /localhost:11434/)
+assert.match(autoMeasurementUi, /qwen3-vl:8b/)
+assert.match(autoMeasurementUi, /does not include an Ollama server on Android by default/)
+assert.match(autoMeasurementUi, /Trace roof manually/)
+assert.doesNotMatch(autoMeasurementUi, /Google Gemini/)
+
+const manualDrawingUi = readFileSync(new URL('../components/ManualDrawingTool.tsx', import.meta.url), 'utf8')
+assert.match(manualDrawingUi, /Tap Start Drawing, then tap each roof corner/)
+assert.match(manualDrawingUi, /click with a mouse/)
+
+const deploymentGuide = readFileSync(new URL('../DEPLOYMENT.md', import.meta.url), 'utf8')
+assert.match(deploymentGuide, /Windows 10\/11 \(PowerShell\)/)
+assert.match(deploymentGuide, /SetEnvironmentVariable\("OLLAMA_ORIGINS"/)
+assert.match(deploymentGuide, /ollama pull qwen3-vl:8b/)
+assert.match(deploymentGuide, /Invoke-RestMethod http:\/\/localhost:11434\/api\/tags/)
+assert.match(deploymentGuide, /Do not use.*\*.*do not expose port 11434/s)
+
 console.log('auto-measurement-local-and-quantity-test: PASS (loopback-only browser inference, image payload, no remote fallback, validated geometry, orthographic/scale/pitch gates, draft area and squares)')

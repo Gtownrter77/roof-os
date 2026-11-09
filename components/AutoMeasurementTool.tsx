@@ -20,22 +20,22 @@ export default function AutoMeasurementTool({ hasImage, working = false, onDetec
       return
     }
     setError('')
-    setStatus('Sending the private roof photo to Google Gemini…')
+    setStatus('Saving the private photo, then connecting to Ollama on this same device…')
     try {
       await onDetect()
-      setStatus('AI suggestions saved. Review every plane, edge, and object before calibration.')
+      setStatus('Local AI suggestions saved. Review every plane, edge, and object before calibration.')
     } catch (err) {
-      setStatus('Roof AI did not complete. Use manual tracing or the OpenStreetMap footprint.')
-      setError(err instanceof Error ? err.message : 'Google Gemini roof analysis could not be completed.')
+      setStatus('Local AI did not complete. Manual tracing is available.')
+      setError(err instanceof Error ? err.message : 'Local Ollama roof analysis could not be completed.')
       onManualFallback()
     }
   }
 
   return (
     <section className="glass mt-4 rounded-xl p-4">
-      <h2 className="font-semibold">Auto-Measurement Tool</h2>
+      <h2 className="font-semibold">Roof Detection</h2>
       <p className="text-sm text-slate-400">
-        When you choose Detect roof, an image up to 12 MB is saved in private inspection storage and sent from the server to Google Gemini for image-coordinate suggestions. Only upload photos you are authorized to share. Larger images can still be traced manually. AI does not calculate verified dimensions; a person must review the shapes and calibrate scale and pitch.
+        Automatic detection uses Ollama running on this same device at localhost:11434 with the qwen3-vl:8b vision model. The photo is saved to private inspection storage first, then sent directly from this browser to local Ollama; it is not sent to a hosted AI service. This setup does not include an Ollama server on Android by default, so Android users should use manual tracing unless they have separately installed and configured a compatible local service. AI suggestions are not verified measurements: review the geometry and calibrate scale and pitch before using quantities.
       </p>
       <div className="mt-3 flex flex-wrap gap-2">
         <button
@@ -44,7 +44,7 @@ export default function AutoMeasurementTool({ hasImage, working = false, onDetec
           disabled={working || !hasImage}
           className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
         >
-          {working ? 'Working…' : 'Detect roof with AI'}
+          {working ? 'Working…' : 'Detect roof with local AI'}
         </button>
         <button
           type="button"
@@ -52,7 +52,7 @@ export default function AutoMeasurementTool({ hasImage, working = false, onDetec
           disabled={working}
           className="rounded-lg border border-white/20 px-4 py-2 text-sm font-semibold text-slate-100 disabled:opacity-50"
         >
-          Use manual tracing
+          Trace roof manually
         </button>
       </div>
       {!hasImage && <p className="mt-2 text-xs text-amber-300">Load an actual JPEG, PNG, or WebP image before detection.</p>}

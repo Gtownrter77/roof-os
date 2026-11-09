@@ -28,6 +28,42 @@ OLLAMA_ORIGINS="https://roof-os-lemon.vercel.app,http://localhost:3000" ollama s
 
 Replace/add origins to match the actual app URL being used (including preview URLs when applicable). Do not expose Ollama's port to the public internet. The browser calls loopback on the same device; browser/OS local-network permission and CORS rules still apply. If the browser cannot reach Ollama, use manual tracing; no hosted vision fallback is attempted.
 
+### Windows 10/11 (PowerShell)
+
+These commands configure the Ollama process on the **same Windows PC that runs the browser**. They do not configure Vercel.
+
+1. Install Ollama for Windows, open PowerShell, and download the vision model:
+
+```powershell
+ollama pull qwen3-vl:8b
+ollama list
+```
+
+2. Allow only the production site origin in Ollama's CORS list. This stores a per-user environment variable:
+
+```powershell
+[Environment]::SetEnvironmentVariable("OLLAMA_ORIGINS", "https://roof-os-lemon.vercel.app", "User")
+```
+
+If testing a trusted preview, append that exact preview origin separated by a comma. Do not use `*` and do not expose port 11434 to the internet.
+
+3. Fully quit Ollama from its Windows system-tray icon. The most reliable test is to start the server directly from a **new PowerShell window** with the origin set in that process:
+
+```powershell
+$env:OLLAMA_ORIGINS = "https://roof-os-lemon.vercel.app"
+ollama serve
+```
+
+Keep that window open while using ROOF/OS. If you prefer the Start-menu app, sign out of Windows and back in after changing the user variable, then launch Ollama; existing Windows processes do not inherit environment changes made after they started.
+
+4. In another PowerShell window, verify the local service and model:
+
+```powershell
+Invoke-RestMethod http://localhost:11434/api/tags
+```
+
+The response should list `qwen3-vl:8b`. Keep Ollama running, open ROOF/OS in a browser on that same PC, open **Measure**, choose a roof image, and select **Detect roof with local AI**. If Windows/Chrome asks to allow local-network access, allow it for the trusted ROOF/OS origin. A browser-blocked request, missing model, or disabled CORS will show an error; **Trace roof manually** remains the supported fallback. The photo is stored in private inspection storage before local analysis. The browser sends it to the PC's loopback Ollama service, not to a hosted AI provider.
+
 ## Migration order
 
 Apply the repository migrations through `036_photo_estimate_ai_analysis.sql` to the target Supabase project in the recorded production order. Do not rename or renumber the historical duplicate prefixes `021`, `022`, or `023`; follow `MIGRATION-ORDER.md` and the target Supabase migration ledger. Verify RLS using two workspaces before enabling customer-facing estimate or claims-import flows. Migration `008` supplies claims line-item and heartbeat tables; migration `009` supplies claims-import and idempotent agent-run tables; migration `010` supplies the Home Depot reference-price cache and hard 100-inquiry monthly budget; migration `011` supplies the weekly watchlist and worker-only budget reservation; migration `012` supplies inspection measurements, NOAA storm evidence, and estimate review packets; migration `013` supplies drone/aerial capture provenance; migration `014` supplies the fail-closed Ryan-only system-owner lock; migrations `021`–`024` supply the photo-estimate workflow, measurement, and refresh schema; migration `027` applies the photo-estimate administrator update guard; migration `033` hardens private Storage ownership paths; migration `036` adds the non-authoritative AI analysis fields.
