@@ -1379,7 +1379,7 @@ export default function App() {
         </Pressable>
         {notice ? <Text style={styles.notice}>{notice}</Text> : null}
         {error ? <Text style={styles.error}>{error}</Text> : null}
-        <Text style={styles.footer}>Inspector release 0.5.0 · drafts sync to the desktop workspace.</Text>
+        <Text style={styles.footer}>Field release 0.5.0 · inspector console · drafts sync to the desktop workspace.</Text>
       </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
