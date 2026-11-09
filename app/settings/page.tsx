@@ -92,11 +92,12 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false)
   const [ownerEmailConfirm, setOwnerEmailConfirm] = useState('')
   const [ownerPhraseConfirm, setOwnerPhraseConfirm] = useState('')
+  const [isSystemOwner, setIsSystemOwner] = useState(false)
 
   useEffect(() => {
     setRadarPrefs(loadRadarLayerPrefs())
     setCinemaOn(cinemaThemeEnabled())
-    Promise.all([fetch('/api/settings'), fetch('/api/pricing/labor-rates')]).then(async ([settingsResponse, pricingResponse]) => {
+    Promise.all([fetch('/api/settings'), fetch('/api/pricing/labor-rates'), fetch('/api/settings/agents')]).then(async ([settingsResponse, pricingResponse, agentsResponse]) => {
       const settingsPayload = await settingsResponse.json()
       const pricingPayload = await pricingResponse.json()
       if (settingsResponse.ok && settingsPayload.settings) {
@@ -180,11 +181,12 @@ export default function SettingsPage() {
       </header>
 
       <main className="p-4 max-w-2xl mx-auto space-y-4">
-        {/* Owner controls */}
+        {isSystemOwner && (
         <section className="glass rounded-xl p-4 border-l-4 border-amber-400 space-y-3">
           <h2 className="font-bold text-sm text-white flex items-center">
             <span className="text-lg mr-1.5">⚡</span> Owner · YOLO MODE
           </h2>
+          <p className="text-xs text-slate-400">Owner only. Canvassers do not get this switch and YOLO never runs for them.</p>
           <ToggleRow
             label="YOLO MODE"
             desc="Off: the AI agent runs the process and waits for your approval at each step. On: the agent finishes the process without stopping."
@@ -193,6 +195,7 @@ export default function SettingsPage() {
             flag="yolo_mode"
           />
         </section>
+        )}
 
         {/* AI & Automation Toggles */}
         <section className="glass rounded-xl p-4 border-l-4 border-indigo-600 space-y-3">

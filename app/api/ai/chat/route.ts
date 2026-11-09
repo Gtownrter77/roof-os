@@ -63,8 +63,11 @@ export async function POST(request: NextRequest) {
   const { data: workspaceId } = await supabase.rpc('current_workspace_id')
   let yoloMode = false
   if (workspaceId) {
-    const { data: settingsRow } = await supabase.from('workspace_settings').select('yolo_mode').eq('workspace_id', workspaceId).maybeSingle()
-    yoloMode = readWorkspaceSettings(settingsRow).yolo_mode === true
+    const { data: isOwner } = await supabase.rpc('is_system_owner')
+    if (isOwner === true) {
+      const { data: settingsRow } = await supabase.from('workspace_settings').select('yolo_mode').eq('workspace_id', workspaceId).maybeSingle()
+      yoloMode = readWorkspaceSettings(settingsRow).yolo_mode === true
+    }
   }
   const needsApproval = fills.length > 0 && !yoloMode
 

@@ -46,6 +46,12 @@ export async function PUT(request: NextRequest) {
   if (confirmation !== 'AUTHORIZE SETTINGS') {
     return NextResponse.json({ error: 'Part 2 failed. Type AUTHORIZE SETTINGS to confirm.' }, { status: 403 })
   }
+  if ('yolo_mode' in body) {
+    const { data: isOwner } = await supabase.rpc('is_system_owner')
+    if (isOwner !== true) {
+      return NextResponse.json({ error: 'YOLO MODE is owner only. Canvassers cannot change it.' }, { status: 403 })
+    }
+  }
   const patch: Record<string, unknown> = {}
 
   if ('price_refresh_frequency' in body) {
