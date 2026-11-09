@@ -18,6 +18,7 @@ export default function OnboardingPage() {
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
   const [checkingAccess, setCheckingAccess] = useState(true)
+  const [restoringAccountBasics, setRestoringAccountBasics] = useState(true)
 
   useEffect(() => {
     let active = true
@@ -64,6 +65,8 @@ export default function OnboardingPage() {
         }))
       } catch {
         if (active) setError('Saved account details could not be restored. You can enter them again here.')
+      } finally {
+        if (active) setRestoringAccountBasics(false)
       }
     }
     void restoreAccountBasics()
@@ -94,10 +97,6 @@ export default function OnboardingPage() {
   ]
 
   const handleNext = async () => {
-    if (step === 2 && !form.companyName.trim()) {
-      setError('Enter your company name to continue.')
-      return
-    }
     if (step === 2 && form.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
       setError('Enter a valid contact email, or leave the field blank.')
       return
@@ -272,8 +271,8 @@ export default function OnboardingPage() {
     }
   }
 
-  if (checkingAccess) {
-    return <main className="ops-bg flex min-h-screen items-center justify-center p-6 text-sm text-slate-300">Checking workspace access…</main>
+  if (checkingAccess || restoringAccountBasics) {
+    return <main className="ops-bg flex min-h-screen items-center justify-center p-6 text-sm text-slate-300">Preparing your workspace details…</main>
   }
 
   return (
