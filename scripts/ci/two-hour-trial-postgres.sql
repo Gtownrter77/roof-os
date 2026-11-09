@@ -37,6 +37,9 @@ create table public.user_active_workspaces (
 
 \ir ../../supabase/migrations/085_workspace_trial_expiry.sql
 \ir ../../supabase/migrations/086_two_hour_trial_activation.sql
+\ir ../../supabase/migrations/087_fix_trial_company_domain_validation.sql
+\ir ../../supabase/migrations/088_strict_trial_company_domain_labels.sql
+\ir ../../supabase/migrations/089_correct_trial_domain_regex_escaping.sql
 
 create trigger on_auth_user_created_workspace
 after insert on auth.users
@@ -47,7 +50,44 @@ insert into auth.users(id,email,email_confirmed_at,raw_user_meta_data) values
  ('10000000-0000-4000-8000-000000000002','other@acme.test',now(),'{"company_name":"Acme Duplicate","request_two_hour_trial":true}'),
  ('10000000-0000-4000-8000-000000000003','person@gmail.com',now(),'{"company_name":"Personal Email","request_two_hour_trial":true}'),
  ('10000000-0000-4000-8000-000000000004','pending@roofco.test',null,'{"company_name":"Unverified","request_two_hour_trial":true}'),
- ('10000000-0000-4000-8000-000000000005','legacy@rooflegacy.test',now(),'{}');
+ ('10000000-0000-4000-8000-000000000005','legacy@rooflegacy.test',now(),'{}'),
+ ('10000000-0000-4000-8000-000000000006','validator@roofingco.test',now(),'{}');
+
+-- Exercise the deployed validator through its real RPC in the isolated CI database.
+-- A dedicated fixture avoids consuming the main activation test's company claim.
+do $domain_validation$
+declare
+  candidate text;
+  i integer := 0;
+  result jsonb;
+  invalid_domains text[] := array[
+    'foo.-bar.com','foo.bar-.com','foo..bar.com','-foo.com','foo-.com',
+    repeat('a',64)||'.com','foo.com-','foo.c','foo_.com'
+  ];
+begin
+  perform set_config('request.jwt.claim.sub','10000000-0000-4000-8000-000000000006',false);
+
+  result := public.activate_two_hour_workspace_trial('roofingco.test');
+  if (result->>'already_active')::boolean then
+    raise exception 'validator fixture unexpectedly had an active trial';
+  end if;
+  if (result->>'expires_at')::timestamptz - (result->>'started_at')::timestamptz <> interval '2 hours' then
+    raise exception 'valid company domain did not receive an exact two-hour trial';
+  end if;
+
+  foreach candidate in array invalid_domains loop
+    i := i + 1;
+    update auth.users
+       set email = 'validator+' || i::text || '@' || candidate
+     where id = '10000000-0000-4000-8000-000000000006';
+    begin
+      perform public.activate_two_hour_workspace_trial(candidate);
+      raise exception 'malformed company domain unexpectedly accepted: %', candidate;
+    exception when invalid_parameter_value then
+      null;
+    end;
+  end loop;
+end $domain_validation$;
 
 -- Existing customer workspaces default to active; new Auth users get pending workspaces.
 insert into public.workspaces(id,name,created_by,trial_status)
