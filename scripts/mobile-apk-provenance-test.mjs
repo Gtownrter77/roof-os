@@ -1,10 +1,35 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
+import { extractSigningCertificateSha256 } from './mobile-apk-signature.mjs'
 
 const read = (path) => readFileSync(path, 'utf8')
 const workflow = read('.github/workflows/mobile-apk.yml')
 const provenance = read('scripts/mobile-apk-provenance.mjs')
 const app = JSON.parse(read('apps/field/app.json'))
+
+const fingerprint = 'ab'.repeat(32)
+const colonFingerprint = fingerprint.match(/.{2}/g).join(':').toUpperCase()
+assert.deepEqual(
+  extractSigningCertificateSha256(`Signer #1 certificate SHA-256 digest: ${colonFingerprint}`),
+  { fingerprint, source: 'signer_label' },
+  'normal apksigner output extracts the labeled certificate fingerprint without warning',
+)
+assert.deepEqual(
+  extractSigningCertificateSha256(`Certificate SHA-256: ${fingerprint}`),
+  { fingerprint, source: 'fallback' },
+  'fallback extracts a single SHA-256 fingerprint from alternate output',
+)
+assert.throws(
+  () => extractSigningCertificateSha256(['Certificate SHA-256: ' + fingerprint, 'Other SHA-256: ' + 'cd'.repeat(32)].join('\\n')),
+  /multiple SHA-256 fingerprints/,
+  'ambiguous signing output is rejected',
+)
+assert.throws(
+  () => extractSigningCertificateSha256('apksigner returned no certificate digest'),
+  /fingerprint is missing/,
+  'missing signing identity is rejected',
+)
+
 const eas = JSON.parse(read('apps/field/eas.json'))
 
 assert.ok(workflow.includes('workflow_dispatch:'), 'manual preview build remains available')
