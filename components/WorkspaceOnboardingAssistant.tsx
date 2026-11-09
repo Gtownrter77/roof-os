@@ -13,6 +13,7 @@ type AssistantResult = {
 
 type Props = {
   profile: OnboardingProfile
+  savedSnapshot: OnboardingProfile
   onApply: (profile: OnboardingProfile) => void
   onEditField: (key: keyof OnboardingProfile) => void
 }
@@ -63,7 +64,7 @@ function parseAssistantResult(raw: string): AssistantResult | null {
   }
 }
 
-export default function WorkspaceOnboardingAssistant({ profile, onApply, onEditField }: Props) {
+export default function WorkspaceOnboardingAssistant({ profile, savedSnapshot, onApply, onEditField }: Props) {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 'welcome',
@@ -92,7 +93,7 @@ export default function WorkspaceOnboardingAssistant({ profile, onApply, onEditF
     let response: string | null = null
     try {
       response = await askBrowserLocalOllama({
-      message: `Current workspace profile draft: ${JSON.stringify(profile)}\nOwner's message: ${message}`,
+      message: `Last saved workspace profile: ${JSON.stringify(savedSnapshot)}\nCurrent editable draft: ${JSON.stringify(profile)}\nOwner's message: ${message}`,
       history: history.slice(0, -1),
       currentPath: '/onboarding/workspace',
       maxTokens: 700,
