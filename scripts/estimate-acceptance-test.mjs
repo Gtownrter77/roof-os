@@ -10,6 +10,7 @@ const page = read('../app/estimate/[id]/page.tsx')
 const assertions = read('../scripts/ci/estimate-acceptance-assertions.sql')
 const runner = read('../scripts/ci/verify-estimate-acceptance-postgres.sh')
 const orderFix = read('../supabase/migrations/065_deposit_ledger_order.sql')
+const concurrencyFix = read('../supabase/migrations/090_serialize_deposit_ledger_writes.sql')
 
 const event = (event_type, amount, occurred_at, extra = {}) => ({ id: `${event_type}-${occurred_at}`, event_type, amount, occurred_at, ...extra })
 
@@ -135,11 +136,17 @@ assert.ok(orderFix.includes('if v_refunded_count > 0'), 'terminal state is deriv
 assert.ok(orderFix.includes('v_requested_count <> 1 or v_received_count <> 0'), 'receipt order is derived from counts')
 assert.ok(!orderFix.includes('order by created_at desc, id desc'), '065 does not depend on random UUID order')
 
-// 13. Runner is local-only and uses a dedicated disposable database.
+// 13. Ledger writes lock the parent acceptance before inspecting prior events.
+assert.ok(concurrencyFix.includes('where id = NEW.acceptance_id'), '090 locks the matching acceptance')
+assert.ok(concurrencyFix.includes('for update'), '090 serializes concurrent ledger writes')
+assert.ok(concurrencyFix.indexOf('for update') < concurrencyFix.indexOf('from public.estimate_deposit_events'), 'the lock is acquired before reading ledger events')
+
+// 14. Runner is local-only and uses a dedicated disposable database.
 assert.ok(runner.includes('test "$PGHOST" = 127.0.0.1'), 'runner refuses non-local host')
 assert.ok(runner.includes('roofos_acceptance_ci'), 'runner uses a dedicated disposable database')
 assert.ok(runner.includes('063_estimate_acceptance_deposit.sql'), 'runner applies migration 063')
 assert.ok(runner.includes('065_deposit_ledger_order.sql'), 'runner applies migration 065')
+assert.ok(runner.includes('090_serialize_deposit_ledger_writes.sql'), 'runner applies migration 090')
 assert.ok(runner.includes('estimate-acceptance-assertions.sql'), 'runner executes the assertions')
 
 console.log('estimate-acceptance-test: PASS (approved-only acceptance, server-owned amounts and times, immutable evidence, append-only deposit state machine, workspace isolation, no signature or payment claim)')
