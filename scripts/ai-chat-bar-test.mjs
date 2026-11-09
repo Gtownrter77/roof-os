@@ -176,6 +176,8 @@ assert.ok(!copilotSource.includes('askOllama'), 'server-side copilot must not tr
 assert.ok(localChatSource.includes('LOCAL_HOSTS'), 'browser chat may connect only to loopback')
 assert.ok(localChatSource.includes("credentials: 'omit'"), 'local Ollama requests must not send app cookies')
 assert.ok(routeSource.includes('processChatCopilot'), 'authenticated API route retains deterministic copilot navigation')
+assert.ok(routeSource.includes('refused: true'), 'server permission refusals are explicitly marked')
+assert.ok(componentSource.includes('data.refused === true ? null : await askBrowserLocalOllama'), 'local model cannot overwrite a server-enforced role refusal')
 
 const savedChatBase = process.env.NEXT_PUBLIC_OLLAMA_CHAT_API_BASE_URL
 const savedChatModel = process.env.NEXT_PUBLIC_OLLAMA_CHAT_MODEL
