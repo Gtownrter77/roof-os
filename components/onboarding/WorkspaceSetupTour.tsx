@@ -112,7 +112,7 @@ export default function WorkspaceSetupTour({ assistantEnabled, onSelectSection }
             <p className="text-sm font-semibold text-violet-100">New here? Take the guided tour.</p>
             <p className="mt-1 text-xs text-slate-400">A short walkthrough of the assistant, profile sections, and save controls.</p>
           </div>
-          <button type="button" onClick={start} className="rounded-lg border border-violet-300/40 px-3 py-2 text-xs font-semibold text-violet-100 hover:bg-violet-300/10">Start tour</button>
+          <button type="button" onClick={start} className="rounded-lg border border-violet-300/40 px-3 py-2 text-xs font-semibold text-violet-100 hover:bg-violet-300/10 focus-visible:outline-2 focus-visible:outline-violet-200">Start tour</button>
         </div>
       </div>
     )
@@ -122,7 +122,7 @@ export default function WorkspaceSetupTour({ assistantEnabled, onSelectSection }
     <section className="mb-6 rounded-xl border border-violet-300/35 bg-violet-950/30 p-4" aria-label="Interactive workspace setup tour" aria-live="polite">
       <div className="flex items-center justify-between gap-3">
         <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-violet-200">Guided tour · Step {index + 1} of {steps.length}</p>
-        <button type="button" onClick={() => setActive(false)} className="rounded-md px-2 py-1 text-xs text-slate-300 hover:bg-white/10">Exit tour</button>
+        <button type="button" onClick={() => setActive(false)} className="rounded-md px-2 py-1 text-xs text-slate-300 hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-violet-200">Exit tour</button>
       </div>
       <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10">
         <div className="h-full rounded-full bg-violet-300 motion-safe:transition-all" style={{ width: `${((index + 1) / steps.length) * 100}%` }} />
@@ -130,8 +130,8 @@ export default function WorkspaceSetupTour({ assistantEnabled, onSelectSection }
       <h2 className="mt-3 text-base font-semibold text-white">{current.title}</h2>
       <p className="mt-1 text-sm leading-relaxed text-slate-300">{current.description}</p>
       <div className="mt-4 flex flex-wrap justify-between gap-2">
-        <button type="button" onClick={() => setIndex((value) => Math.max(0, value - 1))} disabled={index === 0} className="rounded-lg border border-white/15 px-3 py-2 text-xs text-slate-200 disabled:opacity-30">Back</button>
-        <button type="button" onClick={next} className="rounded-lg bg-violet-600 px-3 py-2 text-xs font-semibold text-white hover:bg-violet-500">{index === steps.length - 1 ? 'Finish tour' : 'Next'}</button>
+        <button type="button" onClick={() => setIndex((value) => Math.max(0, value - 1))} disabled={index === 0} className="rounded-lg border border-white/15 px-3 py-2 text-xs text-slate-200 disabled:opacity-30 focus-visible:outline-2 focus-visible:outline-violet-200">Back</button>
+        <button type="button" onClick={next} className="rounded-lg bg-violet-600 px-3 py-2 text-xs font-semibold text-white hover:bg-violet-500 focus-visible:outline-2 focus-visible:outline-violet-200">{index === steps.length - 1 ? 'Finish tour' : 'Next'}</button>
       </div>
     </section>
   )
