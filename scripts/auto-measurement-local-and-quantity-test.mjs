@@ -158,6 +158,10 @@ assert.match(autoMeasurementUi, /does not include an Ollama server on Android by
 assert.match(autoMeasurementUi, /Trace roof manually/)
 assert.doesNotMatch(autoMeasurementUi, /Google Gemini/)
 
+const manualDrawingUi = readFileSync(new URL('../components/ManualDrawingTool.tsx', import.meta.url), 'utf8')
+assert.match(manualDrawingUi, /Tap Start Drawing, then tap each roof corner/)
+assert.match(manualDrawingUi, /click with a mouse/)
+
 const deploymentGuide = readFileSync(new URL('../DEPLOYMENT.md', import.meta.url), 'utf8')
 assert.match(deploymentGuide, /Windows 10\/11 \(PowerShell\)/)
 assert.match(deploymentGuide, /SetEnvironmentVariable\("OLLAMA_ORIGINS"/)
