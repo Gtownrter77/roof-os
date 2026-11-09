@@ -124,7 +124,7 @@ export default function WorkspaceSetupTour({ assistantEnabled, onSelectSection }
         <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-violet-200">Guided tour · Step {index + 1} of {steps.length}</p>
         <button type="button" onClick={() => setActive(false)} className="rounded-md px-2 py-1 text-xs text-slate-300 hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-violet-200">Exit tour</button>
       </div>
-      <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10">
+      <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10" role="progressbar" aria-label="Guided tour progress" aria-valuemin={1} aria-valuemax={steps.length} aria-valuenow={index + 1}>
         <div className="h-full rounded-full bg-violet-300 motion-safe:transition-all" style={{ width: `${((index + 1) / steps.length) * 100}%` }} />
       </div>
       <h2 className="mt-3 text-base font-semibold text-white">{current.title}</h2>
