@@ -199,6 +199,7 @@ export default function OnboardingPage() {
         return (
           <div className="space-y-4">
             <h2 className="text-xl font-bold">Your Role</h2>
+            <p className="text-xs leading-relaxed text-slate-400">This records your preferred role for onboarding context only. It does not grant workspace permissions or change access; an administrator manages those separately.</p>
             <div className="grid grid-cols-2 gap-3">
               <button type="button" onClick={() => setForm({...form, role: 'owner'})} aria-pressed={form.role === 'owner'} className={`p-4 border-2 rounded-lg text-center ${form.role === 'owner' ? 'border-blue-500 bg-cyan-400/10' : 'border-white/10'}`}>
                 <span className="text-2xl block">👔</span>
@@ -243,11 +244,14 @@ export default function OnboardingPage() {
         <HologramMeteorologist step={step} />
         {/* Progress */}
         <div className="flex justify-between mb-6">
-          {[1, 2, 3, 4].map((i) => (
+          {steps.map((_, index) => {
+            const i = index + 1
+            return (
             <div key={i} className="flex-1">
               <div className={`h-1 mx-1 rounded ${i <= step ? 'bg-blue-600' : 'bg-white/10'}`} />
             </div>
-          ))}
+            )
+          })}
         </div>
 
         {/* Content */}
