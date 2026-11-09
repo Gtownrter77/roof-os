@@ -15,6 +15,7 @@ create table if not exists public.workspace_trial_claims (
 );
 
 alter table public.workspace_trial_claims enable row level security;
+revoke all on table public.workspace_trial_claims from public, anon, authenticated;
 
 create or replace function public.activate_two_hour_workspace_trial(p_company_domain text)
 returns jsonb
