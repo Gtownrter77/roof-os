@@ -23,6 +23,61 @@ type Message = {
   action?: { label: string; href: string }
 }
 
+type PageField = {
+  key: string
+  label: string
+  value: string
+  type: string
+  element: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+}
+
+function collectPageFields(): PageField[] {
+  const controls = Array.from(
+    document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>(
+      'input, textarea, select',
+    ),
+  )
+
+  return controls
+    .filter((element) => {
+      if (element.closest('[data-ai-agent]')) return false
+      if (element instanceof HTMLInputElement && ['hidden', 'file', 'checkbox', 'radio', 'submit', 'button'].includes(element.type)) return false
+      if ((element as HTMLInputElement).disabled || element.getAttribute('aria-hidden') === 'true') return false
+      return true
+    })
+    .slice(0, 40)
+    .map((element, index) => {
+      const id = element.id
+      const label = (
+        (id ? document.querySelector(`label[for="${id}"]`)?.textContent : '') ||
+        element.getAttribute('aria-label') ||
+        element.getAttribute('placeholder') ||
+        element.getAttribute('name') ||
+        `Field ${index + 1}`
+      ).replace(/\s+/g, ' ').trim()
+      return {
+        key: id || element.getAttribute('name') || `field-${index}`,
+        label,
+        value: element.value,
+        type: element instanceof HTMLInputElement ? element.type : element.tagName.toLowerCase(),
+        element,
+      }
+    })
+}
+
+function applyFill(field: PageField, value: string) {
+  const element = field.element
+  const prototype = element instanceof HTMLTextAreaElement
+    ? HTMLTextAreaElement.prototype
+    : element instanceof HTMLSelectElement
+      ? HTMLSelectElement.prototype
+      : HTMLInputElement.prototype
+  const setter = Object.getOwnPropertyDescriptor(prototype, 'value')?.set
+  setter?.call(element, value)
+  element.dispatchEvent(new Event('input', { bubbles: true }))
+  element.dispatchEvent(new Event('change', { bubbles: true }))
+}
+
 const QUICK_ACTIONS = [
   { label: 'Track Storms', href: '/weather', icon: CloudLightning },
   { label: 'Review Leads', href: '/leads', icon: Users },
@@ -42,7 +97,7 @@ export default function AiChatBar() {
       id: 'welcome',
       role: 'assistant',
       content:
-        'Welcome to the ROOF/OS Command Center. What would you like to do now? Ask me anything or tap an action below to get started.',
+        'I am on this page with you. Tell me what to fill and I will write the fields. I can also open storms, leads, measurements, estimates, and reports.',
       action: { label: 'Explore Storm Tracker', href: '/weather' },
     },
   ])
@@ -92,6 +147,7 @@ export default function AiChatBar() {
     setIsOpen(true)
     setLoading(true)
 
+    const fields = collectPageFields()
     try {
       const response = await fetch('/api/ai/chat', {
         method: 'POST',
@@ -100,6 +156,7 @@ export default function AiChatBar() {
         body: JSON.stringify({
           message: text,
           currentPath: pathname,
+          fields: fields.map(({ key, label, value, type }) => ({ key, label, value, type })),
           history: messages.slice(-6).map((m) => ({ role: m.role, content: m.content })),
         }),
       })
@@ -109,10 +166,15 @@ export default function AiChatBar() {
       }
 
       const data = await response.json()
+      const fills = Array.isArray(data.fills) ? data.fills : []
+      for (const fill of fills) {
+        const field = fields.find((item) => item.key === fill.key)
+        if (field && typeof fill.value === 'string') applyFill(field, fill.value)
+      }
       const assistantMessage: Message = {
         id: `assistant-${Date.now()}`,
         role: 'assistant',
-        content: data.reply || 'What would you like to do now?',
+        content: data.reply || 'What would you like me to fill on this page?',
         action: data.suggestedAction,
       }
       setMessages((prev) => [...prev, assistantMessage])
@@ -140,7 +202,9 @@ export default function AiChatBar() {
   return (
     <div
       className={`pointer-events-none fixed z-50 flex flex-col items-end gap-2 ${dockClass}`}
-      role="region"
+      data-ai-agent="true"
+      role="complementary"
+      aria-label="Page AI agent"="region"
       aria-label="AI Command Bar"
     >
       {isOpen && (
@@ -281,7 +345,7 @@ export default function AiChatBar() {
             <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
           </span>
           <Bot className="h-4 w-4 text-cyan-300" />
-          <span>AI Copilot</span>
+          <span>AI Agent</span>
           <span className="hidden text-[10px] font-normal text-slate-400 sm:inline">⌘K</span>
         </button>
       )}

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '../../../../lib/supabase/server'
 import { readJson } from '../../../../lib/api-security'
 import { processChatCopilot, type ChatMessage } from '../../../../lib/ai/chat-copilot'
+import { describeFills, fillPageFields, type PageField } from '../../../../lib/ai/page-filler'
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient()
@@ -21,6 +22,7 @@ export async function POST(request: NextRequest) {
     message?: unknown
     history?: unknown
     currentPath?: unknown
+    fields?: unknown
   }
 
   const message = typeof body.message === 'string' ? body.message : ''
@@ -42,6 +44,22 @@ export async function POST(request: NextRequest) {
     }))
     .slice(-8)
 
+  const fields: PageField[] = Array.isArray(body.fields)
+    ? body.fields
+        .filter((item): item is { key: string; label: string; value?: string; type?: string } => {
+          return Boolean(item && typeof item === 'object' && typeof item.key === 'string' && typeof item.label === 'string')
+        })
+        .slice(0, 40)
+        .map((item) => ({
+          key: item.key.slice(0, 80),
+          label: item.label.slice(0, 120),
+          value: typeof item.value === 'string' ? item.value.slice(0, 200) : '',
+          type: typeof item.type === 'string' ? item.type.slice(0, 40) : 'text',
+        }))
+    : []
+
+  const fills = fillPageFields(message, fields)
+
   try {
     const result = await processChatCopilot({
       message,
@@ -51,6 +69,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       ...result,
+      fills,
+      reply: fills.length ? describeFills(fills, fields) : result.reply,
       authenticated: Boolean(user),
     })
   } catch (error) {
