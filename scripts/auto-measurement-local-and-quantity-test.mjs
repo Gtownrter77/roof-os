@@ -39,7 +39,7 @@ const oldBtoa = globalThis.btoa
 try {
   globalThis.window = { setTimeout, clearTimeout }
   globalThis.btoa = globalThis.btoa ?? ((value) => Buffer.from(value, 'binary').toString('base64'))
-  process.env.NEXT_PUBLIC_OLLAMA_VISION_API_BASE_URL = 'http://localhost:20128/v1/'
+  process.env.NEXT_PUBLIC_OLLAMA_VISION_API_BASE_URL = 'http://localhost:11434/v1/'
   process.env.NEXT_PUBLIC_OLLAMA_VISION_MODEL = 'qwen3-vl:test'
 
   let requestUrl
@@ -58,7 +58,7 @@ try {
     arrayBuffer: async () => Uint8Array.from([1, 2, 3, 4]).buffer,
   }
   const result = await localVision.analyzeRoofImageWithLocalOllama(fixture, 1000, 800)
-  assert.equal(requestUrl, 'http://localhost:20128/v1/chat/completions')
+  assert.equal(requestUrl, 'http://localhost:11434/v1/chat/completions')
   assert.equal(requestInit.method, 'POST')
   assert.equal(new Headers(requestInit.headers).get('content-type'), 'application/json')
   assert.equal(new Headers(requestInit.headers).get('authorization'), null)
@@ -81,7 +81,7 @@ try {
     /Local-only vision accepts only a loopback URL/,
   )
 
-  process.env.NEXT_PUBLIC_OLLAMA_VISION_API_BASE_URL = 'http://localhost:20128/v1'
+  process.env.NEXT_PUBLIC_OLLAMA_VISION_API_BASE_URL = 'http://localhost:11434/v1'
   globalThis.fetch = async () => { throw new TypeError('Failed to fetch') }
   await assert.rejects(
     localVision.analyzeRoofImageWithLocalOllama(fixture, 1000, 800),

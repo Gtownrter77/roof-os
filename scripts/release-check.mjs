@@ -121,7 +121,7 @@ for (const route of routes) {
     && localVisionSource.includes('size > MAX_RESPONSE_BYTES')
   const browserLocalVisionSource = readFileSync(join(root, 'lib', 'ai', 'local-vision-browser.ts'), 'utf8')
   const boundedBrowserLocalVisionRequest = browserLocalVisionSource.includes("const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]'])")
-    && browserLocalVisionSource.includes('DEFAULT_API_BASE_URL = \'http://localhost:20128/v1\'')
+    && browserLocalVisionSource.includes('DEFAULT_API_BASE_URL = \'http://localhost:11434/v1\'')
     && browserLocalVisionSource.includes('MAX_IMAGE_BYTES')
     && browserLocalVisionSource.includes('MAX_RESPONSE_BYTES')
     && browserLocalVisionSource.includes('new AbortController()')

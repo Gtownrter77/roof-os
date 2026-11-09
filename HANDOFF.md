@@ -1217,3 +1217,19 @@ Merge-resolution commit `4c1d7e2c54d07849632bb081dc71fc349d298d7b` is pushed to 
 ### PR #402 final verified check result — 2026-11-08
 
 On PR head `84bb1d09f214790b23ed34a2a61b5155879736d9` (remote ref independently matched), GitHub reports base `3bbd0d9b351505a16dcd96190aba932be6cf725d`, `mergeable: true`, and `mergeable_state: clean`. The completed run has **13 successful, 1 skipped, 0 failing, and 0 pending** checks. The only skipped entry is `refresh-field-lock (pull_request)`; its push counterpart succeeded. Vercel's PR preview deployment completed; this is not production deployment. PR #402 remains draft and unmerged by design; no production deployment or production-data operation was performed.
+
+
+## 2026-11-09 — Ollama endpoint correction
+
+The default OpenAI-compatible Ollama API port is **11434**, not 20128. Updated active local-vision defaults and regression assertions to `http://localhost:11434/v1`. Historical notes above that mention 20128 describe the previous configuration and are superseded by this checkpoint.
+
+Runtime boundary: loopback means the host making the request. A locally running Next.js server can reach Ollama on the same machine at 127.0.0.1:11434. A Vercel function's localhost is the Vercel runtime, not the user's computer; changing the port does not make a hosted function reach desktop Ollama. Do not set a workstation loopback address as a Vercel production endpoint. Browser-local inference also requires the browser helper to be explicitly wired into the UI and Ollama CORS/private-network permissions to allow the exact app origin; the existing helper is not currently imported by the /measure page. Live model reachability remains unverified because no Ollama host is available from this session.
+
+
+## 2026-11-09 — Browser-local Ollama measurement integration (PR #422)
+
+- PR: [#422](https://github.com/Gtownrter77/roof-os/pull/422), branch `fix/ollama-default-endpoint-11434`, head `30700f33cb1a3ac4236b9c9384cb20dbf64a13de` at the time this note was prepared; based on main `3f0517aac9aca2444e77436d53316562a5716f39`.
+- The active `/measure` screen now imports and calls `analyzeRoofImageWithLocalOllama` from the browser, using `http://localhost:11434/v1` and `qwen3-vl:8b`. The photo is first saved to private inspection storage; only the returned geometry suggestion is sent to the authenticated server validation route. The `/measure` screen no longer calls the legacy Gemini `/api/measurements/aerial/ai-suggest` route.
+- This supersedes the earlier Nov 8 checkpoint statement that the browser helper was not yet wired into `/measure`; that statement accurately describes the Nov 8 branch state only.
+- Automated checks on the current PR head passed: web, preview-build, mobile, field-security, and migration-safety. The refresh-field-lock pull-request check is skipped; its push counterpart passed. Kilo's PR comment reports no issues, but its formal GitHub check currently reports failure; do not merge until that check is successfully rerun or resolved by the review integration.
+- Vercel's deployment bot reported the free daily deployment limit. This is an external preview-deployment limitation, not evidence of a production deployment. Live browser-to-Ollama CORS/private-network reachability and physical roof-image accuracy remain unverified. No hosted inference fallback is used; human geometry review and calibration remain required.

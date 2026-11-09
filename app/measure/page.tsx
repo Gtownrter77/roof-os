@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { smartBack } from '../../lib/smart-back'
 import { createClient } from '../../lib/supabase/client'
 import type { GeometrySuggestion } from '../../lib/ai/geometry-contract'
+import { analyzeRoofImageWithLocalOllama } from '../../lib/ai/local-vision-browser'
 import { calculateCalibratedRoofDraft } from '../../lib/measurements/calibrated-roof-draft'
 import { purchasableRoofing, roofAreaRangeError } from '../../lib/measurements/purchasable-roofing'
 import RoofSlopeCard from '../../components/RoofSlopeCard'
@@ -147,7 +148,7 @@ export default function MeasurePage() {
     }
     setWorking(true)
     setError('')
-    setStatus('Saving the roof photo to private inspection storage before AI analysis…')
+    setStatus('Saving the roof photo privately, then connecting to Ollama on this device…')
     try {
 
       const { data: { user } } = await supabase.auth.getUser()
@@ -181,14 +182,8 @@ export default function MeasurePage() {
 
       setInspectionId(inspection.id)
       setPhotoId(objectId)
-      setStatus('Sending the private roof photo to Google Gemini for roof-shape suggestions…')
-      const aiResponse = await fetch('/api/measurements/aerial/ai-suggest', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ photoId: objectId, inspectionId: inspection.id, imageWidth: imageSize.width, imageHeight: imageSize.height }),
-      })
-      const aiPayload = await aiResponse.json().catch(() => null)
-      if (!aiResponse.ok || !aiPayload?.suggestion) throw new Error(aiPayload?.error || 'Google Gemini could not suggest roof geometry.')
+      setStatus('Sending the selected image from this browser to local Ollama at localhost:11434…')
+      const aiPayload = await analyzeRoofImageWithLocalOllama(file, imageSize.width, imageSize.height, `inspection-photo:${objectId}`)
       const response = await fetch('/api/measurements/aerial', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
@@ -209,7 +204,7 @@ export default function MeasurePage() {
       setSavedMeasurementId('')
       setStatus(payload.cached
         ? 'Existing suggestions loaded. Confirmed geometry was not overwritten.'
-        : `Google ${aiPayload.model} suggestions saved. Review every shape before calibration and confirmation.`)
+        : `Local Ollama (${aiPayload.model}) suggestions saved. Review every shape before calibration and confirmation.`)
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Roof AI analysis failed.'
       setError(message)
@@ -423,7 +418,7 @@ export default function MeasurePage() {
               setStatus(mapCenter ? 'Manual map tracing enabled. The mapped footprint is a ground reference, not roof surface area.' : 'Manual image tracing enabled. Enter a known scale reference before treating traced geometry as dimensions.')
             }}
           />
-          {file && <p className="mt-2 text-xs text-slate-400">{file.name} · {imageSize.width}×{imageSize.height}px · private storage upload happens before Gemini analysis.</p>}
+          {file && <p className="mt-2 text-xs text-slate-400">{file.name} · {imageSize.width}×{imageSize.height}px · saved privately before local Ollama analysis. Requires Ollama model qwen3-vl:8b and this site's origin allowed in OLLAMA_ORIGINS.</p>}
           {error && <p className="mt-3 rounded-lg border border-red-400/30 bg-red-400/10 p-3 text-sm text-red-300" role="alert">{error}</p>}
           {status && <p className="mt-3 rounded-lg border border-emerald-400/30 bg-emerald-400/10 p-3 text-sm text-emerald-300" role="status">{status}</p>}
         </section>

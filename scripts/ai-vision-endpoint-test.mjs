@@ -54,13 +54,13 @@ for (const [name, route] of [['photo estimate', photoRoute], ['siding analysis',
 assert.ok(!aerialRoute.includes('analyzePhotosWithOllama('), 'aerial analysis does not resolve localhost on the hosted server')
 assert.ok(aerialRoute.includes('validateGeometrySuggestion'), 'aerial route revalidates browser-supplied geometry before persistence')
 assert.ok(browserVision.includes('NEXT_PUBLIC_OLLAMA_VISION_API_BASE_URL'))
-assert.ok(browserVision.includes("'http://localhost:20128/v1'"))
+assert.ok(browserVision.includes("'http://localhost:11434/v1'"))
 assert.ok(browserVision.includes('LOCAL_HOSTS'))
 assert.ok(browserVision.includes('/chat/completions'))
 assert.ok(browserVision.includes('no hosted AI fallback is used'))
 assert.ok(sidingRoute.includes('validateSidingVisionObservation'))
 assert.ok(sidingRoute.includes('Manual measurement remains available'))
-assert.ok(helper.includes("'http://localhost:20128/v1'"), 'the user-specified local API base is the default')
+assert.ok(helper.includes("'http://localhost:11434/v1'"), 'the user-specified local API base is the default')
 assert.ok(helper.includes('/chat/completions'), 'the configured /v1 base uses the OpenAI-compatible chat-completions path')
 assert.ok(helper.includes('response_format: { type: \'json_object\' }'))
 assert.ok(helper.includes('MAX_RESPONSE_BYTES'))
@@ -70,7 +70,7 @@ const previousFetch = globalThis.fetch
 const previousBase = process.env.OLLAMA_VISION_API_BASE_URL
 const previousModel = process.env.OLLAMA_VISION_MODEL
 try {
-  process.env.OLLAMA_VISION_API_BASE_URL = 'http://localhost:20128/v1/'
+  process.env.OLLAMA_VISION_API_BASE_URL = 'http://localhost:11434/v1/'
   process.env.OLLAMA_VISION_MODEL = 'llava:test'
   let requestUrl
   let requestInit
@@ -83,14 +83,14 @@ try {
     }), { status: 200, headers: { 'content-type': 'application/json' } })
   }
 
-  assert.equal(getOllamaVisionApiBaseUrl(), 'http://localhost:20128/v1')
+  assert.equal(getOllamaVisionApiBaseUrl(), 'http://localhost:11434/v1')
   assert.equal(getOllamaVisionModel(), 'llava:test')
   const result = await analyzePhotosWithOllama({
     prompt: 'Return a JSON object.',
     photos: [{ mimeType: 'image/png', bytes: Buffer.from('fixture-image') }],
     timeoutMs: 1_000,
   })
-  assert.equal(requestUrl, 'http://localhost:20128/v1/chat/completions')
+  assert.equal(requestUrl, 'http://localhost:11434/v1/chat/completions')
   assert.equal(requestInit.method, 'POST')
   assert.equal(new Headers(requestInit.headers).get('content-type'), 'application/json')
   assert.equal(new Headers(requestInit.headers).get('authorization'), null, 'no hosted-provider credential is sent')
@@ -124,8 +124,9 @@ assert.ok(aerialGeminiRoute.includes('createSignedUrl(photo.object_path, 60)'))
 assert.ok(aerialGeminiRoute.includes('signedUrl.origin !== storageOrigin'))
 assert.ok(aerialGeminiRoute.includes('validateGeometrySuggestion(candidate)'))
 assert.ok(aerialGeminiRoute.includes('rejectUnsafeClaims(suggestion)'))
-assert.ok(!measurePage.includes('local-vision-browser'))
-assert.ok(measurePage.includes('/api/measurements/aerial/ai-suggest'))
+assert.ok(measurePage.includes('analyzeRoofImageWithLocalOllama'))
+assert.ok(measurePage.includes('/api/measurements/aerial'))
+assert.ok(!measurePage.includes('/api/measurements/aerial/ai-suggest'))
 assert.ok(measurePage.includes('file.size > 12 * 1024 * 1024'))
 
 const previousGeminiKey = process.env.GEMINI_API_KEY
@@ -176,4 +177,4 @@ try {
   else process.env.GEMINI_PAID_SERVICE_CONFIRMED = previousPaidConfirmation
 }
 
-console.log('ai-vision-endpoint-test: PASS (local photo/siding vision plus authenticated server-side Gemini aerial geometry)')
+console.log('ai-vision-endpoint-test: PASS (local photo/siding vision, browser-local /measure Ollama integration, and legacy authenticated Gemini route safeguards)')
