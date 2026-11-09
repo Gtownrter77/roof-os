@@ -201,6 +201,7 @@ assert.match(accountBasicsPage, /Saved account details could not be restored/)
 assert.match(accountBasicsPage, /Check your connection and try again/)
 assert.match(hologram, /speechSynthesis/)
 assert.match(hologram, /Voice is optional and starts only when you press the button/)
+assert.match(hologram, /aria-expanded=\{visible\}/)
 assert.match(hologram, /not displaying a live forecast/)
 assert.match(hologram, /Your account basics are saved\. Next, we’ll configure your workspace profile/)
 
