@@ -145,7 +145,6 @@ export default function MeasurePage() {
     setError('')
     setStatus('Saving the roof photo to private inspection storage before AI analysis…')
     try {
-      setStatus('Local geometry suggestion validated. Saving the actual image to private inspection storage…')
 
       const { data: { user } } = await supabase.auth.getUser()
       const { data: workspaceId } = await supabase.rpc('current_workspace_id')
