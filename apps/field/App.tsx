@@ -978,7 +978,7 @@ export default function App() {
 
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>AI agent</Text>
-          <Text style={styles.helper}>Same agent as the desktop. Tell it the address, technician, notes, or squares and it fills this inspection.</Text>
+          <Text style={styles.helper}>Same agent as the desktop. Tell it the address, technician, notes, or squares. This button is the approval. YOLO MODE in Owner settings skips the stop and lets the agent finish the process.</Text>
           <TextInput
             value={agentInstruction}
             onChangeText={setAgentInstruction}

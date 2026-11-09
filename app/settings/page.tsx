@@ -45,6 +45,7 @@ type Settings = {
   require_photo_completeness_report_gate: boolean
   require_technician_signature_signoff: boolean
   enable_2021_irc_statutory_code_suggestions: boolean
+  yolo_mode: boolean
 }
 
 type TaxRates = { state: number; county: number; city: number; specialDistrict: number }
@@ -72,6 +73,7 @@ const initialSettings: Settings = {
   require_photo_completeness_report_gate: true,
   require_technician_signature_signoff: true,
   enable_2021_irc_statutory_code_suggestions: true,
+  yolo_mode: false,
 }
 
 const initialTax: TaxRates = { state: 0, county: 0, city: 0, specialDistrict: 0 }
@@ -176,6 +178,20 @@ export default function SettingsPage() {
       </header>
 
       <main className="p-4 max-w-2xl mx-auto space-y-4">
+        {/* Owner controls */}
+        <section className="glass rounded-xl p-4 border-l-4 border-amber-400 space-y-3">
+          <h2 className="font-bold text-sm text-white flex items-center">
+            <span className="text-lg mr-1.5">⚡</span> Owner · YOLO MODE
+          </h2>
+          <ToggleRow
+            label="YOLO MODE"
+            desc="Off: the AI agent runs the process and waits for your approval at each step. On: the agent finishes the process without stopping."
+            checked={settings.yolo_mode}
+            onToggle={() => toggleSetting('yolo_mode')}
+            flag="yolo_mode"
+          />
+        </section>
+
         {/* AI & Automation Toggles */}
         <section className="glass rounded-xl p-4 border-l-4 border-indigo-600 space-y-3">
           <h2 className="font-bold text-sm text-white flex items-center">

@@ -92,6 +92,7 @@ export default function AiChatBar() {
   const [input, setInput] = useState('')
   const [isOpen, setIsOpen] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [pendingFills, setPendingFills] = useState<Array<{ key: string; value: string; label: string }>>([])
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 'welcome',
@@ -167,9 +168,21 @@ export default function AiChatBar() {
 
       const data = await response.json()
       const fills = Array.isArray(data.fills) ? data.fills : []
-      for (const fill of fills) {
-        const field = fields.find((item) => item.key === fill.key)
-        if (field && typeof fill.value === 'string') applyFill(field, fill.value)
+      const labeled = fills
+        .filter((fill: { key?: string; value?: string }) => typeof fill.key === 'string' && typeof fill.value === 'string')
+        .map((fill: { key: string; value: string }) => ({
+          key: fill.key,
+          value: fill.value,
+          label: fields.find((field) => field.key === fill.key)?.label || fill.key,
+        }))
+      if (data.yoloMode) {
+        for (const fill of labeled) {
+          const field = fields.find((item) => item.key === fill.key)
+          if (field) applyFill(field, fill.value)
+        }
+        setPendingFills([])
+      } else if (labeled.length) {
+        setPendingFills(labeled)
       }
       const assistantMessage: Message = {
         id: `assistant-${Date.now()}`,
@@ -309,6 +322,39 @@ export default function AiChatBar() {
                 </button>
               ))}
             </div>
+            {pendingFills.length > 0 && (
+              <div className="mb-2 rounded-xl border border-amber-400/40 bg-amber-500/10 p-2 text-xs text-amber-100">
+                <p className="font-bold">Approval required</p>
+                <p className="mt-1">{pendingFills.map((fill) => `${fill.label}: ${fill.value}`).join(' · ')}</p>
+                <div className="mt-2 flex gap-2">
+                  <button
+                    type="button"
+                    className="rounded-lg bg-emerald-600 px-3 py-1 font-bold text-white"
+                    onClick={() => {
+                      const fields = collectPageFields()
+                      for (const fill of pendingFills) {
+                        const field = fields.find((item) => item.key === fill.key)
+                        if (field) applyFill(field, fill.value)
+                      }
+                      setPendingFills([])
+                      setMessages((prev) => [...prev, { id: `approved-${Date.now()}`, role: 'assistant', content: 'Approved. Fields applied.' }])
+                    }}
+                  >
+                    Approve
+                  </button>
+                  <button
+                    type="button"
+                    className="rounded-lg border border-white/20 px-3 py-1"
+                    onClick={() => {
+                      setPendingFills([])
+                      setMessages((prev) => [...prev, { id: `denied-${Date.now()}`, role: 'assistant', content: 'Denied. Nothing was changed.' }])
+                    }}
+                  >
+                    Deny
+                  </button>
+                </div>
+              </div>
+            )}
             <form onSubmit={onSubmit} className="flex items-center gap-2">
               <input
                 ref={inputRef}

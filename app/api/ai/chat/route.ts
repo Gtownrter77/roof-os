@@ -3,6 +3,7 @@ import { createClient } from '../../../../lib/supabase/server'
 import { readJson } from '../../../../lib/api-security'
 import { processChatCopilot, type ChatMessage } from '../../../../lib/ai/chat-copilot'
 import { describeFills, fillPageFields, type PageField } from '../../../../lib/ai/page-filler'
+import { readWorkspaceSettings } from '../../../../lib/workspace-settings'
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient()
@@ -59,6 +60,13 @@ export async function POST(request: NextRequest) {
     : []
 
   const fills = fillPageFields(message, fields)
+  const { data: workspaceId } = await supabase.rpc('current_workspace_id')
+  let yoloMode = false
+  if (workspaceId) {
+    const { data: settingsRow } = await supabase.from('workspace_settings').select('yolo_mode').eq('workspace_id', workspaceId).maybeSingle()
+    yoloMode = readWorkspaceSettings(settingsRow).yolo_mode === true
+  }
+  const needsApproval = fills.length > 0 && !yoloMode
 
   try {
     const result = await processChatCopilot({
@@ -70,7 +78,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       ...result,
       fills,
-      reply: fills.length ? describeFills(fills, fields) : result.reply,
+      yoloMode,
+      needsApproval,
+      reply: fills.length
+        ? yoloMode
+          ? `${describeFills(fills, fields)} YOLO MODE is on, so this step was applied.`
+          : `${describeFills(fills, fields)} Waiting for your approval.`
+        : result.reply,
       authenticated: Boolean(user),
     })
   } catch (error) {

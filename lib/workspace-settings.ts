@@ -18,6 +18,7 @@ export const WORKSPACE_FEATURE_FLAGS = {
   require_photo_completeness_report_gate: true,
   require_technician_signature_signoff: true,
   enable_2021_irc_statutory_code_suggestions: true,
+  yolo_mode: false,
 } as const
 
 export type WorkspaceFeatureFlag = keyof typeof WORKSPACE_FEATURE_FLAGS
@@ -139,6 +140,11 @@ export const FEATURE_FLAG_ENFORCEMENT: Record<WorkspaceFeatureFlag, FeatureFlagE
     enforced: true,
     surfaces: ['app/api/building-codes/route.ts'],
     note: 'Adds the drip edge and ice barrier statutory notes to the building code lookup.',
+  },
+  yolo_mode: {
+    enforced: true,
+    surfaces: ['app/api/ai/chat/route.ts', 'components/AiChatBar.tsx', 'apps/field/App.tsx'],
+    note: 'Owner switch. Off requires human approval before the AI agent applies a step. On lets the agent run the process start to finish.',
   },
 }
 
