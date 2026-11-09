@@ -45,6 +45,15 @@ export default function OnboardingPage() {
         const { data: { user } } = await supabase.auth.getUser()
         if (!active || !user) return
         const metadata = user.user_metadata ?? {}
+        const metadataCompanyName = typeof metadata.company_name === 'string' ? metadata.company_name : ''
+        if (metadataCompanyName) setForm((current) => ({ ...current, companyName: metadataCompanyName }))
+        const { data: workspaceId, error: workspaceIdError } = await supabase.rpc('current_workspace_id')
+        if (workspaceIdError) throw workspaceIdError
+        if (workspaceId) {
+          const { data: workspace, error: workspaceError } = await supabase.from('workspaces').select('name').eq('id', workspaceId).maybeSingle()
+          if (workspaceError) throw workspaceError
+          if (workspace?.name) setForm((current) => ({ ...current, companyName: workspace.name }))
+        }
         const allowedStates = ['GA', 'AL', 'SC', 'NC', 'FL', 'TN']
         const allowedRoles = ['owner', 'manager', 'inspector', 'sales']
         setForm((current) => ({
@@ -105,7 +114,6 @@ export default function OnboardingPage() {
       const supabase = createClient()
       const { error: updateError } = await supabase.auth.updateUser({
         data: {
-          company_name: form.companyName.trim(),
           onboarding_contact_email: form.email.trim(),
           onboarding_phone: form.phone.trim(),
           onboarding_state: form.state,
@@ -168,16 +176,17 @@ export default function OnboardingPage() {
             <h2 className="text-xl font-bold">Company Details</h2>
             <div>
               <label htmlFor="onboarding-company-name" className="block text-sm font-medium text-slate-200 mb-1">Company Name *</label>
-              <input 
+              <input
                 id="onboarding-company-name"
                 type="text"
                 autoComplete="organization"
-                required
+                readOnly
                 value={form.companyName}
-                onChange={(e) => setForm({...form, companyName: e.target.value})}
                 className="ops-input"
-                placeholder="Your Roofing Company"
+                placeholder="Loading workspace name…"
+                aria-describedby="onboarding-company-name-help"
               />
+              <p id="onboarding-company-name-help" className="mt-1 text-xs text-slate-400">This name comes from the active workspace record. Onboarding will not overwrite the workspace name with a separate account-metadata copy.</p>
             </div>
             <div>
               <label htmlFor="onboarding-company-phone" className="block text-sm font-medium text-slate-200 mb-1">Phone</label>
