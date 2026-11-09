@@ -56,6 +56,21 @@ alter table public.workspace_onboarding_profiles
     'businessHours', 'primaryGoal'
   ]::text[] = '{}'::jsonb),
 
+  add constraint workspace_onboarding_profiles_company_type_check
+  check (not (profile ? 'companyType') or coalesce(profile->>'companyType' in ('residential','commercial','both','unsure'), false)),
+
+  add constraint workspace_onboarding_profiles_crew_count_check
+  check (not (profile ? 'crewCountBand') or coalesce(profile->>'crewCountBand' in ('solo','2-5','6-10','11-25','26+','unsure'), false)),
+
+  add constraint workspace_onboarding_profiles_inspection_style_check
+  check (not (profile ? 'inspectionStyle') or coalesce(profile->>'inspectionStyle' in ('manual','photo_first','drone_assisted','mixed','unsure'), false)),
+
+  add constraint workspace_onboarding_profiles_estimate_workflow_check
+  check (not (profile ? 'estimateWorkflow') or coalesce(profile->>'estimateWorkflow' in ('owner_priced','estimator_priced','external','unsure'), false)),
+
+  add constraint workspace_onboarding_profiles_production_workflow_check
+  check (not (profile ? 'productionWorkflow') or coalesce(profile->>'productionWorkflow' in ('in_house','subcontracted','mixed','unsure'), false)),
+
   add constraint workspace_onboarding_profiles_years_in_business_check
   check (not (profile ? 'yearsInBusinessBand') or coalesce(profile->>'yearsInBusinessBand' in ('0-1','2-5','6-10','11-20','20+','unsure'), false)),
 
