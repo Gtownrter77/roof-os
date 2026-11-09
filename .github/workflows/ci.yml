@@ -302,9 +302,11 @@ jobs:
           grep -q "public.is_workspace_admin(workspace_id)" supabase/migrations/054_mobile_ai_observations.sql
           test -f supabase/migrations/085_workspace_trial_expiry.sql
           grep -q "trial_expires_at" supabase/migrations/085_workspace_trial_expiry.sql
+          grep -q "trial_status <> 'pending'" supabase/migrations/085_workspace_trial_expiry.sql
           test -f supabase/migrations/086_two_hour_trial_activation.sql
           grep -q "interval '2 hours'" supabase/migrations/086_two_hour_trial_activation.sql
           grep -q "email_confirmed_at" supabase/migrations/086_two_hour_trial_activation.sql
+          grep -q "handle_new_user_workspace" supabase/migrations/086_two_hour_trial_activation.sql
           test -f supabase/migrations/053_agent_action_ledger.sql
           grep -q "is_estimate_admin" supabase/migrations/059_estimate_approval_admin_guard.sql
           grep -q "An approved estimate is immutable" supabase/migrations/059_estimate_approval_admin_guard.sql
