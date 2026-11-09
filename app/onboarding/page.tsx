@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '../../lib/supabase/client'
+import HologramMeteorologist from '../../components/onboarding/HologramMeteorologist'
 
 export default function OnboardingPage() {
   const router = useRouter()
@@ -202,6 +203,7 @@ export default function OnboardingPage() {
 
   return (
     <div className="ops-bg flex min-h-screen items-center justify-center p-4">
+      <div className="w-full max-w-4xl grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(300px,0.85fr)] items-start">
       <div className="glass rounded-2xl max-w-md w-full p-6">
         {/* Progress */}
         <div className="flex justify-between mb-6">
@@ -234,6 +236,8 @@ export default function OnboardingPage() {
             {saving ? 'Saving…' : step === 4 ? '🚀 Get Started' : 'Next →'}
           </button>
         </div>
+      </div>
+      <HologramMeteorologist step={step} />
       </div>
     </div>
   )
