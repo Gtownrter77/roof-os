@@ -153,7 +153,9 @@ jobs:
       - name: Verify generated Gradle wrapper network timeout
         run: |
           npx expo prebuild --platform android --no-install
-          grep -Eq '^networkTimeout=120000        run: |
+          grep -Fq 'networkTimeout=120000' android/gradle/wrapper/gradle-wrapper.properties
+      - name: Verify field app runtime contracts
+        run: |
           cd ../..
           node scripts/mobile-auth-test.mjs
           node scripts/mobile-offline-sync-test.mjs
