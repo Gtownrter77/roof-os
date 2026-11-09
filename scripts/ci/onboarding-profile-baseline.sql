@@ -1,9 +1,9 @@
 -- Synthetic minimum Supabase-compatible schema for migration 092.
 -- Executed only in the disposable GitHub Actions PostgreSQL database.
-do $ begin
+do $role$ begin
   create role authenticated nologin;
 exception when duplicate_object then null;
-end $;
+end $role$;
 create schema auth;
 create table auth.users (id uuid primary key);
 create or replace function auth.uid()
