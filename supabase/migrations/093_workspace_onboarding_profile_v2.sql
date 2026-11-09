@@ -180,6 +180,118 @@ alter table public.workspace_onboarding_profiles
     )
   );
 
+-- Append-only audit metadata for owner-confirmed profile saves. Store changed field names,
+-- provenance, confidence, and explicit unknowns; never persist chat transcripts or values here.
+create table if not exists public.workspace_onboarding_profile_events (
+  id uuid primary key default gen_random_uuid(),
+  workspace_id uuid not null references public.workspaces(id) on delete cascade,
+  actor_id uuid references auth.users(id) on delete set null,
+  event_type text not null check (event_type in ('draft_saved', 'completed', 'drafted', 'updated')),
+  source text not null check (source = 'owner_confirmed_onboarding_form'),
+  confidence text not null check (confidence = 'owner_confirmed'),
+  changed_fields text[] not null default '{}'::text[],
+  unknown_fields text[] not null default '{}'::text[],
+  created_at timestamptz not null default now()
+);
+
+alter table public.workspace_onboarding_profile_events enable row level security;
+
+drop policy if exists workspace_onboarding_profile_events_select on public.workspace_onboarding_profile_events;
+drop policy if exists workspace_onboarding_profile_events_insert on public.workspace_onboarding_profile_events;
+
+create policy workspace_onboarding_profile_events_select
+  on public.workspace_onboarding_profile_events for select
+  to authenticated
+  using (public.is_workspace_admin(workspace_id));
+
+create policy workspace_onboarding_profile_events_insert
+  on public.workspace_onboarding_profile_events for insert
+  to authenticated
+  with check (
+    public.is_workspace_admin(workspace_id)
+    and actor_id = auth.uid()
+  );
+
+grant select, insert on public.workspace_onboarding_profile_events to authenticated;
+revoke update, delete on public.workspace_onboarding_profile_events from authenticated;
+
+create or replace function public.record_workspace_onboarding_profile_event()
+returns trigger
+language plpgsql
+security invoker
+set search_path = public
+as $function$
+declare
+  v_changed_fields text[] := array[]::text[];
+  v_unknown_fields text[] := array[]::text[];
+  v_actor uuid;
+  v_event_type text;
+begin
+  if tg_op = 'INSERT' then
+    select coalesce(array_agg(item.key order by item.key), array[]::text[])
+      into v_changed_fields
+    from jsonb_object_keys(coalesce(new.profile, '{}'::jsonb)) as item(key);
+  else
+    select coalesce(array_agg(fields.key order by fields.key), array[]::text[])
+      into v_changed_fields
+    from (
+      select key from jsonb_object_keys(coalesce(new.profile, '{}'::jsonb)) as new_fields(key)
+      union
+      select key from jsonb_object_keys(coalesce(old.profile, '{}'::jsonb)) as old_fields(key)
+    ) as fields
+    where old.profile -> fields.key is distinct from new.profile -> fields.key;
+
+    if old.status is distinct from new.status then
+      v_changed_fields := array_append(v_changed_fields, 'status');
+    end if;
+  end if;
+
+  select coalesce(array_agg(field.key order by field.key), array[]::text[])
+    into v_unknown_fields
+  from jsonb_each(coalesce(new.profile, '{}'::jsonb)) as field(key, value)
+  where field.value = '"unsure"'::jsonb
+     or (jsonb_typeof(field.value) = 'array' and field.value @> '["unsure"]'::jsonb);
+
+  if tg_op = 'INSERT' then
+    v_event_type := case when new.status = 'completed' then 'completed' else 'draft_saved' end;
+  elsif old.status is distinct from new.status and new.status = 'completed' then
+    v_event_type := 'completed';
+  elsif old.status is distinct from new.status and new.status = 'draft' then
+    v_event_type := 'drafted';
+  else
+    v_event_type := 'updated';
+  end if;
+
+  v_actor := coalesce(auth.uid(), new.updated_by);
+  if v_actor is null then
+    raise exception 'Workspace onboarding profile audit actor is required';
+  end if;
+
+  if cardinality(v_changed_fields) > 0 then
+    insert into public.workspace_onboarding_profile_events (
+      workspace_id, actor_id, event_type, source, confidence, changed_fields, unknown_fields
+    ) values (
+      new.workspace_id, v_actor, v_event_type,
+      'owner_confirmed_onboarding_form', 'owner_confirmed',
+      v_changed_fields, v_unknown_fields
+    );
+  end if;
+
+  return new;
+end;
+$function$;
+
+revoke all on function public.record_workspace_onboarding_profile_event() from public, anon;
+grant execute on function public.record_workspace_onboarding_profile_event() to authenticated;
+
+drop trigger if exists workspace_onboarding_profile_audit on public.workspace_onboarding_profiles;
+create trigger workspace_onboarding_profile_audit
+  after insert or update on public.workspace_onboarding_profiles
+  for each row execute function public.record_workspace_onboarding_profile_event();
+
+comment on table public.workspace_onboarding_profile_events is
+  'Append-only audit metadata for owner-confirmed onboarding profile saves. Stores field names, source, confidence, and unknowns, not chat transcripts or field values.';
+
 comment on column public.workspace_onboarding_profiles.schema_version is
   'Version 2 adds reviewed team-role, evidence, approval, scheduling, material, permit, quality, closeout, warranty, and communication preferences.';
 
