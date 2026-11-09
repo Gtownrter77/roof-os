@@ -16,6 +16,8 @@ type Props = {
   savedSnapshot: OnboardingProfile
   onApply: (profile: OnboardingProfile) => void
   onEditField: (key: keyof OnboardingProfile) => void
+  busy: boolean
+  onBusyChange: (busy: boolean) => void
 }
 
 const SYSTEM_PROMPT = `You are the ROOF/OS onboarding guide for roofing businesses.
@@ -64,7 +66,7 @@ function parseAssistantResult(raw: string): AssistantResult | null {
   }
 }
 
-export default function WorkspaceOnboardingAssistant({ profile, savedSnapshot, onApply, onEditField }: Props) {
+export default function WorkspaceOnboardingAssistant({ profile, savedSnapshot, onApply, onEditField, busy, onBusyChange }: Props) {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 'welcome',
@@ -80,7 +82,7 @@ export default function WorkspaceOnboardingAssistant({ profile, savedSnapshot, o
   async function send(event: FormEvent) {
     event.preventDefault()
     const message = draft.trim()
-    if (!message || loading) return
+    if (!message || loading || busy) return
 
     const nextMessages = [...messages, { id: `user-${Date.now()}`, role: 'user' as const, content: message }]
     setMessages(nextMessages)
@@ -88,51 +90,55 @@ export default function WorkspaceOnboardingAssistant({ profile, savedSnapshot, o
     setPendingProfile(null)
     setNotice('')
     setLoading(true)
+    onBusyChange(true)
 
     const history = nextMessages.slice(-6).map(({ role, content }) => ({ role, content }))
-    let response: string | null = null
     try {
-      response = await askBrowserLocalOllama({
-      message: `Last saved workspace profile: ${JSON.stringify(savedSnapshot)}\nCurrent editable draft: ${JSON.stringify(profile)}\nOwner's message: ${message}`,
-      history: history.slice(0, -1),
-      currentPath: '/onboarding/workspace',
-      maxTokens: 700,
-      responseFormat: 'json_object',
-      systemPrompt: SYSTEM_PROMPT,
+      const response = await askBrowserLocalOllama({
+        message: `Last saved workspace profile: ${JSON.stringify(savedSnapshot)}\nCurrent editable draft: ${JSON.stringify(profile)}\nOwner's message: ${message}`,
+        history: history.slice(0, -1),
+        currentPath: '/onboarding/workspace',
+        maxTokens: 700,
+        responseFormat: 'json_object',
+        systemPrompt: SYSTEM_PROMPT,
       })
+
+      if (!response) {
+        setMessages((current) => [...current, {
+          id: `fallback-${Date.now()}`,
+          role: 'assistant',
+          content: 'Your local Ollama assistant is not reachable right now. Nothing was changed. You can keep using the eight guided sections below, save a draft, and return later.',
+        }])
+        return
+      }
+
+      const result = parseAssistantResult(response)
+      if (!result) {
+        setMessages((current) => [...current, {
+          id: `fallback-${Date.now()}`,
+          role: 'assistant',
+          content: 'I received a response I could not safely turn into a profile suggestion. Nothing was changed. Try describing one business detail at a time, or use the guided fields below.',
+        }])
+        return
+      }
+
+      const suggestions = result.suggestedProfile ?? {}
+      setPendingProfile(Object.keys(suggestions).length ? suggestions : null)
+      setMessages((current) => [...current, {
+        id: `assistant-${Date.now()}`,
+        role: 'assistant',
+        content: result.reply,
+      }])
     } catch {
-      response = null
-    }
-
-    if (!response) {
       setMessages((current) => [...current, {
         id: `fallback-${Date.now()}`,
         role: 'assistant',
-        content: 'Your local Ollama assistant is not reachable right now. Nothing was changed. You can keep using the eight guided sections below, save a draft, and return later.',
+        content: 'Your local Ollama assistant could not complete that request. Nothing was changed. Continue with the guided fields or try again later.',
       }])
+    } finally {
       setLoading(false)
-      return
+      onBusyChange(false)
     }
-
-    const result = parseAssistantResult(response)
-    if (!result) {
-      setMessages((current) => [...current, {
-        id: `fallback-${Date.now()}`,
-        role: 'assistant',
-        content: 'I received a response I could not safely turn into a profile suggestion. Nothing was changed. Try describing one business detail at a time, or use the guided fields below.',
-      }])
-      setLoading(false)
-      return
-    }
-
-    const suggestions = result.suggestedProfile ?? {}
-    setPendingProfile(Object.keys(suggestions).length ? suggestions : null)
-    setMessages((current) => [...current, {
-      id: `assistant-${Date.now()}`,
-      role: 'assistant',
-      content: result.reply,
-    }])
-    setLoading(false)
   }
 
   function applyField(key: keyof OnboardingProfile) {
@@ -203,8 +209,8 @@ export default function WorkspaceOnboardingAssistant({ profile, savedSnapshot, o
           </div>
           <div className="flex flex-wrap justify-end gap-2">
             
-            <button type="button" onClick={startPreferenceChange} disabled={loading} className="rounded-lg border border-white/15 px-2.5 py-1.5 text-[11px] font-semibold text-slate-300 hover:bg-white/5">Change a preference</button>
-            <button type="button" onClick={resetConversation} disabled={loading} className="rounded-lg border border-white/15 px-2.5 py-1.5 text-[11px] font-semibold text-slate-300 hover:bg-white/5 disabled:opacity-40">Clear chat</button>
+            <button type="button" onClick={startPreferenceChange} disabled={loading || busy} className="rounded-lg border border-white/15 px-2.5 py-1.5 text-[11px] font-semibold text-slate-300 hover:bg-white/5">Change a preference</button>
+            <button type="button" onClick={resetConversation} disabled={loading || busy} className="rounded-lg border border-white/15 px-2.5 py-1.5 text-[11px] font-semibold text-slate-300 hover:bg-white/5 disabled:opacity-40">Clear chat</button>
           </div>
         </div>
         <p className="mt-2 text-xs leading-relaxed text-slate-400">Conversation stays in this browser and is sent only to Ollama on this device. Suggestions must be reviewed. Applying one only fills the form; saving remains a separate action.</p>
@@ -240,10 +246,10 @@ export default function WorkspaceOnboardingAssistant({ profile, savedSnapshot, o
                   <p className="mt-1 break-words text-xs text-amber-50/90">Proposed: {describe(value)}</p>
                   <p className="mt-1 text-[10px] text-amber-100/60">Impact: informational preference only · no operational change. Apply to the form, then edit it in the matching section below if needed.</p>
                   <div className="mt-2 flex flex-wrap gap-2">
-                    <button type="button" onClick={() => applyField(key)} className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white">Accept</button>
-                    <button type="button" onClick={() => editField(key)} className="rounded-lg border border-cyan-200/30 px-3 py-1.5 text-xs font-semibold text-cyan-100">Edit in form</button>
-                    <button type="button" onClick={() => rejectField(key)} className="rounded-lg border border-white/20 px-3 py-1.5 text-xs font-semibold text-slate-200">Reject</button>
-                    <button type="button" onClick={() => skipField(key)} className="rounded-lg border border-white/20 px-3 py-1.5 text-xs font-semibold text-slate-400">Skip</button>
+                    <button type="button" onClick={() => applyField(key)} disabled={busy} className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white">Accept</button>
+                    <button type="button" onClick={() => editField(key)} disabled={busy} className="rounded-lg border border-cyan-200/30 px-3 py-1.5 text-xs font-semibold text-cyan-100">Edit in form</button>
+                    <button type="button" onClick={() => rejectField(key)} disabled={busy} className="rounded-lg border border-white/20 px-3 py-1.5 text-xs font-semibold text-slate-200">Reject</button>
+                    <button type="button" onClick={() => skipField(key)} disabled={busy} className="rounded-lg border border-white/20 px-3 py-1.5 text-xs font-semibold text-slate-400">Skip</button>
                   </div>
                 </div>
               )
@@ -256,8 +262,8 @@ export default function WorkspaceOnboardingAssistant({ profile, savedSnapshot, o
 
       <form onSubmit={(event) => void send(event)} className="flex gap-2 border-t border-white/10 p-3">
         <label className="sr-only" htmlFor="onboarding-assistant-message">Describe your roofing business</label>
-        <input id="onboarding-assistant-message" value={draft} onChange={(event) => setDraft(event.target.value)} maxLength={1000} placeholder="Example: We do residential shingles and metal roofs…" className="min-w-0 flex-1 rounded-xl border border-white/15 bg-slate-900 px-3 py-2.5 text-sm text-white placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none" disabled={loading} />
-        <button type="submit" disabled={loading || !draft.trim()} className="rounded-xl bg-cyan-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-40">Send</button>
+        <input id="onboarding-assistant-message" value={draft} onChange={(event) => setDraft(event.target.value)} maxLength={1000} placeholder="Example: We do residential shingles and metal roofs…" className="min-w-0 flex-1 rounded-xl border border-white/15 bg-slate-900 px-3 py-2.5 text-sm text-white placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none" disabled={loading || busy} />
+        <button type="submit" disabled={loading || busy || !draft.trim()} className="rounded-xl bg-cyan-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-40">Send</button>
       </form>
     </section>
   )
