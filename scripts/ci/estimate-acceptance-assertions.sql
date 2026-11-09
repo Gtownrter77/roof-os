@@ -339,3 +339,15 @@ end $$;
 reset role;
 
 select 'PASS: approved-only acceptance, server-owned snapshot/time, one per estimate, immutable evidence, append-only deposit state machine, caps, workspace and RLS isolation' as result;
+
+
+-- 7. Acceptance trigger locks the estimate row while checking approval and snapshot fields.
+do $$
+declare v_definition text;
+begin
+  select pg_get_functiondef('public.enforce_estimate_acceptance()'::regprocedure)
+    into v_definition;
+  if position('FOR UPDATE' in upper(v_definition)) = 0 then
+    raise exception 'SECURITY FAILURE: acceptance trigger does not lock the estimate row';
+  end if;
+end $$;
