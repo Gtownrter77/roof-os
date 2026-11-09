@@ -5,6 +5,7 @@ import { processChatCopilot, type ChatMessage } from '../../../../lib/ai/chat-co
 import { describeFills, fillPageFields, type PageField } from '../../../../lib/ai/page-filler'
 import { readWorkspaceSettings } from '../../../../lib/workspace-settings'
 import { agentRefusal } from '../../../../lib/layer-gate'
+import type { EmployeeLayer } from '../../../../lib/employee-layers'
 
 // Open-source only. This route uses local Ollama and deterministic fill.
 // It does not call OpenAI, Anthropic, Gemini, or any paid measurement service.
@@ -33,7 +34,19 @@ export async function POST(request: NextRequest) {
   const message = typeof body.message === 'string' ? body.message : ''
   const currentPath = typeof body.currentPath === 'string' ? body.currentPath : '/'
   const { data: isOwner } = await supabase.rpc('is_system_owner')
-  const layer = isOwner === true ? 'owner' : 'canvasser'
+  const { data: workspaceId } = await supabase.rpc('current_workspace_id')
+  let layer: EmployeeLayer | null = null
+  if (isOwner === true) {
+    layer = 'owner'
+  } else if (workspaceId) {
+    const { data: member } = await supabase
+      .from('workspace_members')
+      .select('employee_layer,role')
+      .eq('workspace_id', workspaceId)
+      .eq('user_id', user.id)
+      .maybeSingle()
+    layer = (member?.employee_layer as EmployeeLayer | null) ?? (member?.role === 'admin' ? 'operations' : 'canvasser')
+  }
   const refusal = agentRefusal(layer, message)
   if (refusal) return NextResponse.json({ reply: refusal, fills: [], applied: false })
   const rawHistory = Array.isArray(body.history) ? body.history : []
@@ -68,7 +81,6 @@ export async function POST(request: NextRequest) {
     : []
 
   const fills = fillPageFields(message, fields)
-  const { data: workspaceId } = await supabase.rpc('current_workspace_id')
   let yoloMode = false
   if (workspaceId) {
     if (isOwner === true) {

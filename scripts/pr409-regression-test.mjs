@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { readFileSync, existsSync } from 'node:fs'
 import { fillPageFields } from '../lib/ai/page-filler.ts'
+import { agentRefusal, layerAllows } from '../lib/layer-gate.ts'
 
 const read = (path) => readFileSync(path, 'utf8')
 
@@ -12,6 +13,11 @@ assert.deepEqual(fills, [{ key: 'notes', value: 'Only the inspection note' }], '
 
 const chatRoute = read('app/api/ai/chat/route.ts')
 assert.equal((chatRoute.match(/supabase\.rpc\('is_system_owner'/g) ?? []).length, 1, 'chat route must reuse one owner check')
+assert.ok(chatRoute.includes("select('employee_layer,role')"), 'chat route must load the signed-in member employee layer')
+assert.ok(chatRoute.includes('member?.employee_layer'), 'chat route must not collapse every non-owner into canvasser')
+assert.equal(layerAllows('closer', 'estimate'), true, 'closers must retain estimate access')
+assert.equal(agentRefusal('closer', 'create an estimate'), null, 'closers must not receive canvasser refusals for estimates')
+assert.match(agentRefusal('canvasser', 'create an estimate') ?? '', /pricing and settings are closed/i)
 
 const acceptRoute = read('app/api/team/invitations/accept/route.ts')
 assert.ok(!acceptRoute.includes("from('workspace_invitations').select('employee_layer')"), 'acceptance must not reread the invite after the atomic RPC')
