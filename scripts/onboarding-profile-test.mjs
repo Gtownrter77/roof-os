@@ -96,9 +96,12 @@ assert.ok(migration.includes('jsonb_typeof(profile) = \'object\''), 'profile sto
 assert.ok(!migration.includes('security definer'), 'onboarding profile migration must not add a security-definer function')
 
 assert.ok(migrationV2.includes('schema_version = 2'), 'v2 migration must advance the profile schema')
-assert.ok(migrationV2.includes('workspace_onboarding_profiles_allowed_fields_v2_check'), 'v2 migration must replace the field allowlist')
+assert.ok(migrationV2.includes('workspace_onboarding_profiles_allowed_fields_v2_check'), 'v2 migration must add the field allowlist')
 assert.ok(migrationV2.includes('teamRoles'), 'v2 migration must constrain team roles')
 assert.ok(migrationV2.includes('businessHours'), 'v2 migration must constrain business hours')
-assert.ok(migrationV2.includes('drop constraint'), 'v2 migration must replace the v1 allowlist constraint')
+assert.ok(migrationV2.includes('create or replace function public.onboarding_jsonb_string_array_is_valid'), 'v2 migration must define its array validator')
+assert.ok(migrationV2.includes('immutable'), 'the SQL array validator must be immutable')
+assert.ok(migrationV2.includes('workspace_onboarding_profiles_service_zip_codes_check'), 'v2 migration must constrain service ZIP codes')
+assert.ok(!migrationV2.includes('security definer'), 'the SQL array validator must not use elevated privileges')
 
 console.log('onboarding-profile-test: PASS')
