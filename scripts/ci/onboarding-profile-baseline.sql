@@ -4,6 +4,10 @@ do $role$ begin
   create role authenticated nologin;
 exception when duplicate_object then null;
 end $role$;
+do $role$ begin
+  create role anon nologin;
+exception when duplicate_object then null;
+end $role$;
 create schema auth;
 create table auth.users (id uuid primary key);
 create or replace function auth.uid()
