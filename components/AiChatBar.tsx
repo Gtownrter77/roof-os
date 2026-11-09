@@ -157,9 +157,7 @@ export default function AiChatBar() {
         signal: AbortSignal.timeout(10_000),
         body: JSON.stringify({
           message: text,
-          currentPath: pathname,
           fields: fields.map(({ key, label, value, type }) => ({ key, label, value, type })),
-          history: messages.slice(-6).map((m) => ({ role: m.role, content: m.content })),
         }),
       })
 
