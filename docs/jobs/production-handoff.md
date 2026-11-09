@@ -13,6 +13,13 @@ One production job created from one estimate that has both:
 The job is the production handoff record. It keeps an immutable snapshot of the
 customer, the accepted amount and the approved scope.
 
+**Important acceptance boundary:** the prerequisite acceptance is the office-recorded
+customer confirmation described in [acceptance-deposit.md](../estimates/acceptance-deposit.md).
+It is not a signed contract or e-signature. This handoff does not collect, attach,
+or validate a signed agreement. If the shop requires a signed contract before work,
+that agreement must be completed and verified through the shop's separate approved
+process; the current handoff does not enforce that document gate.
+
 ## Database rules
 
 The database enforces every handoff rule:
@@ -56,6 +63,6 @@ The database enforces every handoff rule:
 
 - Source: `npm run test:production-job`.
 - Real PostgreSQL trigger/RLS/immutability: `scripts/ci/verify-production-job-postgres.sh` in `migration-safety`, on the dedicated disposable database `roofos_job_ci`.
-- Supabase Auth/API: **not tested** — no credentials.
-- Browser/customer flow: **not tested**.
+- Supabase Auth/API and browser/customer flow: **not tested** — the current evidence is source/contract checks and disposable-PostgreSQL trigger/RLS assertions.
+- A successful SQL handoff test does not establish that a real customer accepted, signed a contract, paid a deposit, or that the staging Supabase project has the matching schema.
 - Production: untouched.
