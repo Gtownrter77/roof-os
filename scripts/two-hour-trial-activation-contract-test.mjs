@@ -27,6 +27,9 @@ assert.ok(migration.includes('revoke all on table public.workspace_trial_claims 
 assert.ok(!migration.includes('create policy') && !migration.includes('grant select on public.workspace_trial_claims'), 'trial claims are not directly readable by clients')
 
 assert.ok(expiry.includes('workspace.trial_expires_at > statement_timestamp()'), 'expired access is rejected by the database')
+assert.ok(expiry.includes("workspace.trial_status <> 'pending'"), 'pending signup workspaces are locked')
+assert.ok(migration.includes('create or replace function public.handle_new_user_workspace()'), 'new Auth users receive locked workspaces')
+assert.ok(migration.includes("trial_status = 'active'"), 'only activation unlocks the workspace')
 assert.ok(signup.includes('request_two_hour_trial: true'), 'new trial signups are explicitly marked')
 assert.ok(signup.includes('trial_company_domain: companyDomain.trim().toLowerCase()'))
 assert.ok(callback.includes("new URL('/trial/activate', url.origin)"), 'verified trial signup is sent to activation')
