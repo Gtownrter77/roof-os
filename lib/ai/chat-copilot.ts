@@ -142,7 +142,7 @@ export async function processChatCopilot(input: {
   const matchedNav = photoMatch || ROOF_OS_NAVIGATION_MAP.find((item) => item.keywords.test(query))
   if (matchedNav) {
     return {
-      reply: `${matchedNav.defaultReply} Local Ollama will answer directly from your browser when it is available; otherwise this is rule-based navigation. Would you like to open that screen?`,
+      reply: `${matchedNav.defaultReply} Local Ollama could not be reached from this browser, so this is rule-based navigation. Check that Ollama is running, the chat model is installed, and OLLAMA_ORIGINS allows this exact app origin. Would you like to open that screen?`,
       suggestedAction: matchedNav.action,
       quickReplies: getSuggestedQuickReplies(matchedNav.action.href),
     }
@@ -150,7 +150,7 @@ export async function processChatCopilot(input: {
 
   return {
     reply:
-      'Local Ollama can answer from this browser when available. I can still open storms, leads, measurements, estimates, reports, or invoices.',
+      'Local Ollama could not be reached from this browser. Check that it is running and OLLAMA_ORIGINS allows this exact app origin. I can still open storms, leads, measurements, estimates, reports, or invoices.',
     suggestedAction: { label: 'Go to Command Center', href: '/' },
     quickReplies: ['Track Active Storms', 'Aerial Measurement', 'New Estimate', 'Golden Report'],
   }
