@@ -65,6 +65,7 @@ begin
   select id into v_workspace_id from public.workspaces where created_by = '10000000-0000-4000-8000-000000000001';
   perform set_config('request.jwt.claim.sub','10000000-0000-4000-8000-000000000001',false);
   if public.is_workspace_member(v_workspace_id) then raise exception 'pending workspace was accessible before activation'; end if;
+  if public.is_workspace_admin(v_workspace_id) then raise exception 'pending workspace admin access was allowed'; end if;
   if public.current_workspace_id() is not null then raise exception 'pending workspace was returned as active'; end if;
 
   result := public.activate_two_hour_workspace_trial('acme.test');
@@ -118,8 +119,9 @@ begin
   if public.current_workspace_id() is not null then raise exception 'expired trial remains active workspace'; end if;
 end $$;
 
-do $$
+do $
 begin
+  perform set_config('request.jwt.claim.sub','10000000-0000-4000-8000-000000000005',false);
   if not public.is_workspace_member('20000000-0000-4000-8000-000000000005') then raise exception 'existing customer workspace was locked'; end if;
   if has_table_privilege('authenticated','public.workspace_trial_claims','select') then raise exception 'authenticated role can read private trial claims'; end if;
   if has_function_privilege('anon','public.activate_two_hour_workspace_trial(text)','execute') then raise exception 'anon can activate trials'; end if;
