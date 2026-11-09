@@ -53,25 +53,28 @@ export default function OnboardingPage() {
     }
 
     setSaving(true)
-    const supabase = createClient()
-    const { error: updateError } = await supabase.auth.updateUser({
-      data: {
-        company_name: form.companyName.trim(),
-        onboarding_contact_email: form.email.trim(),
-        onboarding_phone: form.phone.trim(),
-        onboarding_state: form.state,
-        onboarding_role_preference: form.role,
-        onboarding_completed_at: new Date().toISOString(),
-      },
-    })
-    if (updateError) {
-      setError('Could not save your onboarding details. Nothing was marked complete.')
+    try {
+      const supabase = createClient()
+      const { error: updateError } = await supabase.auth.updateUser({
+        data: {
+          company_name: form.companyName.trim(),
+          onboarding_contact_email: form.email.trim(),
+          onboarding_phone: form.phone.trim(),
+          onboarding_state: form.state,
+          onboarding_role_preference: form.role,
+          onboarding_completed_at: new Date().toISOString(),
+        },
+      })
+      if (updateError) {
+        setError('Could not save your onboarding details. Nothing was marked complete.')
+        return
+      }
+      router.push('/')
+    } catch {
+      setError('A connection error prevented saving your onboarding details. Please try again.')
+    } finally {
       setSaving(false)
-      return
     }
-
-    setSaving(false)
-    router.push('/')
   }
 
   const handleBack = () => {
