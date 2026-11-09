@@ -86,7 +86,8 @@ export default function WorkspaceSetupTour({ assistantEnabled, onSelectSection }
   useEffect(() => {
     if (!active) return
     onSelectSection(current.section)
-    document.getElementById(current.target)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
+    document.getElementById(current.target)?.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'center' })
   }, [active, current.section, current.target, onSelectSection])
 
   function start() {
@@ -124,7 +125,7 @@ export default function WorkspaceSetupTour({ assistantEnabled, onSelectSection }
         <button type="button" onClick={() => setActive(false)} className="rounded-md px-2 py-1 text-xs text-slate-300 hover:bg-white/10">Exit tour</button>
       </div>
       <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10">
-        <div className="h-full rounded-full bg-violet-300 transition-all" style={{ width: `${((index + 1) / steps.length) * 100}%` }} />
+        <div className="h-full rounded-full bg-violet-300 motion-safe:transition-all" style={{ width: `${((index + 1) / steps.length) * 100}%` }} />
       </div>
       <h2 className="mt-3 text-base font-semibold text-white">{current.title}</h2>
       <p className="mt-1 text-sm leading-relaxed text-slate-300">{current.description}</p>
