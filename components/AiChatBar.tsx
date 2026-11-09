@@ -168,7 +168,7 @@ export default function AiChatBar() {
       const data = await response.json()
       // The API returns deterministic navigation/fill guidance. Run text inference
       // from this browser so localhost means the user's desktop, not the Vercel host.
-      const localReply = await askBrowserLocalOllama({
+      const localReply = data.refused === true ? null : await askBrowserLocalOllama({
         message: text,
         history: messages.slice(-6).map((m) => ({ role: m.role, content: m.content })),
         currentPath: pathname,
