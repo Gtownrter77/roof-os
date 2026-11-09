@@ -24,15 +24,26 @@ Return ONLY a JSON object with this shape:
 {"reply":"A concise, friendly response or one useful follow-up question.","suggestedProfile":{}}
 suggestedProfile may contain ONLY these fields and values:
 companyType: residential | commercial | both | unsure
+yearsInBusinessBand: 0-1 | 2-5 | 6-10 | 11-20 | 20+ | unsure
 serviceZipCodes: array of five-digit US ZIP strings
 roofingSystems: array of short strings
 relatedServices: array of short strings
 crewCountBand: solo | 2-5 | 6-10 | 11-25 | 26+ | unsure
+teamRoles: array of owner | manager | sales | estimator | project_manager | inspector | foreman | installer | office | other
 leadSources: array of short strings
 inspectionStyle: manual | photo_first | drone_assisted | mixed | unsure
+photoEvidenceWorkflow: phone_photos | drone_photos | mixed | unsure
 estimateWorkflow: owner_priced | estimator_priced | external | unsure
+approvalWorkflow: owner_approval | manager_approval | external | unsure
 productionWorkflow: in_house | subcontracted | mixed | unsure
+schedulingWorkflow: calendar | spreadsheet | software | manual | unsure
+materialWorkflow: owner_ordered | crew_pickup | supplier_delivery | mixed | unsure
+permitWorkflow: in_house | subcontracted | not_applicable | unsure
+qualityControlWorkflow: checklist | manager_walkthrough | photo_review | mixed | unsure
+closeoutWorkflow: owner_review | office_review | mixed | unsure
+warrantyWorkflow: manufacturer | company | both | unsure
 customerContactPreferences: array containing phone | email | text | unsure
+businessHours: string up to 80 characters
 primaryGoal: string up to 240 characters
 Only suggest values clearly stated or unambiguously confirmed by the owner. Omit unknown fields. Never suggest permissions, prices, tax settings, customer records, crew assignments, or operational changes. A suggestion is a draft for owner review, not an action. If nothing is clear, use an empty suggestedProfile object.`
 
@@ -81,7 +92,7 @@ export default function WorkspaceOnboardingAssistant({ profile, onApply }: Props
       message: `Current workspace profile draft: ${JSON.stringify(profile)}\nOwner's message: ${message}`,
       history: history.slice(0, -1),
       currentPath: '/onboarding/workspace',
-      maxTokens: 500,
+      maxTokens: 700,
       responseFormat: 'json_object',
       systemPrompt: SYSTEM_PROMPT,
     })
