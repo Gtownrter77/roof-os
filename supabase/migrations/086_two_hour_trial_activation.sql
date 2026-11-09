@@ -50,7 +50,7 @@ begin
   if v_domain = any(array[
     'gmail.com','googlemail.com','yahoo.com','yahoo.co.uk','outlook.com','hotmail.com',
     'live.com','icloud.com','me.com','aol.com','proton.me','protonmail.com',
-    'mail.com','gmx.com',' msn.com'
+    'mail.com','gmx.com','msn.com'
   ]) then
     raise exception using errcode = '22023', message = 'A company-domain email is required for a free trial.';
   end if;
