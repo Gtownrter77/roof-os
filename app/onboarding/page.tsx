@@ -31,7 +31,7 @@ export default function OnboardingPage() {
         setForm((current) => ({
           companyName: typeof metadata.company_name === 'string' ? metadata.company_name : current.companyName,
           phone: typeof metadata.onboarding_phone === 'string' ? metadata.onboarding_phone : current.phone,
-          email: typeof metadata.onboarding_contact_email === 'string' ? metadata.onboarding_contact_email : current.email,
+          email: typeof metadata.onboarding_contact_email === 'string' ? metadata.onboarding_contact_email : typeof user.email === 'string' ? user.email : current.email,
           state: typeof metadata.onboarding_state === 'string' && allowedStates.includes(metadata.onboarding_state) ? metadata.onboarding_state : current.state,
           role: typeof metadata.onboarding_role_preference === 'string' && allowedRoles.includes(metadata.onboarding_role_preference) ? metadata.onboarding_role_preference : current.role,
         }))
