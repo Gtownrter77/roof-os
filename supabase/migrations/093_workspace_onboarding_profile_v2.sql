@@ -1,5 +1,6 @@
 -- Expand the workspace onboarding profile without changing operational settings.
--- Existing reviewed answers remain intact; the schema version advances in place.
+-- Version 1 did not enforce a profile-field allowlist in SQL, so add the v2
+-- allowlist directly while retaining the existing object-shape check.
 begin;
 
 alter table public.workspace_onboarding_profiles
@@ -13,30 +14,35 @@ alter table public.workspace_onboarding_profiles
   alter column schema_version set default 2,
   add constraint workspace_onboarding_profiles_schema_version_check check (schema_version = 2);
 
--- Migration 092 created this allowlist check without an explicit name. Locate it
--- by its definition so the v2 allowlist can replace it without guessing a suffix.
-do $migration$
-declare
-  allowlist_constraint text;
-begin
-  select conname
-    into allowlist_constraint
-  from pg_constraint
-  where conrelid = 'public.workspace_onboarding_profiles'::regclass
-    and contype = 'c'
-    and pg_get_constraintdef(oid) like '%profile - ARRAY%'
-  limit 1;
-
-  if allowlist_constraint is null then
-    raise exception 'Could not locate the v1 onboarding profile allowlist constraint';
-  end if;
-
-  execute format(
-    'alter table public.workspace_onboarding_profiles drop constraint %I',
-    allowlist_constraint
-  );
-end;
-$migration$;
+-- Pure validation helper: no table access, elevated privileges, or side effects.
+create or replace function public.onboarding_jsonb_string_array_is_valid(
+  p_value jsonb,
+  p_max_items integer,
+  p_max_length integer,
+  p_pattern text default null,
+  p_allowed_values text[] default null
+)
+returns boolean
+language sql
+immutable
+parallel safe
+as $function$
+  select case
+    when p_value is null or jsonb_typeof(p_value) <> 'array' then false
+    when jsonb_array_length(p_value) > p_max_items then false
+    else not exists (
+      select 1
+      from jsonb_array_elements(p_value) as element(value)
+      where jsonb_typeof(element.value) <> 'string'
+        or length(element.value #>> '{}') > p_max_length
+        or (p_pattern is not null and (element.value #>> '{}') !~ p_pattern)
+        or (
+          p_allowed_values is not null
+          and not ((element.value #>> '{}') = any(p_allowed_values))
+        )
+    )
+  end;
+$function$;
 
 alter table public.workspace_onboarding_profiles
   add constraint workspace_onboarding_profiles_allowed_fields_v2_check
@@ -77,6 +83,30 @@ alter table public.workspace_onboarding_profiles
   add constraint workspace_onboarding_profiles_warranty_workflow_check
   check (not (profile ? 'warrantyWorkflow') or coalesce(profile->>'warrantyWorkflow' in ('manufacturer','company','both','unsure'), false)),
 
+  add constraint workspace_onboarding_profiles_service_zip_codes_check
+  check (
+    not (profile ? 'serviceZipCodes')
+    or public.onboarding_jsonb_string_array_is_valid(profile->'serviceZipCodes', 20, 5, '^[0-9]{5}$')
+  ),
+
+  add constraint workspace_onboarding_profiles_roofing_systems_check
+  check (
+    not (profile ? 'roofingSystems')
+    or public.onboarding_jsonb_string_array_is_valid(profile->'roofingSystems', 12, 80)
+  ),
+
+  add constraint workspace_onboarding_profiles_related_services_check
+  check (
+    not (profile ? 'relatedServices')
+    or public.onboarding_jsonb_string_array_is_valid(profile->'relatedServices', 12, 80)
+  ),
+
+  add constraint workspace_onboarding_profiles_lead_sources_check
+  check (
+    not (profile ? 'leadSources')
+    or public.onboarding_jsonb_string_array_is_valid(profile->'leadSources', 12, 60)
+  ),
+
   add constraint workspace_onboarding_profiles_team_roles_check
   check (
     not (profile ? 'teamRoles')
@@ -89,10 +119,28 @@ alter table public.workspace_onboarding_profiles
     )
   ),
 
+  add constraint workspace_onboarding_profiles_contact_preferences_check
+  check (
+    not (profile ? 'customerContactPreferences')
+    or public.onboarding_jsonb_string_array_is_valid(
+      profile->'customerContactPreferences',
+      4,
+      16,
+      null,
+      ARRAY['phone','email','text','unsure']::text[]
+    )
+  ),
+
   add constraint workspace_onboarding_profiles_business_hours_check
   check (
     not (profile ? 'businessHours')
     or (jsonb_typeof(profile->'businessHours') = 'string' and length(profile->>'businessHours') <= 80)
+  ),
+
+  add constraint workspace_onboarding_profiles_primary_goal_check
+  check (
+    not (profile ? 'primaryGoal')
+    or (jsonb_typeof(profile->'primaryGoal') = 'string' and length(profile->>'primaryGoal') <= 240)
   );
 
 comment on column public.workspace_onboarding_profiles.schema_version is
