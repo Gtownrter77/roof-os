@@ -10,7 +10,7 @@ for (const marker of [
   "supabase.auth.getUser()",
   "is_workspace_admin",
   'A valid invite email is required.',
-  'Role must be admin or member.',
+  'Layer must be operations, inspector, closer, canvasser, or production.',
   'Invitation email delivery is not configured.',
   'inviteUserByEmail',
   "status: 'revoked'",

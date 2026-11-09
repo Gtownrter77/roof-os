@@ -962,8 +962,8 @@ export default function App() {
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Desktop bridge</Text>
           <Text style={styles.helper}>This app is the inspector console. The desktop is the system of record. Open the matching screen there.</Text>
-          <Pressable style={styles.secondary} onPress={() => Linking.openURL(`${webAppUrl}/measure`)}>
-            <Text style={styles.secondaryText}>Open measurements on desktop</Text>
+          <Pressable style={styles.secondary} onPress={() => Linking.openURL(`${webAppUrl}${selectedLeadId ? `/job/${selectedLeadId}` : '/measure'}`)}>
+            <Text style={styles.secondaryText}>{selectedLeadId ? 'Open this job on desktop' : 'Open measurements on desktop'}</Text>
           </Pressable>
           <Pressable style={[styles.secondary, { marginTop: 10 }]} onPress={() => Linking.openURL(`${webAppUrl}/photo-estimate`)}>
             <Text style={styles.secondaryText}>Open inspection photos on desktop</Text>

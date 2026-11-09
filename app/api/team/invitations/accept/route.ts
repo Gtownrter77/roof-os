@@ -26,8 +26,13 @@ export async function POST(request: NextRequest) {
   }
 
   const membership = Array.isArray(data) ? data[0] : data
+  const { data: invite } = await supabase.from('workspace_invitations').select('employee_layer').eq('id', invitationId).maybeSingle()
+  if (invite?.employee_layer && membership?.workspace_id) {
+    await supabase.from('workspace_members').update({ employee_layer: invite.employee_layer }).eq('workspace_id', membership.workspace_id).eq('user_id', user.id)
+  }
   return NextResponse.json({
     membership,
+    employeeLayer: invite?.employee_layer ?? null,
     acceptedBy: user.id,
   })
 }

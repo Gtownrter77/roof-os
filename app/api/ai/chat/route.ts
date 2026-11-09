@@ -4,6 +4,7 @@ import { readJson } from '../../../../lib/api-security'
 import { processChatCopilot, type ChatMessage } from '../../../../lib/ai/chat-copilot'
 import { describeFills, fillPageFields, type PageField } from '../../../../lib/ai/page-filler'
 import { readWorkspaceSettings } from '../../../../lib/workspace-settings'
+import { agentRefusal } from '../../../../lib/layer-gate'
 
 // Open-source only. This route uses local Ollama and deterministic fill.
 // It does not call OpenAI, Anthropic, Gemini, or any paid measurement service.
@@ -31,6 +32,10 @@ export async function POST(request: NextRequest) {
 
   const message = typeof body.message === 'string' ? body.message : ''
   const currentPath = typeof body.currentPath === 'string' ? body.currentPath : '/'
+  const { data: isOwner } = await supabase.rpc('is_system_owner')
+  const layer = isOwner === true ? 'owner' : 'canvasser'
+  const refusal = agentRefusal(layer, message)
+  if (refusal) return NextResponse.json({ reply: refusal, fills: [], applied: false })
   const rawHistory = Array.isArray(body.history) ? body.history : []
 
   const history: ChatMessage[] = rawHistory

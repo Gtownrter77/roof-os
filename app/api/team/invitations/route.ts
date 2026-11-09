@@ -32,7 +32,8 @@ export async function POST(request: NextRequest) {
   if ('error' in parsedBody) return NextResponse.json({ error: parsedBody.error }, { status: parsedBody.status })
   const body = parsedBody.body as { email?: string; employeeLayer?: EmployeeLayer; role?: 'admin' | 'member' }
   const email = body.email?.trim().toLowerCase() ?? ''
-  const employeeLayer = INVITE_LAYERS.some((layer) => layer.id === body.employeeLayer) ? body.employeeLayer : 'canvasser'
+  const employeeLayer = INVITE_LAYERS.some((layer) => layer.id === body.employeeLayer) ? body.employeeLayer : null
+  if (!employeeLayer) return NextResponse.json({ error: 'Layer must be operations, inspector, closer, canvasser, or production.' }, { status: 400 })
   const role = layerToWorkspaceRole(employeeLayer as EmployeeLayer)
   if (!EMAIL_RE.test(email)) return NextResponse.json({ error: 'A valid invite email is required.' }, { status: 400 })
   if (email === user.email?.toLowerCase()) return NextResponse.json({ error: 'You are already a workspace member.' }, { status: 409 })
