@@ -92,6 +92,8 @@ export default function WorkspaceOnboardingPage() {
   }, [])
 
   const selectTourSection = useCallback((section: number) => setStep(section), [])
+  const hasUnsavedChanges = JSON.stringify(profile) !== JSON.stringify(savedProfile)
+  const canComplete = profile.companyType !== 'unsure' && Boolean(profile.primaryGoal?.trim())
 
   function update<K extends keyof OnboardingProfile>(key: K, value: OnboardingProfile[K]) {
     setProfile((current) => ({ ...current, [key]: value }))
@@ -144,7 +146,7 @@ export default function WorkspaceOnboardingPage() {
   const listField = (label: string, value: string[] | undefined, onChange: (next: string[]) => void, hint: string) => (
     <label className={labelClass}>
       {label}
-      <input className={inputClass} value={listValue(value)} disabled={!canEdit} onChange={(event) => onChange(splitList(event.target.value))} placeholder="Separate entries with commas" />
+      <input className={inputClass} value={listValue(value)} disabled={!canEdit || saving} onChange={(event) => onChange(splitList(event.target.value))} placeholder="Separate entries with commas" />
       <span className="mt-1 block text-xs font-normal text-slate-400">{hint}</span>
     </label>
   )
@@ -160,6 +162,11 @@ export default function WorkspaceOnboardingPage() {
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-cyan-300">ROOF/OS · Workspace setup</p>
           <h1 className="mt-2 text-3xl font-bold">Build your company profile</h1>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-300">Set up the basics at your own pace. You can save a draft and return later. Choose “Not sure” whenever you need to.</p>
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-xs" aria-live="polite">
+            {updatedAt && <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-slate-300">Last saved {new Date(updatedAt).toLocaleString()}</span>}
+            {hasUnsavedChanges && <span className="rounded-full border border-amber-300/30 bg-amber-950/25 px-3 py-1 text-amber-100">Unsaved changes</span>}
+            {!hasUnsavedChanges && status === 'completed' && <span className="rounded-full border border-emerald-300/30 bg-emerald-950/25 px-3 py-1 text-emerald-100">Setup complete</span>}
+          </div>
         </header>
 
         <div className="mb-5 rounded-xl border border-cyan-300/20 bg-cyan-950/25 p-3 text-xs leading-relaxed text-cyan-100/80">
@@ -277,7 +284,7 @@ export default function WorkspaceOnboardingPage() {
                     <input
                       type="checkbox"
                       checked={(profile.teamRoles ?? []).includes(value)}
-                      disabled={!canEdit}
+                      disabled={!canEdit || saving}
                       onChange={(event) => {
                         const current = profile.teamRoles ?? []
                         update('teamRoles', event.target.checked
@@ -384,16 +391,17 @@ export default function WorkspaceOnboardingPage() {
           <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-4">
             <button type="button" onClick={() => setStep((current) => Math.max(0, current - 1))} disabled={step === 0} className="rounded-lg border border-white/15 px-4 py-2 text-sm text-slate-200 disabled:opacity-30">Back</button>
             <div className="flex flex-wrap justify-end gap-2">
-              <button id="workspace-save-progress" type="button" onClick={() => void save('draft')} disabled={!canEdit || saving} className="rounded-lg border border-cyan-300/40 px-4 py-2 text-sm font-semibold text-cyan-100 disabled:opacity-40">{saving ? 'Saving…' : 'Save progress'}</button>
+              <button id="workspace-save-progress" type="button" onClick={() => void save('draft')} disabled={!canEdit || saving || !hasUnsavedChanges} className="rounded-lg border border-cyan-300/40 px-4 py-2 text-sm font-semibold text-cyan-100 disabled:opacity-40">{saving ? 'Saving…' : 'Save progress'}</button>
               {step < STEPS.length - 1 ? (
                 <button type="button" onClick={() => setStep((current) => Math.min(STEPS.length - 1, current + 1))} className="rounded-lg bg-cyan-600 px-4 py-2 text-sm font-semibold text-white hover:bg-cyan-500">Next section</button>
               ) : (
-                <button type="button" onClick={() => void save('completed')} disabled={!canEdit || saving || !profile.primaryGoal?.trim()} title={!profile.primaryGoal?.trim() ? 'Add your first goal in the Goal section before completing setup.' : undefined} className="rounded-lg bg-cyan-600 px-4 py-2 text-sm font-semibold text-white hover:bg-cyan-500 disabled:opacity-40">Mark setup complete</button>
+                <button type="button" onClick={() => void save('completed')} disabled={!canEdit || saving || !canComplete} title={!canComplete ? 'Choose a business type other than “Not sure” and add your first goal before completing setup.' : undefined} className="rounded-lg bg-cyan-600 px-4 py-2 text-sm font-semibold text-white hover:bg-cyan-500 disabled:opacity-40">Mark setup complete</button>
               )}
             </div>
           </div>
-          {step === 7 && !profile.primaryGoal?.trim() && <p className="mt-3 text-xs text-amber-200" role="status">Add your first goal above to enable “Mark setup complete”. You can still save a draft at any time.</p>}
-          {status === 'completed' && <p className="mt-4 text-xs text-emerald-300">This workspace profile is marked complete. You can still update it as an administrator.</p>}
+          {step === 7 && !canComplete && <p className="mt-3 text-xs text-amber-200" role="status">{profile.companyType === 'unsure' ? 'Choose Residential, Commercial, or Both in the Business section.' : 'Add your first goal above.'} You can still save a draft at any time.</p>}
+          {status === 'completed' && hasUnsavedChanges && <p className="mt-4 text-xs text-amber-200" role="status">The saved profile is complete, but you have unsaved edits. Save progress to return it to draft status, or complete it again after reviewing your changes.</p>}
+          {status === 'completed' && !hasUnsavedChanges && <p className="mt-4 text-xs text-emerald-300">This workspace profile is marked complete. You can still update it as an administrator.</p>}
           {error && <p className="mt-4 text-sm text-red-300" role="alert">{error}</p>}
           {notice && <p className="mt-4 text-sm text-emerald-300" role="status" aria-live="polite">{notice}</p>}
         </section>
