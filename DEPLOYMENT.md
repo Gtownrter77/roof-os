@@ -12,6 +12,22 @@ The GitHub `main` branch is connected for automatic production deployments.
 
 Configure `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and the server-only `CAPOUT_API_KEY`, `RAPIDAPI_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `CRON_SECRET`, and optional `CLAIMS_DOCUMENT_WORKER_URL` in the deployment secret manager. Photo-estimate and siding inference use the OpenAI-compatible Ollama API (`OLLAMA_VISION_API_BASE_URL`, default `http://localhost:11434/v1`; `OLLAMA_VISION_MODEL`, default `qwen3-vl:8b`). This loopback default works only when the Next.js server and Ollama run on the same machine. In Vercel, `localhost` is the Vercel function runtime, not the user's workstation; do not expect a hosted function to reach desktop Ollama by changing the port. Hosted inference needs a separately secured, private worker endpoint and explicit security review. The `/measure` screen now sends its selected image directly from the user's browser to that user's loopback Ollama API; it does not route the image through Vercel for inference. Configure Ollama's `OLLAMA_ORIGINS` to include the exact ROOF/OS app origin and restart Ollama. Browser local-network permission and HTTPS-to-loopback behavior depend on browser/OS policy. If the browser blocks the connection, the UI reports the failure and manual tracing remains available; there is no hosted AI fallback. The image is still uploaded to the authenticated workspace's private inspection storage before analysis, and the resulting geometry is server-validated and remains unverified until human review/calibration. The active `/measure` geometry workflow uses browser-local Ollama and does not require Gemini credentials or send the roof image to a hosted vision provider. The older authenticated `/api/measurements/aerial/ai-suggest` Gemini route remains in the codebase but is not called by `/measure`; do not enable it or use it for customer photos without a separate owner decision and current provider/privacy review. Never place a Supabase service-role key, Gemini key, CapOut key, RapidAPI key, worker URL with credentials, or cron secret in `NEXT_PUBLIC_*` variables, the browser bundle, or the field app.
 
+## Browser-local Ollama setup for roof measurement
+
+On the computer running the browser, install Ollama and pull the vision model:
+
+```sh
+ollama pull qwen3-vl:8b
+```
+
+Allow the exact ROOF/OS origin in the Ollama process environment, then restart Ollama. For example, on a shell-managed Ollama service:
+
+```sh
+OLLAMA_ORIGINS="https://roof-os-lemon.vercel.app,http://localhost:3000" ollama serve
+```
+
+Replace/add origins to match the actual app URL being used (including preview URLs when applicable). Do not expose Ollama's port to the public internet. The browser calls loopback on the same device; browser/OS local-network permission and CORS rules still apply. If the browser cannot reach Ollama, use manual tracing; no hosted vision fallback is attempted.
+
 ## Migration order
 
 Apply the repository migrations through `036_photo_estimate_ai_analysis.sql` to the target Supabase project in the recorded production order. Do not rename or renumber the historical duplicate prefixes `021`, `022`, or `023`; follow `MIGRATION-ORDER.md` and the target Supabase migration ledger. Verify RLS using two workspaces before enabling customer-facing estimate or claims-import flows. Migration `008` supplies claims line-item and heartbeat tables; migration `009` supplies claims-import and idempotent agent-run tables; migration `010` supplies the Home Depot reference-price cache and hard 100-inquiry monthly budget; migration `011` supplies the weekly watchlist and worker-only budget reservation; migration `012` supplies inspection measurements, NOAA storm evidence, and estimate review packets; migration `013` supplies drone/aerial capture provenance; migration `014` supplies the fail-closed Ryan-only system-owner lock; migrations `021`–`024` supply the photo-estimate workflow, measurement, and refresh schema; migration `027` applies the photo-estimate administrator update guard; migration `033` hardens private Storage ownership paths; migration `036` adds the non-authoritative AI analysis fields.
