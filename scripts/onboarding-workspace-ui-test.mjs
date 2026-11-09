@@ -14,7 +14,7 @@ const hologram = readFileSync(new URL('../components/onboarding/HologramMeteorol
 // The screen must load only the active authenticated workspace profile and avoid caching it.
 assert.match(page, /fetch\('\/api\/onboarding\/profile', \{ cache: 'no-store' \}\)/)
 assert.match(page, /setCanEdit\(data\.canEdit === true\)/)
-assert.match(page, /disabled=\{!canEdit\}/)
+assert.match(page, /disabled=\{!canEdit \|\| saving\}/)
 assert.match(page, /You can review this workspace profile, but only a workspace administrator can change it\./)
 
 // Saving and completion are explicit user actions; navigation alone must not write.
@@ -26,7 +26,9 @@ assert.match(page, /Choose Residential, Commercial, or Both/)
 assert.match(page, /Unsaved changes/)
 assert.match(page, /setSavedProfile\(persistedProfile\)/)
 assert.match(page, /disabled=\{!canEdit \|\| saving\}/)
-assert.match(page, /Add your first goal above to enable/)
+assert.match(page, /Add your first goal above\./)
+assert.match(page, /status === 'completed' && hasUnsavedChanges/)
+assert.match(page, /Last saved/)
 assert.match(page, /setStep\(\(current\) => Math\.min\(STEPS\.length - 1, current \+ 1\)\)/)
 assert.doesNotMatch(page, /useEffect\([\s\S]{0,500}save\('completed'\)/)
 
