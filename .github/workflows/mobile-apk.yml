@@ -90,6 +90,18 @@ jobs:
       - name: Record EAS CLI version
         run: eas --version
 
+      - name: Prebuild Android with resilient Gradle download timeout
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx expo prebuild --platform android --no-install
+          WRAPPER_PROPERTIES="android/gradle/wrapper/gradle-wrapper.properties"
+          test -s "$WRAPPER_PROPERTIES"
+          grep -Eq '^networkTimeout=120000$' "$WRAPPER_PROPERTIES" || {
+            echo 'The generated Gradle wrapper is missing the 120-second network timeout.' >&2
+            exit 1
+          }
+
       - name: Build Android preview APK locally with EAS
         id: eas
         shell: bash

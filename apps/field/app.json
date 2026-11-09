@@ -39,7 +39,8 @@
           "photosPermission": "ROOF/OS Field uses your photos to attach inspection evidence.",
           "cameraPermission": "ROOF/OS Field uses the camera to capture inspection photos and damage evidence."
         }
-      ]
+      ],
+      "./plugins/with-gradle-wrapper-network-timeout.cjs"
     ],
     "extra": {
       "eas": {

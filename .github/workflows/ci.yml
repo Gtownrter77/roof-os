@@ -150,6 +150,10 @@ jobs:
       - run: npx tsc --noEmit
       - run: npx expo config --json > /tmp/expo-config.json
       - run: npx --yes expo-doctor
+      - name: Verify generated Gradle wrapper network timeout
+        run: |
+          npx expo prebuild --platform android --no-install
+          grep -Fq 'networkTimeout=120000' android/gradle/wrapper/gradle-wrapper.properties
       - name: Verify field app runtime contracts
         run: |
           cd ../..
