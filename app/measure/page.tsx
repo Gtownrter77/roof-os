@@ -193,7 +193,7 @@ export default function MeasurePage() {
           inspectionId: inspection.id,
           imageWidth: imageSize.width,
           imageHeight: imageSize.height,
-          suggestion: localResult.suggestion,
+          suggestion: aiPayload.suggestion,
         }),
       })
       const payload = await response.json().catch(() => null)
@@ -205,11 +205,11 @@ export default function MeasurePage() {
       setSavedMeasurementId('')
       setStatus(payload.cached
         ? 'Existing suggestions loaded. Confirmed geometry was not overwritten.'
-        : `Local ${localResult.model} suggestions saved. Review every shape before calibration and confirmation.`)
+        : `Google ${aiPayload.model} suggestions saved. Review every shape before calibration and confirmation.`)
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Local analysis failed.'
+      const message = err instanceof Error ? err.message : 'Roof AI analysis failed.'
       setError(message)
-      setStatus('No model-hosted fallback was used. Manual tracing remains available.')
+      setStatus('AI did not complete. Your photo remains private; manual tracing is still available.')
       throw err
     } finally {
       setWorking(false)
