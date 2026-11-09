@@ -13,10 +13,7 @@ type AssistantResult = {
 
 type Props = {
   profile: OnboardingProfile
-  savedProfile: OnboardingProfile
-  savedAt: string | null
   onApply: (profile: OnboardingProfile) => void
-  onResetField: (key: keyof OnboardingProfile) => void
 }
 
 const SYSTEM_PROMPT = `You are the ROOF/OS onboarding guide for roofing businesses.
@@ -65,7 +62,7 @@ function parseAssistantResult(raw: string): AssistantResult | null {
   }
 }
 
-export default function WorkspaceOnboardingAssistant({ profile, savedProfile, savedAt, onApply, onResetField }: Props) {
+export default function WorkspaceOnboardingAssistant({ profile, onApply }: Props) {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 'welcome',
@@ -77,7 +74,6 @@ export default function WorkspaceOnboardingAssistant({ profile, savedProfile, sa
   const [pendingProfile, setPendingProfile] = useState<Partial<OnboardingProfile> | null>(null)
   const [loading, setLoading] = useState(false)
   const [notice, setNotice] = useState('')
-  const [showSavedReview, setShowSavedReview] = useState(false)
 
   async function send(event: FormEvent) {
     event.preventDefault()
@@ -164,7 +160,6 @@ export default function WorkspaceOnboardingAssistant({ profile, savedProfile, sa
   }
 
   function startPreferenceChange() {
-    setShowSavedReview(false)
     setDraft('I would like to change one of my saved workspace preferences. Please help me review it and ask one question at a time.')
     setNotice('Describe the preference you want to change, then send it. Any suggestion still requires your review.')
   }
@@ -178,7 +173,6 @@ export default function WorkspaceOnboardingAssistant({ profile, savedProfile, sa
     setDraft('')
     setPendingProfile(null)
     setNotice('')
-    setShowSavedReview(false)
   }
 
   const savedEntries = Object.entries(savedProfile).filter(([, value]) => {
@@ -195,37 +189,13 @@ export default function WorkspaceOnboardingAssistant({ profile, savedProfile, sa
             <h2 id="onboarding-assistant-title" className="mt-1 text-lg font-semibold text-white">Talk through your business setup</h2>
           </div>
           <div className="flex flex-wrap justify-end gap-2">
-            <button type="button" onClick={() => setShowSavedReview((current) => !current)} disabled={loading} className="rounded-lg border border-cyan-200/25 px-2.5 py-1.5 text-[11px] font-semibold text-cyan-100 hover:bg-cyan-300/10">{showSavedReview ? 'Hide saved setup' : 'Review saved setup'}</button>
+            
             <button type="button" onClick={startPreferenceChange} disabled={loading} className="rounded-lg border border-white/15 px-2.5 py-1.5 text-[11px] font-semibold text-slate-300 hover:bg-white/5">Change a preference</button>
             <button type="button" onClick={resetConversation} disabled={loading} className="rounded-lg border border-white/15 px-2.5 py-1.5 text-[11px] font-semibold text-slate-300 hover:bg-white/5 disabled:opacity-40">Clear chat</button>
           </div>
         </div>
         <p className="mt-2 text-xs leading-relaxed text-slate-400">Conversation stays in this browser and is sent only to Ollama on this device. Suggestions must be reviewed. Applying one only fills the form; saving remains a separate action.</p>
       </div>
-
-      {showSavedReview && (
-        <div className="mx-4 mt-3 rounded-xl border border-cyan-200/25 bg-cyan-950/25 p-3" aria-label="Saved workspace preferences">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="text-sm font-semibold text-cyan-50">Saved workspace preferences</p>
-            <p className="text-[10px] text-cyan-100/65">{savedAt ? `Last saved ${new Date(savedAt).toLocaleString()}` : 'No saved timestamp yet'}</p>
-          </div>
-          <p className="mt-1 text-xs text-cyan-100/70">These are the last values returned by the workspace profile API. Changes below affect the form only until you choose Save progress.</p>
-          {savedEntries.length === 0 ? (
-            <p className="mt-3 text-xs text-slate-300">No saved preferences yet. Start with the guided sections or ask the assistant a question.</p>
-          ) : (
-            <div className="mt-3 space-y-2">
-              {savedEntries.map(([rawKey, value]) => {
-                const key = rawKey as keyof OnboardingProfile
-                const label = key.replace(/([A-Z])/g, ' $1').replace(/^./, (letter) => letter.toUpperCase())
-                return <div key={key} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-white/10 bg-black/15 p-2">
-                  <div className="min-w-0"><p className="text-xs font-semibold text-white">{label}</p><p className="break-words text-xs text-slate-300">{Array.isArray(value) ? value.join(', ') : String(value)}</p></div>
-                  <button type="button" onClick={() => { onResetField(key); setNotice(`${label} cleared in the form only. Choose Save progress to persist this change.`) }} className="shrink-0 rounded-lg border border-amber-200/25 px-2.5 py-1.5 text-[11px] font-semibold text-amber-100">Reset this answer</button>
-                </div>
-              })}
-            </div>
-          )}
-        </div>
-      )}
 
       <div className="max-h-64 space-y-3 overflow-y-auto px-4 py-3" aria-live="polite">
         {messages.map((message) => (
