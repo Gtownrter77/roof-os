@@ -80,8 +80,8 @@ export default function OnboardingPage() {
       icon: '🚀'
     },
     { 
-      title: 'Company Details 📋',
-      description: 'Tell us about your roofing business.',
+      title: 'Workspace & Contact Details 📋',
+      description: 'Confirm your workspace name and add your contact details.',
       icon: '🏢'
     },
     { 
@@ -171,7 +171,7 @@ export default function OnboardingPage() {
       case 2:
         return (
           <div className="space-y-4">
-            <h2 className="text-xl font-bold">Company Details</h2>
+            <h2 className="text-xl font-bold">Workspace & Contact Details</h2>
             <div>
               <label htmlFor="onboarding-company-name" className="block text-sm font-medium text-slate-200 mb-1">Workspace Name</label>
               <input
