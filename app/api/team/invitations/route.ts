@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '../../../../lib/supabase/server'
 import { createAdminClient } from '../../../../lib/supabase/admin'
 import { readJson } from '../../../../lib/api-security'
+import { INVITE_LAYERS, layerToWorkspaceRole, type EmployeeLayer } from '../../../../lib/employee-layers'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -13,7 +14,7 @@ export async function GET() {
   if (workspaceError || !workspaceId) return NextResponse.json({ error: 'No workspace is configured.' }, { status: 400 })
   const { data: isAdmin } = await supabase.rpc('is_workspace_admin', { target_workspace: workspaceId })
   if (!isAdmin) return NextResponse.json({ error: 'Workspace administrator access is required to view invitations.' }, { status: 403 })
-  const { data, error } = await supabase.from('workspace_invitations').select('id,email,role,status,expires_at,created_at').eq('workspace_id', workspaceId).order('created_at', { ascending: false }).limit(100)
+  const { data, error } = await supabase.from('workspace_invitations').select('id,email,role,employee_layer,status,expires_at,created_at').eq('workspace_id', workspaceId).order('created_at', { ascending: false }).limit(100)
   if (error) return NextResponse.json({ error: 'Could not load invitations.', detail: error.message }, { status: 502 })
   return NextResponse.json({ invitations: data ?? [] })
 }
@@ -29,14 +30,15 @@ export async function POST(request: NextRequest) {
 
   const parsedBody = await readJson(request)
   if ('error' in parsedBody) return NextResponse.json({ error: parsedBody.error }, { status: parsedBody.status })
-  const body = parsedBody.body as { email?: string; role?: 'admin' | 'member' }
+  const body = parsedBody.body as { email?: string; employeeLayer?: EmployeeLayer; role?: 'admin' | 'member' }
   const email = body.email?.trim().toLowerCase() ?? ''
-  const role = body.role ?? 'member'
+  const employeeLayer = INVITE_LAYERS.some((layer) => layer.id === body.employeeLayer) ? body.employeeLayer : null
+  if (!employeeLayer) return NextResponse.json({ error: 'Layer must be operations, inspector, closer, canvasser, or production.' }, { status: 400 })
+  const role = layerToWorkspaceRole(employeeLayer as EmployeeLayer)
   if (!EMAIL_RE.test(email)) return NextResponse.json({ error: 'A valid invite email is required.' }, { status: 400 })
-  if (!['admin', 'member'].includes(role)) return NextResponse.json({ error: 'Role must be admin or member.' }, { status: 400 })
   if (email === user.email?.toLowerCase()) return NextResponse.json({ error: 'You are already a workspace member.' }, { status: 409 })
 
-  const { data, error } = await supabase.from('workspace_invitations').insert({ workspace_id: workspaceId, email, role, invited_by: user.id }).select('id,email,role,status,expires_at,created_at').single()
+  const { data, error } = await supabase.from('workspace_invitations').insert({ workspace_id: workspaceId, email, role, employee_layer: employeeLayer, invited_by: user.id }).select('id,email,role,employee_layer,status,expires_at,created_at').single()
   if (error) return NextResponse.json({ error: 'Invitation could not be created.', detail: error.message }, { status: error.code === '23505' ? 409 : 403 })
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim()

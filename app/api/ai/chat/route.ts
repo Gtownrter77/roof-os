@@ -2,6 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '../../../../lib/supabase/server'
 import { readJson } from '../../../../lib/api-security'
 import { processChatCopilot, type ChatMessage } from '../../../../lib/ai/chat-copilot'
+import { describeFills, fillPageFields, type PageField } from '../../../../lib/ai/page-filler'
+import { readWorkspaceSettings } from '../../../../lib/workspace-settings'
+import { agentRefusal } from '../../../../lib/layer-gate'
+import type { EmployeeLayer } from '../../../../lib/employee-layers'
+
+// Open-source only. This route uses local Ollama and deterministic fill.
+// It does not call OpenAI, Anthropic, Gemini, or any paid measurement service.
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient()
@@ -21,10 +28,27 @@ export async function POST(request: NextRequest) {
     message?: unknown
     history?: unknown
     currentPath?: unknown
+    fields?: unknown
   }
 
   const message = typeof body.message === 'string' ? body.message : ''
   const currentPath = typeof body.currentPath === 'string' ? body.currentPath : '/'
+  const { data: isOwner } = await supabase.rpc('is_system_owner')
+  const { data: workspaceId } = await supabase.rpc('current_workspace_id')
+  let layer: EmployeeLayer | null = null
+  if (isOwner === true) {
+    layer = 'owner'
+  } else if (workspaceId) {
+    const { data: member } = await supabase
+      .from('workspace_members')
+      .select('employee_layer,role')
+      .eq('workspace_id', workspaceId)
+      .eq('user_id', user.id)
+      .maybeSingle()
+    layer = (member?.employee_layer as EmployeeLayer | null) ?? (member?.role === 'admin' ? 'operations' : 'canvasser')
+  }
+  const refusal = agentRefusal(layer, message)
+  if (refusal) return NextResponse.json({ reply: refusal, fills: [], applied: false })
   const rawHistory = Array.isArray(body.history) ? body.history : []
 
   const history: ChatMessage[] = rawHistory
@@ -42,6 +66,30 @@ export async function POST(request: NextRequest) {
     }))
     .slice(-8)
 
+  const fields: PageField[] = Array.isArray(body.fields)
+    ? body.fields
+        .filter((item): item is { key: string; label: string; value?: string; type?: string } => {
+          return Boolean(item && typeof item === 'object' && typeof item.key === 'string' && typeof item.label === 'string')
+        })
+        .slice(0, 40)
+        .map((item) => ({
+          key: item.key.slice(0, 80),
+          label: item.label.slice(0, 120),
+          value: typeof item.value === 'string' ? item.value.slice(0, 200) : '',
+          type: typeof item.type === 'string' ? item.type.slice(0, 40) : 'text',
+        }))
+    : []
+
+  const fills = fillPageFields(message, fields)
+  let yoloMode = false
+  if (workspaceId) {
+    if (isOwner === true) {
+      const { data: settingsRow } = await supabase.from('workspace_settings').select('yolo_mode').eq('workspace_id', workspaceId).maybeSingle()
+      yoloMode = readWorkspaceSettings(settingsRow).yolo_mode === true
+    }
+  }
+  const needsApproval = fills.length > 0 && !yoloMode
+
   try {
     const result = await processChatCopilot({
       message,
@@ -51,6 +99,14 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       ...result,
+      fills,
+      yoloMode,
+      needsApproval,
+      reply: fills.length
+        ? yoloMode
+          ? `${describeFills(fills, fields)} YOLO MODE is on, so this step was applied.`
+          : `${describeFills(fills, fields)} Waiting for your approval.`
+        : result.reply,
       authenticated: Boolean(user),
     })
   } catch (error) {

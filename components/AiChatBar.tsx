@@ -23,6 +23,61 @@ type Message = {
   action?: { label: string; href: string }
 }
 
+type PageField = {
+  key: string
+  label: string
+  value: string
+  type: string
+  element: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+}
+
+function collectPageFields(): PageField[] {
+  const controls = Array.from(
+    document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>(
+      'input, textarea, select',
+    ),
+  )
+
+  return controls
+    .filter((element) => {
+      if (element.closest('[data-ai-agent]')) return false
+      if (element instanceof HTMLInputElement && ['hidden', 'file', 'checkbox', 'radio', 'submit', 'button'].includes(element.type)) return false
+      if ((element as HTMLInputElement).disabled || element.getAttribute('aria-hidden') === 'true') return false
+      return true
+    })
+    .slice(0, 40)
+    .map((element, index) => {
+      const id = element.id
+      const label = (
+        (id ? document.querySelector(`label[for="${id}"]`)?.textContent : '') ||
+        element.getAttribute('aria-label') ||
+        element.getAttribute('placeholder') ||
+        element.getAttribute('name') ||
+        `Field ${index + 1}`
+      ).replace(/\s+/g, ' ').trim()
+      return {
+        key: id || element.getAttribute('name') || `field-${index}`,
+        label,
+        value: element.value,
+        type: element instanceof HTMLInputElement ? element.type : element.tagName.toLowerCase(),
+        element,
+      }
+    })
+}
+
+function applyFill(field: PageField, value: string) {
+  const element = field.element
+  const prototype = element instanceof HTMLTextAreaElement
+    ? HTMLTextAreaElement.prototype
+    : element instanceof HTMLSelectElement
+      ? HTMLSelectElement.prototype
+      : HTMLInputElement.prototype
+  const setter = Object.getOwnPropertyDescriptor(prototype, 'value')?.set
+  setter?.call(element, value)
+  element.dispatchEvent(new Event('input', { bubbles: true }))
+  element.dispatchEvent(new Event('change', { bubbles: true }))
+}
+
 const QUICK_ACTIONS = [
   { label: 'Track Storms', href: '/weather', icon: CloudLightning },
   { label: 'Review Leads', href: '/leads', icon: Users },
@@ -37,12 +92,13 @@ export default function AiChatBar() {
   const [input, setInput] = useState('')
   const [isOpen, setIsOpen] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [pendingFills, setPendingFills] = useState<Array<{ key: string; value: string; label: string }>>([])
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 'welcome',
       role: 'assistant',
       content:
-        'Welcome to the ROOF/OS Command Center. What would you like to do now? Ask me anything or tap an action below to get started.',
+        'I am on this page with you. Tell me what to fill and I will write the fields. I can also open storms, leads, measurements, estimates, and reports.',
       action: { label: 'Explore Storm Tracker', href: '/weather' },
     },
   ])
@@ -92,6 +148,7 @@ export default function AiChatBar() {
     setIsOpen(true)
     setLoading(true)
 
+    const fields = collectPageFields()
     try {
       const response = await fetch('/api/ai/chat', {
         method: 'POST',
@@ -100,6 +157,7 @@ export default function AiChatBar() {
         body: JSON.stringify({
           message: text,
           currentPath: pathname,
+          fields: fields.map(({ key, label, value, type }) => ({ key, label, value, type })),
           history: messages.slice(-6).map((m) => ({ role: m.role, content: m.content })),
         }),
       })
@@ -109,10 +167,28 @@ export default function AiChatBar() {
       }
 
       const data = await response.json()
+      const fills = Array.isArray(data.fills) ? data.fills : []
+      const labeled = fills
+        .filter((fill: { key?: string; value?: string }) => typeof fill.key === 'string' && typeof fill.value === 'string')
+        .map((fill: { key: string; value: string }) => ({
+          key: fill.key,
+          value: fill.value,
+          label: fields.find((field) => field.key === fill.key)?.label || fill.key,
+        }))
+      // The API response is the server-enforced yolo_mode decision; never infer it locally.
+      if (data.needsApproval !== true && data.yoloMode === true) {
+        for (const fill of labeled) {
+          const field = fields.find((item) => item.key === fill.key)
+          if (field) applyFill(field, fill.value)
+        }
+        setPendingFills([])
+      } else if (labeled.length) {
+        setPendingFills(labeled)
+      }
       const assistantMessage: Message = {
         id: `assistant-${Date.now()}`,
         role: 'assistant',
-        content: data.reply || 'What would you like to do now?',
+        content: data.reply || 'What would you like me to fill on this page?',
         action: data.suggestedAction,
       }
       setMessages((prev) => [...prev, assistantMessage])
@@ -140,8 +216,9 @@ export default function AiChatBar() {
   return (
     <div
       className={`pointer-events-none fixed z-50 flex flex-col items-end gap-2 ${dockClass}`}
+      data-ai-agent="true"
       role="region"
-      aria-label="AI Command Bar"
+      aria-label="Page AI agent"
     >
       {isOpen && (
         <div className="pointer-events-auto flex w-[min(100vw-2rem,22rem)] max-h-[min(70vh,28rem)] flex-col overflow-hidden rounded-2xl border border-cyan-500/40 bg-[#080d1a]/95 shadow-[0_12px_40px_rgba(0,0,0,0.8)] backdrop-blur-2xl sm:w-[22rem]">
@@ -246,6 +323,39 @@ export default function AiChatBar() {
                 </button>
               ))}
             </div>
+            {pendingFills.length > 0 && (
+              <div className="mb-2 rounded-xl border border-amber-400/40 bg-amber-500/10 p-2 text-xs text-amber-100">
+                <p className="font-bold">Approval required</p>
+                <p className="mt-1">{pendingFills.map((fill) => `${fill.label}: ${fill.value}`).join(' · ')}</p>
+                <div className="mt-2 flex gap-2">
+                  <button
+                    type="button"
+                    className="rounded-lg bg-emerald-600 px-3 py-1 font-bold text-white"
+                    onClick={() => {
+                      const fields = collectPageFields()
+                      for (const fill of pendingFills) {
+                        const field = fields.find((item) => item.key === fill.key)
+                        if (field) applyFill(field, fill.value)
+                      }
+                      setPendingFills([])
+                      setMessages((prev) => [...prev, { id: `approved-${Date.now()}`, role: 'assistant', content: 'Approved. Fields applied.' }])
+                    }}
+                  >
+                    Approve
+                  </button>
+                  <button
+                    type="button"
+                    className="rounded-lg border border-white/20 px-3 py-1"
+                    onClick={() => {
+                      setPendingFills([])
+                      setMessages((prev) => [...prev, { id: `denied-${Date.now()}`, role: 'assistant', content: 'Denied. Nothing was changed.' }])
+                    }}
+                  >
+                    Deny
+                  </button>
+                </div>
+              </div>
+            )}
             <form onSubmit={onSubmit} className="flex items-center gap-2">
               <input
                 ref={inputRef}
@@ -281,7 +391,7 @@ export default function AiChatBar() {
             <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
           </span>
           <Bot className="h-4 w-4 text-cyan-300" />
-          <span>AI Copilot</span>
+          <span>AI Agent</span>
           <span className="hidden text-[10px] font-normal text-slate-400 sm:inline">⌘K</span>
         </button>
       )}

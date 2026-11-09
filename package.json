@@ -87,6 +87,7 @@
     "test:release-gate-summary": "node scripts/release-gate-summary-test.mjs && node scripts/release-gate-summary.mjs",
     "test:llama-agent": "node scripts/llama-agent-test.mjs",
     "test:ai-chat-bar": "node --experimental-strip-types scripts/ai-chat-bar-test.mjs",
+    "test:pr409-regression": "node --experimental-strip-types --no-warnings scripts/pr409-regression-test.mjs",
     "test:canvass-save": "node scripts/canvass-atomic-write-test.mjs",
     "test:field-localdb-web": "node --experimental-strip-types scripts/field-localdb-web-test.mjs",
     "test:owner-labor": "node scripts/owner-labor-catalog-test.mjs",

@@ -45,6 +45,7 @@ type Settings = {
   require_photo_completeness_report_gate: boolean
   require_technician_signature_signoff: boolean
   enable_2021_irc_statutory_code_suggestions: boolean
+  yolo_mode: boolean
 }
 
 type TaxRates = { state: number; county: number; city: number; specialDistrict: number }
@@ -72,6 +73,7 @@ const initialSettings: Settings = {
   require_photo_completeness_report_gate: true,
   require_technician_signature_signoff: true,
   enable_2021_irc_statutory_code_suggestions: true,
+  yolo_mode: false,
 }
 
 const initialTax: TaxRates = { state: 0, county: 0, city: 0, specialDistrict: 0 }
@@ -88,11 +90,14 @@ export default function SettingsPage() {
   const [message, setMessage] = useState('')
   const [refreshing, setRefreshing] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [ownerEmailConfirm, setOwnerEmailConfirm] = useState('')
+  const [ownerPhraseConfirm, setOwnerPhraseConfirm] = useState('')
+  const [isSystemOwner, setIsSystemOwner] = useState(false)
 
   useEffect(() => {
     setRadarPrefs(loadRadarLayerPrefs())
     setCinemaOn(cinemaThemeEnabled())
-    Promise.all([fetch('/api/settings'), fetch('/api/pricing/labor-rates')]).then(async ([settingsResponse, pricingResponse]) => {
+    Promise.all([fetch('/api/settings'), fetch('/api/pricing/labor-rates'), fetch('/api/settings/agents')]).then(async ([settingsResponse, pricingResponse, agentsResponse]) => {
       const settingsPayload = await settingsResponse.json()
       const pricingPayload = await pricingResponse.json()
       if (settingsResponse.ok && settingsPayload.settings) {
@@ -102,6 +107,10 @@ export default function SettingsPage() {
         setTaxRates({ ...initialTax, ...(pricingPayload.taxRates ?? {}) })
         setTaxSource(pricingPayload.taxSource ?? '')
         if (pricingPayload.rates) setLaborRates(pricingPayload.rates as Record<string, number>)
+      }
+      if (agentsResponse.ok) {
+        const agentsPayload = await agentsResponse.json().catch(() => ({}))
+        setIsSystemOwner(agentsPayload.canEdit === true)
       }
       setLoaded(true)
     }).catch(() => {
@@ -122,7 +131,7 @@ export default function SettingsPage() {
     setSaving(true)
     setMessage('Saving owner settings & feature toggles…')
     try {
-      const settingsResponse = await fetch('/api/settings', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(settings) })
+      const settingsResponse = await fetch('/api/settings', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ...settings, ownerAuthorization: { email: ownerEmailConfirm, confirmation: ownerPhraseConfirm } }) })
       const settingsPayload = await settingsResponse.json().catch(() => ({}))
       if (!settingsResponse.ok) {
         setMessage(settingsPayload.error ?? 'Could not save workspace settings.')
@@ -176,6 +185,22 @@ export default function SettingsPage() {
       </header>
 
       <main className="p-4 max-w-2xl mx-auto space-y-4">
+        {isSystemOwner && (
+        <section className="glass rounded-xl p-4 border-l-4 border-amber-400 space-y-3">
+          <h2 className="font-bold text-sm text-white flex items-center">
+            <span className="text-lg mr-1.5">⚡</span> Owner · YOLO MODE
+          </h2>
+          <p className="text-xs text-slate-400">Owner only. Canvassers do not get this switch and YOLO never runs for them.</p>
+          <ToggleRow
+            label="YOLO MODE"
+            desc="Off: the AI agent runs the process and waits for your approval at each step. On: the agent finishes the process without stopping."
+            checked={settings.yolo_mode}
+            onToggle={() => toggleSetting('yolo_mode')}
+            flag="yolo_mode"
+          />
+        </section>
+        )}
+
         {/* AI & Automation Toggles */}
         <section className="glass rounded-xl p-4 border-l-4 border-indigo-600 space-y-3">
           <h2 className="font-bold text-sm text-white flex items-center">
@@ -510,7 +535,20 @@ export default function SettingsPage() {
           </div>
         </section>
 
-        <button onClick={save} disabled={!loaded || saving} className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3.5 rounded-lg font-bold text-sm disabled:opacity-50">
+        <section className="glass rounded-xl p-4 border-l-4 border-red-500 space-y-3">
+          <h2 className="font-bold text-sm text-white">Owner 2-part authorization</h2>
+          <p className="text-xs text-slate-400">Settings cannot change until both parts are completed by the owner.</p>
+          <label className="block text-xs text-slate-300">
+            Part 1 · Confirm owner email
+            <input value={ownerEmailConfirm} onChange={(e) => setOwnerEmailConfirm(e.target.value)} className="ops-input mt-1" placeholder="owner@email" autoComplete="email" />
+          </label>
+          <label className="block text-xs text-slate-300">
+            Part 2 · Type AUTHORIZE SETTINGS
+            <input value={ownerPhraseConfirm} onChange={(e) => setOwnerPhraseConfirm(e.target.value)} className="ops-input mt-1" placeholder="AUTHORIZE SETTINGS" />
+          </label>
+        </section>
+
+        <button onClick={save} disabled={!loaded || saving || !ownerEmailConfirm.trim() || ownerPhraseConfirm.trim() !== 'AUTHORIZE SETTINGS'} className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3.5 rounded-lg font-bold text-sm disabled:opacity-50">
           {saving ? 'Saving Settings…' : '💾 Save All Master Settings & Toggles'}
         </button>
 

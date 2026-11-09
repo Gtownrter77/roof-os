@@ -28,6 +28,7 @@ export async function POST(request: NextRequest) {
   const membership = Array.isArray(data) ? data[0] : data
   return NextResponse.json({
     membership,
+    employeeLayer: membership?.employee_layer ?? null,
     acceptedBy: user.id,
   })
 }

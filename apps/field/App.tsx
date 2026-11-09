@@ -185,6 +185,7 @@ export default function App() {
   const [roofType, setRoofType] = useState('')
   const [photoCaption, setPhotoCaption] = useState('')
   const [notice, setNotice] = useState('')
+  const [agentInstruction, setAgentInstruction] = useState('')
   const [error, setError] = useState('')
   const [syncing, setSyncing] = useState(false)
   const [leads, setLeads] = useState<Lead[]>([])
@@ -961,8 +962,8 @@ export default function App() {
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Desktop bridge</Text>
           <Text style={styles.helper}>This app is the inspector console. The desktop is the system of record. Open the matching screen there.</Text>
-          <Pressable style={styles.secondary} onPress={() => Linking.openURL(`${webAppUrl}/measure`)}>
-            <Text style={styles.secondaryText}>Open measurements on desktop</Text>
+          <Pressable style={styles.secondary} onPress={() => Linking.openURL(`${webAppUrl}${selectedLeadId ? `/jobs/${selectedLeadId}` : '/measure'}`)}>
+            <Text style={styles.secondaryText}>{selectedLeadId ? 'Open this job on desktop' : 'Open measurements on desktop'}</Text>
           </Pressable>
           <Pressable style={[styles.secondary, { marginTop: 10 }]} onPress={() => Linking.openURL(`${webAppUrl}/photo-estimate`)}>
             <Text style={styles.secondaryText}>Open inspection photos on desktop</Text>
@@ -972,6 +973,42 @@ export default function App() {
           </Pressable>
           <Pressable style={[styles.secondary, { marginTop: 10 }]} onPress={() => Linking.openURL(webAppUrl)}>
             <Text style={styles.secondaryText}>Open desktop home</Text>
+          </Pressable>
+        </View>
+
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>AI agent</Text>
+          <Text style={styles.helper}>Same agent as the desktop. This button is the approval. YOLO MODE is owner only and is not for canvassers.</Text>
+          <TextInput
+            value={agentInstruction}
+            onChangeText={setAgentInstruction}
+            placeholder="Address is 3770 Hopkins Rd. Technician is Ryan Long. Notes are hail on the south slope."
+            placeholderTextColor={colors.muted}
+            style={styles.input}
+            multiline
+          />
+          <Pressable
+            style={styles.cameraButton}
+            onPress={() => {
+              const text = agentInstruction.trim()
+              if (!text) {
+                setNotice('Tell the agent what to fill.')
+                return
+              }
+              const quoted = [...text.matchAll(/["']([^"']+)["']/g)].map((match) => match[1])
+              const addressMatch = text.match(/address(?:\s+is|\s+to|=|:)\s+([^.\n]+)/i)
+              const techMatch = text.match(/technician(?:\s+is|\s+to|=|:)\s+([^.\n]+)/i)
+              const notesMatch = text.match(/notes?(?:\s+are|\s+is|\s+to|=|:)\s+([^.\n]+)/i)
+              const squaresMatch = text.match(/(\d+(?:\.\d+)?)\s*(?:sq|squares?)/i)
+              if (addressMatch) setAddress(addressMatch[1].trim())
+              else if (quoted[0]) setAddress(quoted[0])
+              if (techMatch) setTechnicianName(techMatch[1].trim())
+              if (notesMatch) setVerificationNotes(notesMatch[1].trim())
+              if (squaresMatch) setSquares(squaresMatch[1])
+              setNotice('AI agent filled the inspection fields it could read.')
+            }}
+          >
+            <Text style={styles.primaryText}>Fill this inspection</Text>
           </Pressable>
         </View>
 

@@ -34,6 +34,24 @@ export async function PUT(request: NextRequest) {
   const parsedBody = await readJson(request)
   if ('error' in parsedBody) return NextResponse.json({ error: parsedBody.error }, { status: parsedBody.status })
   const body = parsedBody.body as Record<string, unknown>
+  const authorization = body.ownerAuthorization
+  if (!authorization || typeof authorization !== 'object') {
+    return NextResponse.json({ error: 'Owner 2-part authorization is required before settings can change.' }, { status: 403 })
+  }
+  const ownerEmail = String((authorization as { email?: unknown }).email ?? '').trim().toLowerCase()
+  const confirmation = String((authorization as { confirmation?: unknown }).confirmation ?? '').trim()
+  if (!user.email || ownerEmail !== user.email.toLowerCase()) {
+    return NextResponse.json({ error: 'Part 1 failed. Owner email does not match the signed-in owner.' }, { status: 403 })
+  }
+  if (confirmation !== 'AUTHORIZE SETTINGS') {
+    return NextResponse.json({ error: 'Part 2 failed. Type AUTHORIZE SETTINGS to confirm.' }, { status: 403 })
+  }
+  if ('yolo_mode' in body) {
+    const { data: isOwner } = await supabase.rpc('is_system_owner')
+    if (isOwner !== true) {
+      return NextResponse.json({ error: 'YOLO MODE is owner only. Canvassers cannot change it.' }, { status: 403 })
+    }
+  }
   const patch: Record<string, unknown> = {}
 
   if ('price_refresh_frequency' in body) {
