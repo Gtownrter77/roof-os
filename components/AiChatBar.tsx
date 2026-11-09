@@ -151,7 +151,7 @@ export default function AiChatBar() {
                 <Bot className="h-4 w-4" />
               </div>
               <div className="min-w-0">
-                <h3 className="truncate text-xs font-black tracking-wide text-white">ROOF/OS AI</h3>
+                <h3 className="truncate text-xs font-black tracking-wide text-white">ROOF/OS AI Copilot</h3>
                 <p className="truncate text-[10px] text-cyan-300">Ask or pick a command</p>
               </div>
             </div>

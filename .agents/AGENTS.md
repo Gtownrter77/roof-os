@@ -24,6 +24,6 @@ Extends `AUTOMATION-AGENTS.md` (not replacing). Adds persistent reliability prac
 2. Every fix requires root-cause evidence (Phase 1 of systematic-debugging); no symptom-only fixes.
 3. Unresolved risks must be listed; never hide a gap behind passing source tests.
 4. RLS / authorization changes use new migrations only (`059_...` pattern). Direct table writes verified via RLS + trigger + RPC.
-5. Experimental / sandbox work uses a `feat/` branch + God Mode guard; never on `main`; never bypass required CI checks. Push/merge requires the owner's explicit directive.
+5. Experimental / sandbox work uses a `feat/` branch + God Mode guard; never on `main`; never bypass required CI checks. Push/merge requires the owner's explicit directive. The owner has given a standing project directive that assigned ROOF/OS work is not complete until it is merged: keep changes isolated, open or update the appropriate PR, resolve failed checks, wait for required checks to pass, then merge. Never merge with required checks pending or failing. If an external safety gate cannot be satisfied, report the blocker rather than claiming completion.
 
 See also: `AUTOMATION-AGENTS.md` (agent roles 1-4, bounded rules, no auto-approval of estimates/payloads); `docs/superpowers/plans/2026-10-27-estimate-approval-auth.md`; `scripts/estimate-approval-authority-test.mjs`.
