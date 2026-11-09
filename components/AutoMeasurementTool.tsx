@@ -35,7 +35,7 @@ export default function AutoMeasurementTool({ hasImage, working = false, onDetec
     <section className="glass mt-4 rounded-xl p-4">
       <h2 className="font-semibold">Auto-Measurement Tool</h2>
       <p className="text-sm text-slate-400">
-        When you choose Detect roof, the image is saved in private inspection storage and sent securely from the server to Google Gemini for image-coordinate suggestions. AI does not calculate verified dimensions; a person must review the shapes and calibrate scale and pitch.
+        When you choose Detect roof, an image up to 12 MB is saved in private inspection storage and sent securely from the server to Google Gemini for image-coordinate suggestions. Larger images can still be traced manually. AI does not calculate verified dimensions; a person must review the shapes and calibrate scale and pitch.
       </p>
       <div className="mt-3 flex flex-wrap gap-2">
         <button
