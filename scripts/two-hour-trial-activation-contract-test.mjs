@@ -23,6 +23,7 @@ assert.ok(migration.includes('on delete set null'), 'company claim survives acco
 assert.ok(migration.includes('revoke all on function public.activate_two_hour_workspace_trial(text) from public, anon'))
 assert.ok(migration.includes('grant execute on function public.activate_two_hour_workspace_trial(text) to authenticated'))
 assert.ok(migration.includes('alter table public.workspace_trial_claims enable row level security'))
+assert.ok(migration.includes('revoke all on table public.workspace_trial_claims from public, anon, authenticated'))
 assert.ok(!migration.includes('create policy') && !migration.includes('grant select on public.workspace_trial_claims'), 'trial claims are not directly readable by clients')
 
 assert.ok(expiry.includes('workspace.trial_expires_at > statement_timestamp()'), 'expired access is rejected by the database')
