@@ -12,7 +12,7 @@ Branch: free-local-stack. Changes must pass the release checks before merge to m
 | OpenAI gpt-4o-mini chat | Ollama llama3:8b. Keywords only if Ollama is down. No hosted chat key. | lib/ai/ollama.ts, lib/ai/chat-copilot.ts |
 | Receptionist OpenAI fallback | Same Ollama model, then the keyword rule engine. | lib/receptionist-ai.ts |
 
-| Gemini 2.5 Flash photo / aerial / siding analysis | Replaced in code with the OpenAI-compatible local vision API (`OLLAMA_VISION_API_BASE_URL`, default `http://localhost:20128/v1`) and Qwen3-VL as the recommended model (`OLLAMA_VISION_MODEL`, default `qwen3-vl:8b`). The three routes use the same local client; no Gemini key is required. The endpoint must be reachable from the app runtime. | lib/ai/local-vision.mjs, app/api/photo-estimate/analyze/route.ts, app/api/measurements/aerial/route.ts, app/api/siding/analyze/route.ts |
+| Gemini aerial roof geometry | Server-side Gemini Developer API (`GEMINI_API_KEY`, default model `gemini-3.8-flash`) is used only by the authenticated aerial geometry suggestion route. Requires `GEMINI_PAID_SERVICE_CONFIRMED=true` as an owner-controlled safety gate and a Google API project with active billing; requests are limited to 12 MB images and five calls per workspace/user per hour. AI geometry remains unverified until human review and calibration. Photo-estimate and siding analysis remain on the local Ollama client. | lib/ai/gemini-vision.mjs, app/api/measurements/aerial/ai-suggest/route.ts, app/api/photo-estimate/analyze/route.ts, app/api/siding/analyze/route.ts |
 
 ## Free claims document path
 
