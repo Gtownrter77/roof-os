@@ -132,6 +132,7 @@ jobs:
       - run: npm run test:ai-vision-contract
       - run: npm run test:ai-vision-endpoint
       - run: npm run test:workspace-settings
+      - run: npm run test:onboarding-profile
       - run: npm run audit
 
   mobile:
@@ -275,6 +276,10 @@ jobs:
           grep -q "next_action_owner_id" supabase/migrations/039_crm_missing_spokes.sql
           grep -q "manager_approval_signature" supabase/migrations/042_golden_report_review_controls.sql
           test -f supabase/migrations/080_estimate_packet_manager_gate.sql
+          test -f supabase/migrations/092_workspace_onboarding_profiles.sql
+          grep -q "public.is_workspace_admin(workspace_id)" supabase/migrations/092_workspace_onboarding_profiles.sql
+          grep -q "public.is_workspace_member(workspace_id)" supabase/migrations/092_workspace_onboarding_profiles.sql
+          grep -q "auth.uid() = updated_by" supabase/migrations/092_workspace_onboarding_profiles.sql
           grep -q "enforce_photo_estimate_packet_manager_gate" supabase/migrations/080_estimate_packet_manager_gate.sql
           grep -q "lead_score" supabase/migrations/039_crm_missing_spokes.sql
           grep -q "aerial_measurements_workspace_consistency" supabase/migrations/041_aerial_workspace_consistency.sql
