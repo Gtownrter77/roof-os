@@ -34,6 +34,7 @@ export default function WorkspaceOnboardingPage() {
   const [status, setStatus] = useState<OnboardingProfileStatus>('draft')
   const [step, setStep] = useState(0)
   const [canEdit, setCanEdit] = useState(false)
+  const [setupMode, setSetupMode] = useState<'choose' | 'assistant' | 'manual'>('choose')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -50,6 +51,7 @@ export default function WorkspaceOnboardingPage() {
         setProfile({ ...EMPTY_PROFILE, ...(data.profile ?? {}) })
         setStatus(data.status === 'completed' ? 'completed' : 'draft')
         setCanEdit(data.canEdit === true)
+        setSetupMode(data.canEdit === true ? 'choose' : 'manual')
       } catch (cause) {
         if (active) setError(cause instanceof Error ? cause.message : 'Could not load workspace setup.')
       } finally {
@@ -117,17 +119,46 @@ export default function WorkspaceOnboardingPage() {
           These are reviewed workspace preferences only. Saving them does not change pricing, permissions, crew assignments, customer records, integrations, or live operations. Optional local AI suggestions require owner review and never save automatically.
         </div>
 
-        {canEdit && (
-          <WorkspaceOnboardingAssistant
-            profile={profile}
-            onApply={(nextProfile) => {
-              setProfile(nextProfile)
-              setNotice('Assistant suggestion applied to the form. Review it, then save when ready.')
-            }}
-          />
+        {canEdit && setupMode === 'choose' && (
+          <section id="setup-mode-choice" className="mb-6 rounded-2xl border border-cyan-300/25 bg-slate-950/65 p-4" aria-labelledby="setup-mode-heading">
+            <h2 id="setup-mode-heading" className="text-lg font-semibold text-white">How would you like to build your setup?</h2>
+            <p className="mt-1 text-sm text-slate-400">Both paths lead to the same reviewed workspace profile. The assistant is optional.</p>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <button type="button" onClick={() => setSetupMode('assistant')} className="rounded-xl border border-cyan-300/40 bg-cyan-950/30 p-4 text-left hover:bg-cyan-900/40">
+                <span className="block text-sm font-semibold text-cyan-100">Build my setup with the assistant</span>
+                <span className="mt-1 block text-xs leading-relaxed text-slate-300">Describe your business naturally. Review any suggested profile details before applying them.</span>
+              </button>
+              <button type="button" onClick={() => setSetupMode('manual')} className="rounded-xl border border-white/20 bg-white/5 p-4 text-left hover:bg-white/10">
+                <span className="block text-sm font-semibold text-white">I’ll configure it myself</span>
+                <span className="mt-1 block text-xs leading-relaxed text-slate-300">Go straight to the five guided sections. No AI conversation is needed.</span>
+              </button>
+            </div>
+          </section>
         )}
 
-        {canEdit && <WorkspaceSetupTour onSelectSection={selectTourSection} />}
+        {canEdit && setupMode === 'assistant' && (
+          <>
+            <WorkspaceOnboardingAssistant
+              profile={profile}
+              onApply={(nextProfile) => {
+                setProfile(nextProfile)
+                setNotice('Assistant suggestion applied to the form. Review it, then save when ready.')
+              }}
+            />
+            <button type="button" onClick={() => setSetupMode('manual')} className="mb-5 rounded-lg border border-white/15 px-3 py-2 text-xs text-slate-300 hover:bg-white/5">Switch to manual setup</button>
+          </>
+        )}
+
+        {canEdit && setupMode === 'manual' && (
+          <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/10 bg-slate-950/45 p-3">
+            <p className="text-xs text-slate-300">Manual setup selected. The assistant is optional and can be opened at any time.</p>
+            <button type="button" onClick={() => setSetupMode('assistant')} className="rounded-lg border border-cyan-300/35 px-3 py-2 text-xs font-semibold text-cyan-100">Use assistant</button>
+          </div>
+        )}
+
+        {canEdit && setupMode !== 'choose' && (
+          <WorkspaceSetupTour key={setupMode} assistantEnabled={setupMode === 'assistant'} onSelectSection={selectTourSection} />
+        )}
 
         {!canEdit && (
           <div className="mb-5 rounded-xl border border-amber-300/30 bg-amber-950/25 p-3 text-sm text-amber-100" role="status">
@@ -135,6 +166,8 @@ export default function WorkspaceOnboardingPage() {
           </div>
         )}
 
+        {(setupMode !== 'choose' || !canEdit) && (
+          <>
         <nav aria-label="Workspace setup steps" className="mb-6 grid grid-cols-5 gap-2">
           {STEPS.map((name, index) => (
             <button key={name} type="button" onClick={() => setStep(index)} aria-current={step === index ? 'step' : undefined} className={`rounded-lg border px-2 py-2 text-xs font-semibold transition ${step === index ? 'border-cyan-300 bg-cyan-400/15 text-cyan-100' : 'border-white/10 bg-white/5 text-slate-400 hover:text-white'}`}>
@@ -229,6 +262,8 @@ export default function WorkspaceOnboardingPage() {
           {error && <p className="mt-4 text-sm text-red-300" role="alert">{error}</p>}
           {notice && <p className="mt-4 text-sm text-emerald-300" role="status" aria-live="polite">{notice}</p>}
         </section>
+          </>
+        )}
       </div>
     </main>
   )
