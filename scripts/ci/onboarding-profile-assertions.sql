@@ -178,3 +178,74 @@ update public.workspace_onboarding_profiles
 reset role;
 
 select 'ONBOARDING PROFILE MIGRATION 092: workspace isolation, member read-only, admin write, and actor attribution assertions passed.' as result;
+
+
+-- Migration 093 must replace (not merely supplement) the v1 allowlist.
+-- A valid v2-only profile must save, while unknown keys and invalid v2 values
+-- remain rejected by database constraints on direct authenticated writes.
+set role authenticated;
+select set_config('request.jwt.claim.sub','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',false);
+do $profile_v2$
+declare
+  affected integer := 0;
+  rejected boolean := false;
+begin
+  update public.workspace_onboarding_profiles
+  set profile = '{
+    "companyType":"residential",
+    "yearsInBusinessBand":"2-5",
+    "teamRoles":["owner","foreman"],
+    "photoEvidenceWorkflow":"phone_photos",
+    "approvalWorkflow":"owner_approval",
+    "schedulingWorkflow":"calendar",
+    "businessHours":"Mon-Fri 8-5"
+  }'::jsonb,
+  updated_by = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+  where workspace_id = '11111111-1111-4111-8111-111111111111';
+  get diagnostics affected = row_count;
+  if affected <> 1 then
+    raise exception 'valid v2 profile write did not update the workspace profile';
+  end if;
+
+  if (select schema_version from public.workspace_onboarding_profiles
+      where workspace_id = '11111111-1111-4111-8111-111111111111') <> 2 then
+    raise exception 'migration 093 did not set schema_version to 2';
+  end if;
+
+  rejected := false;
+  begin
+    update public.workspace_onboarding_profiles
+    set profile = '{"companyType":"residential","unapprovedV2Key":true}'::jsonb
+    where workspace_id = '11111111-1111-4111-8111-111111111111';
+  exception when check_violation then rejected := true;
+  end;
+  if not rejected then
+    raise exception 'database accepted an unknown v2 profile key';
+  end if;
+
+  rejected := false;
+  begin
+    update public.workspace_onboarding_profiles
+    set profile = '{"teamRoles":["owner","root"]}'::jsonb
+    where workspace_id = '11111111-1111-4111-8111-111111111111';
+  exception when check_violation then rejected := true;
+  end;
+  if not rejected then
+    raise exception 'database accepted an unsupported v2 team role';
+  end if;
+
+  rejected := false;
+  begin
+    update public.workspace_onboarding_profiles
+    set profile = '{"yearsInBusinessBand":"centuries"}'::jsonb
+    where workspace_id = '11111111-1111-4111-8111-111111111111';
+  exception when check_violation then rejected := true;
+  end;
+  if not rejected then
+    raise exception 'database accepted an invalid v2 years-in-business value';
+  end if;
+end
+$profile_v2$;
+reset role;
+
+select 'ONBOARDING PROFILE MIGRATION 093: valid v2 writes accepted; unknown keys and invalid v2 values rejected.' as result;
