@@ -124,8 +124,9 @@ assert.ok(aerialGeminiRoute.includes('createSignedUrl(photo.object_path, 60)'))
 assert.ok(aerialGeminiRoute.includes('signedUrl.origin !== storageOrigin'))
 assert.ok(aerialGeminiRoute.includes('validateGeometrySuggestion(candidate)'))
 assert.ok(aerialGeminiRoute.includes('rejectUnsafeClaims(suggestion)'))
-assert.ok(!measurePage.includes('local-vision-browser'))
-assert.ok(measurePage.includes('/api/measurements/aerial/ai-suggest'))
+assert.ok(measurePage.includes('analyzeRoofImageWithLocalOllama'))
+assert.ok(measurePage.includes('/api/measurements/aerial'))
+assert.ok(!measurePage.includes('/api/measurements/aerial/ai-suggest'))
 assert.ok(measurePage.includes('file.size > 12 * 1024 * 1024'))
 
 const previousGeminiKey = process.env.GEMINI_API_KEY
