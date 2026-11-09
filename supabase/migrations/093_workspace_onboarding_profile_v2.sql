@@ -212,8 +212,8 @@ create policy workspace_onboarding_profile_events_insert
     and actor_id = auth.uid()
   );
 
+revoke all on public.workspace_onboarding_profile_events from public, anon, authenticated;
 grant select, insert on public.workspace_onboarding_profile_events to authenticated;
-revoke update, delete on public.workspace_onboarding_profile_events from authenticated;
 
 create or replace function public.record_workspace_onboarding_profile_event()
 returns trigger
