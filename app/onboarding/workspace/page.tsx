@@ -305,7 +305,7 @@ export default function WorkspaceOnboardingPage() {
           </div>
         )}
 
-        {(setupMode !== 'choose' || !canEdit) && (
+        {canEdit && setupMode !== 'choose' && (
           <>
         <nav aria-label="Workspace setup steps" className="mb-6 grid grid-cols-2 gap-2 sm:grid-cols-4">
           {STEPS.map((name, index) => (
@@ -484,12 +484,20 @@ export default function WorkspaceOnboardingPage() {
           {step === 7 && !canComplete && <p className="mt-3 text-xs text-amber-200" role="status">{profile.companyType === 'unsure' ? 'Choose Residential, Commercial, or Both in the Business section.' : 'Add your first goal above.'} You can still save a draft at any time.</p>}
           {status === 'completed' && hasUnsavedChanges && <p className="mt-4 text-xs text-amber-200" role="status">The saved profile is complete, but you have unsaved edits. Save progress to return it to draft status, or complete it again after reviewing your changes.</p>}
           {status === 'completed' && !hasUnsavedChanges && <p className="mt-4 text-xs text-emerald-300">This workspace profile is marked complete. You can still update it as an administrator.</p>}
-          {status === 'completed' && !hasUnsavedChanges && <WorkspaceFirstSuccessGuide canEdit={canEdit} />}
+          
           {error && <p className="mt-4 text-sm text-red-300" role="alert">{error}</p>}
           {notice && <p className="mt-4 text-sm text-emerald-300" role="status" aria-live="polite">{notice}</p>}
         </section>
           </>
         )}
+        {!canEdit && (
+          <section className="rounded-2xl border border-violet-300/25 bg-violet-950/20 p-5" aria-labelledby="team-orientation-heading">
+            <h2 id="team-orientation-heading" className="text-lg font-semibold text-violet-100">You’re joining an existing workspace</h2>
+            <p className="mt-2 text-sm leading-relaxed text-slate-300">Workspace-level company setup is managed by an administrator. You do not need to complete the owner profile. You can review saved preferences above and use this short orientation to find the work areas available to your role.</p>
+            <WorkspaceFirstSuccessGuide canEdit={false} />
+          </section>
+        )}
+        {canEdit && status === 'completed' && !hasUnsavedChanges && <WorkspaceFirstSuccessGuide canEdit={true} />}
       </div>
     </main>
   )
