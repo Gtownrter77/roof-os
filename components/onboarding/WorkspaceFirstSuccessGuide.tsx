@@ -38,6 +38,11 @@ const ADMIN_TOUR: TourItem[] = [
     description: 'Review the scheduling workspace. This tour does not assign crews or schedule work.',
   },
   {
+    title: 'Warranty and closeout',
+    href: '/warranty',
+    description: 'Review warranty records and their evidence requirements. This tour does not register or change a warranty.',
+  },
+  {
     title: 'Workspace defaults',
     href: '/settings',
     description: 'Review locale, service ZIP, preferred brands, and catalog preferences through the existing owner authorization flow.',
