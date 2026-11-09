@@ -378,7 +378,7 @@ export default function WorkspaceOnboardingPage() {
 
           {step === 1 && (
             <div className="space-y-4">
-              <p className="text-sm text-slate-300">List the ZIP codes where you usually work. These are preferences, not a dispatch boundary.</p>
+              <p className="text-sm text-slate-300">List the ZIP codes where you usually work. These are coverage preferences, not a dispatch boundary; the single default service ZIP remains in Workspace Settings.</p>
               {listField('Service ZIP codes', profile.serviceZipCodes, (value) => update('serviceZipCodes', value), 'Up to 20 five-digit ZIP codes.')}
             </div>
           )}
