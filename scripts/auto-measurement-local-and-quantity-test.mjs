@@ -158,4 +158,11 @@ assert.match(autoMeasurementUi, /does not include an Ollama server on Android by
 assert.match(autoMeasurementUi, /Trace roof manually/)
 assert.doesNotMatch(autoMeasurementUi, /Google Gemini/)
 
+const deploymentGuide = readFileSync(new URL('../DEPLOYMENT.md', import.meta.url), 'utf8')
+assert.match(deploymentGuide, /Windows 10\/11 \(PowerShell\)/)
+assert.match(deploymentGuide, /SetEnvironmentVariable\("OLLAMA_ORIGINS"/)
+assert.match(deploymentGuide, /ollama pull qwen3-vl:8b/)
+assert.match(deploymentGuide, /Invoke-RestMethod http:\/\/localhost:11434\/api\/tags/)
+assert.match(deploymentGuide, /Do not use.*\*.*do not expose port 11434/s)
+
 console.log('auto-measurement-local-and-quantity-test: PASS (loopback-only browser inference, image payload, no remote fallback, validated geometry, orthographic/scale/pitch gates, draft area and squares)')
