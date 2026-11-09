@@ -50,7 +50,7 @@ jobs:
           test -n "$SOURCE_SHA"
           test -n "$APP_VERSION"
           test -n "$PACKAGE_NAME"
-          if [[ "$GITHUB_EVENT_NAME" == "push" ]]; then
+          if [[ "$GITHUB_REF_TYPE" == "tag" ]]; then
             test "$GITHUB_REF_NAME" = "field-v$APP_VERSION" || {
               echo "Tag $GITHUB_REF_NAME must exactly match field-v$APP_VERSION" >&2
               exit 1
