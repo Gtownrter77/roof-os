@@ -1,0 +1,6 @@
+{
+  // Project-level Kilo Code instructions for ROOF OS.
+  "instructions": [
+    ".kilo/rules/roof-os-review.md"
+  ]
+}
