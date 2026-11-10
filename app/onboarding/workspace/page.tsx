@@ -98,6 +98,7 @@ export default function WorkspaceOnboardingPage() {
   const [canEdit, setCanEdit] = useState(false)
   const [setupMode, setSetupMode] = useState<'choose' | 'assistant' | 'manual'>('choose')
   const [loading, setLoading] = useState(true)
+  const [profileLoadFailed, setProfileLoadFailed] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
@@ -123,7 +124,10 @@ export default function WorkspaceOnboardingPage() {
         setCanEdit(data.canEdit === true)
         setSetupMode(data.canEdit === true ? 'choose' : 'manual')
       } catch (cause) {
-        if (active) setError(cause instanceof Error ? cause.message : 'Could not load workspace setup.')
+        if (active) {
+          setProfileLoadFailed(true)
+          setError(cause instanceof Error ? cause.message : 'Could not load workspace setup.')
+        }
       } finally {
         if (active) setLoading(false)
       }
@@ -246,6 +250,20 @@ export default function WorkspaceOnboardingPage() {
 
   if (loading) {
     return <main className="ops-bg flex min-h-screen items-center justify-center p-6 text-sm text-slate-300">Loading workspace setup…</main>
+  }
+
+  if (profileLoadFailed) {
+    return (
+      <main className="ops-bg flex min-h-screen items-center justify-center px-4 py-8 text-white">
+        <section className="w-full max-w-lg rounded-2xl border border-red-300/25 bg-slate-950/80 p-6" aria-labelledby="workspace-load-error">
+          <h1 id="workspace-load-error" className="text-xl font-semibold">Workspace setup could not be loaded</h1>
+          <p className="mt-2 text-sm leading-relaxed text-slate-300">{error || 'Your workspace access could not be confirmed. No changes were made.'}</p>
+          <button type="button" onClick={() => window.location.reload()} className="mt-5 rounded-lg border border-cyan-300/40 px-4 py-2 text-sm font-semibold text-cyan-100 hover:bg-cyan-300/10 focus-visible:outline-2 focus-visible:outline-cyan-200">
+            Try again
+          </button>
+        </section>
+      </main>
+    )
   }
 
   return (
