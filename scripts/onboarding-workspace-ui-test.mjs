@@ -14,8 +14,8 @@ const firstSuccess = readFileSync(new URL('../components/onboarding/WorkspaceFir
 
 // A failed profile load must not be misclassified as a non-admin team member.
 // Only a successful authorization response may render the team-orientation state.
-assert.match(page, /setProfileLoadFailed\\(true\\)/)
-assert.match(page, /if \\(profileLoadFailed\\) \\{/)
+assert.ok(page.includes('setProfileLoadFailed(true)'))
+assert.ok(page.includes('if (profileLoadFailed) {'))
 assert.match(page, /Workspace setup could not be loaded/)
 assert.match(page, /Try again/)
 
