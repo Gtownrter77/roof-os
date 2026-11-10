@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '../../lib/supabase/client'
 import HologramMeteorologist from '../../components/onboarding/HologramMeteorologist'
@@ -17,6 +17,69 @@ export default function OnboardingPage() {
   })
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
+  const [checkingAccess, setCheckingAccess] = useState(true)
+  const [restoringAccountBasics, setRestoringAccountBasics] = useState(true)
+
+  useEffect(() => {
+    let active = true
+    async function routeWorkspaceMembers() {
+      try {
+        const response = await fetch('/api/onboarding/profile', { cache: 'no-store' })
+        if (!response.ok) return
+        const data = await response.json()
+        if (active && data.canEdit === false) router.replace('/onboarding/workspace')
+      } catch {
+        // If the profile endpoint is unavailable, leave the account form usable.
+      } finally {
+        if (active) setCheckingAccess(false)
+      }
+    }
+    void routeWorkspaceMembers()
+    return () => { active = false }
+  }, [router])
+
+  useEffect(() => {
+    let active = true
+    async function restoreAccountBasics() {
+      try {
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!active || !user) return
+        const metadata = user.user_metadata ?? {}
+        const metadataCompanyName = typeof metadata.company_name === 'string' ? metadata.company_name : ''
+        const allowedStates = ['GA', 'AL', 'SC', 'NC', 'FL', 'TN']
+        const allowedRoles = ['owner', 'manager', 'inspector', 'sales']
+
+        // Restore independent account metadata before attempting the optional workspace-name lookup.
+        setForm((current) => ({
+          ...current,
+          companyName: metadataCompanyName || current.companyName,
+          phone: typeof metadata.onboarding_phone === 'string' ? metadata.onboarding_phone : current.phone,
+          email: typeof metadata.onboarding_contact_email === 'string' ? metadata.onboarding_contact_email : typeof user.email === 'string' ? user.email : current.email,
+          state: typeof metadata.onboarding_state === 'string' && allowedStates.includes(metadata.onboarding_state) ? metadata.onboarding_state : current.state,
+          role: typeof metadata.onboarding_role_preference === 'string' && allowedRoles.includes(metadata.onboarding_role_preference) ? metadata.onboarding_role_preference : current.role,
+        }))
+
+        try {
+          const { data: workspaceId, error: workspaceIdError } = await supabase.rpc('current_workspace_id')
+          if (workspaceIdError) throw workspaceIdError
+          if (workspaceId) {
+            const { data: workspace, error: workspaceError } = await supabase.from('workspaces').select('name').eq('id', workspaceId).maybeSingle()
+            if (workspaceError) throw workspaceError
+            if (active && workspace?.name) setForm((current) => ({ ...current, companyName: workspace.name }))
+          }
+        } catch {
+          if (active) setError('Workspace name could not be confirmed. Your saved contact details were restored; you can continue with account basics.')
+        }
+      } catch {
+        if (active) setError('Saved account details could not be restored. You can enter them again here.')
+      } finally {
+        if (active) setRestoringAccountBasics(false)
+      }
+    }
+    void restoreAccountBasics()
+    return () => { active = false }
+  }, [])
 
   const steps = [
     { 
@@ -25,8 +88,8 @@ export default function OnboardingPage() {
       icon: '🚀'
     },
     { 
-      title: 'Company Details 📋',
-      description: 'Tell us about your roofing business.',
+      title: 'Workspace & Contact Details 📋',
+      description: 'Confirm your workspace name and add your contact details.',
       icon: '🏢'
     },
     { 
@@ -35,15 +98,15 @@ export default function OnboardingPage() {
       icon: '⚙️'
     },
     { 
-      title: 'Account basics saved',
-      description: 'Your account basics are saved. Continue with your workspace setup next.',
+      title: 'Review and continue',
+      description: 'Review your account basics, save them, and continue. Your workspace setup is next.',
       icon: '🎊'
     }
   ]
 
   const handleNext = async () => {
-    if (step === 2 && !form.companyName.trim()) {
-      setError('Enter your company name to continue.')
+    if (step === 2 && form.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
+      setError('Enter a valid contact email, or leave the field blank.')
       return
     }
     setError('')
@@ -53,25 +116,27 @@ export default function OnboardingPage() {
     }
 
     setSaving(true)
-    const supabase = createClient()
-    const { error: updateError } = await supabase.auth.updateUser({
-      data: {
-        company_name: form.companyName.trim(),
-        onboarding_contact_email: form.email.trim(),
-        onboarding_phone: form.phone.trim(),
-        onboarding_state: form.state,
-        onboarding_role_preference: form.role,
-        onboarding_basics_saved_at: new Date().toISOString(),
-      },
-    })
-    if (updateError) {
-      setError('Could not save your onboarding details. Nothing was marked complete.')
+    try {
+      const supabase = createClient()
+      const { error: updateError } = await supabase.auth.updateUser({
+        data: {
+          onboarding_contact_email: form.email.trim(),
+          onboarding_phone: form.phone.trim(),
+          onboarding_state: form.state,
+          onboarding_role_preference: form.role,
+          onboarding_basics_saved_at: new Date().toISOString(),
+        },
+      })
+      if (updateError) {
+        setError('Could not save your onboarding details. Nothing was marked complete.')
+        return
+      }
+      router.push('/onboarding/workspace')
+    } catch {
+      setError('Could not save your onboarding details. Check your connection and try again.')
+    } finally {
       setSaving(false)
-      return
     }
-
-    setSaving(false)
-    router.push('/onboarding/workspace')
   }
 
   const handleBack = () => {
@@ -114,21 +179,27 @@ export default function OnboardingPage() {
       case 2:
         return (
           <div className="space-y-4">
-            <h2 className="text-xl font-bold">Company Details</h2>
+            <h2 className="text-xl font-bold">Workspace & Contact Details</h2>
             <div>
-              <label className="block text-sm font-medium text-slate-200 mb-1">Company Name *</label>
-              <input 
+              <label htmlFor="onboarding-company-name" className="block text-sm font-medium text-slate-200 mb-1">Workspace Name</label>
+              <input
+                id="onboarding-company-name"
                 type="text"
+                autoComplete="organization"
+                readOnly
                 value={form.companyName}
-                onChange={(e) => setForm({...form, companyName: e.target.value})}
                 className="ops-input"
-                placeholder="Your Roofing Company"
+                placeholder="Workspace name not available"
+                aria-describedby="onboarding-company-name-help"
               />
+              <p id="onboarding-company-name-help" className="mt-1 text-xs text-slate-400">The active workspace record is authoritative. The original signup name is shown only as a fallback if the workspace cannot be read; onboarding never renames the workspace.</p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-200 mb-1">Phone</label>
+              <label htmlFor="onboarding-company-phone" className="block text-sm font-medium text-slate-200 mb-1">Phone</label>
               <input 
+                id="onboarding-company-phone"
                 type="tel"
+                autoComplete="tel"
                 value={form.phone}
                 onChange={(e) => setForm({...form, phone: e.target.value})}
                 className="ops-input"
@@ -136,9 +207,11 @@ export default function OnboardingPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-200 mb-1">Contact Email</label>
+              <label htmlFor="onboarding-contact-email" className="block text-sm font-medium text-slate-200 mb-1">Contact Email</label>
               <input 
+                id="onboarding-contact-email"
                 type="email"
+                autoComplete="email"
                 value={form.email}
                 onChange={(e) => setForm({...form, email: e.target.value})}
                 className="ops-input"
@@ -146,8 +219,9 @@ export default function OnboardingPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-200 mb-1">State</label>
+              <label htmlFor="onboarding-company-state" className="block text-sm font-medium text-slate-200 mb-1">State</label>
               <select 
+                id="onboarding-company-state"
                 value={form.state}
                 onChange={(e) => setForm({...form, state: e.target.value})}
                 className="ops-input"
@@ -166,20 +240,21 @@ export default function OnboardingPage() {
         return (
           <div className="space-y-4">
             <h2 className="text-xl font-bold">Your Role</h2>
+            <p className="text-xs leading-relaxed text-slate-400">This records your preferred role for onboarding context only. It does not grant workspace permissions or change access; an administrator manages those separately.</p>
             <div className="grid grid-cols-2 gap-3">
-              <button type="button" onClick={() => setForm({...form, role: 'owner'})} className={`p-4 border-2 rounded-lg text-center ${form.role === 'owner' ? 'border-blue-500 bg-cyan-400/10' : 'border-white/10'}`}>
+              <button type="button" onClick={() => setForm({...form, role: 'owner'})} aria-pressed={form.role === 'owner'} className={`p-4 border-2 rounded-lg text-center ${form.role === 'owner' ? 'border-blue-500 bg-cyan-400/10' : 'border-white/10'} focus-visible:outline-2 focus-visible:outline-cyan-200`}>
                 <span className="text-2xl block">👔</span>
                 <span className="text-sm font-medium">Owner</span>
               </button>
-              <button type="button" onClick={() => setForm({...form, role: 'manager'})} className={`p-4 border-2 rounded-lg text-center ${form.role === 'manager' ? 'border-blue-500 bg-cyan-400/10' : 'border-white/10'}`}>
+              <button type="button" onClick={() => setForm({...form, role: 'manager'})} aria-pressed={form.role === 'manager'} className={`p-4 border-2 rounded-lg text-center ${form.role === 'manager' ? 'border-blue-500 bg-cyan-400/10' : 'border-white/10'} focus-visible:outline-2 focus-visible:outline-cyan-200`}>
                 <span className="text-2xl block">📋</span>
                 <span className="text-sm font-medium">Manager</span>
               </button>
-              <button type="button" onClick={() => setForm({...form, role: 'inspector'})} className={`p-4 border-2 rounded-lg text-center ${form.role === 'inspector' ? 'border-blue-500 bg-cyan-400/10' : 'border-white/10'}`}>
+              <button type="button" onClick={() => setForm({...form, role: 'inspector'})} aria-pressed={form.role === 'inspector'} className={`p-4 border-2 rounded-lg text-center ${form.role === 'inspector' ? 'border-blue-500 bg-cyan-400/10' : 'border-white/10'} focus-visible:outline-2 focus-visible:outline-cyan-200`}>
                 <span className="text-2xl block">🔍</span>
                 <span className="text-sm font-medium">Inspector</span>
               </button>
-              <button type="button" onClick={() => setForm({...form, role: 'sales'})} className={`p-4 border-2 rounded-lg text-center ${form.role === 'sales' ? 'border-blue-500 bg-cyan-400/10' : 'border-white/10'}`}>
+              <button type="button" onClick={() => setForm({...form, role: 'sales'})} aria-pressed={form.role === 'sales'} className={`p-4 border-2 rounded-lg text-center ${form.role === 'sales' ? 'border-blue-500 bg-cyan-400/10' : 'border-white/10'} focus-visible:outline-2 focus-visible:outline-cyan-200`}>
                 <span className="text-2xl block">📞</span>
                 <span className="text-sm font-medium">Sales</span>
               </button>
@@ -191,7 +266,7 @@ export default function OnboardingPage() {
           <div className="text-center">
             <div className="text-6xl mb-4">🎊</div>
             <h2 className="text-2xl font-bold mb-2">Review your account basics</h2>
-            <p className="text-slate-400">When you continue, ROOF/OS will save these account details and open workspace setup. Guided onboarding is not finished yet.</p>
+            <p className="text-slate-400">Review your account details. Continuing saves these basics and opens your resumable workspace setup. You can save workspace progress and return later.</p>
             <div className="mt-6 bg-cyan-400/10 border border-cyan-400/30 rounded-lg p-4">
               <p className="text-sm text-cyan-100">
                 ✓ Company details entered<br />
@@ -204,17 +279,24 @@ export default function OnboardingPage() {
     }
   }
 
+  if (checkingAccess || restoringAccountBasics) {
+    return <main className="ops-bg flex min-h-screen items-center justify-center p-6 text-sm text-slate-300">Preparing your workspace details…</main>
+  }
+
   return (
     <div className="ops-bg flex min-h-screen items-center justify-center p-4">
       <div className="glass rounded-2xl max-w-md w-full p-6">
         <HologramMeteorologist step={step} />
         {/* Progress */}
         <div className="flex justify-between mb-6">
-          {[1, 2, 3, 4].map((i) => (
+          {steps.map((_, index) => {
+            const i = index + 1
+            return (
             <div key={i} className="flex-1">
               <div className={`h-1 mx-1 rounded ${i <= step ? 'bg-blue-600' : 'bg-white/10'}`} />
             </div>
-          ))}
+            )
+          })}
         </div>
 
         {/* Content */}
@@ -226,12 +308,15 @@ export default function OnboardingPage() {
         {/* Navigation */}
         <div className="flex justify-between mt-6">
           <button 
+            type="button"
             onClick={handleBack}
+            disabled={step === 1 || saving}
             className={`px-6 py-2 rounded-lg ${step > 1 ? 'bg-white/10 text-slate-200' : 'invisible'}`}
           >
             Back
           </button>
           <button 
+            type="button"
             onClick={() => void handleNext()}
             disabled={saving}
             className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold disabled:opacity-60"

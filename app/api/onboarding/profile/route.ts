@@ -58,8 +58,8 @@ export async function PUT(request: NextRequest) {
   if (!validated.profile) return NextResponse.json({ error: validated.error ?? 'Invalid onboarding profile.' }, { status: 400 })
   const status = body.status ?? 'draft'
   if (status !== 'draft' && status !== 'completed') return NextResponse.json({ error: 'Status must be draft or completed.' }, { status: 400 })
-  if (status === 'completed' && (!validated.profile.companyType || !validated.profile.primaryGoal?.trim())) {
-    return NextResponse.json({ error: 'Choose a business type and describe your first goal before completing setup.' }, { status: 400 })
+  if (status === 'completed' && (!validated.profile.companyType || validated.profile.companyType === 'unsure' || !validated.profile.primaryGoal?.trim())) {
+    return NextResponse.json({ error: 'Choose Residential, Commercial, or Both and describe your first goal before completing setup.' }, { status: 400 })
   }
 
   const now = new Date().toISOString()
