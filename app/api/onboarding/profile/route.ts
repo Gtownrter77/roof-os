@@ -21,6 +21,8 @@ export async function GET() {
   if (!workspaceId) return NextResponse.json({ error: 'No active workspace is available.' }, { status: 404 })
 
   const { data: isAdmin, error: roleError } = await supabase.rpc('is_workspace_admin', { target_workspace: workspaceId })
+  if (roleError) return NextResponse.json({ error: 'Workspace authorization could not be verified.' }, { status: 503 })
+
   const { data, error } = await supabase
     .from('workspace_onboarding_profiles')
     .select('profile,status,schema_version,updated_at,completed_at')
@@ -33,7 +35,7 @@ export async function GET() {
     schemaVersion: data?.schema_version ?? ONBOARDING_PROFILE_VERSION,
     updatedAt: data?.updated_at ?? null,
     completedAt: data?.completed_at ?? null,
-    canEdit: !roleError && isAdmin === true,
+    canEdit: isAdmin === true,
   })
 }
 
