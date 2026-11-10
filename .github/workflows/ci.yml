@@ -132,6 +132,8 @@ jobs:
       - run: npm run test:ai-vision-contract
       - run: npm run test:ai-vision-endpoint
       - run: npm run test:workspace-settings
+      - run: npm run test:onboarding-profile
+      - run: npm run test:onboarding-workspace-ui
       - run: npm run audit
 
   mobile:
@@ -275,6 +277,22 @@ jobs:
           grep -q "next_action_owner_id" supabase/migrations/039_crm_missing_spokes.sql
           grep -q "manager_approval_signature" supabase/migrations/042_golden_report_review_controls.sql
           test -f supabase/migrations/080_estimate_packet_manager_gate.sql
+          test -f supabase/migrations/092_workspace_onboarding_profiles.sql
+          test -f supabase/migrations/093_workspace_onboarding_profile_v2.sql
+          grep -q "schema_version = 2" supabase/migrations/093_workspace_onboarding_profile_v2.sql
+          grep -q "workspace_onboarding_profiles_allowed_fields_v2_check" supabase/migrations/093_workspace_onboarding_profile_v2.sql
+          grep -q "create or replace function public.onboarding_jsonb_string_array_is_valid" supabase/migrations/093_workspace_onboarding_profile_v2.sql
+          grep -q "workspace_onboarding_profiles_team_roles_check" supabase/migrations/093_workspace_onboarding_profile_v2.sql
+          grep -q "workspace_onboarding_profiles_contact_preferences_check" supabase/migrations/093_workspace_onboarding_profile_v2.sql
+          grep -q "workspace_onboarding_profiles_completed_profile_check" supabase/migrations/093_workspace_onboarding_profile_v2.sql
+          grep -q "workspace_onboarding_profile_events" supabase/migrations/093_workspace_onboarding_profile_v2.sql
+          grep -q "record_workspace_onboarding_profile_event" supabase/migrations/093_workspace_onboarding_profile_v2.sql
+          grep -q "owner_confirmed_onboarding_form" supabase/migrations/093_workspace_onboarding_profile_v2.sql
+          grep -q "unknown_fields" supabase/migrations/093_workspace_onboarding_profile_v2.sql
+          if grep -qi "security definer" supabase/migrations/093_workspace_onboarding_profile_v2.sql; then exit 1; fi
+          grep -q "public.is_workspace_admin(workspace_id)" supabase/migrations/092_workspace_onboarding_profiles.sql
+          grep -q "public.is_workspace_member(workspace_id)" supabase/migrations/092_workspace_onboarding_profiles.sql
+          grep -q "auth.uid() = updated_by" supabase/migrations/092_workspace_onboarding_profiles.sql
           grep -q "enforce_photo_estimate_packet_manager_gate" supabase/migrations/080_estimate_packet_manager_gate.sql
           grep -q "lead_score" supabase/migrations/039_crm_missing_spokes.sql
           grep -q "aerial_measurements_workspace_consistency" supabase/migrations/041_aerial_workspace_consistency.sql
@@ -476,6 +494,15 @@ jobs:
           PGUSER: postgres
           PGPASSWORD: ci-synthetic-only
         run: bash scripts/ci/verify-two-hour-trial-postgres.sh
+      - name: Run real PostgreSQL onboarding profile RLS tests
+        shell: bash
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGDATABASE: roofos_authority_ci
+          PGUSER: postgres
+          PGPASSWORD: ci-synthetic-only
+        run: bash scripts/ci/verify-onboarding-profile-postgres.sh
       - name: Run isolated PostgreSQL backup and restore rehearsal
         shell: bash
         env:
