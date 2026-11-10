@@ -82,7 +82,7 @@ assert.ok(route.includes("supabase.rpc('is_workspace_admin'"), 'profile API must
 assert.ok(route.includes("'profile', 'status'"), 'profile API must reject unknown request properties')
 assert.ok(route.includes('validateOnboardingProfile'), 'profile API must validate profile payloads')
 assert.ok(route.includes('updated_by: user.id'), 'profile writes must be attributed to the signed-in user')
-assert.ok(route.includes("status === 'completed' && (!validated.profile.companyType || !validated.profile.primaryGoal?.trim())"), 'completion must include a business type and a non-empty first goal')
+assert.ok(route.includes("status === 'completed' && (!validated.profile.companyType || validated.profile.companyType === 'unsure' || !validated.profile.primaryGoal?.trim())"), 'completion must include an explicit business type and a non-empty first goal')
 assert.ok(!route.includes('service_role'), 'profile API must not use service-role credentials')
 assert.ok(!route.includes('/api/settings'), 'profile API must not bypass operational settings authorization')
 
@@ -98,6 +98,21 @@ assert.ok(!migration.includes('security definer'), 'onboarding profile migration
 
 assert.ok(migrationV2.includes('schema_version = 2'), 'v2 migration must advance the profile schema')
 assert.ok(migrationV2.includes('workspace_onboarding_profiles_allowed_fields_v2_check'), 'v2 migration must add the field allowlist')
+assert.ok(migrationV2.includes('workspace_onboarding_profiles_completed_profile_check'), 'v2 migration must prevent incomplete profiles from being marked complete')
+assert.ok(migrationV2.includes('workspace_onboarding_profile_events'), 'v2 migration must create an append-only onboarding audit table')
+assert.ok(migrationV2.includes('record_workspace_onboarding_profile_event'), 'v2 migration must audit accepted profile saves')
+assert.ok(migrationV2.includes('guard_workspace_onboarding_profile_event_insert'), 'audit rows must be guarded against direct client inserts')
+assert.ok(migrationV2.includes('pg_trigger_depth() <> 2'), 'only the direct nested profile audit trigger may create audit rows')
+assert.ok(migrationV2.includes("source = 'owner_confirmed_onboarding_form'"), 'audit events must record their reviewed source')
+assert.ok(migrationV2.includes("confidence = 'owner_confirmed'"), 'audit events must record owner-confirmed confidence')
+assert.ok(migrationV2.includes('unknown_fields'), 'audit events must preserve explicit unknown field markers')
+assert.ok(migrationV2.includes('security invoker'), 'audit trigger must not elevate privileges')
+assert.ok(migrationV2.includes('create policy workspace_onboarding_profile_events_select'), 'audit history must be admin-readable only')
+assert.ok(migrationV2.includes('actor_id = auth.uid()'), 'audit inserts must be attributed to the signed-in actor')
+assert.ok(migrationV2.includes('enable row level security'), 'audit history must have RLS enabled')
+assert.ok(migrationV2.includes('revoke all on public.workspace_onboarding_profile_events from public, anon, authenticated'), 'audit table must have explicit grants')
+assert.ok(migrationV2.includes("set status = 'draft'"), 'v2 migration must correct legacy incomplete completion states')
+assert.ok(migrationV2.includes('completed_at = null'), 'v2 migration must clear the completion timestamp when correcting a legacy draft')
 assert.ok(migrationV2.includes('teamRoles'), 'v2 migration must constrain team roles')
 assert.ok(migrationV2.includes('businessHours'), 'v2 migration must constrain business hours')
 assert.ok(migrationV2.includes('create or replace function public.onboarding_jsonb_string_array_is_valid'), 'v2 migration must define its array validator')
@@ -115,5 +130,49 @@ for (const constraint of [
   assert.ok(migrationV2.includes(constraint), `v2 migration must add ${constraint}`)
 }
 assert.ok(!migrationV2.includes('security definer'), 'the SQL array validator must not use elevated privileges')
+
+const postgresRunner = readFileSync(new URL('../scripts/ci/verify-onboarding-profile-postgres.sh', import.meta.url), 'utf8')
+assert.match(postgresRunner, /DB="roofos_onboarding_ci_\$\{GITHUB_RUN_ID:-local\}_\$\{GITHUB_RUN_ATTEMPT:-1\}_\$\$"/)
+assert.match(postgresRunner, /trap cleanup EXIT/)
+assert.match(postgresRunner, /drop database if exists/)
+assert.match(postgresRunner, /if \[\[ -n "\$\{GITHUB_STEP_SUMMARY:-\}" \]\]/)
+
+// Keep the TypeScript validator and database constraints in lockstep.
+const profileSource = readFileSync(new URL('../lib/onboarding-profile.ts', import.meta.url), 'utf8')
+const allowedFieldsBlock = profileSource.match(/const allowed = new Set\(\[([\s\S]*?)\]\)/)?.[1]
+const sqlAllowedFieldsBlock = migrationV2.match(/add constraint workspace_onboarding_profiles_allowed_fields_v2_check\s+check \(profile - ARRAY\[([\s\S]*?)\]::text\[\]/)?.[1]
+assert.ok(allowedFieldsBlock && sqlAllowedFieldsBlock, 'profile field allowlists must be discoverable')
+const parseQuotedValues = (value) => [...value.matchAll(/'([^']+)'/g)].map((match) => match[1])
+assert.deepEqual(
+  parseQuotedValues(sqlAllowedFieldsBlock).sort(),
+  parseQuotedValues(allowedFieldsBlock).sort(),
+  'TypeScript and SQL profile field allowlists must match exactly',
+)
+
+const enumValuesBlock = profileSource.match(/const enumValues = \{([\s\S]*?)\n\} as const/)?.[1]
+assert.ok(enumValuesBlock, 'TypeScript profile enum definitions must be discoverable')
+for (const match of enumValuesBlock.matchAll(/(\w+): \[([^\]]+)\]/g)) {
+  const [, key, rawValues] = match
+  const expected = parseQuotedValues(rawValues).sort()
+  const sqlLists = [...migrationV2.matchAll(new RegExp(`profile->>'${key}' in \\(([^)]*)\\)`, 'g'))]
+    .map((entry) => parseQuotedValues(entry[1]).sort())
+  assert.ok(
+    sqlLists.some((values) => values.length === expected.length && values.every((value, index) => value === expected[index])),
+    `TypeScript and SQL enum values must match for ${key}`,
+  )
+}
+
+const arrayValuesBlock = profileSource.match(/const arrayAllowedValues = \{([\s\S]*?)\n\} as const/)?.[1]
+assert.ok(arrayValuesBlock, 'TypeScript array enum definitions must be discoverable')
+for (const match of arrayValuesBlock.matchAll(/(\w+): \[([^\]]+)\]/g)) {
+  const [, key, rawValues] = match
+  const expected = parseQuotedValues(rawValues).sort()
+  const triggerIndex = migrationV2.indexOf(`profile->'${key}'`)
+  const sqlSection = triggerIndex >= 0 ? migrationV2.slice(triggerIndex, triggerIndex + 700) : ''
+  const sqlValues = sqlSection.match(/ARRAY\[([^\]]+)\]::text\[\]/)?.[1]
+  assert.ok(sqlValues, `SQL must constrain the allowed values for ${key}`)
+  const actual = parseQuotedValues(sqlValues).sort()
+  assert.deepEqual(actual, expected, `TypeScript and SQL array values must match for ${key}`)
+}
 
 console.log('onboarding-profile-test: PASS')

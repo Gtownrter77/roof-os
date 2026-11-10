@@ -50,7 +50,7 @@ export default function HologramMeteorologist({ step }: Props) {
   }
 
   if (!visible) {
-    return <button type="button" onClick={() => setVisible(true)} className="w-full max-w-md rounded-xl border border-cyan-300/30 bg-slate-950/80 px-4 py-3 text-left text-sm font-semibold text-cyan-100 hover:bg-cyan-950/60 focus-visible:outline-2 focus-visible:outline-cyan-200">Show your virtual meteorologist</button>
+    return <button type="button" onClick={() => setVisible(true)} aria-expanded={visible} className="w-full max-w-md rounded-xl border border-cyan-300/30 bg-slate-950/80 px-4 py-3 text-left text-sm font-semibold text-cyan-100 hover:bg-cyan-950/60 focus-visible:outline-2 focus-visible:outline-cyan-200">Show your virtual meteorologist</button>
   }
 
   return (

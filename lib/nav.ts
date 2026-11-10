@@ -1,5 +1,6 @@
 import {
   Activity,
+  Building2,
   CalendarDays,
   Camera,
   ClipboardList,
@@ -41,6 +42,7 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
   { href: '/tasks', label: 'Tasks', icon: ListChecks },
   { href: '/calendar', label: 'Calendar', icon: CalendarDays },
   { href: '/warranty', label: 'Warranties', icon: ShieldCheck },
+  { href: '/onboarding/workspace', label: 'Workspace setup', icon: Building2 },
   { href: '/ai', label: 'AI tools · pilot', icon: Sparkles, pilot: true },
   { href: '/settings', label: 'Settings', icon: Settings },
 ]

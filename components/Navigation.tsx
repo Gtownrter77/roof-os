@@ -4,6 +4,7 @@ import { usePathname, useRouter } from 'next/navigation'
 
 const NAV_ITEMS = [
   { icon: 'Home', path: '/' },
+  { icon: 'Setup', path: '/onboarding/workspace' },
   { icon: 'Leads', path: '/leads' },
   { icon: 'Brief', path: '/brief' },
   { icon: 'Passport', path: '/warranty' },
@@ -27,7 +28,9 @@ export default function Navigation() {
             key={item.path}
             type="button"
             onClick={() => router.push(item.path)}
-            className={`px-2 text-xs ${active ? 'font-semibold text-cyan-300' : 'text-slate-400'}`}
+            className={`min-w-0 flex-1 truncate px-0 text-[10px] ${active ? 'font-semibold text-cyan-300' : 'text-slate-400'}`}
+            aria-label={item.icon === 'Setup' ? 'Workspace setup' : item.icon}
+            title={item.icon === 'Setup' ? 'Workspace setup' : item.icon}
           >
             {item.icon}
           </button>
