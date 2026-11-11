@@ -11,13 +11,14 @@ async function getContext() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { supabase, user: null, workspaceId: null }
-  const { data: workspaceId, error } = await supabase.rpc('current_workspace_id')
-  return { supabase, user, workspaceId: error ? null : workspaceId }
+  const { data: workspaceId, error: workspaceError } = await supabase.rpc('current_workspace_id')
+  return { supabase, user, workspaceId, workspaceError }
 }
 
 export async function GET() {
-  const { supabase, user, workspaceId } = await getContext()
+  const { supabase, user, workspaceId, workspaceError } = await getContext()
   if (!user) return NextResponse.json({ error: 'Authentication required.' }, { status: 401 })
+  if (workspaceError) return NextResponse.json({ error: 'Active workspace could not be verified.' }, { status: 503 })
   if (!workspaceId) return NextResponse.json({ error: 'No active workspace is available.' }, { status: 404 })
 
   const { data: isAdmin, error: roleError } = await supabase.rpc('is_workspace_admin', { target_workspace: workspaceId })
@@ -40,8 +41,9 @@ export async function GET() {
 }
 
 export async function PUT(request: NextRequest) {
-  const { supabase, user, workspaceId } = await getContext()
+  const { supabase, user, workspaceId, workspaceError } = await getContext()
   if (!user) return NextResponse.json({ error: 'Authentication required.' }, { status: 401 })
+  if (workspaceError) return NextResponse.json({ error: 'Active workspace could not be verified.' }, { status: 503 })
   if (!workspaceId) return NextResponse.json({ error: 'No active workspace is available.' }, { status: 404 })
 
   const { data: isAdmin, error: roleError } = await supabase.rpc('is_workspace_admin', { target_workspace: workspaceId })
