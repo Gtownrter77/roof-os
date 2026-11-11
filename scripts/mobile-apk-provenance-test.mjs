@@ -16,8 +16,8 @@ assert.deepEqual(
 )
 assert.deepEqual(
   extractSigningCertificateSha256(`Certificate SHA-256: ${fingerprint}`),
-  { fingerprint, source: 'fallback' },
-  'fallback extracts a single SHA-256 fingerprint from alternate output',
+  { fingerprint, source: 'certificate_label' },
+  'certificate-labeled alternate output extracts the certificate fingerprint',
 )
 assert.deepEqual(
   extractSigningCertificateSha256([
