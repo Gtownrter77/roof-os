@@ -31,7 +31,7 @@ assert.throws(
   () => extractSigningCertificateSha256([
     `Signer #1 certificate SHA-256 digest: ${fingerprint}`,
     `Signer #2 certificate SHA-256 digest: ${'cd'.repeat(32)}`,
-  ].join('\\n')),
+  ].join('\n')),
   /multiple certificate SHA-256 fingerprints/,
   'multiple signer certificates are rejected as an ambiguous signing identity',
 )
