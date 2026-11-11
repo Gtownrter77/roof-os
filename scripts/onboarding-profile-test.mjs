@@ -78,6 +78,8 @@ assert.deepEqual(validateOnboardingProfile({ primaryGoal: '  First priority  ' }
 
 const route = readFileSync(new URL('../app/api/onboarding/profile/route.ts', import.meta.url), 'utf8')
 assert.ok(route.includes("supabase.rpc('current_workspace_id')"), 'profile API must use the active workspace')
+assert.match(route, /workspaceError: error|error: workspaceError/)
+assert.equal((route.match(/Active workspace could not be verified/g) ?? []).length, 2, 'GET and PUT must distinguish workspace lookup failures from a missing workspace')
 assert.ok(route.includes("supabase.rpc('is_workspace_admin'"), 'profile API must verify workspace admin')
 assert.match(route, /if \(roleError\) return NextResponse\.json\(\{ error: 'Workspace authorization could not be verified\.' \}, \{ status: 503 \}\)/, 'GET must fail closed when workspace authorization cannot be verified')
 assert.ok(route.indexOf('if (roleError)') < route.indexOf(".from('workspace_onboarding_profiles')"), 'GET must not read onboarding data until admin status is confirmed')
