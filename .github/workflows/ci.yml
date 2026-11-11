@@ -4,10 +4,13 @@ permissions:
   contents: read
 
 on:
+  # Feature branches are validated by pull_request. Running the same full suite
+  # again on every branch push doubled runner use without adding coverage.
+  # Keep push validation on main after merges.
   push:
-    branches: ['**']
+    branches: [main]
   pull_request:
-    branches: ['**']
+    branches: [main]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -196,40 +199,6 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ''
         run: npm run build
       - run: npx tsc --noEmit
-
-  # This job pushes a refreshed lockfile, so never run it on pull_request events.
-  # Fork PR branch names must not be resolved against and written to the base repository.
-  refresh-field-lock:
-    if: github.event_name == 'push' && github.ref != 'refs/heads/main'
-    permissions:
-      contents: write
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 22
-      - name: Refresh from branch head
-        shell: bash
-        run: |
-          set -euo pipefail
-          git fetch origin "${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}"
-          git checkout -B "${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}" "origin/${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}"
-      - run: npm install --package-lock-only --ignore-scripts
-        working-directory: apps/field
-      - name: Commit refreshed field lock
-        shell: bash
-        run: |
-          set -euo pipefail
-          if git diff --quiet -- apps/field/package-lock.json; then
-            echo 'Field lock already current.'
-            exit 0
-          fi
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add apps/field/package-lock.json
-          git commit -m 'fix(field): refresh Expo dependency lockfile'
-          git push origin HEAD:${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}
 
   migration-safety:
     runs-on: ubuntu-24.04
