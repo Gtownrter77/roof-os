@@ -19,6 +19,14 @@ assert.deepEqual(
   { fingerprint, source: 'fallback' },
   'fallback extracts a single SHA-256 fingerprint from alternate output',
 )
+assert.deepEqual(
+  extractSigningCertificateSha256([
+    `Certificate SHA-256 digest: ${colonFingerprint}`,
+    `Public key SHA-256 digest: ${'cd'.repeat(32)}`,
+  ].join('\n')),
+  { fingerprint, source: 'certificate_label' },
+  'certificate digest is selected without confusing it with the public-key digest',
+)
 assert.throws(
   () => extractSigningCertificateSha256(['Certificate SHA-256: ' + fingerprint, 'Other SHA-256: ' + 'cd'.repeat(32)].join('\\n')),
   /multiple SHA-256 fingerprints/,
