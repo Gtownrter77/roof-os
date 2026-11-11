@@ -1,3 +1,21 @@
+## 2026-11-11 current state
+
+**Commercial stage:** pre-sales. ROOF/OS has sold **zero copies** and has **zero paid customers**. One prospective evaluator is considering a proof of concept (POC); this is not a sale or a confirmed production deployment. Do not report invented sales, subscriptions, revenue, or customer counts.
+
+**Repository:** `Gtownrter77/roof-os` is private. Current main baseline: `85ce0e9561517c63d3561fc84b99e28592bd8c64`.
+
+**Open engineering work:** PR #443 repairs onboarding profile/workspace error handling; PR #444 repairs APK certificate fingerprint parsing; PR #445 reduces duplicate CI runner consumption. All three are open and unmerged.
+
+**CI status:** GitHub-hosted jobs currently fail before any step starts (`runner_id: 0`, no runner name, empty steps), including a minimal runner-allocation smoke test. The current evidence does not identify the exact GitHub account-level cause. Do not label these as application test failures or infer a billing cause without account usage evidence.
+
+**CI efficiency finding:** at least 816 workflow runs occurred on 2026-11-09: 120 successful, 338 failed, and 358 cancelled across workflows. The CI workflow ran the full multi-job suite on both feature-branch pushes and pull-request events. PR #445 removes the redundant feature-branch push run and scopes lockfile refresh to changes in `apps/field/package.json`.
+
+**Production and billing boundary:** no production data, migrations, deployment, billing settings, repository visibility, secrets, permissions, or branch protections were changed in this repair pass. The optional scheduled GitHub Actions workflow runs in a private repository and may consume included or billable Actions minutes; the earlier documentation describing it as free/public is stale.
+
+**Evidence boundary:** PR #443 and #444 remain unmerged and full CI is unverified because runners are not being allocated. No production release, APK device test, or commercial sale is claimed.
+
+---
+
 ## 2026-10-21 current repair checkpoint
 
 Current merged main is `b6520da825cb31cf538894fbfc44c87a38a752c3` after PR #288 and passing post-merge CI. The active branch `repair/next-ten-release-evidence` is source-only and adds staging migration verification, invitation recovery, field-app recovery controls, cron heartbeat evidence, and release contracts. Authenticated production CRUD, live schema parity, two-workspace isolation, physical-device behavior, worker runtime, backup/restore, provider execution, and Vercel deployment evidence remain separately unverified. The feature shortlist is documented separately and is not a claim of shipped functionality.
