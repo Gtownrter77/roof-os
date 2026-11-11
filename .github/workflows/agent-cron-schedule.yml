@@ -1,9 +1,10 @@
-name: ROOF OS Agent Cron (optional, free)
+name: ROOF OS Agent Cron (optional)
 
-# Optional extra trigger for the daily agent dispatcher, for more than one run a day on the free
-# Vercel Hobby plan (vercel.json stays at two crons). It does nothing until the owner adds both
-# repository secrets ROOF_OS_CRON_URL (deployment base URL) and ROOF_OS_CRON_SECRET (CRON_SECRET).
-# The dispatcher is idempotent per run key, so an extra run never duplicates actions or tasks.
+# Optional extra trigger for the daily agent dispatcher, allowing more than one run a day while
+# keeping the two Vercel Hobby crons in vercel.json. It does nothing until both repository secrets
+# ROOF_OS_CRON_URL (deployment base URL) and ROOF_OS_CRON_SECRET (CRON_SECRET) are configured.
+# This private-repository workflow uses GitHub-hosted Actions minutes, which may be subject to the
+# account's included-minute allowance or additional billing. The dispatcher is idempotent per run key.
 
 on:
   schedule:
@@ -41,7 +42,7 @@ jobs:
             --request GET "${ROOF_OS_CRON_URL%/}/api/cron/daily" \
             --header "Authorization: Bearer $ROOF_OS_CRON_SECRET")"
           echo "HTTP $status"
-          # The repository is public, so logs show only counts, never workspace or lead details.
+          # The repository is private; logs show only counts, never workspace or lead details.
           jq -c '{processed, failed}' /tmp/daily.json 2>/dev/null || echo 'Response was not JSON.'
           # 207 means some jobs failed; the agent-alerts pass turns that into in-app tasks.
           case "$status" in
