@@ -10,7 +10,7 @@ import {
 async function getContext() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { supabase, user: null, workspaceId: null }
+  if (!user) return { supabase, user: null, workspaceId: null, workspaceError: null }
   const { data: workspaceId, error: workspaceError } = await supabase.rpc('current_workspace_id')
   return { supabase, user, workspaceId, workspaceError }
 }
