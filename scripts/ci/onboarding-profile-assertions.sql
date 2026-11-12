@@ -373,7 +373,7 @@ begin
   ) then
     raise exception 'database did not allow a completed profile to be reopened as draft';
   end if;
-end
+end;
 $profile_v2$;
 reset role;
 
