@@ -26,7 +26,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm ci
+      - name: Validate and install field dependencies from the committed lockfile
+        run: npm ci
         working-directory: apps/field
       # Keep the security check in the required web job until main's ruleset requires field-security.
       - run: node scripts/test-field-deepmerge-mitigation.cjs
