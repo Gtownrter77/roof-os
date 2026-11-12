@@ -192,9 +192,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm ci
-        working-directory: apps/field
-      - name: Build without deployment-only secrets
+            - name: Build without deployment-only secrets
         env:
           NEXT_PUBLIC_SUPABASE_URL: ''
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ''
