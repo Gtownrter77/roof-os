@@ -33,7 +33,7 @@
   - A job past its deadline is reported as `504`, and a thrown job as `500`; the other jobs and the alerts still run. The deadline stops waiting but does not cancel the job; jobs are idempotent per run key.
 - Optional schedule: `.github/workflows/agent-cron-schedule.yml` calls `/api/cron/daily` every 6 hours. This is a private repository; GitHub-hosted Actions usage may consume included minutes or incur charges depending on account allowance and billing.
   - It exits 0 and does nothing unless the owner adds repository secrets `ROOF_OS_CRON_URL` (https base URL) and `ROOF_OS_CRON_SECRET`.
-  - Logs show only `{processed, failed}` because the repo is public.
+  - Logs show only `{processed, failed}`; the workflow avoids exposing workspace or lead details.
   - `vercel.json` still has two crons.
 - Tests: new `test:agent-toggles-daily` (in the CI web job).
 - Still unverified external gates: a switch flipped by a real system owner on a deployment, the scheduled workflow running with real secrets, and a deployed daily run hitting the deadline path.
