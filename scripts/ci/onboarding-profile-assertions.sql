@@ -195,7 +195,7 @@ select set_config('request.jwt.claim.sub','cccccccc-cccc-4ccc-8ccc-cccccccccccc'
 do $$
 declare denied boolean := false;
 begin
-  if (select count(*) from public.workspace_onboarding_profiles) <> 0 then
+  if (select count(*) from public.workspace_onboarding_profiles where workspace_id = '11111111-1111-4111-8111-111111111111') <> 0 then
     raise exception 'workspace B owner read workspace A profile';
   end if;
   begin
@@ -340,7 +340,7 @@ begin
   end;
   if not rejected then
     raise exception 'database accepted completion with a whitespace-only primary goal';
-  end;
+  end if;
 
   -- A complete profile may finish, and may later be deliberately reopened as a draft.
   update public.workspace_onboarding_profiles
@@ -373,7 +373,7 @@ begin
   ) then
     raise exception 'database did not allow a completed profile to be reopened as draft';
   end if;
-end
+end;
 $profile_v2$;
 reset role;
 

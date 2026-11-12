@@ -208,7 +208,7 @@ export default function WorkspaceOnboardingAssistant({ profile, savedSnapshot, o
             <h2 id="onboarding-assistant-title" className="mt-1 text-lg font-semibold text-white">Talk through your business setup</h2>
           </div>
           <div className="flex flex-wrap justify-end gap-2">
-            
+
             <button type="button" onClick={startPreferenceChange} disabled={loading || busy} className="rounded-lg border border-white/15 px-2.5 py-1.5 text-[11px] font-semibold text-slate-300 hover:bg-white/5">Change a preference</button>
             <button type="button" onClick={resetConversation} disabled={loading || busy} className="rounded-lg border border-white/15 px-2.5 py-1.5 text-[11px] font-semibold text-slate-300 hover:bg-white/5 disabled:opacity-40">Clear chat</button>
           </div>

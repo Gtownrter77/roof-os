@@ -12,6 +12,13 @@ const tour = readFileSync(new URL('../components/onboarding/WorkspaceSetupTour.t
 const hologram = readFileSync(new URL('../components/onboarding/HologramMeteorologist.tsx', import.meta.url), 'utf8')
 const firstSuccess = readFileSync(new URL('../components/onboarding/WorkspaceFirstSuccessGuide.tsx', import.meta.url), 'utf8')
 
+// A failed profile load must not be misclassified as a non-admin team member.
+// Only a successful authorization response may render the team-orientation state.
+assert.ok(page.includes('setProfileLoadFailed(true)'))
+assert.ok(page.includes('if (profileLoadFailed) {'))
+assert.match(page, /Workspace setup could not be loaded/)
+assert.match(page, /Try again/)
+
 // The screen must load only the active authenticated workspace profile and avoid caching it.
 assert.match(page, /fetch\('\/api\/onboarding\/profile', \{ cache: 'no-store' \}\)/)
 assert.match(page, /setCanEdit\(data\.canEdit === true\)/)
