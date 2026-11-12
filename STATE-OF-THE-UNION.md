@@ -8,7 +8,7 @@
 
 **CI status:** GitHub-hosted jobs currently fail before any step starts (`runner_id: 0`, no runner name, empty steps), including a minimal runner-allocation smoke test. The current evidence does not identify the exact GitHub account-level cause. Do not label these as application test failures or infer a billing cause without account usage evidence.
 
-**CI efficiency finding:** at least 816 workflow runs occurred on 2026-11-09: 120 successful, 338 failed, and 358 cancelled across workflows. The CI workflow ran the full multi-job suite on both feature-branch pushes and pull-request events. PR #445 removes the redundant feature-branch push run and scopes lockfile refresh to changes in `apps/field/package.json`.
+**CI efficiency finding:** at least 816 workflow runs occurred on 2026-11-09: 120 successful, 338 failed, and 358 cancelled across workflows. The CI workflow ran the full multi-job suite on both feature-branch pushes and pull-request events. PR #445 removes the redundant feature-branch push run. Field dependency consistency is enforced by `npm ci` against the committed `apps/field/package-lock.json` during PR CI; no workflow writes generated lockfile commits back to contributor branches.
 
 **Production and billing boundary:** no production data, migrations, deployment, billing settings, repository visibility, secrets, permissions, or branch protections were changed in this repair pass. The optional scheduled GitHub Actions workflow runs in a private repository and may consume included or billable Actions minutes; the earlier documentation describing it as free/public is stale.
 
