@@ -99,7 +99,7 @@ assert.ok(migration.includes('public.is_workspace_admin(workspace_id)'), 'only w
 assert.ok(migration.includes('auth.uid() = updated_by'), 'profile writes must be attributed to the current user')
 assert.ok(migration.includes("status in ('draft', 'completed')"), 'profile status must be constrained')
 assert.ok(migration.includes("(status = 'draft' and completed_at is null)"), 'draft profiles must not retain a completion timestamp')
-assert.ok(migration.includes("jsonb_typeof(profile) = \'object\''), 'profile storage must be an object')
+assert.ok(migration.includes('jsonb_typeof(profile) = \'object\''), 'profile storage must be an object')
 assert.ok(!migration.includes('security definer'), 'onboarding profile migration must not add a security-definer function')
 
 assert.ok(migrationV2.includes('schema_version = 2'), 'v2 migration must advance the profile schema')
