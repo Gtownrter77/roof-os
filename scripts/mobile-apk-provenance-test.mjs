@@ -16,13 +16,34 @@ assert.deepEqual(
 )
 assert.deepEqual(
   extractSigningCertificateSha256(`Certificate SHA-256: ${fingerprint}`),
-  { fingerprint, source: 'fallback' },
-  'fallback extracts a single SHA-256 fingerprint from alternate output',
+  { fingerprint, source: 'certificate_label' },
+  'certificate-labeled alternate output extracts the certificate fingerprint',
+)
+assert.deepEqual(
+  extractSigningCertificateSha256([
+    `Certificate SHA-256 digest: ${colonFingerprint}`,
+    `Public key SHA-256 digest: ${'cd'.repeat(32)}`,
+  ].join('\n')),
+  { fingerprint, source: 'certificate_label' },
+  'certificate digest is selected without confusing it with the public-key digest',
 )
 assert.throws(
-  () => extractSigningCertificateSha256(['Certificate SHA-256: ' + fingerprint, 'Other SHA-256: ' + 'cd'.repeat(32)].join('\\n')),
-  /multiple SHA-256 fingerprints/,
-  'ambiguous signing output is rejected',
+  () => extractSigningCertificateSha256([
+    `Signer #1 certificate SHA-256 digest: ${fingerprint}`,
+    `Signer #2 certificate SHA-256 digest: ${'cd'.repeat(32)}`,
+  ].join('\n')),
+  /multiple certificate SHA-256 fingerprints/,
+  'multiple signer certificates are rejected as an ambiguous signing identity',
+)
+assert.deepEqual(
+  extractSigningCertificateSha256(`SHA-256: ${fingerprint}`),
+  { fingerprint, source: 'fallback' },
+  'unlabeled legacy SHA-256 output remains supported when unambiguous',
+)
+assert.deepEqual(
+  extractSigningCertificateSha256(`\u001b[32mSigner #1 certificate SHA-256 digest: ${colonFingerprint}\u001b[0m`),
+  { fingerprint, source: 'signer_label' },
+  'ANSI color codes are stripped before parsing signer certificate fingerprints',
 )
 assert.throws(
   () => extractSigningCertificateSha256('apksigner returned no certificate digest'),
