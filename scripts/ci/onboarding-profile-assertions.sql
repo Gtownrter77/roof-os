@@ -340,7 +340,7 @@ begin
   end;
   if not rejected then
     raise exception 'database accepted completion with a whitespace-only primary goal';
-  end;
+  end if;
 
   -- A complete profile may finish, and may later be deliberately reopened as a draft.
   update public.workspace_onboarding_profiles
