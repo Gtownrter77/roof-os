@@ -569,7 +569,7 @@ export default function WorkspaceOnboardingPage() {
           {step === 7 && !canComplete && <p className="mt-3 text-xs text-amber-200" role="status">{!hasBusinessType ? 'Choose Residential, Commercial, or Both in the Business section.' : 'Add your first goal above.'} You can still save a draft at any time.</p>}
           {status === 'completed' && hasUnsavedChanges && <p className="mt-4 text-xs text-amber-200" role="status">The saved profile is complete, but you have unsaved edits. Save progress to return it to draft status, or complete it again after reviewing your changes.</p>}
           {status === 'completed' && !hasUnsavedChanges && <p className="mt-4 text-xs text-emerald-300">This workspace profile is marked complete. You can still update it as an administrator.</p>}
-          
+
           {error && <p className="mt-4 text-sm text-red-300" role="alert">{error}</p>}
           {notice && <p className="mt-4 text-sm text-emerald-300" role="status" aria-live="polite">{notice}</p>}
         </section>
