@@ -78,6 +78,7 @@ assert.deepEqual(validateOnboardingProfile({ primaryGoal: '  First priority  ' }
 
 const route = readFileSync(new URL('../app/api/onboarding/profile/route.ts', import.meta.url), 'utf8')
 assert.ok(route.includes("supabase.rpc('current_workspace_id')"), 'profile API must use the active workspace')
+assert.match(route, /if \(!user\) return \{ supabase, user: null, workspaceId: null, workspaceError: null \}/, 'unauthenticated context must preserve the workspaceError return shape')
 assert.match(route, /workspaceError: error|error: workspaceError/)
 assert.equal((route.match(/Active workspace could not be verified/g) ?? []).length, 2, 'GET and PUT must distinguish workspace lookup failures from a missing workspace')
 assert.ok(route.includes("supabase.rpc('is_workspace_admin'"), 'profile API must verify workspace admin')
@@ -98,7 +99,7 @@ assert.ok(migration.includes('public.is_workspace_admin(workspace_id)'), 'only w
 assert.ok(migration.includes('auth.uid() = updated_by'), 'profile writes must be attributed to the current user')
 assert.ok(migration.includes("status in ('draft', 'completed')"), 'profile status must be constrained')
 assert.ok(migration.includes("(status = 'draft' and completed_at is null)"), 'draft profiles must not retain a completion timestamp')
-assert.ok(migration.includes('jsonb_typeof(profile) = \'object\''), 'profile storage must be an object')
+assert.ok(migration.includes("jsonb_typeof(profile) = \'object\''), 'profile storage must be an object')
 assert.ok(!migration.includes('security definer'), 'onboarding profile migration must not add a security-definer function')
 
 assert.ok(migrationV2.includes('schema_version = 2'), 'v2 migration must advance the profile schema')
