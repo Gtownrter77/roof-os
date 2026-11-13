@@ -1,3 +1,14 @@
+## 2026-11-11 — Current handoff and commercial status
+
+- **Commercial status:** pre-sales. ROOF/OS has sold **zero copies** and has **zero paid customers**. One prospective evaluator is considering it for a proof of concept (POC); that is an evaluation prospect, not a sale or a confirmed production deployment. Do not invent sales, subscriptions, revenue, or additional customers.
+- **Repository:** `Gtownrter77/roof-os`, private. Current main baseline: `85ce0e9561517c63d3561fc84b99e28592bd8c64`.
+- **Open repair work:** PR #443 (onboarding profile/workspace error handling), PR #444 (APK certificate fingerprint parser), and PR #445 (CI duplicate-runner reduction). All remain unmerged; do not describe their changes as shipped.
+- **CI blocker:** GitHub-hosted jobs fail before the first step with `runner_id: 0`, no assigned runner, and an empty step list. The isolated one-job runner smoke test failed the same way, including on retry. This is not an application test failure and does not establish the exact account-level cause.
+- **CI efficiency:** at least 816 workflow runs occurred on 2026-11-09 (120 successful, 338 failed, 358 cancelled across workflows). The full CI workflow was triggered by both every branch push and the corresponding PR event. PR #445 removes the redundant full-suite push trigger for feature branches. The committed `apps/field/package-lock.json` is validated by `npm ci` in PR CI; automation does not write commits back to contributor branches. The `preview-build` job no longer installs `apps/field` dependencies because root `tsconfig.json` excludes `apps` and that job only builds/type-checks the web app.
+- **Actions cost note:** the repository is private. GitHub-hosted Actions minutes may use the account's included allowance or incur additional billing. No billing settings were inspected or changed. Earlier notes below describing the repository as public/free are stale and must not be treated as current configuration.
+- **Production boundary:** no production database, Supabase migration, deployment, Vercel configuration, repository visibility, secrets, billing, or branch-protection settings were changed during this repair pass.
+- **Verification boundary:** PR #443 and #444 still need their full CI suites to run on assigned runners. The APK parser's isolated local check previously passed 7 assertions; that is not a full repo test. No full test or device test is claimed here.
+
 ## 2026-11-04 — Field AI assistance foundations (draft PR #386)
 
 - Branch: `feat/field-ai-assistance-foundation-20261104`, based on main `33ebc3ddc578c258d4076573af3f6d9f1574f1f6`.
@@ -20,9 +31,9 @@
 - Daily dispatcher (item 10):
   - `/api/cron/daily` runs the agent jobs with `Promise.allSettled`. Each job has its own deadline, `AGENT_CRON_JOB_TIMEOUT_MS` (default 45s, clamped from 1s to 290s), and the alert pass gets 10s. Defaults fit a 60s Hobby function.
   - A job past its deadline is reported as `504`, and a thrown job as `500`; the other jobs and the alerts still run. The deadline stops waiting but does not cancel the job; jobs are idempotent per run key.
-- Optional free schedule: `.github/workflows/agent-cron-schedule.yml` calls `/api/cron/daily` every 6 hours (Actions minutes are free on this public repo).
+- Optional schedule: `.github/workflows/agent-cron-schedule.yml` calls `/api/cron/daily` every 6 hours. This is a private repository; GitHub-hosted Actions usage may consume included minutes or incur charges depending on account allowance and billing.
   - It exits 0 and does nothing unless the owner adds repository secrets `ROOF_OS_CRON_URL` (https base URL) and `ROOF_OS_CRON_SECRET`.
-  - Logs show only `{processed, failed}` because the repo is public.
+  - Logs show only `{processed, failed}`; the workflow avoids exposing workspace or lead details.
   - `vercel.json` still has two crons.
 - Tests: new `test:agent-toggles-daily` (in the CI web job).
 - Still unverified external gates: a switch flipped by a real system owner on a deployment, the scheduled workflow running with real secrets, and a deployed daily run hitting the deadline path.
