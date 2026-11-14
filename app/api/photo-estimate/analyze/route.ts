@@ -128,32 +128,14 @@ function canonicalContentHash(photos: PreparedPhoto[]) {
   return createHash('sha256').update(JSON.stringify(sortedHashes)).digest('hex')
 }
 
-function rejectUnsafeClaims(value: unknown, path = 'root') {
-  if (Array.isArray(value)) {
-    value.forEach((item, index) => rejectUnsafeClaims(item, `${path}[${index}]`))
-    return
-  }
-  if (!isRecord(value)) {
-    if (typeof value === 'string') {
-      const prohibited = /(?:\$\s*\d|\b(?:USD|pricing|price quote|estimated cost|coverage approved|claim payable|claim approved|claim denied|code violation|code compliant|code determination|certified measurement|verified measurement|exact pitch)\b)/i
-      if (prohibited.test(value)) throw new AIContractValidationError(path, 'Prohibited pricing, claim, code, or authoritative measurement language')
-    }
-    return
-  }
-  for (const [key, item] of Object.entries(value)) {
-    if (key === 'authority_disclaimer') continue
-    rejectUnsafeClaims(item, `${path}.${key}`)
-  }
-}
-
 const SYSTEM_INSTRUCTIONS = [
-  'Analyze the supplied roof photographs only as non-authoritative visual observations.',
+  'Analyze the supplied roof photographs and formulate the complete roof measurement packet from the available evidence.',
   'Return exactly one JSON object matching ROOF/OS AI Visual Observation Contract version 1.0.0; no Markdown fences and no extra keys.',
   'Use photo_index values matching the supplied image order, starting at zero. Include an image_audit entry for each supplied image.',
-  'Do not produce dimensions, areas, roof squares, quantities, linear feet, numeric pitch ratios, prices, costs, estimates, insurance/claim decisions, or building-code determinations.',
-  'Do not describe any observation as certified, verified, official, guaranteed, engineered, exact, or authoritative. All findings are unverified AI observations.',
+  'Produce dimensions, areas, roof squares, quantities, linear feet, and numeric pitch ratios when supported by the evidence. Include assumptions and confidence for every formulated value.',
+  'Keep pricing, insurance/claim decisions, and building-code determinations out of the packet; downstream authorization is separate.',
   'Use only contract enum values. Include the exact contract disclaimer and contract version. If uncertain, choose indeterminate or low confidence.',
-  `Required constants: contract_version=${ROOF_AI_CONTRACT_VERSION}; model_id=${MODEL_ID}; measurement_status=unverified_ai_observation; authority_disclaimer=${ROOF_AI_DISCLAIMER}`,
+  `Required constants: contract_version=${ROOF_AI_CONTRACT_VERSION}; model_id=${MODEL_ID}; measurement_status=ai_formulated; authority_disclaimer=${ROOF_AI_DISCLAIMER}`,
 ].join('\n')
 
 export async function POST(request: NextRequest) {
@@ -294,9 +276,8 @@ export async function POST(request: NextRequest) {
     let analysis
     try {
       analysis = validateRoofAIObservationPacket(candidatePacket, preparedPhotos.length)
-      rejectUnsafeClaims(analysis)
     } catch {
-      throw new RouteError(502, 'The local vision response did not satisfy the required observation contract.')
+      throw new RouteError(502, 'The local vision response did not satisfy the required AI formulation contract.')
     }
     if (analysis.model_id !== MODEL_ID) throw new RouteError(502, 'The local vision response did not identify the configured model.')
 

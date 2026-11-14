@@ -30,6 +30,8 @@ export async function POST(request: NextRequest) {
     pitch?: string
     notes?: string
     sourceReference?: string
+    sourceType?: string
+    confidence?: string
     allowSixSquareRepairThreshold?: boolean
   }
 
@@ -84,11 +86,13 @@ export async function POST(request: NextRequest) {
   }
 
   const order = body.roofAreaSqft != null ? purchasableRoofing(Number(body.roofAreaSqft), body.allowSixSquareRepairThreshold === true) : null
+  const sourceType = body.sourceType === 'ai_formulated' ? 'ai_formulated' : 'manual'
+  const confidence = ['low', 'medium', 'high'].includes(body.confidence ?? '') ? body.confidence : 'unverified'
   const { data, error } = await supabase.from('inspection_measurements').insert({
     workspace_id: workspaceId,
     inspection_id: body.inspectionId ?? null,
-    source_type: 'manual',
-    confidence: 'unverified',
+    source_type: sourceType,
+    confidence,
     roof_area_sqft: body.roofAreaSqft ?? null,
     roof_squares: order?.squares ?? body.roofSquares ?? null,
     gutter_lf: body.gutterLf ?? null,
@@ -104,5 +108,5 @@ export async function POST(request: NextRequest) {
 
   if (error) return NextResponse.json({ error: 'Could not save measurement.', detail: error.message }, { status: 502 })
 
-  return NextResponse.json({ measurement: data, warning: 'Manual measurements remain unverified until reviewed.' }, { status: 201 })
+  return NextResponse.json({ measurement: data, warning: sourceType === 'ai_formulated' ? 'AI-formulated measurement saved with provenance.' : 'Manual measurement saved.' }, { status: 201 })
 }

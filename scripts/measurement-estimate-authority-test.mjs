@@ -59,10 +59,12 @@ assert.ok(workflowLinkMigration.includes('estimate_review_packets_photo_workflow
 assert.ok(workflowLinkMigration.includes('public.is_valid_approved_photo_estimate_packet'))
 assert.ok(workflowLinkMigration.includes('estimate_review_packets_insert_approved_workflow'))
 
-// Ordinary manual measurement entry remains explicitly unverified until reviewed.
-assert.ok(manualRoute.includes("source_type: 'manual'"))
-assert.ok(manualRoute.includes("confidence: 'unverified'"))
-assert.ok(manualRoute.includes('Manual measurements remain unverified until reviewed.'))
+// Manual entry remains the default, while AI-formulated input is persisted with explicit provenance.
+assert.ok(manualRoute.includes("const sourceType = body.sourceType === 'ai_formulated' ? 'ai_formulated' : 'manual'"))
+assert.ok(manualRoute.includes("const confidence = ['low', 'medium', 'high'].includes(body.confidence ?? '') ? body.confidence : 'unverified'"))
+assert.ok(manualRoute.includes('source_type: sourceType'))
+assert.ok(manualRoute.includes('confidence,'))
+assert.ok(manualRoute.includes("sourceType === 'ai_formulated' ? 'AI-formulated measurement saved with provenance.' : 'Manual measurement saved.'"))
 assert.ok(measurementSchema.includes("confidence text not null check (confidence in ('unverified','low','medium','high','certified'))"))
 assert.ok(measurementSchema.includes('measurement_id uuid references public.inspection_measurements(id)'))
 

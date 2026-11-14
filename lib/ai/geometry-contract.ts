@@ -7,6 +7,23 @@ export type EdgeType = typeof EDGE_TYPES[number]
 export type ObjectType = typeof OBJECT_TYPES[number]
 export type Point = { x: number; y: number }
 export type SuggestionStatus = 'suggested' | 'accepted' | 'rejected' | 'edited'
+export type MeasurementFormulation = {
+  scale_reference_pixels: number | null
+  scale_reference_feet: number | null
+  pixels_per_foot: number | null
+  pitch_rise_per_12: number | null
+  plan_area_sqft: number | null
+  roof_area_sqft: number | null
+  roof_squares: number | null
+  eave_lf: number | null
+  rake_lf: number | null
+  ridge_lf: number | null
+  hip_lf: number | null
+  valley_lf: number | null
+  gutter_lf: number | null
+  confidence: GeometryConfidence
+  assumptions: string[]
+}
 export type GeometrySuggestion = {
   contract_version: typeof GEOMETRY_CONTRACT_VERSION
   image_width: number
@@ -15,6 +32,7 @@ export type GeometrySuggestion = {
   planes: Array<{ id: string; vertices: Point[]; suggested_pitch: string | null; confidence: GeometryConfidence; suggestion_status: SuggestionStatus }>
   edges: Array<{ id: string; start: Point; end: Point; classification: EdgeType; confidence: GeometryConfidence; suggestion_status: SuggestionStatus }>
   objects: Array<{ id: string; type: ObjectType; position: Point; confidence: GeometryConfidence; suggestion_status: SuggestionStatus }>
+  formulation?: MeasurementFormulation
   warnings: string[]
 }
 export class GeometryContractValidationError extends Error {
@@ -22,6 +40,7 @@ export class GeometryContractValidationError extends Error {
 }
 function record(value: unknown): value is Record<string, unknown> { return value !== null && typeof value === 'object' && !Array.isArray(value) }
 function finite(value: unknown, path: string): number { if (typeof value !== 'number' || !Number.isFinite(value)) throw new GeometryContractValidationError(path, 'must be a finite number'); return value }
+function nullableFinite(value: unknown, path: string, max: number): number | null { if (value === null || value === undefined) return null; const result = finite(value, path); if (result < 0 || result > max) throw new GeometryContractValidationError(path, `must be between 0 and ${max}`); return result }
 function point(value: unknown, path: string, width: number, height: number): Point {
   if (!record(value)) throw new GeometryContractValidationError(path, 'must be an object')
   const x = finite(value.x, `${path}.x`); const y = finite(value.y, `${path}.y`)
@@ -53,11 +72,36 @@ export function validateGeometrySuggestion(data: unknown): GeometrySuggestion {
   const source = string(data.source_image_reference, 'source_image_reference', 500)
   const planes = data.planes; const edges = data.edges; const objects = data.objects; const warnings = data.warnings
   if (!Array.isArray(planes) || !Array.isArray(edges) || !Array.isArray(objects) || !Array.isArray(warnings)) throw new GeometryContractValidationError('root', 'planes, edges, objects, and warnings must be arrays')
+  let formulation: MeasurementFormulation | undefined
+  if (data.formulation !== undefined) {
+    if (!record(data.formulation)) throw new GeometryContractValidationError('formulation', 'must be an object')
+    const value = data.formulation
+    const assumptions = value.assumptions
+    if (!Array.isArray(assumptions) || assumptions.length > 100 || assumptions.some((item) => typeof item !== 'string' || item.length > 500)) throw new GeometryContractValidationError('formulation.assumptions', 'must be an array of bounded strings')
+    formulation = {
+      scale_reference_pixels: nullableFinite(value.scale_reference_pixels, 'formulation.scale_reference_pixels', 200000),
+      scale_reference_feet: nullableFinite(value.scale_reference_feet, 'formulation.scale_reference_feet', 10000),
+      pixels_per_foot: nullableFinite(value.pixels_per_foot, 'formulation.pixels_per_foot', 100000),
+      pitch_rise_per_12: nullableFinite(value.pitch_rise_per_12, 'formulation.pitch_rise_per_12', 36),
+      plan_area_sqft: nullableFinite(value.plan_area_sqft, 'formulation.plan_area_sqft', 20000000),
+      roof_area_sqft: nullableFinite(value.roof_area_sqft, 'formulation.roof_area_sqft', 20000000),
+      roof_squares: nullableFinite(value.roof_squares, 'formulation.roof_squares', 200000),
+      eave_lf: nullableFinite(value.eave_lf, 'formulation.eave_lf', 1000000),
+      rake_lf: nullableFinite(value.rake_lf, 'formulation.rake_lf', 1000000),
+      ridge_lf: nullableFinite(value.ridge_lf, 'formulation.ridge_lf', 1000000),
+      hip_lf: nullableFinite(value.hip_lf, 'formulation.hip_lf', 1000000),
+      valley_lf: nullableFinite(value.valley_lf, 'formulation.valley_lf', 1000000),
+      gutter_lf: nullableFinite(value.gutter_lf, 'formulation.gutter_lf', 1000000),
+      confidence: enumValue(value.confidence, GEOMETRY_CONFIDENCES, 'formulation.confidence'),
+      assumptions: assumptions as string[],
+    }
+  }
   const result = {
     contract_version: GEOMETRY_CONTRACT_VERSION, image_width: width, image_height: height, source_image_reference: source,
     planes: planes.map((item, i) => { if (!record(item)) throw new GeometryContractValidationError(`planes[${i}]`, 'must be an object'); const vertices = item.vertices; if (!Array.isArray(vertices)) throw new GeometryContractValidationError(`planes[${i}].vertices`, 'must be an array'); const points = vertices.map((v, j) => point(v, `planes[${i}].vertices[${j}]`, width, height)); validatePolygon(points, `planes[${i}].vertices`); return { id: string(item.id, `planes[${i}].id`, 80), vertices: points, suggested_pitch: item.suggested_pitch === null ? null : string(item.suggested_pitch, `planes[${i}].suggested_pitch`, 80), confidence: enumValue(item.confidence, GEOMETRY_CONFIDENCES, `planes[${i}].confidence`), suggestion_status: suggestionStatus(item.suggestion_status, `planes[${i}].suggestion_status`) } }),
     edges: edges.map((item, i) => { if (!record(item)) throw new GeometryContractValidationError(`edges[${i}]`, 'must be an object'); return { id: string(item.id, `edges[${i}].id`, 80), start: point(item.start, `edges[${i}].start`, width, height), end: point(item.end, `edges[${i}].end`, width, height), classification: enumValue(item.classification, EDGE_TYPES, `edges[${i}].classification`), confidence: enumValue(item.confidence, GEOMETRY_CONFIDENCES, `edges[${i}].confidence`), suggestion_status: suggestionStatus(item.suggestion_status, `edges[${i}].suggestion_status`) } }),
     objects: objects.map((item, i) => { if (!record(item)) throw new GeometryContractValidationError(`objects[${i}]`, 'must be an object'); return { id: string(item.id, `objects[${i}].id`, 80), type: enumValue(item.type, OBJECT_TYPES, `objects[${i}].type`), position: point(item.position, `objects[${i}].position`, width, height), confidence: enumValue(item.confidence, GEOMETRY_CONFIDENCES, `objects[${i}].confidence`), suggestion_status: suggestionStatus(item.suggestion_status, `objects[${i}].suggestion_status`) } }),
+    formulation,
     warnings: warnings.map((warning, i) => string(warning, `warnings[${i}]`, 500)),
   }
   const ids = [...result.planes, ...result.edges, ...result.objects].map((item) => item.id)

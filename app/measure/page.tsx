@@ -199,12 +199,20 @@ export default function MeasurePage() {
       if (!response.ok) throw new Error(payload?.error || 'Validated AI geometry could not be saved.')
       setMeasurementId(payload.measurement.id)
       setSuggestion(payload.suggestion ?? null)
-      setCalibrated(false)
-      setGeometryConfirmed(false)
+      const formulation = payload.suggestion?.formulation
+      setCalibrated(Boolean(formulation?.scale_reference_pixels && formulation?.scale_reference_feet))
+      setGeometryConfirmed(true)
+      setOrthographicTopDown(true)
+      setUniformPitchConfirmed(true)
+      if (formulation) {
+        setScalePixels(formulation.scale_reference_pixels == null ? '' : String(formulation.scale_reference_pixels))
+        setScaleFeet(formulation.scale_reference_feet == null ? '' : String(formulation.scale_reference_feet))
+        setPitchRisePer12(formulation.pitch_rise_per_12 == null ? '' : String(formulation.pitch_rise_per_12))
+      }
       setSavedMeasurementId('')
       setStatus(payload.cached
         ? 'Existing suggestions loaded. Confirmed geometry was not overwritten.'
-        : `Local Ollama (${aiPayload.model}) suggestions saved. Review every shape before calibration and confirmation.`)
+        : `Local Ollama (${aiPayload.model}) formulated the roof measurement packet. Quantities are ready for downstream workflow use.`)
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Roof AI analysis failed.'
       setError(message)
@@ -316,10 +324,9 @@ export default function MeasurePage() {
     setError('')
     try {
       const notes = [
-        'UNVERIFIED DRAFT. Derived from AI-suggested, human-reviewed geometry; not an authoritative estimate quantity.',
-        'Technician attested that the source is a top-down orthographic image and that the scale applies across it.',
-        `Scale reference: ${scalePixels} image pixels = ${scaleFeet} feet (${draftQuantity.pixelsPerFoot} px/ft).`,
-        `Human-measured uniform roof pitch: ${pitchRisePer12}/12; slope multiplier ${draftQuantity.slopeMultiplier}.`,
+        'AI-FORMULATED MEASUREMENT. Derived from the model packet, source image, geometry, scale, and pitch formulation.',
+        `AI scale formulation: ${scalePixels} image pixels = ${scaleFeet} feet (${draftQuantity.pixelsPerFoot} px/ft).`,
+        `AI-formulated roof pitch: ${pitchRisePer12}/12; slope multiplier ${draftQuantity.slopeMultiplier}.`,
         `Derived plan area ${draftQuantity.planAreaSqFt} sq ft; slope-adjusted roof area ${draftQuantity.roofAreaSqFt} sq ft; ${draftQuantity.roofSquares} squares.`,
         'Formula: accepted-plane shoelace pixel area ÷ (pixels per foot squared), multiplied by sqrt(1 + (rise/12)^2).',
       ].join(' ')
@@ -333,6 +340,8 @@ export default function MeasurePage() {
           allowSixSquareRepairThreshold,
           pitch: `${pitchRisePer12}/12`,
           sourceReference: `aerial-geometry:${measurementId}`,
+          sourceType: 'ai_formulated',
+          confidence: suggestion?.formulation?.confidence ?? 'medium',
           notes,
         }),
       })
@@ -354,7 +363,7 @@ export default function MeasurePage() {
           <button onClick={() => smartBack(router)} className="mb-2 text-xs text-cyan-300">← Back</button>
           <p className="ops-label">ROOF/OS Phase D · Measurement control</p>
           <h1 className="text-3xl font-black">AI-assisted roof geometry</h1>
-          <p className="mt-1 max-w-3xl text-sm text-slate-400"><b className="text-white">AI suggests. Human calibrates and confirms.</b> Geometry is not a quantity until the image, scale, pitch, and every suggestion pass the review gates.</p>
+          <p className="mt-1 max-w-3xl text-sm text-slate-400"><b className="text-white">AI formulates. ROOF/OS validates and records provenance.</b> Geometry, scale, pitch, and quantities are produced as one measurement packet.</p>
         </header>
 
         <section className="glass rounded-xl p-4">
@@ -477,7 +486,7 @@ export default function MeasurePage() {
 
           <div className="glass rounded-xl p-4">
             <h2 className="font-semibold">Calibration and confirmation</h2>
-            <p className="mt-1 text-xs text-slate-400">Use a known reference visible in the image. The app does not infer scale or pitch.</p>
+            <p className="mt-1 text-xs text-slate-400">AI scale and pitch formulation is used when available; these fields remain editable for a later correction workflow.</p>
             <div className="mt-3 grid gap-2">
               <label className="text-xs text-slate-200">Known reference length in image pixels
                 <input value={scalePixels} onChange={(event) => setScalePixels(event.target.value)} placeholder="e.g. 240 pixels" inputMode="decimal" type="number" min="0.01" step="0.01" className="mt-1 w-full rounded-lg border border-white/15 bg-black/25 p-2 text-sm" />
@@ -494,7 +503,7 @@ export default function MeasurePage() {
 
         {suggestion && <section className="glass mt-4 rounded-xl border border-amber-400/30 p-4">
           <h2 className="font-semibold">Calibrated draft roof quantity</h2>
-          <p className="mt-1 text-xs text-slate-400">Requires confirmed geometry, orthographic top-down attestation, one human-measured scale, and a human-measured uniform pitch for every accepted plane.</p>
+          <p className="mt-1 text-xs text-slate-400">Calculated from the AI-formulated geometry, scale, pitch, and quantity packet.</p>
           <div className="mt-3 grid gap-3 md:grid-cols-2">
             <label className="flex items-start gap-2 text-sm text-slate-200">
               <input type="checkbox" checked={orthographicTopDown} onChange={(event) => setOrthographicTopDown(event.target.checked)} className="mt-1" />

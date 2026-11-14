@@ -53,7 +53,7 @@ async function readBoundedResponse(response: Response) {
 }
 
 function geometryPrompt(sourceImageReference: string, imageWidth: number, imageHeight: number) {
-  return `Analyze this actual roof image as an assistant only. Return exactly one JSON object matching ROOF/OS geometry contract ${GEOMETRY_CONTRACT_VERSION}. Set image_width to exactly ${imageWidth} and image_height to exactly ${imageHeight}. Coordinates must be pixels in the supplied image. Set source_image_reference to exactly ${sourceImageReference}. Suggest roof planes as non-self-intersecting polygons, roof edges with classifications eave/rake/ridge/hip/valley/transition/step_flashing/other, and roof objects with types skylight/chimney/hvac/pipe_boot/attic_vent/other. Use low/medium/high confidence as a qualitative label, not a calibrated probability. Do not invent scale, feet, square feet, roofing squares, linear feet, quantities, or confirmed measurements. If the roof is not clearly visible, return empty arrays and a warning. No Markdown or extra keys.`
+  return `Analyze this actual roof image and formulate the complete roof measurement packet. Return exactly one JSON object matching ROOF/OS geometry contract ${GEOMETRY_CONTRACT_VERSION}. Set image_width to exactly ${imageWidth} and image_height to exactly ${imageHeight}. Coordinates must be pixels in the supplied image. Set source_image_reference to exactly ${sourceImageReference}. Detect roof planes, edges, objects, scale, roof pitch, plan area, slope-adjusted area, roofing squares, and linear quantities when supported by the evidence. Use low/medium/high confidence for every formulated value and include assumptions and warnings for uncertainty. If the roof is not visible, return empty geometry and explain what evidence is missing. No Markdown or extra keys.`
 }
 
 export async function analyzeRoofImageWithLocalOllama(file: File, imageWidth: number, imageHeight: number, sourceImageReference = 'local-inspection-image'): Promise<BrowserVisionResult> {
@@ -101,19 +101,19 @@ export async function analyzeRoofImageWithLocalOllama(file: File, imageWidth: nu
       throw new BrowserLocalVisionError('Local vision returned invalid JSON.', 502)
     }
     const text = (payload as { choices?: Array<{ message?: { content?: unknown } }> } | null)?.choices?.[0]?.message?.content
-    if (typeof text !== 'string' || !text.trim()) throw new BrowserLocalVisionError('Local vision returned no geometry suggestion.', 502)
+    if (typeof text !== 'string' || !text.trim()) throw new BrowserLocalVisionError('Local vision returned no measurement formulation.', 502)
 
     let parsed: unknown
     try {
       parsed = JSON.parse(text)
     } catch {
-      throw new BrowserLocalVisionError('Local vision returned malformed geometry JSON.', 502)
+      throw new BrowserLocalVisionError('Local vision returned malformed measurement JSON.', 502)
     }
     let suggestion: GeometrySuggestion
     try {
       suggestion = validateGeometrySuggestion(parsed)
     } catch {
-      throw new BrowserLocalVisionError('Local vision returned geometry that failed the ROOF/OS contract.', 502)
+      throw new BrowserLocalVisionError('Local vision returned measurements that failed the ROOF/OS contract.', 502)
     }
     if (suggestion.image_width !== imageWidth || suggestion.image_height !== imageHeight) {
       throw new BrowserLocalVisionError('Local vision returned geometry for different image dimensions.', 502)

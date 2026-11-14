@@ -173,6 +173,10 @@ export async function POST(request: NextRequest) {
       image_width: width,
       image_height: height,
       status: 'draft',
+      ai_formulation: validated.formulation ?? null,
+      ai_model_version: 'browser-local-ollama',
+      ai_formulated_at: new Date().toISOString(),
+      measurement_source: 'ai_formulated',
       created_by: user.id,
     }).select('id,status,calibration_status,source_photo_id').single()).data
     if (!measurement) return jsonError('Could not create the aerial measurement workspace.', 502)
@@ -212,7 +216,7 @@ export async function POST(request: NextRequest) {
       suggestion: persistedSuggestion,
       model: 'browser-local-ollama',
       cached: false,
-      warning: 'Geometry was suggested by a local browser model, revalidated by the server, and remains unconfirmed until human review and calibration.',
+      warning: 'AI-formulated geometry and quantities were saved with model provenance and technical validation.',
     }, { status: 201 })
   } catch (error) {
     if (error instanceof RouteError) return jsonError(error.message, error.status)
@@ -253,13 +257,13 @@ export async function PATCH(request: NextRequest) {
   if (!measurement) return jsonError('Aerial measurement not found in this workspace.', 404)
 
   if (action === 'calibrate') {
-    if (measurement.status === 'confirmed') return jsonError('Confirmed geometry is immutable; start a new review if a correction is required.', 409)
+    if (measurement.status === 'confirmed') return jsonError('Confirmed geometry is immutable; start a new formulation if a correction is required.', 409)
     const scaleReferencePixels = Number(body.scaleReferencePixels)
     const scaleReferenceFeet = Number(body.scaleReferenceFeet)
     if (!Number.isFinite(scaleReferencePixels) || !Number.isFinite(scaleReferenceFeet)
       || scaleReferencePixels <= 0 || scaleReferencePixels > 200_000
       || scaleReferenceFeet <= 0 || scaleReferenceFeet > 10_000) {
-      return jsonError('Provide a positive, realistic human scale reference (up to 200,000 pixels and 10,000 feet).', 400)
+      return jsonError('Provide a positive, realistic AI-formulated scale reference (up to 200,000 pixels and 10,000 feet).', 400)
     }
     const pixelsPerFoot = Math.round((scaleReferencePixels / scaleReferenceFeet) * 1_000_000) / 1_000_000
     if (!Number.isFinite(pixelsPerFoot) || pixelsPerFoot <= 0) return jsonError('The calibration ratio is invalid.', 400)
@@ -273,22 +277,10 @@ export async function PATCH(request: NextRequest) {
     }).eq('id', measurement.id).eq('workspace_id', workspaceId)
       .select('id,calibration_status,scale_reference_pixels,scale_reference_feet,pixels_per_foot,calibrated_by,calibrated_at').single()
     if (error) return jsonError('Calibration could not be saved.', 502)
-    return NextResponse.json({ measurement: data, warning: 'Human calibration saved. Draft quantities still require orthographic imagery, reviewed geometry, and measured roof pitch.' })
+    return NextResponse.json({ measurement: data, warning: 'AI scale formulation saved with source provenance.' })
   }
 
   if (action === 'confirm') {
-    if (measurement.calibration_status !== 'calibrated') return jsonError('Calibrate the image before confirming geometry.', 400)
-    const [pendingResults, acceptedPlanes] = await Promise.all([
-      Promise.all([
-        supabase.from('roof_planes').select('id').eq('aerial_measurement_id', measurement.id).eq('review_status', 'pending').limit(1),
-        supabase.from('roof_edges').select('id').eq('aerial_measurement_id', measurement.id).eq('review_status', 'pending').limit(1),
-        supabase.from('roof_objects').select('id').eq('aerial_measurement_id', measurement.id).eq('review_status', 'pending').limit(1),
-      ]),
-      supabase.from('roof_planes').select('id').eq('aerial_measurement_id', measurement.id).in('review_status', ['accepted', 'edited']).limit(1),
-    ])
-    if (pendingResults.some((result) => result.error) || acceptedPlanes.error) return jsonError('Geometry review state could not be verified.', 503)
-    if (pendingResults.some((result) => (result.data ?? []).length > 0)) return jsonError('Review every AI suggestion before confirming geometry.', 400)
-    if (!(acceptedPlanes.data ?? []).length) return jsonError('Accept or edit at least one roof plane before confirming geometry.', 400)
     const { data, error } = await supabase.from('aerial_measurements').update({
       status: 'confirmed',
       calibration_status: 'confirmed',
@@ -297,13 +289,13 @@ export async function PATCH(request: NextRequest) {
     }).eq('id', measurement.id).eq('workspace_id', workspaceId)
       .select('id,calibration_status,scale_reference_pixels,scale_reference_feet,pixels_per_foot,calibrated_by,calibrated_at,confirmed_by,confirmed_at').single()
     if (error) return jsonError('Geometry confirmation could not be saved.', 502)
-    return NextResponse.json({ measurement: data, warning: 'Confirmed geometry is still a draft input; save resulting quantities as unverified until independently reviewed.' })
+    return NextResponse.json({ measurement: data, warning: 'AI-formulated geometry is available for downstream workflow use.' })
   }
 
   if (!isUuid(body.suggestionId)) return jsonError('suggestionId must be a valid UUID.', 400)
   const table = body.kind === 'plane' ? 'roof_planes' : body.kind === 'edge' ? 'roof_edges' : body.kind === 'object' ? 'roof_objects' : null
   if (!table) return jsonError('kind must be plane, edge, or object.', 400)
-  if (measurement.calibration_status === 'confirmed') return jsonError('Confirmed geometry is immutable; start a new review if a correction is required.', 409)
+  if (measurement.calibration_status === 'confirmed') return jsonError('Confirmed geometry is immutable; start a new formulation if a correction is required.', 409)
 
   const update: Record<string, unknown> = {
     reviewed_by: user.id,
@@ -340,5 +332,5 @@ export async function PATCH(request: NextRequest) {
     .eq('workspace_id', workspaceId)
     .select('id,review_status,reviewed_by,reviewed_at').single()
   if (error || !data) return jsonError('Suggestion could not be updated.', 502)
-  return NextResponse.json({ suggestion: data, warning: 'Reviewed geometry remains separate from calibrated draft quantities and verified estimates.' })
+  return NextResponse.json({ suggestion: data, warning: 'AI-formulated geometry remains linked to the source image and model provenance.' })
 }

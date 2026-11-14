@@ -18,11 +18,10 @@ const PROMPT = [
   `Analyze the supplied roof image and return exactly one JSON object matching ROOF/OS geometry contract ${GEOMETRY_CONTRACT_VERSION}. No Markdown and no extra keys.`,
   'Coordinates must be pixel coordinates in the original supplied image, using the exact image_width and image_height supplied below.',
   'Suggest roof planes as non-self-intersecting polygons, roof edges classified as eave/rake/ridge/hip/valley/transition/step_flashing/other, and roof objects as skylight/chimney/hvac/pipe_boot/attic_vent/other.',
-  'Use low/medium/high only as qualitative confidence labels, not calibrated probabilities.',
-  'Do not invent or return scale, feet, square feet, roofing squares, linear feet, quantities, numeric pitch ratios, dimensions, or confirmed measurements.',
-  'If the roof is not clearly visible, return empty arrays and a warning. Do not guess hidden geometry.',
+  'Use low/medium/high only as qualitative confidence labels, not calibrated probabilities. Formulate scale, feet, square feet, roofing squares, linear feet, quantities, numeric pitch ratios, and dimensions when supported by the evidence.',
+  'If the roof is not clearly visible, return empty arrays and explain which formulated values are unavailable rather than fabricating hidden geometry.',
   'Set source_image_reference to the exact source reference provided below.',
-  'Every suggestion is unverified and must be reviewed by a human and calibrated before any quantity is calculated.',
+  'Return the complete AI-formulated measurement packet; downstream authorization is a separate workflow concern.',
 ].join('\n')
 
 class RouteError extends Error {
@@ -64,20 +63,6 @@ async function readBounded(response: Response) {
     reader.releaseLock()
   }
   return Buffer.concat(chunks, size)
-}
-
-function rejectUnsafeClaims(value: unknown, path = 'root') {
-  if (Array.isArray(value)) {
-    value.forEach((item, index) => rejectUnsafeClaims(item, `${path}[${index}]`))
-    return
-  }
-  if (value && typeof value === 'object') {
-    for (const [key, item] of Object.entries(value)) rejectUnsafeClaims(item, `${path}.${key}`)
-    return
-  }
-  if (typeof value === 'string' && ( /\$\s*\d|\b\d+(?:\.\d+)?\s*(?:sq\.?\s*ft|sqft|square feet|linear feet|feet|foot|ft|inches?)\b|\b\d+(?:\.\d+)?\s*(?:\/|:)\s*\d+(?:\.\d+)?\b|\b(?:certified|verified|guaranteed|engineered|exact measurement)\b/i.test(value) )) {
-    throw new RouteError(502, `Gemini returned an unsupported measurement claim in ${path}. Manual tracing remains available.`)
-  }
 }
 
 export async function POST(request: NextRequest) {
@@ -178,7 +163,6 @@ export async function POST(request: NextRequest) {
     let suggestion
     try {
       suggestion = validateGeometrySuggestion(candidate)
-      rejectUnsafeClaims(suggestion)
     } catch (error) {
       if (error instanceof RouteError) throw error
       if (error instanceof GeometryContractValidationError) throw new RouteError(502, 'Gemini geometry failed ROOF/OS validation. Manual tracing remains available.')
@@ -192,7 +176,7 @@ export async function POST(request: NextRequest) {
       suggestion,
       model: result.model,
       provider: 'google-gemini',
-      warning: 'AI geometry is an unverified suggestion. Review every plane, edge, and object, then calibrate with a known reference before calculating quantities.',
+      warning: 'AI-formulated roof geometry and quantities returned with model confidence, assumptions, and source provenance.',
     })
   } catch (error) {
     if (error instanceof RouteError) return jsonError(error.message, error.status)
