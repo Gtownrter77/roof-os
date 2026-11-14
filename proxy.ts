@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { applyFieldCorsHeaders } from './lib/field-cors'
 import { getSupabaseEnv } from './lib/supabase/env'
 
 function isCronPath(pathname: string) {
@@ -19,6 +20,10 @@ function isAuthUtilityPath(pathname: string) {
     || pathname === '/admin'
     || pathname === '/api/status'
   )
+}
+
+function isSupplementReviewPath(pathname: string) {
+  return pathname === '/api/supplements/review' || pathname.startsWith('/api/supplements/review/')
 }
 
 function wantsHtml(request: NextRequest) {
@@ -52,6 +57,11 @@ export async function proxy(request: NextRequest) {
   if (isCronPath(pathname)) return NextResponse.next({ request })
 
   const nonce = createCspNonce()
+  if (isSupplementReviewPath(pathname) && request.method === 'OPTIONS') {
+    const preflight = new NextResponse(null, { status: 204 })
+    applyFieldCorsHeaders(preflight.headers, request.headers.get('origin'))
+    return applySecurityPolicy(preflight, nonce)
+  }
   const requestHeaders = new Headers(request.headers)
   requestHeaders.set('x-nonce', nonce)
   const { url, anonKey } = getSupabaseEnv()
@@ -93,6 +103,9 @@ export async function proxy(request: NextRequest) {
   if (isPublicPassportPath(pathname)) {
     finalResponse.headers.set('Referrer-Policy', 'no-referrer')
     finalResponse.headers.set('X-Robots-Tag', 'noindex, nofollow')
+  }
+  if (isSupplementReviewPath(pathname)) {
+    applyFieldCorsHeaders(finalResponse.headers, request.headers.get('origin'))
   }
   return finalResponse
 }
