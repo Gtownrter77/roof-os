@@ -138,7 +138,7 @@ export async function POST(request: NextRequest) {
 
     const { data: existing, error: existingError } = await supabase
       .from('aerial_measurements')
-      .select('id,status,calibration_status,source_photo_id,image_width,image_height')
+      .select('id,status,calibration_status,source_photo_id,image_width,image_height,created_by')
       .eq('workspace_id', workspaceId)
       .eq('source_photo_id', photoId)
       .maybeSingle()
@@ -170,12 +170,14 @@ export async function POST(request: NextRequest) {
     }
 
     const measurement = existing
-      ? (await supabase.from('aerial_measurements').update({
+      ? existing.created_by === user.id
+        ? (await supabase.from('aerial_measurements').update({
         ai_formulation: validated.formulation ?? null,
         ai_model_version: 'browser-local-ollama',
         ai_formulated_at: new Date().toISOString(),
         measurement_source: 'ai_formulated',
-      }).eq('id', existing.id).eq('workspace_id', workspaceId).select('id,status,calibration_status,source_photo_id').single()).data
+        }).eq('id', existing.id).eq('workspace_id', workspaceId).eq('created_by', user.id).select('id,status,calibration_status,source_photo_id').single()).data
+        : existing
       : (await supabase.from('aerial_measurements').insert({
         workspace_id: workspaceId,
         inspection_id: inspectionId,

@@ -35,6 +35,13 @@ export async function POST(request: NextRequest) {
     allowSixSquareRepairThreshold?: boolean
   }
 
+  const numericKeys = ['roofAreaSqft', 'roofSquares', 'gutterLf', 'ridgeLf', 'eaveLf', 'rakeLf', 'valleyLf'] as const
+  if (numericKeys.some((key) => body[key] !== undefined && typeof body[key] !== 'number')
+    || ['pitch', 'notes', 'sourceReference', 'sourceType', 'confidence'].some((key) => body[key as keyof typeof body] !== undefined && typeof body[key as keyof typeof body] !== 'string')
+    || (body.allowSixSquareRepairThreshold !== undefined && typeof body.allowSixSquareRepairThreshold !== 'boolean')) {
+    return NextResponse.json({ error: 'Measurement fields have invalid types.' }, { status: 400 })
+  }
+
   if (body.roofAreaSqft != null) {
     const rangeError = roofAreaRangeError(Number(body.roofAreaSqft))
     if (rangeError) return NextResponse.json({ error: rangeError }, { status: 400 })
@@ -85,11 +92,19 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Pitch, notes, or source reference exceeds the supported text length.' }, { status: 400 })
   }
 
-  const order = body.roofAreaSqft != null ? purchasableRoofing(Number(body.roofAreaSqft), body.allowSixSquareRepairThreshold === true) : null
   let sourceType: 'manual' | 'ai_formulated' = 'manual'
   let confidence: 'unverified' | 'low' | 'medium' | 'high' = 'unverified'
+  let roofAreaSqft = body.roofAreaSqft ?? null
+  let roofSquares = body.roofSquares ?? null
+  let gutterLf = body.gutterLf ?? null
+  let ridgeLf = body.ridgeLf ?? null
+  let eaveLf = body.eaveLf ?? null
+  let rakeLf = body.rakeLf ?? null
+  let valleyLf = body.valleyLf ?? null
+  let pitch = body.pitch?.trim() || null
+  let notes = body.notes?.trim() || null
   if (body.sourceType === 'ai_formulated') {
-    const sourceMatch = body.sourceReference?.match(/^aerial-geometry:([0-9a-f-]{36})$/i)
+    const sourceMatch = typeof body.sourceReference === 'string' ? body.sourceReference.match(/^aerial-geometry:([0-9a-f-]{36})$/i) : null
     if (!sourceMatch || !isUuid(sourceMatch[1])) {
       return NextResponse.json({ error: 'AI-formulated measurements require a verified aerial measurement reference.' }, { status: 400 })
     }
@@ -104,24 +119,37 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'The aerial measurement reference is not valid for this workspace and inspection.' }, { status: 400 })
     }
     sourceType = 'ai_formulated'
-    const formulatedConfidence = (aerialMeasurement.ai_formulation as { confidence?: unknown } | null)?.confidence
-    confidence = formulatedConfidence === 'low' || formulatedConfidence === 'medium' || formulatedConfidence === 'high' ? formulatedConfidence : 'medium'
+    const formulation = aerialMeasurement.ai_formulation as {
+      confidence?: unknown; roof_area_sqft?: unknown; roof_squares?: unknown; gutter_lf?: unknown; ridge_lf?: unknown; eave_lf?: unknown; rake_lf?: unknown; valley_lf?: unknown; pitch_rise_per_12?: unknown; assumptions?: unknown
+    } | null
+    const formulatedConfidence = formulation?.confidence
+    confidence = formulatedConfidence === 'low' || formulatedConfidence === 'medium' || formulatedConfidence === 'high' ? formulatedConfidence : 'unverified'
+    roofAreaSqft = typeof formulation?.roof_area_sqft === 'number' ? formulation.roof_area_sqft : null
+    roofSquares = typeof formulation?.roof_squares === 'number' ? formulation.roof_squares : (roofAreaSqft == null ? null : roofAreaSqft / 100)
+    gutterLf = typeof formulation?.gutter_lf === 'number' ? formulation.gutter_lf : null
+    ridgeLf = typeof formulation?.ridge_lf === 'number' ? formulation.ridge_lf : null
+    eaveLf = typeof formulation?.eave_lf === 'number' ? formulation.eave_lf : null
+    rakeLf = typeof formulation?.rake_lf === 'number' ? formulation.rake_lf : null
+    valleyLf = typeof formulation?.valley_lf === 'number' ? formulation.valley_lf : null
+    pitch = typeof formulation?.pitch_rise_per_12 === 'number' ? `${formulation.pitch_rise_per_12}/12` : null
+    notes = Array.isArray(formulation?.assumptions) ? formulation.assumptions.filter((item): item is string => typeof item === 'string').join(' ') || null : null
   }
+  const order = roofAreaSqft != null ? purchasableRoofing(roofAreaSqft, body.allowSixSquareRepairThreshold === true) : null
   const { data, error } = await supabase.from('inspection_measurements').insert({
     workspace_id: workspaceId,
     inspection_id: body.inspectionId ?? null,
     source_type: sourceType,
     confidence,
-    roof_area_sqft: body.roofAreaSqft ?? null,
-    roof_squares: order?.squares ?? body.roofSquares ?? null,
-    gutter_lf: body.gutterLf ?? null,
-    ridge_lf: body.ridgeLf ?? null,
-    eave_lf: body.eaveLf ?? null,
-    rake_lf: body.rakeLf ?? null,
-    valley_lf: body.valleyLf ?? null,
-    pitch: body.pitch?.trim() || null,
+    roof_area_sqft: roofAreaSqft,
+    roof_squares: sourceType === 'ai_formulated' ? roofSquares : order?.squares ?? roofSquares,
+    gutter_lf: gutterLf,
+    ridge_lf: ridgeLf,
+    eave_lf: eaveLf,
+    rake_lf: rakeLf,
+    valley_lf: valleyLf,
     source_reference: body.sourceReference?.trim() || 'owner-entered',
-    notes: [body.notes?.trim(), order ? `${order.squaresLabel} · ${order.bundles} standard bundles · ${order.jobLabel}` : null].filter(Boolean).join(' ') || null,
+    pitch,
+    notes: [notes, order ? `${order.squaresLabel} · ${order.bundles} standard bundles · ${order.jobLabel}` : null].filter(Boolean).join(' ') || null,
     created_by: user.id
   }).select('id,inspection_id,source_type,confidence,roof_area_sqft,roof_squares,gutter_lf,pitch,captured_at').single()
 
