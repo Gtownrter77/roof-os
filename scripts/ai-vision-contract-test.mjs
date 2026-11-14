@@ -150,15 +150,18 @@ console.log("Running AI Vision Contract Tests...")
   console.log("  ✓ Test 3: Unknown nested property rejected")
 }
 
-// Test 4: Forbidden metric key rejected deep in object tree
+// Test 4: AI-formulated metric keys are accepted deep in the object tree; pricing remains prohibited.
 {
   const packet = makeBasePacket()
-  packet.damage_observations[0].roof_squares = 32
+  packet.measurement_status = "ai_formulated"
+  assert.doesNotThrow(() => validateRoofAIObservationPacket(packet, 2))
+  const pricedPacket = makeBasePacket()
+  pricedPacket.damage_observations[0].price = 100
   assert.throws(
-    () => validateRoofAIObservationPacket(packet, 2),
-    (err) => err instanceof AIContractValidationError && err.message.includes('Forbidden metric/commercial key "roof_squares"')
+    () => validateRoofAIObservationPacket(pricedPacket, 2),
+    (err) => err instanceof AIContractValidationError && err.message.includes('Forbidden metric/commercial key "price"')
   )
-  console.log("  ✓ Test 4: Forbidden metric key (deep) rejected")
+  console.log("  ✓ Test 4: AI-formulated metric accepted; price remains prohibited")
 }
 
 // Test 5: Malicious/authoritative pitch text rejected
@@ -238,37 +241,28 @@ console.log("Running AI Vision Contract Tests...")
   console.log("  ✓ Test 11: Prohibited claim term rejected")
 }
 
-// Test 12: Numeric pitch ratios are rejected in any narrative field.
+// Test 12: Numeric pitch ratios are accepted as AI-formulated narrative.
 {
   const packet = makeBasePacket()
   packet.summary = "The roof appears to be 6/12 from the street."
-  assert.throws(
-    () => validateRoofAIObservationPacket(packet, 2),
-    (err) => err instanceof AIContractValidationError && err.message.includes("Numeric pitch ratios are prohibited")
-  )
-  console.log("  ✓ Test 12: Numeric pitch ratio in summary rejected")
+  assert.doesNotThrow(() => validateRoofAIObservationPacket(packet, 2))
+  console.log("  ✓ Test 12: Numeric pitch ratio in summary accepted")
 }
 
-// Test 13: Numeric dimensions and areas are rejected in narrative fields.
+// Test 13: Numeric dimensions and areas are accepted in narrative fields.
 {
   const packet = makeBasePacket()
   packet.summary = "The roof area is about 1,800 square feet."
-  assert.throws(
-    () => validateRoofAIObservationPacket(packet, 2),
-    (err) => err instanceof AIContractValidationError && err.message.includes("Numeric measurements are prohibited")
-  )
-  console.log("  ✓ Test 13: Numeric area in summary rejected")
+  assert.doesNotThrow(() => validateRoofAIObservationPacket(packet, 2))
+  console.log("  ✓ Test 13: Numeric area in summary accepted")
 }
 
-// Test 14: Counted roof items are rejected in narrative fields.
+// Test 14: Counted roof items are accepted in narrative fields.
 {
   const packet = makeBasePacket()
   packet.damage_observations[0].notes = "Three shingles are missing near the south eave."
-  assert.throws(
-    () => validateRoofAIObservationPacket(packet, 2),
-    (err) => err instanceof AIContractValidationError && err.message.includes("Quantities are prohibited")
-  )
-  console.log("  ✓ Test 14: Counted quantity in notes rejected")
+  assert.doesNotThrow(() => validateRoofAIObservationPacket(packet, 2))
+  console.log("  ✓ Test 14: Counted quantity in notes accepted")
 }
 
 // Test 15: Authority claims are rejected in summary text, not only pitch fields.

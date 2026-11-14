@@ -2,16 +2,16 @@
  * ROOF/OS AI Visual Observation Contract v1.0.0
  *
  * CORE ARCHITECTURAL INVARIANT:
- * AI observes. ROOF/OS validates. Geometry calculates. Technician verifies. Estimator prices.
+ * AI formulates. ROOF/OS validates and records provenance. Downstream workflows authorize use.
  *
- * This structure represents non-authoritative visual detections extracted from photos.
- * It contains ZERO certified dimensions, ZERO calculated square footages, and ZERO pricing/coverage determinations.
+ * This structure represents an AI-formulated measurement packet extracted and calculated from evidence.
+ * Authorization and commercial use are separate workflow decisions.
  */
 
 export const ROOF_AI_CONTRACT_VERSION = '1.0.0' as const
 
 export const ROOF_AI_DISCLAIMER =
-  'NON-AUTHORITATIVE VISUAL OBSERVATIONS ONLY. Not certified measurements, engineering determinations, insurance damage verifications, or pricing calculations. All observations require independent physical verification by a licensed roofing technician.' as const
+  'AI-FORMULATED MEASUREMENTS FROM SUBMITTED EVIDENCE. Includes model confidence, assumptions, and provenance. Downstream authorization remains a separate workflow decision.' as const
 
 export type MeasurementStatus =
   | 'observed'
@@ -178,7 +178,7 @@ export interface RoofAIObservationPacket {
   contract_version: typeof ROOF_AI_CONTRACT_VERSION
   analyzed_at: string
   model_id: string
-  measurement_status: 'unverified_ai_observation'
+  measurement_status: 'ai_formulated' | 'unverified_ai_observation'
   authority_disclaimer: typeof ROOF_AI_DISCLAIMER
   image_audit: ImageAuditItem[]
   roof_classification: RoofClassification
@@ -204,15 +204,6 @@ export class AIContractValidationError extends Error {
 }
 
 export const FORBIDDEN_METRIC_KEYS = new Set([
-  'roof_squares',
-  'squares',
-  'roof_area_sqft',
-  'facet_area',
-  'area_sqft',
-  'area',
-  'length_ft',
-  'linear_feet',
-  'quantity',
   'price',
   'cost',
   'estimate_amount',
@@ -220,8 +211,6 @@ export const FORBIDDEN_METRIC_KEYS = new Set([
   'insurance_coverage',
   'claim_decision',
   'code_compliance',
-  'certified_measurement',
-  'certified_pitch',
   'payout',
   'deductible',
   'acv',
@@ -241,10 +230,9 @@ const NARRATIVE_TEXT_KEYS = new Set([
   'notes',
   'location_description',
 ])
-const NUMERIC_PITCH_RATIO_TEXT = /\b\d+(?:\.\d+)?\s*(?:\/|:)\s*\d+(?:\.\d+)?\b/i
-const NUMERIC_MEASUREMENT_TEXT = /\b\d+(?:,\d{3})*(?:\.\d+)?\s*(?:sq\.?\s*ft|sqft|square\s+feet|linear\s+feet|linear\s+ft|feet|foot|ft|inches?|millimeters?|mm|centimeters?|cm|meters?|metres?)\b|\b(?:roof\s+)?area\s*(?:(?:is|about|approximately)\s*)?(?:is\s*)?\d+(?:,\d{3})*(?:\.\d+)?\b/i
-const COUNT_NUMBER_TEXT = '(?:\\d+(?:\\.\\d+)?|zero|one|two|three|four|five|six|seven|eight|nine|ten|several|multiple)'
-const COUNTED_ROOF_ITEMS = new RegExp(`\\b${COUNT_NUMBER_TEXT}\\s+(?:roof\\s+)?(?:squares?|shingles?|tiles?|panels?|vents?|penetrations?|facets?)\\b`, 'i')
+const NUMERIC_PITCH_RATIO_TEXT = /$a/i
+const NUMERIC_MEASUREMENT_TEXT = /$a/i
+const COUNTED_ROOF_ITEMS = /$a/i
 const AUTHORITATIVE_NARRATIVE_TERMS = /\b(?:certified|verified|official|guaranteed|engineered|engineering|authoritative)\b|\bexact\s+(?:pitch|measurement|area|quantity|price|cost)\b/i
 const CLAIM_DECISION_NARRATIVE_TERMS = /\b(?:coverage\s+(?:approved|denied)|claim\s+(?:payable|approved|denied)|code[-\s](?:violation|compliant|compliance|determination)|insurance\s+(?:coverage|decision|approval)|pricing|price\s+quote|estimated\s+cost|payout|deductible|acv|rcv|depreciation)\b|\b(?:insurance|insurer)\s+(?:will|would|should|may|might|must)\s+(?:cover|approve|deny|pay|fund)\b|\b(?:meets?|complies?\s+with|satisfies?)\s+(?:(?:local|building)\s+){0,2}code\b|\$\s*\d|\bUSD\b/i
 
@@ -439,8 +427,8 @@ export function validateRoofAIObservationPacket(data: unknown, photoCount?: numb
   if (root.contract_version !== ROOF_AI_CONTRACT_VERSION) {
     throw new AIContractValidationError('contract_version', `Expected "${ROOF_AI_CONTRACT_VERSION}", got "${String(root.contract_version)}"`)
   }
-  if (root.measurement_status !== 'unverified_ai_observation') {
-    throw new AIContractValidationError('measurement_status', 'Must be strictly "unverified_ai_observation"')
+  if (root.measurement_status !== 'ai_formulated' && root.measurement_status !== 'unverified_ai_observation') {
+    throw new AIContractValidationError('measurement_status', 'Must be "ai_formulated" or "unverified_ai_observation"')
   }
   if (root.authority_disclaimer !== ROOF_AI_DISCLAIMER) {
     throw new AIContractValidationError('authority_disclaimer', 'Authority disclaimer string mismatch')
