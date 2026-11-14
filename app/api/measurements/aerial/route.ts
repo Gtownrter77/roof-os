@@ -4,6 +4,7 @@ import { GEOMETRY_CONTRACT_VERSION, GeometryContractValidationError, validateGeo
 import { isUuid, readJson, requireWorkspaceMember } from '../../../../lib/api-security'
 import { getSupabaseEnv } from '../../../../lib/supabase/env'
 import { createClient } from '../../../../lib/supabase/server'
+import { rejectUnsafeClaims, UnsafeAIClaimError } from '../../../../lib/ai/unsafe-claims'
 
 export const runtime = 'nodejs'
 const MAX_IMAGE_BYTES = 30 * 1024 * 1024
@@ -99,8 +100,10 @@ export async function POST(request: NextRequest) {
     let validated
     try {
       validated = validateGeometrySuggestion(body.suggestion)
+      rejectUnsafeClaims(validated)
     } catch (error) {
       if (error instanceof GeometryContractValidationError) return jsonError('Local vision returned invalid geometry.', 400)
+      if (error instanceof UnsafeAIClaimError) return jsonError('Local vision returned an unsafe authority or commercial claim.', 400)
       throw error
     }
     if (validated.image_width !== width || validated.image_height !== height) {
@@ -166,19 +169,26 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const measurement = existing ?? (await supabase.from('aerial_measurements').insert({
-      workspace_id: workspaceId,
-      inspection_id: inspectionId,
-      source_photo_id: photoId,
-      image_width: width,
-      image_height: height,
-      status: 'draft',
-      ai_formulation: validated.formulation ?? null,
-      ai_model_version: 'browser-local-ollama',
-      ai_formulated_at: new Date().toISOString(),
-      measurement_source: 'ai_formulated',
-      created_by: user.id,
-    }).select('id,status,calibration_status,source_photo_id').single()).data
+    const measurement = existing
+      ? (await supabase.from('aerial_measurements').update({
+        ai_formulation: validated.formulation ?? null,
+        ai_model_version: 'browser-local-ollama',
+        ai_formulated_at: new Date().toISOString(),
+        measurement_source: 'ai_formulated',
+      }).eq('id', existing.id).eq('workspace_id', workspaceId).select('id,status,calibration_status,source_photo_id').single()).data
+      : (await supabase.from('aerial_measurements').insert({
+        workspace_id: workspaceId,
+        inspection_id: inspectionId,
+        source_photo_id: photoId,
+        image_width: width,
+        image_height: height,
+        status: 'draft',
+        ai_formulation: validated.formulation ?? null,
+        ai_model_version: 'browser-local-ollama',
+        ai_formulated_at: new Date().toISOString(),
+        measurement_source: 'ai_formulated',
+        created_by: user.id,
+      }).select('id,status,calibration_status,source_photo_id').single()).data
     if (!measurement) return jsonError('Could not create the aerial measurement workspace.', 502)
 
     const sourceReference = `inspection-photo:${photoId}:sha256:${contentHash}`

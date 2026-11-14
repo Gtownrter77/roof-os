@@ -42,6 +42,8 @@ assert.ok(!route.includes('analyzePhotosWithOllama'), 'aerial analysis must not 
 assert.ok(route.includes('MAX_SUGGESTION_BYTES'))
 assert.ok(route.includes('body.suggestion'))
 assert.ok(route.includes('validateGeometrySuggestion'))
+assert.ok(route.includes('rejectUnsafeClaims(validated)'))
+assert.ok(route.includes('UnsafeAIClaimError'))
 assert.ok(!route.includes('Accept or edit at least one roof plane'))
 assert.ok(browserVision.includes("'http://localhost:11434/v1'"))
 assert.ok(browserVision.includes('LOCAL_HOSTS'))

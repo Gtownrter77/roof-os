@@ -58,6 +58,9 @@ for (const [name, route] of [['photo estimate', photoRoute], ['siding analysis',
 }
 assert.ok(!aerialRoute.includes('analyzePhotosWithOllama('), 'aerial analysis does not resolve localhost on the hosted server')
 assert.ok(aerialRoute.includes('validateGeometrySuggestion'), 'aerial route revalidates browser-supplied geometry before persistence')
+assert.ok(aerialRoute.includes('rejectUnsafeClaims(validated)'), 'aerial route screens browser-supplied AI claims before persistence')
+assert.ok(aerialRoute.includes("measurement_source: 'ai_formulated'"), 'aerial route persists AI provenance')
+assert.ok(aerialRoute.includes('.update({'), 'aerial route refreshes provenance on reused measurement rows')
 assert.ok(browserVision.includes('NEXT_PUBLIC_OLLAMA_VISION_API_BASE_URL'))
 assert.ok(browserVision.includes("'http://localhost:11434/v1'"))
 assert.ok(browserVision.includes('LOCAL_HOSTS'))
