@@ -200,10 +200,13 @@ export default function MeasurePage() {
       setMeasurementId(payload.measurement.id)
       setSuggestion(payload.suggestion ?? null)
       const formulation = payload.suggestion?.formulation
-      setCalibrated(Boolean(formulation?.scale_reference_pixels && formulation?.scale_reference_feet))
-      setGeometryConfirmed(true)
-      setOrthographicTopDown(true)
-      setUniformPitchConfirmed(true)
+      const cachedMeasurement = payload.cached ? payload.measurement : null
+      const cachedCalibrated = cachedMeasurement?.calibration_status === 'calibrated' || cachedMeasurement?.calibration_status === 'confirmed'
+      const cachedConfirmed = cachedMeasurement?.status === 'confirmed'
+      setCalibrated(cachedCalibrated)
+      setGeometryConfirmed(cachedConfirmed)
+      setOrthographicTopDown(cachedConfirmed)
+      setUniformPitchConfirmed(cachedConfirmed)
       if (formulation) {
         setScalePixels(formulation.scale_reference_pixels == null ? '' : String(formulation.scale_reference_pixels))
         setScaleFeet(formulation.scale_reference_feet == null ? '' : String(formulation.scale_reference_feet))
@@ -211,8 +214,8 @@ export default function MeasurePage() {
       }
       setSavedMeasurementId('')
       setStatus(payload.cached
-        ? 'Existing suggestions loaded. Confirmed geometry was not overwritten.'
-        : `Local Ollama (${aiPayload.model}) formulated the roof measurement packet. Quantities are ready for downstream workflow use.`)
+        ? cachedConfirmed ? 'Confirmed AI geometry loaded from the workspace.' : cachedCalibrated ? 'Calibrated AI geometry loaded. Confirm geometry or continue review.' : 'Existing AI suggestions loaded. Review and calibration state preserved.'
+        : `Local Ollama (${aiPayload.model}) formulated the roof measurement packet. Review geometry and calibrate the image before deriving quantities.`)
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Roof AI analysis failed.'
       setError(message)

@@ -60,11 +60,21 @@ assert.ok(workflowLinkMigration.includes('public.is_valid_approved_photo_estimat
 assert.ok(workflowLinkMigration.includes('estimate_review_packets_insert_approved_workflow'))
 
 // Manual entry remains the default, while AI-formulated input is persisted with explicit provenance.
-assert.ok(manualRoute.includes("const sourceType = body.sourceType === 'ai_formulated' ? 'ai_formulated' : 'manual'"))
-assert.ok(manualRoute.includes("const confidence = ['low', 'medium', 'high'].includes(body.confidence ?? '') ? body.confidence : 'unverified'"))
+assert.ok(manualRoute.includes("typeof body.sourceReference === 'string' ? body.sourceReference.match(/^aerial-geometry:([0-9a-f-]{36})$/i) : null"))
+assert.ok(manualRoute.includes('Measurement fields have invalid types.'))
+assert.ok(manualRoute.includes(".from('aerial_measurements')"))
+assert.ok(manualRoute.includes(".eq('workspace_id', workspaceId)"))
+assert.ok(manualRoute.includes("measurement_source !== 'ai_formulated'"))
+assert.ok(manualRoute.includes('const formulatedConfidence = formulation?.confidence'))
+assert.ok(manualRoute.includes("confidence = formulatedConfidence === 'low' || formulatedConfidence === 'medium' || formulatedConfidence === 'high' ? formulatedConfidence : 'unverified'"))
+assert.ok(manualRoute.includes('roofAreaSqft = typeof formulation?.roof_area_sqft ==='))
+assert.ok(manualRoute.includes("sourceType === 'ai_formulated' ? roofSquares : order?.squares ?? roofSquares"))
+assert.ok(manualRoute.includes("let sourceType: 'manual' | 'ai_formulated' = 'manual'"))
 assert.ok(manualRoute.includes('source_type: sourceType'))
 assert.ok(manualRoute.includes('confidence,'))
 assert.ok(manualRoute.includes("sourceType === 'ai_formulated' ? 'AI-formulated measurement saved with provenance.' : 'Manual measurement saved.'"))
+assert.ok(manualRoute.includes('AI-formulated measurements require a verified aerial measurement reference.'))
+assert.ok(manualRoute.includes('confidence:'))
 assert.ok(measurementSchema.includes("confidence text not null check (confidence in ('unverified','low','medium','high','certified'))"))
 assert.ok(measurementSchema.includes('measurement_id uuid references public.inspection_measurements(id)'))
 
