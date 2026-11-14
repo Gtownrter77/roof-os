@@ -1,10 +1,11 @@
 import { createHash } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
-import { AIContractValidationError, ROOF_AI_CONTRACT_VERSION, ROOF_AI_DISCLAIMER, validateRoofAIObservationPacket } from '../../../../lib/ai/roof-contract'
+import { ROOF_AI_CONTRACT_VERSION, ROOF_AI_DISCLAIMER, validateRoofAIObservationPacket } from '../../../../lib/ai/roof-contract'
 import { analyzePhotosWithOllama, getOllamaVisionModel, LocalVisionError } from '../../../../lib/ai/local-vision.mjs'
 import { isUuid, readJson, requireWorkspaceMember } from '../../../../lib/api-security'
 import { getSupabaseEnv } from '../../../../lib/supabase/env'
 import { createClient } from '../../../../lib/supabase/server'
+import { rejectUnsafeClaims, UnsafeAIClaimError } from '../../../../lib/ai/unsafe-claims'
 
 export const runtime = 'nodejs'
 export const maxDuration = 120
@@ -49,10 +50,6 @@ class RouteError extends Error {
 
 function jsonError(message: string, status: number) {
   return NextResponse.json({ error: message }, { status })
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value)
 }
 
 function mimeAndExtensionMatch(mimeType: string, path: string) {
@@ -276,7 +273,11 @@ export async function POST(request: NextRequest) {
     let analysis
     try {
       analysis = validateRoofAIObservationPacket(candidatePacket, preparedPhotos.length)
-    } catch {
+      rejectUnsafeClaims(analysis)
+    } catch (error) {
+      if (error instanceof UnsafeAIClaimError) {
+        throw new RouteError(502, 'The local vision response contained an unsafe authority or commercial claim.')
+      }
       throw new RouteError(502, 'The local vision response did not satisfy the required AI formulation contract.')
     }
     if (analysis.model_id !== MODEL_ID) throw new RouteError(502, 'The local vision response did not identify the configured model.')

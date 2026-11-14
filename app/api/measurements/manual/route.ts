@@ -86,8 +86,27 @@ export async function POST(request: NextRequest) {
   }
 
   const order = body.roofAreaSqft != null ? purchasableRoofing(Number(body.roofAreaSqft), body.allowSixSquareRepairThreshold === true) : null
-  const sourceType = body.sourceType === 'ai_formulated' ? 'ai_formulated' : 'manual'
-  const confidence = ['low', 'medium', 'high'].includes(body.confidence ?? '') ? body.confidence : 'unverified'
+  let sourceType: 'manual' | 'ai_formulated' = 'manual'
+  let confidence: 'unverified' | 'low' | 'medium' | 'high' = 'unverified'
+  if (body.sourceType === 'ai_formulated') {
+    const sourceMatch = body.sourceReference?.match(/^aerial-geometry:([0-9a-f-]{36})$/i)
+    if (!sourceMatch || !isUuid(sourceMatch[1])) {
+      return NextResponse.json({ error: 'AI-formulated measurements require a verified aerial measurement reference.' }, { status: 400 })
+    }
+    const { data: aerialMeasurement, error: aerialError } = await supabase
+      .from('aerial_measurements')
+      .select('id,inspection_id,measurement_source,ai_formulation')
+      .eq('id', sourceMatch[1])
+      .eq('workspace_id', workspaceId)
+      .maybeSingle()
+    if (aerialError) return NextResponse.json({ error: 'AI measurement provenance could not be verified.' }, { status: 503 })
+    if (!aerialMeasurement || aerialMeasurement.measurement_source !== 'ai_formulated' || aerialMeasurement.inspection_id !== (body.inspectionId ?? null)) {
+      return NextResponse.json({ error: 'The aerial measurement reference is not valid for this workspace and inspection.' }, { status: 400 })
+    }
+    sourceType = 'ai_formulated'
+    const formulatedConfidence = (aerialMeasurement.ai_formulation as { confidence?: unknown } | null)?.confidence
+    confidence = formulatedConfidence === 'low' || formulatedConfidence === 'medium' || formulatedConfidence === 'high' ? formulatedConfidence : 'medium'
+  }
   const { data, error } = await supabase.from('inspection_measurements').insert({
     workspace_id: workspaceId,
     inspection_id: body.inspectionId ?? null,

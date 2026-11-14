@@ -6,6 +6,7 @@ import { createAdminClient } from '../../../../../lib/supabase/admin'
 import { getSupabaseEnv } from '../../../../../lib/supabase/env'
 import { isUuid, readJson, requireWorkspaceMember } from '../../../../../lib/api-security'
 import { createClient } from '../../../../../lib/supabase/server'
+import { rejectUnsafeClaims, UnsafeAIClaimError } from '../../../../../lib/ai/unsafe-claims'
 
 export const runtime = 'nodejs'
 export const maxDuration = 120
@@ -163,9 +164,11 @@ export async function POST(request: NextRequest) {
     let suggestion
     try {
       suggestion = validateGeometrySuggestion(candidate)
+      rejectUnsafeClaims(suggestion)
     } catch (error) {
       if (error instanceof RouteError) throw error
       if (error instanceof GeometryContractValidationError) throw new RouteError(502, 'Gemini geometry failed ROOF/OS validation. Manual tracing remains available.')
+      if (error instanceof UnsafeAIClaimError) throw new RouteError(502, 'Gemini returned an unsafe authority or commercial claim. Manual tracing remains available.')
       throw error
     }
     if (suggestion.image_width !== width || suggestion.image_height !== height) {

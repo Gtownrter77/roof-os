@@ -200,10 +200,10 @@ export default function MeasurePage() {
       setMeasurementId(payload.measurement.id)
       setSuggestion(payload.suggestion ?? null)
       const formulation = payload.suggestion?.formulation
-      setCalibrated(Boolean(formulation?.scale_reference_pixels && formulation?.scale_reference_feet))
-      setGeometryConfirmed(true)
-      setOrthographicTopDown(true)
-      setUniformPitchConfirmed(true)
+      setCalibrated(false)
+      setGeometryConfirmed(false)
+      setOrthographicTopDown(false)
+      setUniformPitchConfirmed(false)
       if (formulation) {
         setScalePixels(formulation.scale_reference_pixels == null ? '' : String(formulation.scale_reference_pixels))
         setScaleFeet(formulation.scale_reference_feet == null ? '' : String(formulation.scale_reference_feet))
@@ -211,8 +211,8 @@ export default function MeasurePage() {
       }
       setSavedMeasurementId('')
       setStatus(payload.cached
-        ? 'Existing suggestions loaded. Confirmed geometry was not overwritten.'
-        : `Local Ollama (${aiPayload.model}) formulated the roof measurement packet. Quantities are ready for downstream workflow use.`)
+        ? 'Existing AI suggestions loaded. Human geometry review and calibration are still required.'
+        : `Local Ollama (${aiPayload.model}) formulated the roof measurement packet. Review geometry and calibrate the image before deriving quantities.`)
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Roof AI analysis failed.'
       setError(message)

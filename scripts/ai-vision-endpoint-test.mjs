@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
+import ts from 'typescript'
 import { analyzePhotosWithOllama, getOllamaVisionApiBaseUrl, getOllamaVisionModel, LocalVisionError } from '../lib/ai/local-vision.mjs'
 import { analyzeRoofGeometryWithGemini, getGeminiVisionModel, GeminiVisionError } from '../lib/ai/gemini-vision.mjs'
 
@@ -11,6 +12,9 @@ const measurePage = readFileSync(new URL('app/measure/page.tsx', root), 'utf8')
 const sidingRoute = readFileSync(new URL('app/api/siding/analyze/route.ts', root), 'utf8')
 const browserVision = readFileSync(new URL('lib/ai/local-vision-browser.ts', root), 'utf8')
 const helper = readFileSync(new URL('lib/ai/local-vision.mjs', root), 'utf8')
+const unsafeClaimsSource = readFileSync(new URL('lib/ai/unsafe-claims.ts', root), 'utf8')
+const unsafeClaimsCode = ts.transpileModule(unsafeClaimsSource, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext } }).outputText
+const { rejectUnsafeClaims, UnsafeAIClaimError } = await import(`data:text/javascript;base64,${Buffer.from(unsafeClaimsCode).toString('base64')}`)
 const workflowSchema = readFileSync(new URL('supabase/migrations/021_photo_estimate_workflows.sql', root), 'utf8')
 const photoSchema = readFileSync(new URL('supabase/migrations/003_status_history_inspection_photos.sql', root), 'utf8')
 const storagePolicy = readFileSync(new URL('supabase/migrations/033_storage_owner_path_hardening.sql', root), 'utf8')
@@ -40,7 +44,8 @@ assert.ok(photoRoute.includes(".eq('workspace_id', workspaceId)\n      .eq('buck
 assert.ok(photoRoute.includes('storage.from(BUCKET).createSignedUrl(photo.object_path, 60)'))
 assert.ok(photoRoute.includes('signedUrl.origin !== supabaseOrigin'))
 assert.ok(photoRoute.includes('validateRoofAIObservationPacket(candidatePacket, preparedPhotos.length)'))
-assert.ok(!photoRoute.includes('rejectUnsafeClaims'))
+assert.ok(photoRoute.includes('rejectUnsafeClaims(analysis)'))
+assert.ok(photoRoute.includes('UnsafeAIClaimError'))
 assert.ok(photoRoute.includes('analysis.model_id !== MODEL_ID'))
 assert.ok(photoRoute.includes('MAX_PHOTOS = 50'))
 assert.ok(photoRoute.includes('MAX_TOTAL_BYTES = 30 * 1024 * 1024'))
@@ -64,6 +69,9 @@ assert.ok(helper.includes("'http://localhost:11434/v1'"), 'the user-specified lo
 assert.ok(helper.includes('/chat/completions'), 'the configured /v1 base uses the OpenAI-compatible chat-completions path')
 assert.ok(helper.includes('response_format: { type: \'json_object\' }'))
 assert.ok(helper.includes('MAX_RESPONSE_BYTES'))
+assert.doesNotThrow(() => rejectUnsafeClaims({ roof_area_sqft: 1200, pitch: '6/12', note: 'formulated from visible geometry' }))
+assert.throws(() => rejectUnsafeClaims({ note: 'certified measurement' }), UnsafeAIClaimError)
+assert.throws(() => rejectUnsafeClaims({ note: '$1,200 price quote' }), UnsafeAIClaimError)
 
 // Mock fetch: verify the exact request without contacting any external or local service.
 const previousFetch = globalThis.fetch
@@ -123,11 +131,16 @@ assert.ok(aerialGeminiRoute.includes('consume_public_rate_limit'))
 assert.ok(aerialGeminiRoute.includes('createSignedUrl(photo.object_path, 60)'))
 assert.ok(aerialGeminiRoute.includes('signedUrl.origin !== storageOrigin'))
 assert.ok(aerialGeminiRoute.includes('validateGeometrySuggestion(candidate)'))
-assert.ok(!aerialGeminiRoute.includes('rejectUnsafeClaims'))
+assert.ok(aerialGeminiRoute.includes('rejectUnsafeClaims(suggestion)'))
+assert.ok(aerialGeminiRoute.includes('UnsafeAIClaimError'))
 assert.ok(measurePage.includes('analyzeRoofImageWithLocalOllama'))
 assert.ok(measurePage.includes('/api/measurements/aerial'))
 assert.ok(!measurePage.includes('/api/measurements/aerial/ai-suggest'))
 assert.ok(measurePage.includes('file.size > 12 * 1024 * 1024'))
+assert.ok(measurePage.includes('setCalibrated(false)'))
+assert.ok(measurePage.includes('setGeometryConfirmed(false)'))
+assert.ok(measurePage.includes('setOrthographicTopDown(false)'))
+assert.ok(measurePage.includes('setUniformPitchConfirmed(false)'))
 
 const previousGeminiKey = process.env.GEMINI_API_KEY
 const previousGeminiModel = process.env.GEMINI_VISION_MODEL
