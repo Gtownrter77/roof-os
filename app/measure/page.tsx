@@ -8,6 +8,7 @@ import { createClient } from '../../lib/supabase/client'
 import type { GeometrySuggestion } from '../../lib/ai/geometry-contract'
 import { analyzeRoofImageWithLocalOllama } from '../../lib/ai/local-vision-browser'
 import { calculateCalibratedRoofDraft } from '../../lib/measurements/calibrated-roof-draft'
+import { previewRoofAreaFromFootprint } from '../../lib/measurements/footprint-preview'
 import { purchasableRoofing, roofAreaRangeError } from '../../lib/measurements/purchasable-roofing'
 import RoofSlopeCard from '../../components/RoofSlopeCard'
 import AutoMeasurementTool from '../../components/AutoMeasurementTool'
@@ -399,7 +400,7 @@ export default function MeasurePage() {
           {selectedBuildingIndex !== null && addressCandidates[selectedBuildingIndex] && <div className="mt-3 rounded-lg border border-amber-400/30 bg-amber-400/10 p-3 text-sm text-amber-100" role="status">
             <p className="font-semibold">Automatic map measurement candidate — not estimate-ready</p>
             <p>Mapped horizontal building footprint: {addressCandidates[selectedBuildingIndex].footprintSqFt.toLocaleString()} sq ft. Approximate ground perimeter: {addressCandidates[selectedBuildingIndex].perimeterFt.toLocaleString()} ft.</p>
-            {Number.isFinite(pitchValue) && pitchValue >= 0 && pitchValue <= 36 && <p>Illustrative slope-adjusted area at {pitchValue}/12: {(addressCandidates[selectedBuildingIndex].footprintSqFt * Math.sqrt(1 + (pitchValue / 12) ** 2)).toLocaleString(undefined, { maximumFractionDigits: 0 })} sq ft, ASSUMING uniform pitch, no overhang and no other roof planes. This is not a verified roof measurement.</p>}
+            {Number.isFinite(pitchValue) && pitchValue >= 0 && pitchValue <= 36 && <p>Illustrative slope-adjusted area at {pitchValue}/12: {previewRoofAreaFromFootprint(addressCandidates[selectedBuildingIndex].footprintSqFt, pitchValue)?.illustrativeSlopedSqFt.toLocaleString(undefined, { maximumFractionDigits: 0 }) ?? 'Unavailable'} sq ft, ASSUMING uniform pitch, no overhang and no other roof planes. This is not a verified roof measurement.</p>}
             <p className="mt-1 text-xs">Select the correct building, confirm a measured roof pitch, and trace each roof plane before saving a quantity. No photo is required to inspect this candidate. Do not order material from this projection.</p>
           </div>}
 
