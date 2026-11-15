@@ -12,6 +12,9 @@ import { previewRoofAreaFromFootprint } from '../../lib/measurements/footprint-p
 import { purchasableRoofing, roofAreaRangeError } from '../../lib/measurements/purchasable-roofing'
 import RoofSlopeCard from '../../components/RoofSlopeCard'
 import AutoMeasurementTool from '../../components/AutoMeasurementTool'
+import RoofingWorkflowSettings from '../../components/RoofingWorkflowSettings'
+import RoofingWizardNavigator from '../../components/RoofingWizardNavigator'
+import { canAutoLookupAddress, loadRoofingWorkflowPreferences, type RoofingWorkflowPreferences, DEFAULT_ROOFING_WORKFLOW_PREFS } from '../../lib/roofing-workflow-preferences'
 
 const ManualDrawingTool = dynamic(() => import('../../components/ManualDrawingTool'), { ssr: false })
 
@@ -33,6 +36,19 @@ export default function MeasurePage() {
   const [preview, setPreview] = useState('')
   const [imageSize, setImageSize] = useState({ width: 0, height: 0 })
   const [address, setAddress] = useState('')
+  const [automationPrefs, setAutomationPrefs] = useState<RoofingWorkflowPreferences>({ ...DEFAULT_ROOFING_WORKFLOW_PREFS })
+  const lookupSeqRef = useRef(0)
+  const autoLookupAttemptRef = useRef('')
+  useEffect(() => {
+    const refresh = () => setAutomationPrefs(loadRoofingWorkflowPreferences())
+    refresh()
+    window.addEventListener('storage', refresh)
+    window.addEventListener('roofos-roofing-preferences-changed', refresh)
+    return () => {
+      window.removeEventListener('storage', refresh)
+      window.removeEventListener('roofos-roofing-preferences-changed', refresh)
+    }
+  }, [])
   const [inspectionId, setInspectionId] = useState('')
   const [photoId, setPhotoId] = useState('')
   const [measurementId, setMeasurementId] = useState('')
@@ -97,6 +113,10 @@ export default function MeasurePage() {
   }
 
   async function lookupImagery() {
+    const requestedAddress = address.trim()
+    if (!requestedAddress) { setError('Enter a property address first.'); return }
+    const requestSeq = ++lookupSeqRef.current
+    autoLookupAttemptRef.current = requestedAddress
     setWorking(true)
     setError('')
     setMapCenter(null)
@@ -108,16 +128,17 @@ export default function MeasurePage() {
     setImageryNote('')
     try {
       const { data: workspaceId } = await supabase.rpc('current_workspace_id')
-      if (!workspaceId || !address.trim()) throw new Error('An active workspace and property address are required.')
-      const response = await fetch(`/api/measurements/property?workspaceId=${encodeURIComponent(workspaceId)}&address=${encodeURIComponent(address.trim())}`, { cache: 'no-store' })
+      if (!workspaceId) throw new Error('An active workspace is required.')
+      const response = await fetch(`/api/measurements/property?workspaceId=${encodeURIComponent(workspaceId)}&address=${encodeURIComponent(requestedAddress)}`, { cache: 'no-store' })
       const payload = await response.json()
+      if (requestSeq !== lookupSeqRef.current) return
       if (!response.ok) throw new Error(payload.error || 'Imagery lookup failed.')
       const validGeocode = Number.isFinite(payload.geocode?.latitude) && Number.isFinite(payload.geocode?.longitude)
       setMapCenter(validGeocode ? { latitude: payload.geocode.latitude, longitude: payload.geocode.longitude } : null)
       const candidates = Array.isArray(payload.candidates) ? payload.candidates : []
       setAddressCandidates(candidates)
       setManualArea(null)
-      setSelectedBuildingIndex(null)
+      setSelectedBuildingIndex(loadRoofingWorkflowPreferences().selectSingleFootprint && candidates.length === 1 ? 0 : null)
       const aerial = payload.aerial
       const available = validGeocode && aerial?.status === 'available' && typeof aerial.tileUrl === 'string'
       setAerialTileUrl(available ? aerial.tileUrl : '')
@@ -129,6 +150,7 @@ export default function MeasurePage() {
           ? `Address located. ${candidates.length} mapped building footprint(s) found. Street map tracing is available without uploading a photo; aerial tiles are unavailable.`
           : `Address located. Street map fallback available for reference only. AERIAL IMAGERY UNAVAILABLE: ${aerial?.reason || 'No qualifying open aerial image found.'}`)
     } catch (err) {
+      if (requestSeq !== lookupSeqRef.current) return
       setMapCenter(null)
       setAerialTileUrl('')
       setAerialAttribution('')
@@ -138,9 +160,16 @@ export default function MeasurePage() {
       setImageryNote('')
       setError(err instanceof Error ? err.message : 'Imagery lookup failed.')
     } finally {
-      setWorking(false)
+      if (requestSeq === lookupSeqRef.current) setWorking(false)
     }
   }
+
+  useEffect(() => {
+    if (!canAutoLookupAddress(address, automationPrefs) || autoLookupAttemptRef.current === address.trim()) return
+    const timer = window.setTimeout(() => { void lookupImagery() }, 1200)
+    return () => window.clearTimeout(timer)
+  // Triggered by address text and explicit owner preferences, never by a successful lookup state change.
+  }, [address, automationPrefs.autoAddressLookup])
 
   async function uploadAndAnalyze() {
     if (!file || !imageSize.width || !imageSize.height) {
@@ -374,10 +403,12 @@ export default function MeasurePage() {
           <p className="mt-1 max-w-3xl text-sm text-slate-400"><b className="text-white">AI formulates. ROOF/OS validates and records provenance.</b> Geometry, scale, pitch, and quantities are produced as one measurement packet.</p>
         </header>
 
+        <RoofingWizardNavigator active="/measure" />
+        <RoofingWorkflowSettings compact />
         <section className="glass rounded-xl p-4">
           <div className="grid gap-3 md:grid-cols-[1fr_auto]">
             <label className="text-sm font-medium text-slate-200">Property address
-              <input value={address} onChange={(event) => { setAddress(event.target.value); setMapCenter(null); setAerialTileUrl(''); setAddressCandidates([]); setSelectedBuildingIndex(null); setManualArea(null); setImageryNote(''); }} className="mt-1 w-full rounded-lg border border-white/15 bg-black/25 p-3 text-white placeholder:text-slate-500" placeholder="Enter property address" />
+              <input value={address} onChange={(event) => { lookupSeqRef.current++; setWorking(false); setAddress(event.target.value); setMapCenter(null); setAerialTileUrl(''); setAddressCandidates([]); setSelectedBuildingIndex(null); setManualArea(null); setImageryNote(''); }} className="mt-1 w-full rounded-lg border border-white/15 bg-black/25 p-3 text-white placeholder:text-slate-500" placeholder="Enter property address" />
             </label>
             <div className="flex items-end gap-2">
               <label className="flex items-center gap-2 text-xs text-slate-300">
@@ -389,6 +420,10 @@ export default function MeasurePage() {
             </div>
           </div>
           {imageryNote && <p className="mt-3 rounded-lg border border-cyan-400/20 bg-cyan-400/10 p-3 text-xs text-cyan-200">{imageryNote}</p>}
+          {address.trim().length > 0 && <div className="mt-3 flex flex-wrap gap-2">
+            <a href={'/supplement?address=' + encodeURIComponent(address.trim())} className="rounded border border-white/20 px-3 py-2 text-xs text-cyan-200">Continue this address in supplement wizard</a>
+            <a href="/sketch" className="rounded border border-white/20 px-3 py-2 text-xs text-cyan-200">Open manual roof sketch</a>
+          </div>}
           {addressCandidates.length > 0 && <section className="mt-3 space-y-2" aria-label="Mapped building footprints">
             <h2 className="text-sm font-semibold text-white">Buildings near this address — no photo required</h2>
             {addressCandidates.map((candidate, index) => <div key={`${candidate.osmId ?? 'building'}-${index}`} className="rounded-lg border border-white/15 bg-black/20 p-3 text-sm">
