@@ -136,6 +136,9 @@ for (const constraint of [
   assert.ok(migrationV2.includes(constraint), `v2 migration must add ${constraint}`)
 }
 assert.ok(!migrationV2.includes('security definer'), 'the SQL array validator must not use elevated privileges')
+assert.ok(migrationV2.includes("set search_path = ''"), 'the v2 validator must pin its search path')
+const migrationSearchPath = readFileSync(new URL('../supabase/migrations/095_onboarding_validator_search_path.sql', import.meta.url), 'utf8')
+assert.ok(migrationSearchPath.includes("set search_path = ''"), 'production compatibility patch must pin validator search path')
 
 const postgresRunner = readFileSync(new URL('../scripts/ci/verify-onboarding-profile-postgres.sh', import.meta.url), 'utf8')
 assert.match(postgresRunner, /DB="roofos_onboarding_ci_\$\{GITHUB_RUN_ID:-local\}_\$\{GITHUB_RUN_ATTEMPT:-1\}_\$\$"/)

@@ -42,9 +42,10 @@ psql_db "$DB" -c "insert into public.workspace_onboarding_profiles (
 )"
 
 psql_db "$DB" -f supabase/migrations/093_workspace_onboarding_profile_v2.sql
+psql_db "$DB" -f supabase/migrations/095_onboarding_validator_search_path.sql
 psql_db "$DB" -f scripts/ci/onboarding-profile-assertions.sql
 
-echo 'ONBOARDING PROFILE MIGRATIONS 092+093: isolated PostgreSQL RLS, workspace-isolation, and v2 profile-contract tests passed. Supabase Auth/Storage integration remains untested.'
+echo 'ONBOARDING PROFILE MIGRATIONS 092+093+095: isolated PostgreSQL RLS, workspace-isolation, and v2 profile-contract tests passed. Supabase Auth/Storage integration remains untested.'
 if [[ -n "${GITHUB_STEP_SUMMARY:-}" ]]; then
-  echo '**Onboarding profile migrations 092+093: isolated PostgreSQL RLS/workspace-isolation and v2 profile-contract tests PASSED. Supabase Auth/Storage integration not exercised.**' >> "$GITHUB_STEP_SUMMARY"
+  echo '**Onboarding profile migrations 092+093+095: isolated PostgreSQL RLS/workspace-isolation and v2 profile-contract tests PASSED. Supabase Auth/Storage integration not exercised.**' >> "$GITHUB_STEP_SUMMARY"
 fi

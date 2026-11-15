@@ -14,6 +14,7 @@ const commands = [
   ['estimate packet manager gate', 'npm', ['run', 'test:estimate-packet-manager-gate']],
   ['AI chat and transcription', 'npm', ['run', 'test:ai-chat-bar']],
   ['agent runtime', 'npm', ['run', 'test:agent-runtime']],
+  ['BAILEY onboarding', 'npm', ['run', 'test:bailey-onboarding']],
   ['release evidence', 'npm', ['run', 'test:release-evidence']],
 ]
 
