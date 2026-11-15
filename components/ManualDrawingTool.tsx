@@ -96,7 +96,7 @@ const ManualDrawingTool = ({
     <section className="mt-3 w-full space-y-3" aria-label="Manual roof-plane tracer">
       <div className="rounded-lg border border-cyan-300/20 p-3 text-sm text-slate-200">
         <h3 className="font-semibold text-white">Manual roof-plane tracing · multiple planes</h3>
-        <p className="mt-1 text-xs text-slate-300">Start drawing, tap the corners of each plane, then Finish plane. Repeat for dormers and separate sections. Do not overlap planes or count an area twice.</p>
+        <p className="mt-1 text-xs text-slate-300">Tap Start Drawing, then tap each roof corner (or click with a mouse), and Finish plane. Repeat for dormers and separate sections. Do not overlap planes or count an area twice.</p>
       </div>
       <div className="flex flex-wrap gap-2">
         <button type="button" onClick={() => setIsDrawing(current => !current)}
