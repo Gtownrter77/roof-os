@@ -80,10 +80,24 @@ export async function GET(request: NextRequest) {
   } catch { aerial = { status: 'unavailable', reason: 'OpenAerialMap imagery lookup failed.' } }
 
   const query = `[out:json][timeout:15];(way(around:35,${latitude},${longitude})[building];);out geom;`
-  const overpassResponse = await fetchWithTimeout(OVERPASS, { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded', 'user-agent': USER_AGENT }, body: new URLSearchParams({ data: query }).toString(), cache: 'no-store' })
-  if (!overpassResponse.ok) return NextResponse.json({ error: 'OpenStreetMap footprint lookup failed.' }, { status: 502 })
-  const overpass: unknown = await overpassResponse.json()
-  const elements = record(overpass) && Array.isArray(overpass.elements) ? overpass.elements : []
+  // Loss of footprint coverage must not hide a successfully located address or its aerial map.
+  let elements: unknown[] = []
+  let footprintWarning: string | null = null
+  try {
+    const overpassResponse = await fetchWithTimeout(OVERPASS, {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded', 'user-agent': USER_AGENT },
+      body: new URLSearchParams({ data: query }).toString(), cache: 'no-store',
+    })
+    if (overpassResponse.ok) {
+      const overpass: unknown = await overpassResponse.json()
+      elements = record(overpass) && Array.isArray(overpass.elements) ? overpass.elements.slice(0, 200) : []
+    } else {
+      footprintWarning = 'OpenStreetMap building footprints are temporarily unavailable. The geocoded map is still usable.'
+    }
+  } catch {
+    footprintWarning = 'OpenStreetMap building footprints are temporarily unavailable. The geocoded map is still usable.'
+  }
   const candidates = elements.map((element): { osmId: unknown; buildingType: string; footprintSqFt: number; perimeterFt: number; source: string; confidence: string } | null => {
     if (!record(element)) return null
     const geometry = Array.isArray(element.geometry) ? element.geometry : []
@@ -99,5 +113,5 @@ export async function GET(request: NextRequest) {
     return { osmId: element.id ?? null, buildingType, footprintSqFt: Math.round(measurements.areaSqM * FEET_PER_METER * FEET_PER_METER), perimeterFt: Math.round(measurements.perimeterM * FEET_PER_METER), source: 'OpenStreetMap', confidence: 'low' }
   }).filter((candidate): candidate is NonNullable<typeof candidate> => candidate !== null && candidate.footprintSqFt > 0).sort((a, b) => b.footprintSqFt - a.footprintSqFt).slice(0, MAX_BUILDING_CANDIDATES)
 
-  return NextResponse.json({ address, geocode: { latitude, longitude, displayName: typeof geocodeResult.display_name === 'string' ? geocodeResult.display_name : address }, candidates, aerial, interpretation: 'Building footprint is not roof surface area. Roof pitch, overhangs, dormers, valleys, hips, waste, and gutters require aerial/roof measurement or human verification.', verificationLinks: { officialParcelViewerSearch: 'https://www.arcgis.com/home/search.html?q=parcel%20viewer', cobbExampleParcelViewer: 'https://geo-cobbcountyga.hub.arcgis.com/app/e22d8c597b4e4762bcd2caa6127696e4' }, attribution: '© OpenStreetMap contributors' })
+  return NextResponse.json({ address, geocode: { latitude, longitude, displayName: typeof geocodeResult.display_name === 'string' ? geocodeResult.display_name : address }, candidates, aerial, footprintWarning, interpretation: 'Building footprint is not roof surface area. Roof pitch, overhangs, dormers, valleys, hips, waste, and gutters require aerial/roof measurement or human verification.', verificationLinks: { officialParcelViewerSearch: 'https://www.arcgis.com/home/search.html?q=parcel%20viewer', cobbExampleParcelViewer: 'https://geo-cobbcountyga.hub.arcgis.com/app/e22d8c597b4e4762bcd2caa6127696e4' }, attribution: '© OpenStreetMap contributors' })
 }

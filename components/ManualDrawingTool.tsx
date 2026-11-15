@@ -3,13 +3,13 @@ import React, { useMemo, useState } from 'react';
 import L from 'leaflet';
 import { MapContainer, ImageOverlay, Polygon, TileLayer, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
-import { purchasableRoofing } from '../lib/measurements/purchasable-roofing';
 
-function MapEvents({ isDrawing, setPoints }: { isDrawing: boolean; setPoints: React.Dispatch<React.SetStateAction<[number, number][]>> }) {
+function MapEvents({ isDrawing, setPoints, onEdit }: { isDrawing: boolean; setPoints: React.Dispatch<React.SetStateAction<[number, number][]>>; onEdit: () => void }) {
   useMapEvents({
     click(e) {
       if (!isDrawing) return;
       setPoints((prev) => [...prev, [e.latlng.lat, e.latlng.lng]]);
+      onEdit();
     },
   });
   return null;
@@ -66,8 +66,7 @@ const ManualDrawingTool = ({
   const bounds = useMemo(() => [[0, 0], [height, width]] as [[number, number], [number, number]], [height, width]);
   const pixelsPerFoot = scalePixels > 0 && scaleFeet > 0 ? scalePixels / scaleFeet : 0;
   const areaSqFt = areaPx > 0 && pixelsPerFoot > 0 ? areaPx / (pixelsPerFoot * pixelsPerFoot) : 0;
-  const imageOrder = areaSqFt > 0 ? purchasableRoofing(areaSqFt, allowSixSquareRepairThreshold) : null;
-  const geoOrder = geoAreaSqFt > 0 ? purchasableRoofing(geoAreaSqFt, allowSixSquareRepairThreshold) : null;
+  // A traced satellite/map polygon is a horizontal ground footprint, never an orderable sloped-roof quantity.
 
   const calculateArea = () => {
     if (points.length < 3) return;
@@ -92,34 +91,38 @@ const ManualDrawingTool = ({
           Calculate Area
         </button>
         {points.length > 0 && (
-          <button type="button" onClick={() => { setPoints([]); setAreaPx(0); }} className="rounded border border-white/20 px-3 py-1 text-sm text-slate-200">
+          <button type="button" onClick={() => { setPoints((current) => current.slice(0, -1)); setAreaPx(0); onAreaCalculated?.({ value: 0, unit: 'px', squareFeet: null }); }} className="rounded border border-white/20 px-3 py-1 text-sm text-slate-200">Undo corner</button>
+        )}
+        {points.length > 0 && (
+          <button type="button" onClick={() => { setPoints([]); setAreaPx(0); onAreaCalculated?.({ value: 0, unit: 'px', squareFeet: null }); }} className="rounded border border-white/20 px-3 py-1 text-sm text-slate-200">
             Clear
           </button>
         )}
       </div>
-      {(imageUrl || (mapCenter && aerialTileUrl)) ? (
+      {(imageUrl || mapCenter) ? (
         <div className="h-[420px] w-full overflow-hidden rounded-lg border border-white/15">
           <MapContainer
-            key={imageUrl || `${mapCenter?.latitude},${mapCenter?.longitude}`}
+            key={imageUrl || `${mapCenter?.latitude},${mapCenter?.longitude}:${aerialTileUrl || 'street-map'}`}
             crs={imageUrl ? L.CRS.Simple : L.CRS.EPSG3857}
             {...(imageUrl ? { bounds, maxBounds: bounds, zoomSnap: 0.25 } : { center: [mapCenter!.latitude, mapCenter!.longitude] as [number, number], zoom: 20, maxZoom: 22 })}
             className="h-full w-full"
             style={{ height: '100%', width: '100%', background: '#000' }}
           >
-            {imageUrl ? <ImageOverlay url={imageUrl} bounds={bounds} /> : <TileLayer url={aerialTileUrl!} attribution={aerialAttribution || 'OpenAerialMap'} maxZoom={22} maxNativeZoom={19} />}
-            <MapEvents isDrawing={isDrawing} setPoints={setPoints} />
+            {imageUrl ? <ImageOverlay url={imageUrl} bounds={bounds} /> : aerialTileUrl ? <TileLayer url={aerialTileUrl} attribution={aerialAttribution || 'OpenAerialMap'} maxZoom={22} maxNativeZoom={19} /> : <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="© OpenStreetMap contributors · street map, NOT aerial imagery" maxZoom={19} />}
+            <MapEvents isDrawing={isDrawing} setPoints={setPoints} onEdit={() => { setAreaPx(0); onAreaCalculated?.({ value: 0, unit: 'px', squareFeet: null }); }} />
             {points.length > 0 && <Polygon positions={points} pathOptions={{ color: '#16c9ff', weight: 2, fillOpacity: 0.18 }} />}
           </MapContainer>
         </div>
       ) : (
-        <p className="mt-2 text-sm text-slate-400">AERIAL IMAGERY UNAVAILABLE — no verified, openly licensed aerial image is loaded for this address.</p>
+        <p className="mt-2 text-sm text-slate-400">Enter a property address and select Lookup imagery, or load an image to trace manually.</p>
       )}
+      {useGeoMap && !aerialTileUrl && <p className="mt-2 text-xs text-amber-200">OpenStreetMap STREET MAP fallback. No aerial photo is available. Do not treat street-map clicks as a verified roof outline.</p>}
       <p className="mt-2 text-sm text-slate-300">
-        {useGeoMap && geoOrder ? `${geoOrder.squareFeet.toFixed(1)} sq ft · order ${geoOrder.squaresLabel} squares · ${geoOrder.bundles} standard bundles. ${geoOrder.jobLabel}` : areaPx > 0
-          ? imageOrder
-            ? `${Math.round(areaPx).toLocaleString()} px² · ${imageOrder.squareFeet.toFixed(1)} sq ft · order ${imageOrder.squaresLabel} squares · ${imageOrder.bundles} standard bundles. ${imageOrder.jobLabel}`
-            : `${Math.round(areaPx).toLocaleString()} px². Enter a scale reference to convert to orderable squares and whole bundles.`
-          : useGeoMap ? 'Tap Start Drawing, then tap each roof corner (or click with a mouse). Full replacement starts at 10 squares.' : 'Tap Start Drawing, then tap each roof corner on the image (or click with a mouse). Full replacement starts at 10 squares. Under 600 sq ft is a repair by default.'}
+        {useGeoMap && geoAreaSqFt > 0 ? `${geoAreaSqFt.toFixed(1)} sq ft horizontal footprint only. Verify roof pitch, overhang and sections before calculating roof squares; not a material order.` : areaPx > 0
+          ? areaSqFt > 0
+            ? `${Math.round(areaPx).toLocaleString()} px² · ${areaSqFt.toFixed(1)} sq ft calibrated image PLAN area only; verify roof pitch and plane geometry before estimating. Not a material order.`
+            : `${Math.round(areaPx).toLocaleString()} px². Enter a known scale reference to convert to a provisional horizontal area; this is not an order quantity.`
+          : useGeoMap ? 'Tap Start Drawing, then tap each roof corner (or click with a mouse). This is a horizontal ground footprint, not roof surface area.' : 'Tap Start Drawing, then tap each roof corner on the image (or click with a mouse). Verify scale, slope and roof geometry separately.'}
       </p>
     </div>
   );

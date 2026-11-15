@@ -54,6 +54,7 @@
     "test:aerial": "node scripts/aerial-geometry-test.mjs",
     "test:auto-measurement": "node scripts/auto-measurement-local-and-quantity-test.mjs",
     "test:roof-slope": "node scripts/roof-slope-test.mjs",
+    "test:roofing-workflows": "node --experimental-strip-types scripts/roofing-four-workflows-test.mjs",
     "test:estimate-creation-flow": "node scripts/estimate-creation-flow-test.mjs",
     "test:estimate-packet-manager-gate": "node scripts/estimate-packet-manager-gate-test.mjs",
     "verify:security": "node scripts/security-check.mjs",
