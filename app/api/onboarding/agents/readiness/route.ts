@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '../../../../lib/supabase/server'
-import { defaultBaileyAgentSetup, validateBaileyAgentSetup, type BaileyAgentSetupStatus } from '../../../../lib/bailey-agent-onboarding'
-import { describeBaileyAgentReadiness, EXISTING_LEGACY_WORKER_KEYS } from '../../../../lib/bailey-agent-readiness'
-import type { AgentKey, HeartbeatRecord } from '../../../../workers/agent-registry'
+import { createClient } from '../../../../../lib/supabase/server'
+import { defaultBaileyAgentSetup, validateBaileyAgentSetup, type BaileyAgentSetupStatus } from '../../../../../lib/bailey-agent-onboarding'
+import { describeBaileyAgentReadiness, EXISTING_LEGACY_WORKER_KEYS } from '../../../../../lib/bailey-agent-readiness'
+import type { AgentKey, HeartbeatRecord } from '../../../../../workers/agent-registry'
 
 export const dynamic = 'force-dynamic'
 
