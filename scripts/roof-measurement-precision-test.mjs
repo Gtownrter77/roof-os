@@ -36,7 +36,7 @@ const lat0 = 33.9, lon0 = -84.6
 const geographic = [[lat0,lon0],[lat0,lon0+0.0001],[lat0+0.0001,lon0+0.0001],[lat0+0.0001,lon0]]
 const geo = analyzeTracedPolygon(geographic,'geographic')
 assert.equal(geo.valid,true)
-assert.ok(geo.area > 250 && geo.area < 450)
+assert.ok(geo.area > 850 && geo.area < 1450)
 assert.ok(geo.perimeter > 65 && geo.perimeter < 160)
 assert.equal(geo.unit,'sqft')
 assert.equal(geo.perimeterUnit,'ft')
