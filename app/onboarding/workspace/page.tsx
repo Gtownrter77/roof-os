@@ -272,6 +272,7 @@ export default function WorkspaceOnboardingPage() {
         <header className="mb-6">
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-cyan-300">ROOF/OS · Workspace setup</p>
           <h1 className="mt-2 text-3xl font-bold">Build your company profile</h1>
+          <a href="/onboarding/agents" className="mt-3 inline-block rounded-lg border border-cyan-300/40 px-3 py-2 text-sm font-semibold text-cyan-100 hover:bg-cyan-300/10">Next: configure all 15 BAILEY agents</a>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-300">Set up the basics at your own pace. You can save a draft and return later. Choose “Not sure” whenever you need to.</p>
           <div className="mt-3 flex flex-wrap items-center gap-2 text-xs" aria-live="polite">
             {updatedAt && <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-slate-300">Last saved {new Date(updatedAt).toLocaleString()}</span>}
