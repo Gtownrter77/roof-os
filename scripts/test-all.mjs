@@ -18,6 +18,7 @@ const commands = [
   ['BAILEY readiness', 'npm', ['run', 'test:bailey-readiness']],
   ['roofing workflows', 'npm', ['run', 'test:roofing-workflows']],
   ['roofing automation and wizard sync', 'npm', ['run', 'test:roofing-automations']],
+  ['roofing precision and multiple planes', 'npm', ['run', 'test:roofing-precision']],
   ['release evidence', 'npm', ['run', 'test:release-evidence']],
 ]
 
