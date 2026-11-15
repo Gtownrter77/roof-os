@@ -104,11 +104,11 @@ const ManualDrawingTool = ({
           <MapContainer
             key={imageUrl || `${mapCenter?.latitude},${mapCenter?.longitude}:${aerialTileUrl || 'street-map'}`}
             crs={imageUrl ? L.CRS.Simple : L.CRS.EPSG3857}
-            {...(imageUrl ? { bounds, maxBounds: bounds, zoomSnap: 0.25 } : { center: [mapCenter!.latitude, mapCenter!.longitude] as [number, number], zoom: 20, maxZoom: 22 })}
+            {...(imageUrl ? { bounds, maxBounds: bounds, zoomSnap: 0.25 } : { center: [mapCenter!.latitude, mapCenter!.longitude] as [number, number], zoom: aerialTileUrl ? 20 : 19, maxZoom: 22 })}
             className="h-full w-full"
             style={{ height: '100%', width: '100%', background: '#000' }}
           >
-            {imageUrl ? <ImageOverlay url={imageUrl} bounds={bounds} /> : aerialTileUrl ? <TileLayer url={aerialTileUrl} attribution={aerialAttribution || 'OpenAerialMap'} maxZoom={22} maxNativeZoom={19} /> : <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="© OpenStreetMap contributors · street map, NOT aerial imagery" maxZoom={19} />}
+            {imageUrl ? <ImageOverlay url={imageUrl} bounds={bounds} /> : aerialTileUrl ? <TileLayer url={aerialTileUrl} attribution={aerialAttribution || 'OpenAerialMap'} maxZoom={22} maxNativeZoom={19} /> : <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="© OpenStreetMap contributors · street map, NOT aerial imagery" maxZoom={22} maxNativeZoom={19} />}
             <MapEvents isDrawing={isDrawing} setPoints={setPoints} onEdit={() => { setAreaPx(0); onAreaCalculated?.({ value: 0, unit: 'px', squareFeet: null }); }} />
             {points.length > 0 && <Polygon positions={points} pathOptions={{ color: '#16c9ff', weight: 2, fillOpacity: 0.18 }} />}
           </MapContainer>
