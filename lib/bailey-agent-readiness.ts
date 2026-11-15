@@ -1,5 +1,5 @@
-import { BAILEY_AGENT_CATALOG, type BaileyAgentKey, type BaileyAgentSetup, type BaileyAgentSetupStatus } from './bailey-agent-onboarding'
-import { AGENT_KEYS, evaluateAgentReadiness, getAgentRegistration, type AgentKey, type HeartbeatRecord } from '../workers/agent-registry'
+import { BAILEY_AGENT_CATALOG, type BaileyAgentKey, type BaileyAgentSetup, type BaileyAgentSetupStatus } from './bailey-agent-onboarding.ts'
+import { AGENT_KEYS, evaluateAgentReadiness, getAgentRegistration, type AgentKey, type HeartbeatRecord } from '../workers/agent-registry.ts'
 
 // Descriptive relationship ONLY. These four older workers are not the BAILEY 15-agent implementation.
 // Do not use this mapping to dispatch work, grant access, or treat an agent as operational.
