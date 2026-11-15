@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import RoofingWizardNavigator from '../../../components/RoofingWizardNavigator'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useMemo, useState } from 'react'
 
@@ -88,6 +89,8 @@ export default function NewEstimatePage() {
 
   return (
     <main className="min-h-screen bg-slate-950 p-4 text-slate-100 sm:p-8">
+        <RoofingWizardNavigator active="/estimate/new" />
+
       <div className="mx-auto max-w-6xl space-y-5">
         <header className="flex flex-wrap items-center justify-between gap-3">
           <div><Link href="/estimate" className="text-sm text-cyan-300 hover:underline">← Estimates</Link><h1 className="mt-2 text-3xl font-black">Create an estimate</h1><p className="mt-1 text-sm text-slate-400">Start from a template, enter what you know, and save a review-gated draft. Prices remain zero until you add a verified price book.</p></div>
