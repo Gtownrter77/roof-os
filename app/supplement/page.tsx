@@ -4,6 +4,8 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { smartBack } from '../../lib/smart-back'
+import RoofingWorkflowSettings from '../../components/RoofingWorkflowSettings'
+import RoofingWizardNavigator from '../../components/RoofingWizardNavigator'
 
 type Supplement = { id: string; title: string; description: string; job_address: string; additional_cost: number; status: string; urgency: string }
 type Urgency = 'low' | 'medium' | 'high' | 'critical'
@@ -111,6 +113,9 @@ export default function SupplementPage() {
   }
 
   return <main className="mx-auto max-w-5xl space-y-5 p-4 pb-12">
+        <RoofingWizardNavigator active="/supplement" />
+    <RoofingWorkflowSettings compact />
+
     <header className="glass rounded-xl p-4 flex items-center gap-3">
       <button type="button" onClick={() => smartBack(router)} aria-label="Go back" className="text-cyan-300">←</button>
       <div className="flex-1"><h1 className="text-xl font-bold">Supplement Wizard</h1><p className="text-xs text-slate-400">Scope → evidence → owner pricing → internal review</p></div>
