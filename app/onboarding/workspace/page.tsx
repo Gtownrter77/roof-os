@@ -251,10 +251,7 @@ export default function WorkspaceOnboardingPage() {
   )
 
   if (loading) {
-    return <main className="ops-bg flex min-h-screen items-center justify-center p-6 text-sm text-slate-300">
-        <RoofingWizardNavigator />
-        <RoofingWorkflowSettings compact />
-Loading workspace setup…</main>
+    return <main className="ops-bg flex min-h-screen items-center justify-center p-6 text-sm text-slate-300">Loading workspace setup…</main>
   }
 
   if (profileLoadFailed) {
@@ -273,6 +270,8 @@ Loading workspace setup…</main>
 
   return (
     <main className="ops-bg min-h-screen px-4 py-8 text-white">
+        <RoofingWizardNavigator />
+        <RoofingWorkflowSettings compact />
       <div className="mx-auto w-full max-w-3xl">
         <header className="mb-6">
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-cyan-300">ROOF/OS · Workspace setup</p>
