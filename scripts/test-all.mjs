@@ -15,6 +15,7 @@ const commands = [
   ['AI chat and transcription', 'npm', ['run', 'test:ai-chat-bar']],
   ['agent runtime', 'npm', ['run', 'test:agent-runtime']],
   ['BAILEY onboarding', 'npm', ['run', 'test:bailey-onboarding']],
+  ['BAILEY readiness', 'npm', ['run', 'test:bailey-readiness']],
   ['release evidence', 'npm', ['run', 'test:release-evidence']],
 ]
 
