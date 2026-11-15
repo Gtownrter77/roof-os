@@ -52,6 +52,7 @@ returns boolean
 language sql
 immutable
 parallel safe
+set search_path = ''
 as $function$
   select case
     when value is null or jsonb_typeof(value) <> 'array' then false
