@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState } from 'react'
 import type { OnboardingProfile, OnboardingProfileStatus } from '../../../lib/onboarding-profile'
 import WorkspaceOnboardingAssistant from '../../../components/WorkspaceOnboardingAssistant'
 import WorkspaceSetupTour from '../../../components/onboarding/WorkspaceSetupTour'
+import RoofingWorkflowSettings from '../../../components/RoofingWorkflowSettings'
+import RoofingWizardNavigator from '../../../components/RoofingWizardNavigator'
 import WorkspaceFirstSuccessGuide from '../../../components/onboarding/WorkspaceFirstSuccessGuide'
 import { createClient } from '../../../lib/supabase/client'
 
@@ -249,7 +251,10 @@ export default function WorkspaceOnboardingPage() {
   )
 
   if (loading) {
-    return <main className="ops-bg flex min-h-screen items-center justify-center p-6 text-sm text-slate-300">Loading workspace setup…</main>
+    return <main className="ops-bg flex min-h-screen items-center justify-center p-6 text-sm text-slate-300">
+        <RoofingWizardNavigator />
+        <RoofingWorkflowSettings compact />
+Loading workspace setup…</main>
   }
 
   if (profileLoadFailed) {
