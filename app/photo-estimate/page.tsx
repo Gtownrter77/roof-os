@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { smartBack } from '../../lib/smart-back'
+import RoofingWizardNavigator from '../../components/RoofingWizardNavigator'
 import { createClient } from '../../lib/supabase/client'
 import { createWorker } from 'tesseract.js'
 import { GoldenReport } from '../../components/GoldenReport'
@@ -333,6 +334,7 @@ export default function PhotoEstimatePage() {
   ].map((photo) => [photo.id, photo.url]))
 
   return <div className="space-y-4 p-1 pb-4">
+    <RoofingWizardNavigator />
     <button onClick={() => smartBack(router)} className="text-cyan-300 mb-4">← Back</button>
     <h1 className="text-2xl font-bold">Photo → Estimate Review</h1>
     <p className="text-sm text-slate-300 mt-1 mb-4">Upload evidence first. The system assembles address, property, storm, measurement, pricing, and report candidates. A technician must verify the packet before it can be sent.</p>

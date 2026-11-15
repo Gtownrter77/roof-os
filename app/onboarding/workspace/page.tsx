@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState } from 'react'
 import type { OnboardingProfile, OnboardingProfileStatus } from '../../../lib/onboarding-profile'
 import WorkspaceOnboardingAssistant from '../../../components/WorkspaceOnboardingAssistant'
 import WorkspaceSetupTour from '../../../components/onboarding/WorkspaceSetupTour'
+import RoofingWorkflowSettings from '../../../components/RoofingWorkflowSettings'
+import RoofingWizardNavigator from '../../../components/RoofingWizardNavigator'
 import WorkspaceFirstSuccessGuide from '../../../components/onboarding/WorkspaceFirstSuccessGuide'
 import { createClient } from '../../../lib/supabase/client'
 
@@ -268,6 +270,8 @@ export default function WorkspaceOnboardingPage() {
 
   return (
     <main className="ops-bg min-h-screen px-4 py-8 text-white">
+        <RoofingWizardNavigator />
+        <RoofingWorkflowSettings compact />
       <div className="mx-auto w-full max-w-3xl">
         <header className="mb-6">
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-cyan-300">ROOF/OS · Workspace setup</p>

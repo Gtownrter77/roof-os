@@ -13,6 +13,8 @@ import {
 } from '../../lib/radar/cinema-layers'
 import { applyCinemaTheme, cinemaThemeEnabled } from '../../lib/theme/cinema'
 import ThemePicker from '../../components/ThemePicker'
+import RoofingWorkflowSettings from '../../components/RoofingWorkflowSettings'
+import RoofingWizardNavigator from '../../components/RoofingWizardNavigator'
 import DashboardSkinToggle from '../../components/DashboardSkinToggle'
 import AgentSwitches from '../../components/AgentSwitches'
 import { FEATURE_FLAG_ENFORCEMENT, type WorkspaceFeatureFlag } from '../../lib/workspace-settings'
@@ -185,6 +187,9 @@ export default function SettingsPage() {
       </header>
 
       <main className="p-4 max-w-2xl mx-auto space-y-4">
+        <RoofingWorkflowSettings />
+        <RoofingWizardNavigator active="/settings" />
+
         {isSystemOwner && (
         <section className="glass rounded-xl p-4 border-l-4 border-amber-400 space-y-3">
           <h2 className="font-bold text-sm text-white flex items-center">
