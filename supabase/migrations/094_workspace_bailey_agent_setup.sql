@@ -9,9 +9,9 @@ set search_path = ''
 as $fn$
   select coalesce(
     jsonb_typeof(p_setup) = 'object'
-    and (select count(*) = 15 from jsonb_each(p_setup))
+    and (select count(*) = 15 from jsonb_each(case when jsonb_typeof(p_setup) = 'object' then p_setup else '{}'::jsonb end))
     and not exists (
-      select 1 from jsonb_each(p_setup) as entry(agent_key, preference)
+      select 1 from jsonb_each(case when jsonb_typeof(p_setup) = 'object' then p_setup else '{}'::jsonb end) as entry(agent_key, preference)
       where agent_key <> all (array[
         'orchestrator','chief_of_staff','personal_calling','business_receptionist',
         'outbound_sales','scheduling','customer_care','roofing_estimator',
