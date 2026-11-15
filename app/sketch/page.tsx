@@ -6,7 +6,7 @@ import { smartBack } from '../../lib/smart-back'
 import RoofSlopeCard from '../../components/RoofSlopeCard'
 
 type Measurement = { text: string; id: number }
-type Tool = 'pencil' | 'line' | 'rectangle' | 'circle'
+type Tool = 'pencil' | 'line' | 'rectangle' | 'circle' | 'polygon'
 type Point = { x: number; y: number }
 
 const CANVAS_WIDTH = 1600
@@ -19,6 +19,8 @@ export default function SketchPage() {
   const imageRef = useRef<HTMLImageElement | null>(null)
   const historyRef = useRef<ImageData[]>([])
   const strokeStartRef = useRef<Point | null>(null)
+  const polygonRef = useRef<Point[]>([])
+  const [polygonCount, setPolygonCount] = useState(0)
   const beforeStrokeRef = useRef<ImageData | null>(null)
   const [isDrawing, setIsDrawing] = useState(false)
   const [tool, setTool] = useState<Tool>('line')
@@ -52,6 +54,8 @@ export default function SketchPage() {
     } else {
       drawGrid(ctx)
     }
+    polygonRef.current = []
+    setPolygonCount(0)
     historyRef.current = [ctx.getImageData(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT)]
   }
 
@@ -94,11 +98,41 @@ export default function SketchPage() {
     ctx.stroke()
   }
 
+  const previewPolygon = (hover?: Point) => {
+    const ctx = canvasRef.current?.getContext('2d')
+    const previous = historyRef.current.at(-1)
+    if (!ctx || !previous) return
+    ctx.putImageData(previous, 0, 0)
+    if (!polygonRef.current.length) return
+    ctx.strokeStyle = color
+    ctx.lineWidth = brushSize
+    ctx.beginPath()
+    ctx.moveTo(polygonRef.current[0].x, polygonRef.current[0].y)
+    for (const point of polygonRef.current.slice(1)) ctx.lineTo(point.x, point.y)
+    if (hover) ctx.lineTo(hover.x, hover.y)
+    ctx.stroke()
+  }
+
+  const finishPolygon = () => {
+    const ctx = canvasRef.current?.getContext('2d')
+    if (!ctx || polygonRef.current.length < 3) return
+    previewPolygon()
+    ctx.closePath()
+    ctx.strokeStyle = color
+    ctx.lineWidth = brushSize
+    ctx.stroke()
+    historyRef.current.push(ctx.getImageData(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT))
+    if (historyRef.current.length > 12) historyRef.current.shift()
+    polygonRef.current = []
+    setPolygonCount(0)
+  }
+
   const startDrawing = (event: React.PointerEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current
     const ctx = canvas?.getContext('2d')
     if (!canvas || !ctx) return
     const start = getPoint(event)
+    if (tool === 'polygon') { polygonRef.current.push(start); setPolygonCount(polygonRef.current.length); previewPolygon(); return }
     beforeStrokeRef.current = ctx.getImageData(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT)
     strokeStartRef.current = start
     setIsDrawing(true)
@@ -107,6 +141,7 @@ export default function SketchPage() {
   }
 
   const draw = (event: React.PointerEvent<HTMLCanvasElement>) => {
+    if (tool === 'polygon') { if (polygonRef.current.length) previewPolygon(getPoint(event)); return }
     if (!isDrawing) return
     const canvas = canvasRef.current
     const ctx = canvas?.getContext('2d')
@@ -118,6 +153,7 @@ export default function SketchPage() {
   }
 
   const stopDrawing = (event?: React.PointerEvent<HTMLCanvasElement>) => {
+    if (tool === 'polygon') return
     if (!isDrawing) return
     const canvas = canvasRef.current
     const ctx = canvas?.getContext('2d')
@@ -125,11 +161,13 @@ export default function SketchPage() {
     if (!canvas || !ctx) return
     if (tool !== 'pencil' && start && beforeStrokeRef.current) { ctx.putImageData(beforeStrokeRef.current, 0, 0); drawShape(ctx, start, event ? getPoint(event) : start) } else ctx.closePath()
     historyRef.current.push(ctx.getImageData(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT))
+    if (historyRef.current.length > 12) historyRef.current.shift()
     if (event && canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId)
     beforeStrokeRef.current = null; strokeStartRef.current = null; setIsDrawing(false)
   }
 
   const undo = () => {
+    if (polygonRef.current.length) { polygonRef.current.pop(); setPolygonCount(polygonRef.current.length); previewPolygon(); return }
     if (historyRef.current.length <= 1) return
     historyRef.current.pop()
     const canvas = canvasRef.current
@@ -148,9 +186,24 @@ export default function SketchPage() {
   const downloadSketch = () => {
     const canvas = canvasRef.current
     if (!canvas) return
+    if (polygonRef.current.length) { window.alert('Finish or undo the open roof plane before exporting.'); return }
+    const output = document.createElement('canvas')
+    output.width = CANVAS_WIDTH
+    output.height = CANVAS_HEIGHT + (measurements.length ? 50 + measurements.length * 32 : 0)
+    const ctx = output.getContext('2d')
+    if (!ctx) return
+    ctx.fillStyle = '#0b1220'
+    ctx.fillRect(0, 0, output.width, output.height)
+    ctx.drawImage(canvas, 0, 0)
+    if (measurements.length) {
+      ctx.fillStyle = '#fff'
+      ctx.font = '22px sans-serif'
+      ctx.fillText('Field notes (owner-entered, unverified)', 20, CANVAS_HEIGHT + 36)
+      for (let i = 0; i < measurements.length; i++) ctx.fillText(measurements[i].text.slice(0, 110), 20, CANVAS_HEIGHT + 68 + i * 32)
+    }
     const link = document.createElement('a')
     link.download = `roof-os-aerial-sketch-${new Date().toISOString().slice(0, 10)}.png`
-    link.href = canvas.toDataURL('image/png')
+    link.href = output.toDataURL('image/png')
     link.click()
   }
 
@@ -159,7 +212,8 @@ export default function SketchPage() {
       <header className="glass rounded-xl mb-4"><div className="px-4 py-3 flex items-center"><button type="button" onClick={() => smartBack(router)} className="mr-3 text-xl text-cyan-300" aria-label="Go back">←</button><div><p className="ops-label">ROOF/OS field geometry</p><h1 className="text-xl font-bold">Roof sketch from aerial photo</h1></div></div></header>
       <main className="p-4 space-y-4">
         <section className="glass rounded-xl p-4"><div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="font-semibold text-white">Photo underlay</h2><p className="mt-1 text-xs text-slate-400">Load an aerial or inspection photo, then trace roof planes, ridges, eaves, and objects on top of it.</p></div><input ref={photoInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={loadAerialPhoto} /><button type="button" onClick={() => photoInputRef.current?.click()} className="rounded-lg bg-cyan-600 px-3 py-2 text-sm font-semibold text-white">{photoName ? 'Replace aerial photo' : 'Load aerial photo'}</button></div>{photoName ? <p className="mt-2 text-xs text-cyan-200">Tracing: {photoName}. The original stays in this browser; download the marked-up sketch when finished.</p> : <p className="mt-2 text-xs text-amber-200">No photo loaded. The grid remains available for a field sketch.</p>}</section>
-        <section className="glass rounded-xl p-3"><div className="flex flex-wrap gap-2">{([['pencil','✏️','Freehand'],['line','📏','Roof edge'],['rectangle','⬜','Plane box'],['circle','⭕','Object']] as const).map(([value, icon, label]) => <button key={value} type="button" onClick={() => setTool(value)} aria-label={label} aria-pressed={tool === value} className={`rounded px-3 py-2 text-sm ${tool === value ? 'bg-cyan-500/20 text-cyan-200 ring-1 ring-cyan-400' : 'hover:bg-white/10'}`}>{icon} {label}</button>)}<div className="w-px bg-white/15" /><input type="color" value={color} aria-label="Drawing color" onChange={(event) => setColor(event.target.value)} className="h-9 w-9 rounded border" /><select value={brushSize} aria-label="Brush size" onChange={(event) => setBrushSize(Number(event.target.value))} className="rounded border bg-slate-900 p-1 text-sm"><option value={2}>2 px</option><option value={5}>5 px</option><option value={10}>10 px</option><option value={18}>18 px</option></select><button type="button" onClick={undo} className="rounded px-3 py-2 hover:bg-white/10" aria-label="Undo last stroke">↩ Undo</button><button type="button" onClick={clearCanvas} className="rounded px-3 py-2 text-red-300 hover:bg-red-400/10" aria-label="Clear sketch">Clear</button><button type="button" onClick={addMeasurement} className="rounded bg-emerald-600 px-3 py-2 text-sm text-white">Add measurement</button></div></section>
+        <section className="glass rounded-xl p-3"><div className="flex flex-wrap gap-2">{([['pencil','✏️','Freehand'],['line','📏','Roof edge'],['polygon','⬡','Roof plane'],['rectangle','⬜','Plane box'],['circle','⭕','Object']] as const).map(([value, icon, label]) => <button key={value} type="button" onClick={() => { if (!polygonRef.current.length) setTool(value) }} aria-label={label} aria-pressed={tool === value} className={`rounded px-3 py-2 text-sm ${tool === value ? 'bg-cyan-500/20 text-cyan-200 ring-1 ring-cyan-400' : 'hover:bg-white/10'}`}>{icon} {label}</button>)}<div className="w-px bg-white/15" /><input type="color" value={color} aria-label="Drawing color" onChange={(event) => setColor(event.target.value)} className="h-9 w-9 rounded border" /><select value={brushSize} aria-label="Brush size" onChange={(event) => setBrushSize(Number(event.target.value))} className="rounded border bg-slate-900 p-1 text-sm"><option value={2}>2 px</option><option value={5}>5 px</option><option value={10}>10 px</option><option value={18}>18 px</option></select>{polygonCount > 0 && <button type="button" disabled={polygonCount < 3} onClick={finishPolygon} className="rounded bg-emerald-600 px-3 py-2 text-sm disabled:opacity-50">Finish plane ({polygonCount})</button>}<button type="button" onClick={undo} className="rounded px-3 py-2 hover:bg-white/10" aria-label="Undo last stroke">↩ Undo</button><button type="button" onClick={clearCanvas} className="rounded px-3 py-2 text-red-300 hover:bg-red-400/10" aria-label="Clear sketch">Clear</button><button type="button" onClick={addMeasurement} className="rounded bg-emerald-600 px-3 py-2 text-sm text-white">Add measurement</button></div></section>
+        {tool === 'polygon' && <p className="text-xs text-cyan-200">Tap roof corners and choose Finish plane; Undo removes the last corner. This sketch is not calibrated.</p>}
         <section className="glass overflow-hidden rounded-xl border-2 border-cyan-400/30"><canvas ref={canvasRef} className="block h-auto max-h-[70vh] w-full touch-none" onPointerDown={startDrawing} onPointerMove={draw} onPointerUp={stopDrawing} onPointerCancel={stopDrawing} /></section>
         <RoofSlopeCard compact />
         {measurements.length > 0 && <section className="glass rounded-xl p-4"><h3 className="mb-2 text-sm font-semibold">Field measurements</h3>{measurements.map((measurement) => <div key={measurement.id} className="flex items-center justify-between border-b border-white/10 py-2 text-sm"><span>{measurement.text}</span><button type="button" onClick={() => setMeasurements((current) => current.filter((item) => item.id !== measurement.id))} className="text-xs text-red-300" aria-label={`Remove ${measurement.text}`}>Remove</button></div>)}</section>}
