@@ -17,6 +17,7 @@ const commands = [
   ['BAILEY onboarding', 'npm', ['run', 'test:bailey-onboarding']],
   ['BAILEY readiness', 'npm', ['run', 'test:bailey-readiness']],
   ['roofing workflows', 'npm', ['run', 'test:roofing-workflows']],
+  ['roofing automation and wizard sync', 'npm', ['run', 'test:roofing-automations']],
   ['release evidence', 'npm', ['run', 'test:release-evidence']],
 ]
 
