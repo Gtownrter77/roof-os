@@ -25,6 +25,7 @@ export default function BaileyAgentOnboardingPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [loadFailed, setLoadFailed] = useState(false)
   const [notice, setNotice] = useState('')
   const [updatedAt, setUpdatedAt] = useState<string | null>(null)
   const [index, setIndex] = useState(0)
@@ -48,7 +49,10 @@ export default function BaileyAgentOnboardingPage() {
         setCanEdit(payload.canEdit === true)
         setUpdatedAt(typeof payload.updatedAt === 'string' ? payload.updatedAt : null)
       } catch (cause) {
-        if (active) setError(cause instanceof Error ? cause.message : 'Could not load agent setup.')
+        if (active) {
+          setLoadFailed(true)
+          setError(cause instanceof Error ? cause.message : 'Could not load agent setup.')
+        }
       } finally {
         if (active) setLoading(false)
       }
@@ -113,7 +117,7 @@ export default function BaileyAgentOnboardingPage() {
           Actual actions require separately implemented permissions, operational readiness, and approval checks.
         </section>
 
-        {loading ? <p role="status">Loading agent setup…</p> : error && !canEdit && !updatedAt && status === 'draft' && JSON.stringify(setup) === JSON.stringify(defaultBaileyAgentSetup()) ? (
+        {loading ? <p role="status">Loading agent setup…</p> : loadFailed ? (
           <section role="alert" className="rounded-xl border border-red-300/40 p-4">
             <p>{error}</p>
             <button className="mt-3 rounded border px-3 py-2" onClick={() => window.location.reload()}>Try again</button>
