@@ -50,7 +50,7 @@ export default function SupplementPage() {
     event.preventDefault()
     if (busy) return
     const cost = Number(amount)
-    if (!jobAddress.trim() || !title.trim() || !description.trim() || !evidenceNotes.trim()
+    if (!jobAddress.trim() || !title.trim() || !description.trim() || examples.some((example) => example.prompt === description.trim()) || !evidenceNotes.trim()
         || amount.trim() === '' || !Number.isFinite(cost) || cost < 0 || cost > 1_000_000) {
       setMessage('Enter a job address, real findings, supporting evidence, and your own amount between $0 and $1,000,000.')
       return
