@@ -392,3 +392,18 @@ $audit_visibility$;
 reset role;
 
 select 'ONBOARDING PROFILE AUDIT: owner event recorded, unknown fields retained, and member access denied.' as result;
+
+-- Regression: the onboarding validator must not inherit an unsafe search_path.
+do $check_onboarding_search_path$
+begin
+  if not exists (
+    select 1 from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+    cross join lateral unnest(coalesce(p.proconfig, array[]::text[])) cfg(setting)
+    where n.nspname = 'public'
+      and p.proname = 'onboarding_jsonb_string_array_is_valid'
+      and cfg.setting like 'search_path=%'
+  ) then
+    raise exception 'onboarding validator has no explicit safe search_path';
+  end if;
+end $check_onboarding_search_path$;
