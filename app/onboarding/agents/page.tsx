@@ -11,6 +11,21 @@ import {
   type BaileyAgentSetupStatus,
 } from '../../../lib/bailey-agent-onboarding'
 
+type RelatedWorker = {
+  workerKey: string
+  label: string
+  ready: boolean
+  reason: string
+  evidenceType: 'legacy_worker_heartbeat'
+}
+type AgentEvidence = {
+  key: BaileyAgentKey
+  implementedAsBaileyAgent: false
+  operational: false
+  executionAuthorized: false
+  relatedWorkers: RelatedWorker[]
+}
+
 const MODES: Array<{ value: BaileyAgentPreference; label: string; explanation: string }> = [
   { value: 'off', label: 'Off', explanation: 'No future use requested.' },
   { value: 'review_only', label: 'Review only', explanation: 'Plan to receive drafts and recommendations.' },
@@ -27,6 +42,9 @@ export default function BaileyAgentOnboardingPage() {
   const [error, setError] = useState('')
   const [loadFailed, setLoadFailed] = useState(false)
   const [notice, setNotice] = useState('')
+  const [evidence, setEvidence] = useState<AgentEvidence[] | null>(null)
+  const [evidenceError, setEvidenceError] = useState('')
+  const [evidenceLoading, setEvidenceLoading] = useState(false)
   const [updatedAt, setUpdatedAt] = useState<string | null>(null)
   const [index, setIndex] = useState(0)
   const [reviewConfirmed, setReviewConfirmed] = useState(false)
@@ -60,6 +78,32 @@ export default function BaileyAgentOnboardingPage() {
     void load()
     return () => { active = false }
   }, [])
+
+  useEffect(() => {
+    if (loading || loadFailed || !canEdit) return
+    let active = true
+    async function loadEvidence() {
+      setEvidenceLoading(true)
+      setEvidenceError('')
+      try {
+        const response = await fetch('/api/onboarding/agents/readiness', { cache: 'no-store' })
+        const payload = await response.json()
+        if (!response.ok) throw new Error(payload.error || 'Existing worker evidence is unavailable.')
+        if (!active) return
+        if (!Array.isArray(payload.agents) || payload.agents.length !== BAILEY_AGENT_CATALOG.length
+          || payload.executionAuthorized !== false || payload.operationalAgentCount !== 0) {
+          throw new Error('Worker evidence failed safety validation.')
+        }
+        setEvidence(payload.agents as AgentEvidence[])
+      } catch (cause) {
+        if (active) setEvidenceError(cause instanceof Error ? cause.message : 'Worker evidence is unavailable.')
+      } finally {
+        if (active) setEvidenceLoading(false)
+      }
+    }
+    void loadEvidence()
+    return () => { active = false }
+  }, [loading, loadFailed, canEdit])
 
   function setMode(key: BaileyAgentKey, mode: BaileyAgentPreference) {
     setSetup((currentSetup) => ({ ...currentSetup, [key]: mode }))
@@ -146,6 +190,26 @@ export default function BaileyAgentOnboardingPage() {
               <p className="text-xs uppercase tracking-wider text-cyan-300">Agent {index + 1}</p>
               <h2 className="mt-1 text-xl font-bold">{current.label}</h2>
               <p className="mt-2 text-sm text-slate-300">{current.description}</p>
+              <section aria-label="Implementation evidence" className="mt-4 rounded-lg border border-violet-300/25 bg-violet-950/20 p-3">
+                <p className="text-sm font-semibold text-violet-100">Implementation: Not yet verified as a BAILEY agent</p>
+                <p className="mt-1 text-xs leading-relaxed text-slate-300">
+                  Preferences do not activate any agent. The older worker system is separate. A healthy legacy
+                  heartbeat proves only that a related legacy worker reported in recently.
+                </p>
+                {canEdit && evidenceLoading && <p role="status" className="mt-2 text-xs text-slate-400">Checking legacy worker evidence…</p>}
+                {canEdit && evidenceError && <p role="status" className="mt-2 text-xs text-amber-200">Evidence unavailable: {evidenceError}</p>}
+                {canEdit && evidence && (
+                  <div className="mt-3 space-y-1">
+                    {(evidence.find((item) => item.key === current.key)?.relatedWorkers ?? []).length === 0
+                      ? <p className="text-xs text-slate-400">No existing legacy worker relationship identified.</p>
+                      : (evidence.find((item) => item.key === current.key)?.relatedWorkers ?? []).map((worker) => (
+                        <p className="text-xs text-slate-300" key={worker.workerKey}>
+                          Related legacy worker: {worker.label} — {worker.ready ? 'fresh heartbeat' : worker.reason}
+                        </p>
+                      ))}
+                  </div>
+                )}
+              </section>
               <fieldset className="mt-6 space-y-3" disabled={!canEdit || saving}>
                 <legend className="mb-2 text-sm font-semibold">Initial preference</legend>
                 {MODES.map((mode) => (
