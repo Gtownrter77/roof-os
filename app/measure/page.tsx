@@ -423,6 +423,7 @@ export default function MeasurePage() {
           {address.trim().length > 0 && <div className="mt-3 flex flex-wrap gap-2">
             <a href={'/supplement?address=' + encodeURIComponent(address.trim())} className="rounded border border-white/20 px-3 py-2 text-xs text-cyan-200">Continue this address in supplement wizard</a>
             <a href="/sketch" className="rounded border border-white/20 px-3 py-2 text-xs text-cyan-200">Open manual roof sketch</a>
+            <a href={'/estimate/new?address=' + encodeURIComponent(address.trim())} className="rounded border border-white/20 px-3 py-2 text-xs text-cyan-200">Start estimate with this address</a>
           </div>}
           {addressCandidates.length > 0 && <section className="mt-3 space-y-2" aria-label="Mapped building footprints">
             <h2 className="text-sm font-semibold text-white">Buildings near this address — no photo required</h2>
@@ -482,6 +483,20 @@ export default function MeasurePage() {
           {status && <p className="mt-3 rounded-lg border border-emerald-400/30 bg-emerald-400/10 p-3 text-sm text-emerald-300" role="status">{status}</p>}
         </section>
 
+        <section className="glass mt-4 rounded-xl border border-cyan-400/25 p-4" aria-label="Automatic measurement readiness checks">
+          <h2 className="text-sm font-semibold">Measurement readiness — live checks</h2>
+          <div className="mt-2 grid gap-1 text-xs sm:grid-cols-2">
+            {([
+              ['Address entered', address.trim().length >= 8],
+              ['Map located', Boolean(mapCenter)],
+              ['Building footprint selected', selectedBuildingIndex !== null],
+              ['Roof pitch entered and plausible', pitchRisePer12.trim() !== '' && Number.isFinite(pitchValue) && pitchValue >= 0 && pitchValue <= 36],
+              ['Manual trace recorded', Boolean(manualArea)],
+              ['AI geometry reviewed and calibrated', Boolean(calibrated && geometryConfirmed)],
+            ] as const).map(([label, done]) => <p key={label} className={done ? 'text-emerald-200' : 'text-amber-200'}>{done ? '✓' : '○'} {label}</p>)}
+          </div>
+          <p className="mt-2 text-xs text-slate-400">Readiness checks do not certify a measurement. A map footprint is only a ground reference; authoritative roof quantities still require independent review.</p>
+        </section>
         <section className="glass mt-4 rounded-xl p-4"><RoofSlopeCard /></section>
 
         {preview && <section className="glass mt-4 rounded-xl p-4">
