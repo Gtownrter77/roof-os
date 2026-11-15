@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { smartBack } from '../../lib/smart-back'
+import RoofingWizardNavigator from '../../components/RoofingWizardNavigator'
 
 export default function AIWizardPage() {
   const router = useRouter()
@@ -118,6 +119,8 @@ export default function AIWizardPage() {
       </header>
 
       <main className="p-4">
+        <RoofingWizardNavigator />
+
         <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg shadow-lg p-4 mb-4 border border-indigo-200">
           <div className="flex items-center">
             <span className="text-3xl mr-3">🧙</span>
