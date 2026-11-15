@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import RoofingWizardNavigator from '../../../components/RoofingWizardNavigator'
 import {
   BAILEY_AGENT_CATALOG,
   defaultBaileyAgentSetup,
@@ -145,6 +146,7 @@ export default function BaileyAgentOnboardingPage() {
   return (
     <main className="min-h-screen bg-slate-950 px-4 py-8 text-slate-100">
       <div className="mx-auto max-w-4xl space-y-6">
+        <RoofingWizardNavigator />
         <header className="space-y-2">
           <Link href="/onboarding/workspace" className="text-sm text-cyan-300 underline underline-offset-4">Back to company setup</Link>
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-cyan-300">BAILEY BOSS · Setup</p>
