@@ -41,7 +41,7 @@ export default function NewEstimatePage() {
   const [customerName, setCustomerName] = useState('')
   const [customerEmail, setCustomerEmail] = useState('')
   const [customerPhone, setCustomerPhone] = useState('')
-  const [address, setAddress] = useState('')
+  const [address, setAddress] = useState(() => (searchParams.get('address') || '').slice(0, 240))
   const [city, setCity] = useState('')
   const [state, setState] = useState('')
   const [zip, setZip] = useState('')
