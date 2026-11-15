@@ -410,6 +410,7 @@ export default function MeasurePage() {
             <button onClick={() => setManualMode(!manualMode)} className="rounded-lg bg-slate-700 px-4 py-2 text-sm font-semibold text-white">{manualMode ? 'Exit Manual Mode' : 'Manual Measurement'}</button>
           </div>
           {manualMode && <ManualDrawingTool
+            key={preview || (mapCenter ? String(mapCenter.latitude) + ':' + String(mapCenter.longitude) + ':' + (aerialTileUrl || 'street-map') : 'no-map')}
             imageUrl={preview}
             mapCenter={mapCenter}
             aerialTileUrl={aerialTileUrl}
