@@ -139,6 +139,7 @@ jobs:
       - run: npm run test:onboarding-profile
       - run: npm run test:onboarding-workspace-ui
       - run: npm run test:bailey-onboarding
+      - run: npm run test:bailey-readiness
       - run: npm run audit
 
   mobile:
