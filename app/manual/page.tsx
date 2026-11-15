@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { smartBack } from '../../lib/smart-back'
+import RoofingWizardNavigator from '../../components/RoofingWizardNavigator'
 
 export default function ManualPage() {
   const router = useRouter()
@@ -367,7 +368,8 @@ export default function ManualPage() {
         </div>
       </header>
 
-      <main className="p-4"><p className="text-sm glass rounded-xl p-4 mb-4">This is a local guide. It is not a saved training record.</p>
+      <main className="p-4">
+        <RoofingWizardNavigator /><p className="text-sm glass rounded-xl p-4 mb-4">This is a local guide. It is not a saved training record.</p>
         {/* Search & Filter */}
         <div className="glass rounded-xl p-4 mb-4 border border-cyan-400/30">
           <div className="flex gap-2">
