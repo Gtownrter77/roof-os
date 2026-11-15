@@ -138,6 +138,7 @@ jobs:
       - run: npm run test:workspace-settings
       - run: npm run test:onboarding-profile
       - run: npm run test:onboarding-workspace-ui
+      - run: npm run test:bailey-onboarding
       - run: npm run audit
 
   mobile:
@@ -471,6 +472,15 @@ jobs:
           PGUSER: postgres
           PGPASSWORD: ci-synthetic-only
         run: bash scripts/ci/verify-onboarding-profile-postgres.sh
+      - name: Run real PostgreSQL BAILEY agent onboarding RLS tests
+        shell: bash
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGDATABASE: roofos_authority_ci
+          PGUSER: postgres
+          PGPASSWORD: ci-synthetic-only
+        run: bash scripts/ci/verify-bailey-agent-setup-postgres.sh
       - name: Run isolated PostgreSQL backup and restore rehearsal
         shell: bash
         env:
