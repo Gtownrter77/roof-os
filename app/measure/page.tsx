@@ -438,6 +438,7 @@ export default function MeasurePage() {
             <p>Mapped horizontal building footprint: {addressCandidates[selectedBuildingIndex].footprintSqFt.toLocaleString()} sq ft. Approximate ground perimeter: {addressCandidates[selectedBuildingIndex].perimeterFt.toLocaleString()} ft.</p>
             {Number.isFinite(pitchValue) && pitchValue >= 0 && pitchValue <= 36 && <p>Illustrative slope-adjusted area at {pitchValue}/12: {previewRoofAreaFromFootprint(addressCandidates[selectedBuildingIndex].footprintSqFt, pitchValue)?.illustrativeSlopedSqFt.toLocaleString(undefined, { maximumFractionDigits: 0 }) ?? 'Unavailable'} sq ft, ASSUMING uniform pitch, no overhang and no other roof planes. This is not a verified roof measurement.</p>}
             <p className="mt-1 text-xs">Select the correct building, confirm a measured roof pitch, and trace each roof plane before saving a quantity. No photo is required to inspect this candidate. Do not order material from this projection.</p>
+            <p className="mt-2 text-xs">Automatic footprint is sourced from map geometry, not independently measured roof edges. Use the manual multi-plane tracer below to compare its result.</p>
           </div>}
 
           <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={chooseFile} />
@@ -459,14 +460,24 @@ export default function MeasurePage() {
             onAreaCalculated={(result) => setManualArea(result.value > 0 ? result : null)}
           />}
           {manualArea && (() => {
-            const feet = manualArea.unit === 'sqft' ? manualArea.value : manualArea.squareFeet
-            const rangeError = feet ? roofAreaRangeError(feet) : null
-            const order = feet && !rangeError ? purchasableRoofing(feet, allowSixSquareRepairThreshold) : null
-            return <p className={`mt-2 rounded p-3 text-sm ${rangeError || order?.jobClass !== 'full-replacement' ? 'border border-amber-400/30 bg-amber-400/10 text-amber-100' : 'border border-cyan-400/20 bg-cyan-400/10 text-cyan-100'}`}>{rangeError
-              ? rangeError
-              : !order
-                ? `Manually traced area: ${Math.round(manualArea.value).toLocaleString()} px². Enter a scale reference to convert to square feet, roofing squares, and whole bundles.`
-                : `${manualArea.unit === 'sqft' ? 'Horizontal ground footprint' : 'Calibrated image plan area'}: ${order.squareFeet.toFixed(1)} sq ft. This is NOT slope-adjusted roof surface area or an order quantity; verify pitch, sections and overhangs.`}</p>
+            const planSqFt = manualArea.unit === 'sqft' ? manualArea.value : manualArea.squareFeet
+            const candidate = selectedBuildingIndex !== null ? addressCandidates[selectedBuildingIndex] : null
+            const comparison = candidate && planSqFt && planSqFt > 0
+              ? Math.abs(candidate.footprintSqFt - planSqFt) / Math.max(candidate.footprintSqFt, planSqFt) * 100 : null
+            const projection = planSqFt && pitchRisePer12.trim() && Number.isFinite(pitchValue)
+              ? previewRoofAreaFromFootprint(planSqFt, pitchValue) : null
+            return <section aria-label="Automatic and manual measurement comparison" className="mt-3 rounded-lg border border-amber-400/25 bg-amber-400/10 p-3 text-sm text-amber-100">
+              <h3 className="font-semibold">Manual vs. automatic measurement check</h3>
+              <p className="mt-1">{planSqFt != null
+                ? `Manual trace: ${planSqFt.toFixed(1)} sq ft horizontal plan area.`
+                : `Unscaled manual trace: ${Math.round(manualArea.value).toLocaleString()} px². Enter a known pixel-to-feet reference before comparing dimensions.`}</p>
+              {candidate && <p>Map candidate: {candidate.footprintSqFt.toFixed(1)} sq ft mapped ground footprint.</p>}
+              {comparison !== null && <p className={comparison > 15 ? 'font-semibold text-red-200' : 'text-amber-100'}>
+                Difference: {comparison.toFixed(1)}% of the larger area. {comparison > 15 ? 'Discrepancy requires manual review: wrong building, roof overhangs or incomplete planes may explain it.' : 'The measurements are closer, but neither is independently verified.'}
+              </p>}
+              {projection && <p>Illustrative sloped area ({pitchValue}/12 uniform pitch): {projection.illustrativeSlopedSqFt.toFixed(1)} sq ft. No overhang, valleys, dormer complexity or varying pitches included.</p>}
+              <p className="mt-2 text-xs">No material order or insurance submission is authorized. Review imagery, field dimensions and plane boundaries first.</p>
+            </section>
           })()}
           <AutoMeasurementTool
             hasImage={Boolean(file && imageSize.width && imageSize.height)}

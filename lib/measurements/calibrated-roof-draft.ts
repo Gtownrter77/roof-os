@@ -26,9 +26,40 @@ const MAX_REFERENCE_FEET = 10_000
 const MAX_PITCH_RISE_PER_12 = 36
 const MAX_DRAFT_AREA_SQFT = 20_000_000
 
+// Reject malformed AI polygons before a credible-looking area can enter the draft.
+function polygonIsSelfIntersecting(vertices: GeometryPoint[]): boolean {
+  const cross = (a: GeometryPoint, b: GeometryPoint, p: GeometryPoint) =>
+    (b.x - a.x) * (p.y - a.y) - (b.y - a.y) * (p.x - a.x)
+  const segmentIntersects = (a: GeometryPoint, b: GeometryPoint, c: GeometryPoint, d: GeometryPoint) => {
+    const x = cross(a,b,c), y = cross(a,b,d), z = cross(c,d,a), w = cross(c,d,b)
+    const on = (p: GeometryPoint, q: GeometryPoint, r: GeometryPoint) =>
+      Math.abs(cross(p,q,r)) < 1e-9 && r.x >= Math.min(p.x,q.x)-1e-9 &&
+      r.x <= Math.max(p.x,q.x)+1e-9 && r.y >= Math.min(p.y,q.y)-1e-9 &&
+      r.y <= Math.max(p.y,q.y)+1e-9
+    return ((x > 1e-9 && y < -1e-9 || x < -1e-9 && y > 1e-9) &&
+      (z > 1e-9 && w < -1e-9 || z < -1e-9 && w > 1e-9)) ||
+      on(a,b,c) || on(a,b,d) || on(c,d,a) || on(c,d,b)
+  }
+  for (let i=0; i<vertices.length; i++) {
+    const a=vertices[i], b=vertices[(i+1)%vertices.length]
+    if (Math.hypot(a.x-b.x, a.y-b.y) < 1e-9) return true
+    for (let j=i+1; j<vertices.length; j++) {
+      if (j===i+1 || (i===0 && j===vertices.length-1)) continue
+      if (segmentIntersects(a,b,vertices[j],vertices[(j+1)%vertices.length])) return true
+    }
+  }
+  return false
+}
+
 function polygonAreaPixels(vertices: GeometryPoint[]) {
   if (!Array.isArray(vertices) || vertices.length < 3 || vertices.length > 100) {
     throw new RangeError('Each reviewed roof plane must contain 3–100 points.')
+  }
+  if (vertices.some(point => !Number.isFinite(point?.x) || !Number.isFinite(point?.y))) {
+    throw new RangeError('Roof geometry contains a non-finite coordinate.')
+  }
+  if (polygonIsSelfIntersecting(vertices)) {
+    throw new RangeError('Roof plane polygon overlaps itself or repeats adjacent vertices. Review AI geometry.')
   }
   let twiceArea = 0
   for (let index = 0; index < vertices.length; index += 1) {

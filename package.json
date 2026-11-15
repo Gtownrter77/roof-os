@@ -56,6 +56,7 @@
     "test:roof-slope": "node scripts/roof-slope-test.mjs",
     "test:roofing-workflows": "node --experimental-strip-types scripts/roofing-four-workflows-test.mjs",
     "test:roofing-automations": "node --experimental-strip-types scripts/roofing-automation-wizards-test.mjs",
+    "test:roofing-precision": "node --experimental-strip-types scripts/roof-measurement-precision-test.mjs",
     "test:estimate-creation-flow": "node scripts/estimate-creation-flow-test.mjs",
     "test:estimate-packet-manager-gate": "node scripts/estimate-packet-manager-gate-test.mjs",
     "verify:security": "node scripts/security-check.mjs",
