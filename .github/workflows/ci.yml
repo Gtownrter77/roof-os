@@ -53,6 +53,7 @@ jobs:
       - run: npm run test:aerial
       - run: npm run test:auto-measurement
       - run: npm run test:roof-slope
+      - run: npm run test:roofing-workflows
       - run: npm run test:estimate-creation-flow
       - run: npm run test:estimate-packet-manager-gate
       - run: npm run test:crm-missing-spokes
