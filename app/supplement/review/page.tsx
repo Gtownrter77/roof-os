@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { smartBack } from '../../../lib/smart-back'
+import RoofingWizardNavigator from '../../../components/RoofingWizardNavigator'
 import { buildReviewExportFile } from '../../../lib/agent5/export'
 import type { ReviewPacket } from '../../../lib/agent5/types'
 
@@ -174,6 +175,8 @@ export default function SupplementReviewPage() {
       </header>
 
       <main className="p-4 space-y-4">
+        <RoofingWizardNavigator active="/supplement/review" />
+
         <p className="text-xs text-slate-400">
           Agent 5 packets are review-only. Approval records a human decision. It does not contact an insurer,
           submit a claim, export ESX, or change a carrier file.
