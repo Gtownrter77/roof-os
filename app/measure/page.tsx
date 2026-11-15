@@ -53,6 +53,7 @@ export default function MeasurePage() {
   const [mapCenter, setMapCenter] = useState<{ latitude: number; longitude: number } | null>(null)
   const [addressCandidates, setAddressCandidates] = useState<Array<{ osmId: string | number | null; buildingType: string; footprintSqFt: number; perimeterFt: number }>>([])
   const [manualMode, setManualMode] = useState(false)
+  const [selectedBuildingIndex, setSelectedBuildingIndex] = useState<number | null>(null)
   type ManualArea = { value: number; unit: 'px' | 'sqft'; squareFeet: number | null }
   const [manualArea, setManualArea] = useState<ManualArea | null>(null)
   const [allowSixSquareRepairThreshold, setAllowSixSquareRepairThreshold] = useState(false)
@@ -102,6 +103,7 @@ export default function MeasurePage() {
     setAerialAttribution('')
     setManualMode(false)
     setAddressCandidates([])
+    setSelectedBuildingIndex(null)
     setImageryNote('')
     try {
       const { data: workspaceId } = await supabase.rpc('current_workspace_id')
@@ -114,22 +116,24 @@ export default function MeasurePage() {
       const candidates = Array.isArray(payload.candidates) ? payload.candidates : []
       setAddressCandidates(candidates)
       setManualArea(null)
+      setSelectedBuildingIndex(null)
       const aerial = payload.aerial
       const available = validGeocode && aerial?.status === 'available' && typeof aerial.tileUrl === 'string'
       setAerialTileUrl(available ? aerial.tileUrl : '')
       setAerialAttribution(available ? aerial.attribution || 'OpenAerialMap' : '')
-      setManualMode(available)
+      setManualMode(validGeocode)
       setImageryNote(available
         ? 'Openly licensed aerial image found. Trace the roof boundary on the imagery; verify pitch and edges before estimating.'
         : candidates.length
-          ? `Address located. ${candidates.length} mapped building footprint(s) found. No photo upload is required to view them.`
-          : `AERIAL IMAGERY UNAVAILABLE: ${aerial?.reason || 'No qualifying open aerial image found.'}`)
+          ? `Address located. ${candidates.length} mapped building footprint(s) found. Street map tracing is available without uploading a photo; aerial tiles are unavailable.`
+          : `Address located. Street map fallback available for reference only. AERIAL IMAGERY UNAVAILABLE: ${aerial?.reason || 'No qualifying open aerial image found.'}`)
     } catch (err) {
       setMapCenter(null)
       setAerialTileUrl('')
       setAerialAttribution('')
       setManualMode(false)
       setAddressCandidates([])
+      setSelectedBuildingIndex(null)
       setImageryNote('')
       setError(err instanceof Error ? err.message : 'Imagery lookup failed.')
     } finally {
@@ -372,14 +376,14 @@ export default function MeasurePage() {
         <section className="glass rounded-xl p-4">
           <div className="grid gap-3 md:grid-cols-[1fr_auto]">
             <label className="text-sm font-medium text-slate-200">Property address
-              <input value={address} onChange={(event) => setAddress(event.target.value)} className="mt-1 w-full rounded-lg border border-white/15 bg-black/25 p-3 text-white placeholder:text-slate-500" placeholder="Enter property address" />
+              <input value={address} onChange={(event) => { setAddress(event.target.value); setMapCenter(null); setAerialTileUrl(''); setAddressCandidates([]); setSelectedBuildingIndex(null); setManualArea(null); setImageryNote(''); }} className="mt-1 w-full rounded-lg border border-white/15 bg-black/25 p-3 text-white placeholder:text-slate-500" placeholder="Enter property address" />
             </label>
             <div className="flex items-end gap-2">
               <label className="flex items-center gap-2 text-xs text-slate-300">
                 <input type="checkbox" checked={allowSixSquareRepairThreshold} onChange={(event) => setSixSquareSetting(event.target.checked)} />
                 Owner setting: treat under 6sq as repair. Off by default. Full replacement still starts at 10sq.
               </label>
-              <button onClick={() => void lookupImagery()} disabled={working} className="rounded-lg border border-white/20 px-3 py-2 text-sm text-slate-200 hover:border-cyan-400/60 disabled:opacity-50">Lookup imagery</button>
+              <button onClick={() => void lookupImagery()} disabled={working} className="rounded-lg border border-white/20 px-3 py-2 text-sm text-slate-200 hover:border-cyan-400/60 disabled:opacity-50">Lookup address & aerial map</button>
               <button onClick={() => void router.push('/photo-estimate')} className="rounded-lg border border-white/20 px-3 py-2 text-sm text-cyan-300">Inspection photos</button>
             </div>
           </div>
@@ -387,11 +391,17 @@ export default function MeasurePage() {
           {addressCandidates.length > 0 && <section className="mt-3 space-y-2" aria-label="Mapped building footprints">
             <h2 className="text-sm font-semibold text-white">Buildings near this address — no photo required</h2>
             {addressCandidates.map((candidate, index) => <div key={`${candidate.osmId ?? 'building'}-${index}`} className="rounded-lg border border-white/15 bg-black/20 p-3 text-sm">
-              <p className="font-medium">Building {index + 1} · {candidate.buildingType}</p>
+              <label className="flex items-center gap-2 font-medium"><input type="radio" name="building-candidate" checked={selectedBuildingIndex === index} onChange={() => setSelectedBuildingIndex(index)} /> Building {index + 1} · {candidate.buildingType}</label>
               <p className="text-cyan-200">Mapped ground footprint: {candidate.footprintSqFt.toLocaleString()} sq ft · perimeter: {candidate.perimeterFt.toLocaleString()} ft</p>
               <p className="text-xs text-amber-200">OpenStreetMap, low confidence. Not roof surface area or an estimate-ready quantity. Verify the building, roof outline, overhangs, and pitch before estimating.</p>
             </div>)}
           </section>}
+          {selectedBuildingIndex !== null && addressCandidates[selectedBuildingIndex] && <div className="mt-3 rounded-lg border border-amber-400/30 bg-amber-400/10 p-3 text-sm text-amber-100" role="status">
+            <p className="font-semibold">Automatic map measurement candidate — not estimate-ready</p>
+            <p>Mapped horizontal building footprint: {addressCandidates[selectedBuildingIndex].footprintSqFt.toLocaleString()} sq ft. Approximate ground perimeter: {addressCandidates[selectedBuildingIndex].perimeterFt.toLocaleString()} ft.</p>
+            {Number.isFinite(pitchValue) && pitchValue >= 0 && pitchValue <= 36 && <p>Illustrative slope-adjusted area at {pitchValue}/12: {(addressCandidates[selectedBuildingIndex].footprintSqFt * Math.sqrt(1 + (pitchValue / 12) ** 2)).toLocaleString(undefined, { maximumFractionDigits: 0 })} sq ft, ASSUMING uniform pitch, no overhang and no other roof planes. This is not a verified roof measurement.</p>}
+            <p className="mt-1 text-xs">Select the correct building, confirm a measured roof pitch, and trace each roof plane before saving a quantity. No photo is required to inspect this candidate. Do not order material from this projection.</p>
+          </div>}
 
           <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={chooseFile} />
           <div className="mt-4 flex flex-wrap gap-2">
@@ -408,7 +418,7 @@ export default function MeasurePage() {
             scalePixels={Number(scalePixels) || 0}
             scaleFeet={Number(scaleFeet) || 0}
             allowSixSquareRepairThreshold={allowSixSquareRepairThreshold}
-            onAreaCalculated={(result) => setManualArea(result)}
+            onAreaCalculated={(result) => setManualArea(result.value > 0 ? result : null)}
           />}
           {manualArea && (() => {
             const feet = manualArea.unit === 'sqft' ? manualArea.value : manualArea.squareFeet
@@ -418,7 +428,7 @@ export default function MeasurePage() {
               ? rangeError
               : !order
                 ? `Manually traced area: ${Math.round(manualArea.value).toLocaleString()} px². Enter a scale reference to convert to square feet, roofing squares, and whole bundles.`
-                : `${manualArea.unit === 'sqft' ? 'Horizontal footprint' : 'Traced area'}: ${order.squareFeet.toFixed(1)} sq ft · order ${order.squaresLabel} squares · ${order.bundles} standard bundles. ${order.jobLabel}`}</p>
+                : `${manualArea.unit === 'sqft' ? 'Horizontal ground footprint' : 'Calibrated image plan area'}: ${order.squareFeet.toFixed(1)} sq ft. This is NOT slope-adjusted roof surface area or an order quantity; verify pitch, sections and overhangs.`}</p>
           })()}
           <AutoMeasurementTool
             hasImage={Boolean(file && imageSize.width && imageSize.height)}
