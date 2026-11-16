@@ -46,7 +46,7 @@ export type ParallelResult = { title: string; url: string; excerpt: string }
 export type ParallelSearchResponse = { results: ParallelResult[]; source: 'parallel-anonymous-mcp'; paidCalls: 0 }
 
 export async function searchParallelAnonymous(input: string): Promise<ParallelSearchResponse> {
-  if (process.env.PARALLEL_ANONYMOUS_RESEARCH_ENABLED !== 'true') {
+  if (process.env.PARALLEL_ANONYMOUS_RESEARCH_ENABLED === 'false') {
     throw new Error('Free Parallel research is disabled. Existing research sources remain available.')
   }
   const query = input.trim().replace(/\s+/g, ' ')
@@ -57,8 +57,17 @@ export async function searchParallelAnonymous(input: string): Promise<ParallelSe
   const init = await rpc({ jsonrpc: '2.0', id: 1, method: 'initialize', params: {
     protocolVersion: '2025-03-26', capabilities: {}, clientInfo: { name: 'bailey-boss', version: '1.0.0' },
   } })
-  // MCP initialized notification has no ID; don't turn its acknowledgement into a paid request.
-  // Some stateless MCP servers accept tools/call without a notification.
+  // MCP requires the initialized notification before tools/call on stateful servers.
+  const headers: Record<string, string> = {
+    accept: 'application/json, text/event-stream',
+    'content-type': 'application/json',
+    'mcp-protocol-version': '2025-03-26',
+  }
+  if (init.session) headers['mcp-session-id'] = init.session
+  const notification = await fetch(ENDPOINT, { method: 'POST', headers, cache: 'no-store',
+    body: JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized' }),
+    signal: AbortSignal.timeout(TIMEOUT_MS) })
+  if (!notification.ok) throw new Error('Parallel MCP session initialization failed.')
   const result = await rpc({ jsonrpc: '2.0', id: 2, method: 'tools/call', params: {
     name: 'web_search', arguments: {
       objective: `Find reliable, attributable web sources answering: ${query}`,
