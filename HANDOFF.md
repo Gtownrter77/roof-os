@@ -1,3 +1,14 @@
+## 2026-11-16 — BAILEY BOSS R2 reviewed plane pitch + quantity save (PR #461)
+
+- **Dossier mandate:** Continue the R2 geometry→reviewed slope→draft estimate path. No feature removed or treated as optional.
+- **Branch:** `fix/reviewed-per-plane-pitch-save-20261116`, PR #461. No SD3 clone and **no production DB mutation**.
+- **RED evidence:** test-only SHA `943c7f338f21fc6cbf14e6ecbb3a0605f2ce305e`, CI `43973583322` web failed as expected at missing new reviewed-pitch schema. This was before implementation.
+- **GREEN source evidence:** code-bearing SHA `07bb0b76ff45b407ef9fd29747c676bdab03986d`, CI `43974736857`: web, preview-build, mobile, migration-safety, field-security all passed. Migration naming aligned to next free repository prefix 102 after source migration 101; further CI required on final PR head.
+- **Implementation:** `app/measure/page.tsx` has per-plane measured-pitch numeric inputs, explicit save, mixed-pitch calculation and cached human flags. `app/api/measurements/aerial/route.ts` saves reviewed numeric plane pitch apart from AI notes, rejects uncalibrated/unreviewed geometry before confirmation, and saves explicit top-down/uniform attestation. `app/api/measurements/manual/route.ts` derives saved area from persisted reviewed geometry and scale instead of model-formulated roof area; stale preview differences reject save. `supabase/migrations/102_reviewed_plane_pitch.sql` is an **unapplied migration file**; no hosted DB changes.
+- **Live schema read-only check:** The connected active **Roof OS** Supabase project has `aerial_measurements` and `roof_planes`, but none of the new reviewed-pitch and human-confirmation columns. `ContractorOS` was inactive. This is a **release blocker**: deploying the new code before the protected migration could break live roof measurement routes. Do not merge/deploy until the designated target is backed up, migration approved and staged/verified, and required CI fully green. No paid providers.
+- **Scope boundary:** CI is source/test evidence only. Real customer data, physical roof pitch, hosted browser test, protected staging, deployment, backup-restore, and owner acceptance unverified. No material orders or production AI estimate release authorized.
+- **15 Superpowers skills:** full work-package ledger in `docs/superpowers/plans/2026-11-16-reviewed-plane-pitch-save.md`. Reviewed all, not every external action executed.
+
 ## 2026-11-16 — BAILEY BOSS R2 roof-plane precision (PR #460, source-only)
 
 - **Approved dossier scope:** geometry/roof measurement R2: prevent double-counting, handle shared internal boundaries, require calibrated and reviewed evidence, and support per-plane pitch math without fabricating site data. Existing code preserved; no production system changed.
