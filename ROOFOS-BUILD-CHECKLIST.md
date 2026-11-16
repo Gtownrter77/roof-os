@@ -2,6 +2,16 @@
 
 Markers: [ ] pending, [~] in progress, [✓] verified, [!] blocked, [—] out of scope.
 
+## 2026-11-16 — Reviewed per-plane pitch and saved draft (PR #461)
+
+- [✓] Source TDD RED: `43973583322` (test-only commit `943c7f3`) fails on missing reviewed-pitch schema. Source GREEN: `43974736857` all five jobs green on code-bearing commit `07bb0b7`.
+- [✓] `/measure` permits saving measured pitch per accepted plane; supports uniform or mixed pitches and shows computed draft quantity from reviewed geometry.
+- [✓] API stores human-reviewed numeric pitch separately from model note, checks scale, shape, explicit top-down and pitch attestations before immutable confirmation.
+- [✓] Draft save API calculates quantity from the stored plane shapes and pitches rather than stale AI area; rejects changed previews and does not approve unverified AI edge lengths.
+- [✓] Additive repository migration `102_reviewed_plane_pitch.sql` added, **NOT applied to live DB**.
+- [!] Read-only Supabase Roof OS schema lacks new columns. **No merge or deployment while live DB is unmigrated.** Protected migration requires separate backup, staging and owner-approved production release.
+- [~] Final documentation-commit CI, independent reviewer, full staged/live end-to-end and owner acceptance remain required. No field claim.
+
 ## 2026-11-16 — Dossier R2 roof-plane precision (PR #460)
 
 - [✓] Test-first overlap/shared-edge/calibration regressions: observed RED in PR CI `43967807554` before implementation, then corrected and verified with full five-job green PR CI `43968942343` on source SHA `e9e65a8304df860e8b22be91dffbee1ac5c4ed07`.
