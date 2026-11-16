@@ -78,15 +78,117 @@ export function analyzeTracedPolygon(points: TracePoint[], units: TraceUnits): T
     perimeterUnit: units === 'pixels' ? 'px' : 'ft', valid: true, warning: null }
 }
 
+// Cross-plane checks operate in one Cartesian frame. For geographic points,
+// use one shared local projection; otherwise adjacent facets may get
+// different origins and appear to have a gap.
+function projectedPlanes(planes: TracePoint[][], units: TraceUnits): TracePoint[][] {
+  if (units === 'pixels') return planes
+  const points = planes.flat()
+  const centerLat = points.reduce((sum, p) => sum + p[0], 0) / points.length * Math.PI / 180
+  const centerLon = points.reduce((sum, p) => sum + p[1], 0) / points.length * Math.PI / 180
+  return planes.map(plane => plane.map(([lat, lon]) => [
+    (lat * Math.PI / 180 - centerLat) * EARTH_RADIUS_METERS,
+    (lon * Math.PI / 180 - centerLon) * EARTH_RADIUS_METERS * Math.cos(centerLat),
+  ]))
+}
+
+function signedDoubleArea(points: TracePoint[]): number {
+  return points.reduce((sum, p, i) => {
+    const q = points[(i + 1) % points.length]
+    return sum + p[0] * q[1] - q[0] * p[1]
+  }, 0)
+}
+
+function locationOfPoint(point: TracePoint, polygon: TracePoint[]): -1 | 0 | 1 {
+  let inside = false
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const a = polygon[j], b = polygon[i]
+    if (onSegment(a, b, point)) return 0
+    if ((a[1] > point[1]) !== (b[1] > point[1])) {
+      const intersectionX = a[0] + (point[1] - a[1]) * (b[0] - a[0]) / (b[1] - a[1])
+      if (intersectionX > point[0]) inside = !inside
+    }
+  }
+  return inside ? 1 : -1
+}
+
+function strictlyCross(a: TracePoint, b: TracePoint, c: TracePoint, d: TracePoint): boolean {
+  const abC = cross(a, b, c), abD = cross(a, b, d)
+  const cdA = cross(c, d, a), cdB = cross(c, d, b)
+  return ((abC > EPS && abD < -EPS) || (abC < -EPS && abD > EPS)) &&
+    ((cdA > EPS && cdB < -EPS) || (cdA < -EPS && cdB > EPS))
+}
+
+function sharedSegmentLength(a: TracePoint, b: TracePoint, c: TracePoint, d: TracePoint): number {
+  const dx = b[0] - a[0], dy = b[1] - a[1]
+  const length = Math.hypot(dx, dy)
+  if (length <= EPS ||
+    Math.abs(cross(a, b, c)) / length > EPS ||
+    Math.abs(cross(a, b, d)) / length > EPS) return 0
+  const t0 = ((c[0] - a[0]) * dx + (c[1] - a[1]) * dy) / (length * length)
+  const t1 = ((d[0] - a[0]) * dx + (d[1] - a[1]) * dy) / (length * length)
+  return Math.max(0, Math.min(1, Math.max(t0, t1)) - Math.max(0, Math.min(t0, t1))) * length
+}
+
+function comparePlanePair(first: TracePoint[], second: TracePoint[]): { overlaps: boolean; shared: number } {
+  let shared = 0
+  const firstOrientation = Math.sign(signedDoubleArea(first))
+  const secondOrientation = Math.sign(signedDoubleArea(second))
+  for (let i = 0; i < first.length; i++) {
+    const a = first[i], b = first[(i + 1) % first.length]
+    for (let j = 0; j < second.length; j++) {
+      const c = second[j], d = second[(j + 1) % second.length]
+      if (strictlyCross(a, b, c, d)) return { overlaps: true, shared: 0 }
+      const common = sharedSegmentLength(a, b, c, d)
+      if (common > EPS) {
+        // Two polygons on the SAME side of a coincident edge overlap.
+        // Opposite interior sides are legitimate roof-plane neighbors.
+        const dot = (b[0] - a[0]) * (d[0] - c[0]) +
+          (b[1] - a[1]) * (d[1] - c[1])
+        if (dot * firstOrientation * secondOrientation > 0) return { overlaps: true, shared: 0 }
+        shared += common
+      }
+    }
+  }
+  // Catches containment, staggered overlap, and boundaries meeting at corners.
+  for (const [candidate, container] of [[first, second], [second, first]] as const) {
+    for (let i = 0; i < candidate.length; i++) {
+      const a = candidate[i], b = candidate[(i + 1) % candidate.length]
+      if (locationOfPoint(a, container) === 1 ||
+        locationOfPoint([(a[0] + b[0]) / 2, (a[1] + b[1]) / 2], container) === 1) {
+        return { overlaps: true, shared: 0 }
+      }
+    }
+  }
+  return { overlaps: false, shared }
+}
+
 export type PlaneAggregate = { area: number; perimeter: number; planeCount: number; valid: boolean; warning: string | null }
 export function aggregateTracePlanes(planes: TracePoint[][], units: TraceUnits): PlaneAggregate {
   if (!Array.isArray(planes) || planes.length > 50) return { area: 0, perimeter: 0, planeCount: 0, valid: false, warning: 'Maximum of 50 planes per draft.' }
+  const invalid = (warning: string | null): PlaneAggregate => ({
+    area: 0, perimeter: 0, planeCount: planes.length, valid: false, warning,
+  })
+  if (!planes.length) return invalid('Trace and finish at least one plane.')
   let area = 0, perimeter = 0
   for (const plane of planes) {
     const result = analyzeTracedPolygon(plane, units)
-    if (!result.valid) return { area: 0, perimeter: 0, planeCount: planes.length, valid: false, warning: result.warning }
+    if (!result.valid) return invalid(result.warning)
     area += result.area; perimeter += result.perimeter
   }
-  return { area, perimeter, planeCount: planes.length, valid: planes.length > 0,
-    warning: planes.length === 0 ? 'Trace and finish at least one plane.' : null }
+  const projected = projectedPlanes(planes, units)
+  let internalEdge = 0
+  for (let i = 0; i < projected.length; i++) {
+    for (let j = i + 1; j < projected.length; j++) {
+      const comparison = comparePlanePair(projected[i], projected[j])
+      if (comparison.overlaps) return invalid('Roof planes overlap. Move or remove a plane before accepting quantities.')
+      internalEdge += comparison.shared
+    }
+  }
+  // Every shared boundary occurs in the perimeter of BOTH polygons.
+  // The result is only the plan-view external trace, not certified eave length.
+  const unitFactor = units === 'geographic' ? M_TO_FT : 1
+  perimeter -= 2 * internalEdge * unitFactor
+  if (perimeter < -EPS || !Number.isFinite(perimeter)) return invalid('Invalid shared roof-plane boundaries.')
+  return { area, perimeter: Math.max(0, perimeter), planeCount: planes.length, valid: true, warning: null }
 }
