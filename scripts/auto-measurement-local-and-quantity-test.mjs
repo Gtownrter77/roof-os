@@ -18,7 +18,8 @@ function loadTypeScript(relativePath, imports = {}) {
 
 const geometryContract = loadTypeScript('../lib/ai/geometry-contract.ts')
 const localVision = loadTypeScript('../lib/ai/local-vision-browser.ts', { './geometry-contract': geometryContract })
-const quantityMath = loadTypeScript('../lib/measurements/calibrated-roof-draft.ts')
+const geometryCore = loadTypeScript('../lib/measurements/trace-geometry.ts')
+const quantityMath = loadTypeScript('../lib/measurements/calibrated-roof-draft.ts', { './trace-geometry.ts': geometryCore })
 
 const baseSuggestion = {
   contract_version: geometryContract.GEOMETRY_CONTRACT_VERSION,
@@ -114,42 +115,23 @@ assert.equal(draft.pixelsPerFoot, 10)
 assert.equal(draft.planAreaSqFt, 2000)
 assert.equal(draft.roofAreaSqFt, 2236.07)
 assert.equal(draft.roofSquares, 22.36)
-assert.doesNotThrow(() => quantityMath.calculateCalibratedRoofDraft({
+const gateInput = {
   planes: [{ vertices: rectangle, review_status: 'accepted' }],
-  scaleReferencePixels: 100,
-  scaleReferenceFeet: 10,
-  pitchRisePer12: 6,
-  orthographicTopDownConfirmed: false,
-  uniformPitchConfirmed: true,
-  geometryConfirmed: true,
-}))
-assert.doesNotThrow(() => quantityMath.calculateCalibratedRoofDraft({
-  planes: [{ vertices: rectangle, review_status: 'pending' }],
-  scaleReferencePixels: 100,
-  scaleReferenceFeet: 10,
-  pitchRisePer12: 6,
-  orthographicTopDownConfirmed: true,
-  uniformPitchConfirmed: true,
-  geometryConfirmed: true,
-}))
-assert.doesNotThrow(() => quantityMath.calculateCalibratedRoofDraft({
-  planes: [{ vertices: rectangle, review_status: 'accepted' }],
-  scaleReferencePixels: 100,
-  scaleReferenceFeet: 10,
-  pitchRisePer12: 6,
-  orthographicTopDownConfirmed: true,
-  uniformPitchConfirmed: false,
-  geometryConfirmed: true,
-}))
-assert.doesNotThrow(() => quantityMath.calculateCalibratedRoofDraft({
-  planes: [{ vertices: rectangle, review_status: 'accepted' }],
-  scaleReferencePixels: 100,
-  scaleReferenceFeet: 10,
-  pitchRisePer12: 6,
-  orthographicTopDownConfirmed: true,
-  uniformPitchConfirmed: true,
-  geometryConfirmed: false,
-}))
+  scaleReferencePixels: 100, scaleReferenceFeet: 10, pitchRisePer12: 6,
+  orthographicTopDownConfirmed: true, uniformPitchConfirmed: true, geometryConfirmed: true,
+}
+assert.throws(() => quantityMath.calculateCalibratedRoofDraft({
+  ...gateInput, orthographicTopDownConfirmed: false,
+}), /Confirm top-down imagery/i)
+assert.throws(() => quantityMath.calculateCalibratedRoofDraft({
+  ...gateInput, planes: [{ vertices: rectangle, review_status: 'pending' }],
+}), /Accept or review every roof plane/i)
+assert.throws(() => quantityMath.calculateCalibratedRoofDraft({
+  ...gateInput, uniformPitchConfirmed: false,
+}), /Confirm each roof plane pitch/i)
+assert.throws(() => quantityMath.calculateCalibratedRoofDraft({
+  ...gateInput, geometryConfirmed: false,
+}), /Confirm top-down imagery/i)
 
 const autoMeasurementUi = readFileSync(new URL('../components/AutoMeasurementTool.tsx', import.meta.url), 'utf8')
 assert.match(autoMeasurementUi, /localhost:11434/)
