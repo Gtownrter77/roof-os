@@ -241,7 +241,7 @@ export default function MeasurePage() {
       const payload = await response.json().catch(() => null)
       if (!response.ok) throw new Error(payload?.error || 'Validated AI geometry could not be saved.')
       setMeasurementId(payload.measurement.id)
-      setSuggestion(payload.suggestion ? { ...payload.suggestion, planes: payload.suggestion.planes.map((plane: Plane) => ({ ...plane, pitchRisePer12: reviewedPlanePitch(plane.suggested_pitch) ?? undefined })) } : null)
+      setSuggestion(payload.suggestion ? { ...payload.suggestion, planes: payload.suggestion.planes.map((plane: Plane) => ({ ...plane, pitchRisePer12: plane.review_status === 'edited' ? reviewedPlanePitch(plane.suggested_pitch) ?? undefined : undefined })) } : null)
       const formulation = payload.suggestion?.formulation
       const cachedMeasurement = payload.cached ? payload.measurement : null
       const cachedCalibrated = cachedMeasurement?.calibration_status === 'calibrated' || cachedMeasurement?.calibration_status === 'confirmed'
@@ -356,7 +356,7 @@ export default function MeasurePage() {
     if (!suggestion || !calibrated || !geometryConfirmed || !orthographicTopDown || (!uniformPitchConfirmed && !perPlanePitchMode) || (uniformPitchConfirmed && pitchRisePer12.trim() === '')) return null
     try {
       return calculateCalibratedRoofDraft({
-        planes: suggestion.planes.map(plane => ({ ...plane, pitchRisePer12: plane.pitchRisePer12 ?? reviewedPlanePitch(plane.suggested_pitch) ?? undefined })),
+        planes: suggestion.planes.map(plane => ({ ...plane, pitchRisePer12: plane.pitchRisePer12 ?? (plane.review_status === 'edited' ? reviewedPlanePitch(plane.suggested_pitch) ?? undefined : undefined) })),
         scaleReferencePixels: Number(scalePixels),
         scaleReferenceFeet: Number(scaleFeet),
         pitchRisePer12: uniformPitchConfirmed ? pitchValue : 0,
@@ -382,7 +382,7 @@ export default function MeasurePage() {
       const notes = [
         'AI-FORMULATED MEASUREMENT. Derived from the model packet, source image, geometry, scale, and pitch formulation.',
         `AI scale formulation: ${scalePixels} image pixels = ${scaleFeet} feet (${draftQuantity.pixelsPerFoot} px/ft).`,
-        uniformPitchConfirmed ? `Human-confirmed uniform pitch: ${pitchRisePer12}/12; slope multiplier ${draftQuantity.slopeMultiplier}.` : `Human-reviewed mixed pitch by plane: ${suggestion?.planes.filter(p => p.review_status !== 'rejected').map(p => `${p.id}=${p.pitchRisePer12 ?? reviewedPlanePitch(p.suggested_pitch)}/12`).join(', ')}; effective slope multiplier ${draftQuantity.slopeMultiplier}.`,
+        uniformPitchConfirmed ? `Human-confirmed uniform pitch: ${pitchRisePer12}/12; slope multiplier ${draftQuantity.slopeMultiplier}.` : `Human-reviewed mixed pitch by plane: ${suggestion?.planes.filter(p => p.review_status !== 'rejected').map(p => `${p.id}=${p.pitchRisePer12 ?? (p.review_status === 'edited' ? reviewedPlanePitch(p.suggested_pitch) : null)}/12`).join(', ')}; effective slope multiplier ${draftQuantity.slopeMultiplier}.`,
         `Derived plan area ${draftQuantity.planAreaSqFt} sq ft; slope-adjusted roof area ${draftQuantity.roofAreaSqFt} sq ft; ${draftQuantity.roofSquares} squares.`,
         'Formula: sum of accepted-plane shoelace pixel areas multiplied by each plane slope factor sqrt(1 + (rise/12)^2), divided by pixels-per-foot squared.',
       ].join(' ')
@@ -556,7 +556,7 @@ export default function MeasurePage() {
                   <button disabled={working || geometryConfirmed} onClick={() => void setPlanePitchRisePer12(plane)} className="rounded border border-white/20 px-2 py-1 text-xs disabled:opacity-50">Set measured pitch</button>
                 </span>
               </div>
-              {plane.review_status !== 'rejected' && <p className="mt-1 text-xs text-slate-300">Reviewed plane pitch: {plane.pitchRisePer12 == null && reviewedPlanePitch(plane.suggested_pitch) == null ? 'not measured' : `${plane.pitchRisePer12 ?? reviewedPlanePitch(plane.suggested_pitch)}/12`}</p>}
+              {plane.review_status !== 'rejected' && <p className="mt-1 text-xs text-slate-300">Reviewed plane pitch: {plane.pitchRisePer12 == null && (plane.review_status !== 'edited' || reviewedPlanePitch(plane.suggested_pitch) == null) ? 'not measured' : `${plane.pitchRisePer12 ?? (plane.review_status === 'edited' ? reviewedPlanePitch(plane.suggested_pitch) : null)}/12`}</p>}
             </div>)}
             {suggestion.edges.map((edge) => <div key={edge.dbId ?? edge.id} className="mb-2 rounded-lg border border-amber-400/20 bg-amber-400/10 p-2 text-sm">
               <div className="flex flex-wrap items-center justify-between gap-2">
