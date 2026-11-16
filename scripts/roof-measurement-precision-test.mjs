@@ -107,6 +107,9 @@ assert.match(pitchMigration, /reviewed_pitch_rise_per_12 numeric/i)
 assert.match(pitchMigration, /orthographic_top_down_confirmed boolean/i)
 assert.match(pitchMigration, /uniform_pitch_confirmed boolean/i)
 assert.match(aerialRoute, /reviewed_pitch_rise_per_12/)
+// Every PATCH kind is supported: pitch column exists only on roof_planes, not roof_edges/roof_objects.
+assert.match(aerialRoute, /table === 'roof_planes' \? 'id,review_status,reviewed_by,reviewed_at,reviewed_pitch_rise_per_12'/)
+
 assert.match(aerialRoute, /pitchRisePer12/)
 assert.match(aerialRoute, /orthographicTopDownConfirmed/)
 assert.match(aerialRoute, /uniformPitchConfirmed/)
