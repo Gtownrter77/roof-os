@@ -1,5 +1,16 @@
 # ROOF/OS Living Build Checklist
 
+## 2026-11-15 — Parallel anonymous/free-only public research
+
+- [~] Add separate authenticated BAILEY /research page and /api/research/parallel public-source lookup.
+- [~] Restrict network endpoint to anonymous Parallel MCP web_search with no billing key, sign-in, API fallback, or other providers replaced.
+- [~] Mock MCP handshake and response tests with no paid calls; GitHub PR check pending.
+- [!] Live BAILEY production network test, source-quality comparison and hosted deployment require evidence.
+- [—] Parallel authenticated web_research and paid API: explicitly outside owner-approved $0 scope.
+
+See docs/PARALLEL-FREE-RESEARCH.md; source creation alone is not a production verification.
+
+
 Markers: [ ] pending, [~] in progress, [✓] verified, [!] blocked, [—] out of scope.
 
 ## 2026-10-29 — Storm theme collection
