@@ -384,7 +384,7 @@ export async function PATCH(request: NextRequest) {
     .eq('id', body.suggestionId)
     .eq('aerial_measurement_id', measurement.id)
     .eq('workspace_id', workspaceId)
-    .select('id,review_status,reviewed_by,reviewed_at,reviewed_pitch_rise_per_12').single()
+    .select(table === 'roof_planes' ? 'id,review_status,reviewed_by,reviewed_at,reviewed_pitch_rise_per_12' : 'id,review_status,reviewed_by,reviewed_at').single()
   if (error || !data) return jsonError('Suggestion could not be updated.', 502)
   return NextResponse.json({ suggestion: data, warning: 'AI-formulated geometry remains linked to the source image and model provenance.' })
 }
