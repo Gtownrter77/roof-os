@@ -243,13 +243,13 @@ export default function MeasurePage() {
       setGeometryConfirmed(cachedConfirmed)
       setOrthographicTopDown(cachedMeasurement?.orthographic_top_down_confirmed === true)
       setUniformPitchConfirmed(cachedMeasurement?.uniform_pitch_confirmed === true)
-      if (formulation) {
-        setScalePixels(formulation.scale_reference_pixels == null ? '' : String(formulation.scale_reference_pixels))
-        setScaleFeet(formulation.scale_reference_feet == null ? '' : String(formulation.scale_reference_feet))
-        setPitchRisePer12(cachedMeasurement?.uniform_pitch_confirmed && cachedMeasurement.confirmed_uniform_pitch_rise_per_12 != null
-          ? String(cachedMeasurement.confirmed_uniform_pitch_rise_per_12)
-          : formulation.pitch_rise_per_12 == null ? '' : String(formulation.pitch_rise_per_12))
-      }
+      setScalePixels(cachedMeasurement?.scale_reference_pixels != null ? String(cachedMeasurement.scale_reference_pixels)
+        : formulation?.scale_reference_pixels == null ? '' : String(formulation.scale_reference_pixels))
+      setScaleFeet(cachedMeasurement?.scale_reference_feet != null ? String(cachedMeasurement.scale_reference_feet)
+        : formulation?.scale_reference_feet == null ? '' : String(formulation.scale_reference_feet))
+      setPitchRisePer12(cachedMeasurement?.uniform_pitch_confirmed && cachedMeasurement.confirmed_uniform_pitch_rise_per_12 != null
+        ? String(cachedMeasurement.confirmed_uniform_pitch_rise_per_12)
+        : formulation?.pitch_rise_per_12 == null ? '' : String(formulation.pitch_rise_per_12))
       setSavedMeasurementId('')
       setStatus(payload.cached
         ? cachedConfirmed ? 'Confirmed AI geometry loaded from the workspace.' : cachedCalibrated ? 'Calibrated AI geometry loaded. Confirm geometry or continue review.' : 'Existing AI suggestions loaded. Review and calibration state preserved.'
