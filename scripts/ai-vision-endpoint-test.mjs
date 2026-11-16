@@ -145,8 +145,8 @@ assert.ok(measurePage.includes('file.size > 12 * 1024 * 1024'))
 assert.ok(measurePage.includes('const cachedMeasurement = payload.cached ? payload.measurement : null'))
 assert.ok(measurePage.includes('setCalibrated(cachedCalibrated)'))
 assert.ok(measurePage.includes('setGeometryConfirmed(cachedConfirmed)'))
-assert.ok(measurePage.includes('setOrthographicTopDown(cachedConfirmed)'))
-assert.ok(measurePage.includes('setUniformPitchConfirmed(cachedConfirmed)'))
+assert.ok(measurePage.includes('setOrthographicTopDown(cachedMeasurement?.orthographic_top_down_confirmed === true)'))
+assert.ok(measurePage.includes('setUniformPitchConfirmed(cachedMeasurement?.uniform_pitch_confirmed === true)'))
 
 const previousGeminiKey = process.env.GEMINI_API_KEY
 const previousGeminiModel = process.env.GEMINI_VISION_MODEL
