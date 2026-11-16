@@ -1,4 +1,5 @@
 import { purchasableRoofing, roofAreaRangeError } from '../../../../lib/measurements/purchasable-roofing'
+import { calculateCalibratedRoofDraft } from '../../../../lib/measurements/calibrated-roof-draft'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '../../../../lib/supabase/server'
 import { isUuid, readJson, requireWorkspaceMember } from '../../../../lib/api-security'
@@ -110,7 +111,7 @@ export async function POST(request: NextRequest) {
     }
     const { data: aerialMeasurement, error: aerialError } = await supabase
       .from('aerial_measurements')
-      .select('id,inspection_id,measurement_source,ai_formulation')
+      .select('id,inspection_id,measurement_source,ai_formulation,status,calibration_status,orthographic_top_down_confirmed,uniform_pitch_confirmed,confirmed_uniform_pitch_rise_per_12,scale_reference_pixels,scale_reference_feet')
       .eq('id', sourceMatch[1])
       .eq('workspace_id', workspaceId)
       .maybeSingle()
@@ -118,21 +119,47 @@ export async function POST(request: NextRequest) {
     if (!aerialMeasurement || aerialMeasurement.measurement_source !== 'ai_formulated' || aerialMeasurement.inspection_id !== (body.inspectionId ?? null)) {
       return NextResponse.json({ error: 'The aerial measurement reference is not valid for this workspace and inspection.' }, { status: 400 })
     }
+    if (aerialMeasurement.status !== 'confirmed' || aerialMeasurement.calibration_status !== 'confirmed'
+      || aerialMeasurement.orthographic_top_down_confirmed !== true) {
+      return NextResponse.json({ error: 'Reviewed, calibrated and confirmed roof geometry is required before saving derived quantities.' }, { status: 409 })
+    }
+    const { data: persistedPlanes, error: planeError } = await supabase.from('roof_planes')
+      .select('vertices,review_status,reviewed_pitch_rise_per_12')
+      .eq('workspace_id', workspaceId).eq('aerial_measurement_id', aerialMeasurement.id)
+    if (planeError) return NextResponse.json({ error: 'Reviewed roof planes could not be loaded.', }, { status: 503 })
+    let derived
+    try {
+      derived = calculateCalibratedRoofDraft({
+        planes: (persistedPlanes ?? []).map(plane => ({
+          vertices: plane.vertices, review_status: plane.review_status,
+          ...(plane.reviewed_pitch_rise_per_12 == null ? {} : { pitchRisePer12: Number(plane.reviewed_pitch_rise_per_12) }),
+        })),
+        scaleReferencePixels: Number(aerialMeasurement.scale_reference_pixels),
+        scaleReferenceFeet: Number(aerialMeasurement.scale_reference_feet),
+        pitchRisePer12: aerialMeasurement.uniform_pitch_confirmed ? Number(aerialMeasurement.confirmed_uniform_pitch_rise_per_12) : 0,
+        orthographicTopDownConfirmed: true,
+        uniformPitchConfirmed: aerialMeasurement.uniform_pitch_confirmed === true,
+        geometryConfirmed: true,
+      })
+    } catch {
+      return NextResponse.json({ error: 'Saved geometry or pitch is unreviewed, inconsistent or overlapping.' }, { status: 409 })
+    }
+    // The client has only a preview. Reject changed/stale values rather than
+    // silently saving a different area, and NEVER use AI formulation area.
+    if (body.roofAreaSqft != null && Math.abs(body.roofAreaSqft - derived.roofAreaSqFt) > 0.05) {
+      return NextResponse.json({ error: 'The displayed measurement is stale. Refresh the reviewed roof geometry.' }, { status: 409 })
+    }
     sourceType = 'ai_formulated'
-    const formulation = aerialMeasurement.ai_formulation as {
-      confidence?: unknown; roof_area_sqft?: unknown; roof_squares?: unknown; gutter_lf?: unknown; ridge_lf?: unknown; eave_lf?: unknown; rake_lf?: unknown; valley_lf?: unknown; pitch_rise_per_12?: unknown; assumptions?: unknown
-    } | null
+    const formulation = aerialMeasurement.ai_formulation as { confidence?: unknown; assumptions?: unknown } | null
     const formulatedConfidence = formulation?.confidence
     confidence = formulatedConfidence === 'low' || formulatedConfidence === 'medium' || formulatedConfidence === 'high' ? formulatedConfidence : 'unverified'
-    roofAreaSqft = typeof formulation?.roof_area_sqft === 'number' ? formulation.roof_area_sqft : null
-    roofSquares = typeof formulation?.roof_squares === 'number' ? formulation.roof_squares : (roofAreaSqft == null ? null : roofAreaSqft / 100)
-    gutterLf = typeof formulation?.gutter_lf === 'number' ? formulation.gutter_lf : null
-    ridgeLf = typeof formulation?.ridge_lf === 'number' ? formulation.ridge_lf : null
-    eaveLf = typeof formulation?.eave_lf === 'number' ? formulation.eave_lf : null
-    rakeLf = typeof formulation?.rake_lf === 'number' ? formulation.rake_lf : null
-    valleyLf = typeof formulation?.valley_lf === 'number' ? formulation.valley_lf : null
-    pitch = typeof formulation?.pitch_rise_per_12 === 'number' ? `${formulation.pitch_rise_per_12}/12` : null
-    notes = Array.isArray(formulation?.assumptions) ? formulation.assumptions.filter((item): item is string => typeof item === 'string').join(' ') || null : null
+    roofAreaSqft = derived.roofAreaSqFt
+    roofSquares = derived.roofSquares
+    // Unreviewed model edge lengths do not become approved measurements.
+    gutterLf = null; ridgeLf = null; eaveLf = null; rakeLf = null; valleyLf = null
+    pitch = aerialMeasurement.uniform_pitch_confirmed
+      ? `${aerialMeasurement.confirmed_uniform_pitch_rise_per_12}/12` : 'mixed'
+    notes = `Calculated from persisted reviewed polygons, scale and ${pitch} pitch; ${derived.planAreaSqFt} sq ft plan, ${derived.roofAreaSqFt} sq ft slope-adjusted. Unverified draft; review all classified edge quantities separately.`
   }
   const order = roofAreaSqft != null ? purchasableRoofing(roofAreaSqft, body.allowSixSquareRepairThreshold === true) : null
   const { data, error } = await supabase.from('inspection_measurements').insert({
