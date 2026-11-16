@@ -1,0 +1,21 @@
+name: Parallel free research
+on:
+  pull_request:
+    paths:
+      - 'lib/research/parallel-anonymous.ts'
+      - 'app/api/research/parallel/route.ts'
+      - 'app/research/page.tsx'
+      - 'scripts/parallel-anonymous-test.mjs'
+      - '.github/workflows/parallel-free-research.yml'
+  workflow_dispatch:
+jobs:
+  free-only-contract:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: node --experimental-strip-types scripts/parallel-anonymous-test.mjs
