@@ -1,3 +1,14 @@
+## 2026-11-16 — BAILEY BOSS R2 roof-plane precision (PR #460, source-only)
+
+- **Approved dossier scope:** geometry/roof measurement R2: prevent double-counting, handle shared internal boundaries, require calibrated and reviewed evidence, and support per-plane pitch math without fabricating site data. Existing code preserved; no production system changed.
+- **Branch:** `fix/measurement-plane-overlap-20261116`. **Code-bearing checkpoint:** `e9e65a8304df860e8b22be91dffbee1ac5c4ed07`.
+- **TDD RED:** CI run `43967807554` failed `npm run test:roofing-precision` against new overlap/shared-edge/calibration tests before production changes. A later CI run `43968492471` exposed a real import failure in the existing CommonJS test harness; fixed by explicitly loading shared geometry and reversing old unsafe acceptance assertions.
+- **TDD GREEN:** CI run `43968942343` completed with five successful jobs: web (including measurement tests), mobile, preview-build, field-security, and migration-safety. This is source and CI evidence only; not production or device verification.
+- **Code:** `lib/measurements/trace-geometry.ts` rejects intersecting/contained/duplicate planes and removes legitimate shared boundaries from **plan-outline perimeter**, not gutter/eave measures. `lib/measurements/calibrated-roof-draft.ts` rejects unconfirmed top-down/geometry, pending plane reviews, mixed pitch without per-plane measurements, and overlapping planes; computes per-plane slope-weighted area when pitches are provided. `components/ManualDrawingTool.tsx` blocks adding overlapping planes and states the outer plan trace is not gutter length. Two tests extended.
+- **Known next work:** per-plane pitch **UI/persistence** still missing (helper-only support); true eave/hip/ridge edge classification remains separate from plan perimeter; address imagery rights/coverage and roof-geometry measurement need independent verification; live Supabase/Render/Vercel/browser/physical field tests not run. No external customer quote or material order is authorized by this checkpoint.
+- **Superpowers:** all 15 skills were read and accounted for; decisions and dispositions are in `docs/superpowers/plans/2026-11-16-roof-plane-precision.md`.
+- **Next:** connect reviewed plane pitch to UI/durable sketch records under a new TDD vertical slice; complete authorization, staging and owner quantity acceptance separately.
+
 ## 2026-11-11 — Current handoff and commercial status
 
 - **Commercial status:** pre-sales. ROOF/OS has sold **zero copies** and has **zero paid customers**. One prospective evaluator is considering it for a proof of concept (POC); that is an evaluation prospect, not a sale or a confirmed production deployment. Do not invent sales, subscriptions, revenue, or additional customers.

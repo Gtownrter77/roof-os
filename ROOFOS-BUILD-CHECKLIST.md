@@ -2,6 +2,17 @@
 
 Markers: [ ] pending, [~] in progress, [✓] verified, [!] blocked, [—] out of scope.
 
+## 2026-11-16 — Dossier R2 roof-plane precision (PR #460)
+
+- [✓] Test-first overlap/shared-edge/calibration regressions: observed RED in PR CI `43967807554` before implementation, then corrected and verified with full five-job green PR CI `43968942343` on source SHA `e9e65a8304df860e8b22be91dffbee1ac5c4ed07`.
+- [✓] Reject cross-plane overlaps, containment and duplicate outlines in the manual trace and calibrated draft paths; prevent double-counted plan area.
+- [✓] Exclude valid shared internal boundaries from summed plan-outline perimeter. This number is **not** inferred eave, gutter, ridge, hip or valley footage.
+- [✓] Require reviewed geometry, top-down confirmation and explicit pitch confirmation before draft quantities; mixed pitch must supply each plane's measured pitch to the calculation helper.
+- [✓] Manual drawing refuses an overlapping newly finished plane; supported geometry/area/perimeter tests run in PR CI.
+- [~] Link per-plane pitch editing, evidence, approvals and persistence through the measurement UI and versioned record; mixed-pitch support is currently **calculation helper only**.
+- [~] Verify real address-first imagery coverage, scale and legal attribution, classification of all roof edges, actual site pitch and owner-rule estimate integration; do not require photo where real aerial can be obtained and do not invent imagery.
+- [!] Customer/field operational approval remains blocked by production-auth, full staging/restore, provider, device and owner acceptance gates. GitHub CI is not field certification.
+
 ## 2026-10-29 — Storm theme collection
 
 - [✓] Six theme choices: Professional, Tornado Alley, Storm Tracker 11, Hail Core, Lightning Front, After the Storm.
