@@ -236,6 +236,12 @@ export async function POST(request: NextRequest) {
   }
 }
 
+function validateReviewedPitch(value: unknown): number | null {
+  if (typeof value !== 'string' || !/^(?:\\d+(?:\\.\\d+)?)(?:\\/12)?$/.test(value.trim())) return null
+  const rise = Number(value.trim().replace(/\\/12$/, ''))
+  return Number.isFinite(rise) && rise >= 0 && rise <= 36 ? rise : null
+}
+
 export async function PATCH(request: NextRequest) {
   const context = await getContext()
   if ('response' in context) return context.response
@@ -335,7 +341,12 @@ export async function PATCH(request: NextRequest) {
       if (typeof body.classification !== 'string' || !EDGE_TYPES.has(body.classification)) return jsonError('Edge classification is invalid.', 400)
       update.classification = body.classification
     }
-    if (body.pitch !== undefined) update.suggested_pitch = typeof body.pitch === 'string' ? body.pitch.slice(0, 80) : null
+    if (body.pitch !== undefined) {
+      if (body.kind !== 'plane') return jsonError('Only roof planes can receive a reviewed pitch.', 400)
+      const pitch = validateReviewedPitch(body.pitch)
+      if (pitch === null) return jsonError('Reviewed pitch must be a numeric rise from 0 to 36 per 12 inches.', 400)
+      update.suggested_pitch = `${pitch}/12`
+    }
   }
 
   const { data, error } = await supabase.from(table).update(update)
