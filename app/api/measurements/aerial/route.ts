@@ -237,8 +237,8 @@ export async function POST(request: NextRequest) {
 }
 
 function validateReviewedPitch(value: unknown): number | null {
-  if (typeof value !== 'string' || !/^(?:\\d+(?:\\.\\d+)?)(?:\\/12)?$/.test(value.trim())) return null
-  const rise = Number(value.trim().replace(/\\/12$/, ''))
+  if (typeof value !== 'string' || !/^(?:\d+(?:\.\d+)?)(?:\/12)?$/.test(value.trim())) return null
+  const rise = Number(value.trim().replace(/\/12$/, ''))
   return Number.isFinite(rise) && rise >= 0 && rise <= 36 ? rise : null
 }
 
