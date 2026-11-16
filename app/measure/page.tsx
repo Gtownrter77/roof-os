@@ -29,8 +29,8 @@ type ReviewItem = Plane | Edge | Obj
 const MIME_EXTENSIONS: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' }
 
 function reviewedPlanePitch(value: string | null | undefined): number | null {
-  if (typeof value !== 'string' || !/^(?:\\d+(?:\\.\\d+)?)(?:\\/12)?$/.test(value.trim())) return null
-  const rise = Number(value.trim().replace(/\\/12$/, ''))
+  if (typeof value !== 'string' || !/^(?:\d+(?:\.\d+)?)(?:\/12)?$/.test(value.trim())) return null
+  const rise = Number(value.trim().replace(/\/12$/, ''))
   return Number.isFinite(rise) && rise >= 0 && rise <= 36 ? rise : null
 }
 
