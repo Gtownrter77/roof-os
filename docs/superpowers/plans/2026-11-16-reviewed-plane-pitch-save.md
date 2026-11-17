@@ -5,7 +5,7 @@
 ## Exact steps and source
 
 1. Regression gate first: add `scripts/roof-measurement-precision-test.mjs` checks for a numeric `reviewed_pitch_rise_per_12` distinct from `suggested_pitch`, browser review controls, cached flags, server-side recalculation and new source migration. RED observed `43973583322` prior to production change.
-2. Persistence: new additive `supabase/migrations/102_reviewed_plane_pitch.sql` adds numeric human-review pitch and exact attestation fields, preserving historical model suggestions, RLS and source identity. No production application during this work.
+2. Persistence: new additive `supabase/migrations/103_reviewed_plane_pitch.sql` adds numeric human-review pitch and exact attestation fields, preserving historical model suggestions, RLS and source identity. No production application during this work.
 3. Review route: `app/api/measurements/aerial/route.ts` saves reviewed pitch from authorized user, rejects out-of-range/invalid inputs, disallows confirmed edits, revalidates all accepted planes and calibration before confirm, records explicit top-down and pitch review decisions, restores cached reviews.
 4. UI: `app/measure/page.tsx` allows per-plane numeric pitch entry and save, keeps mixed-pitch calculations separate from uniform, restores flags/scale from persisted state, marks computed area as **unverified draft**.
 5. Durable quantity path: `app/api/measurements/manual/route.ts` uses persisted confirmed roof planes, authoritative scale and confirmed pitch, recomputes area on server, fails closed on discrepancies, does not treat AI edge guesses as reviewed lengths.
