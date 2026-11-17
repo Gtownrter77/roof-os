@@ -139,7 +139,7 @@ export async function POST(request: NextRequest) {
 
     const { data: existing, error: existingError } = await supabase
       .from('aerial_measurements')
-      .select('id,status,calibration_status,source_photo_id,image_width,image_height,created_by,ai_formulation')
+      .select('id,status,calibration_status,source_photo_id,image_width,image_height,created_by,ai_formulation,scale_reference_pixels,scale_reference_feet')
       .eq('workspace_id', workspaceId)
       .eq('source_photo_id', photoId)
       .maybeSingle()
