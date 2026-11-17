@@ -264,6 +264,10 @@ export default function MeasurePage() {
         setScaleFeet(formulation.scale_reference_feet == null ? '' : String(formulation.scale_reference_feet))
         setPitchRisePer12(formulation.pitch_rise_per_12 == null ? '' : String(formulation.pitch_rise_per_12))
       }
+      if (cachedMeasurement) {
+        setScalePixels(cachedMeasurement.scale_reference_pixels == null ? '' : String(cachedMeasurement.scale_reference_pixels))
+        setScaleFeet(cachedMeasurement.scale_reference_feet == null ? '' : String(cachedMeasurement.scale_reference_feet))
+      }
       if (savedHumanReview?.uniform_pitch_confirmed === true && typeof savedHumanReview.uniform_pitch_rise_per_12 === 'number') {
         setPitchRisePer12(String(savedHumanReview.uniform_pitch_rise_per_12))
       }
