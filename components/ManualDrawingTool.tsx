@@ -69,6 +69,8 @@ const ManualDrawingTool = ({
     const result = analyzeTracedPolygon(points, units)
     if (!result.valid) { setMessage(result.warning || 'Roof plane has invalid geometry.'); return }
     if (planes.length >= 50) { setMessage('Maximum 50 roof planes per draft.'); return }
+    const combined = aggregateTracePlanes([...planes, points], units)
+    if (!combined.valid) { setMessage(combined.warning || 'Roof planes must not overlap.'); return }
     setPlanes(current => [...current, [...points]])
     setPoints([])
     setMessage('Roof plane added. Trace the next plane or review the provisional total.')
@@ -157,10 +159,10 @@ const ManualDrawingTool = ({
         <p className="font-semibold">Provisional horizontal footprint only — Not a material order.</p>
         <p className="mt-1">
           {aggregate.valid
-            ? `${aggregate.planeCount} planes · ${squareFeet != null ? squareFeet.toFixed(1) + ' sq ft plan area' : aggregate.area.toFixed(1) + ' px² unscaled'} · ${perimeterFeet != null ? perimeterFeet.toFixed(1) + ' ft summed edge length' : 'scale reference needed for lengths'}`
-            : 'Finish at least one valid roof-plane polygon to calculate provisional plan area.'}
+            ? `${aggregate.planeCount} planes · ${squareFeet != null ? squareFeet.toFixed(1) + ' sq ft plan area' : aggregate.area.toFixed(1) + ' px² unscaled'} · ${perimeterFeet != null ? perimeterFeet.toFixed(1) + ' ft external plan perimeter (not gutter length)' : 'scale reference needed for lengths'}`
+            : aggregate.warning || 'Finish at least one valid roof-plane polygon to calculate provisional plan area.'}
         </p>
-        <p className="mt-1 text-xs">Summed perimeter includes every plane edge; shared edges are counted twice. Overlapping planes are not detected across separate polygons. Verify roof pitch, overhangs, calibration and edge classifications before estimating.</p>
+        <p className="mt-1 text-xs">Overlapping planes are blocked and shared internal edges excluded from the external plan perimeter. This perimeter is NOT the gutter or eave length. Verify pitch, overhangs, calibration and edge classification before estimating.</p>
       </div>
     </section>
   )

@@ -1,5 +1,7 @@
+import { aggregateTracePlanes } from './trace-geometry.ts'
+
 export type GeometryPoint = { x: number; y: number }
-export type ReviewedPlane = { vertices: GeometryPoint[]; review_status?: string }
+export type ReviewedPlane = { vertices: GeometryPoint[]; review_status?: string; pitchRisePer12?: number }
 
 export type CalibratedRoofDraftInput = {
   planes: ReviewedPlane[]
@@ -88,15 +90,43 @@ export function calculateCalibratedRoofDraft(input: CalibratedRoofDraftInput): C
     throw new RangeError('The AI-formulated pitch must be between 0/12 and 36/12.')
   }
 
-  const accepted = Array.isArray(input.planes)
-    ? input.planes.filter((plane) => plane.review_status !== 'rejected')
-    : []
+  if (input.orthographicTopDownConfirmed !== true || input.geometryConfirmed !== true) {
+    throw new RangeError('Confirm top-down imagery, scale and reviewed geometry before calculating a draft quantity.')
+  }
+  if (!Array.isArray(input.planes) ||
+    input.planes.some(plane => !plane || !['accepted', 'edited', 'rejected'].includes(plane.review_status ?? ''))) {
+    throw new RangeError('Accept or review every roof plane before calculating a draft quantity.')
+  }
+  const accepted = input.planes.filter(plane => plane.review_status !== 'rejected')
   if (!accepted.length) throw new RangeError('Accept or edit at least one roof plane before calculating a draft quantity.')
+  if (input.uniformPitchConfirmed !== true &&
+    accepted.some(plane => !Number.isFinite(plane.pitchRisePer12))) {
+    throw new RangeError('Confirm each roof plane pitch when the roof does not have one uniform pitch.')
+  }
+  const pitches = accepted.map(plane => {
+    const pitch = input.uniformPitchConfirmed ? input.pitchRisePer12 : plane.pitchRisePer12!
+    if (!Number.isFinite(pitch) || pitch < 0 || pitch > MAX_PITCH_RISE_PER_12) {
+      throw new RangeError('Each reviewed roof plane pitch must be between 0/12 and 36/12.')
+    }
+    if (input.uniformPitchConfirmed && plane.pitchRisePer12 !== undefined && plane.pitchRisePer12 !== pitch) {
+      throw new RangeError('Reviewed plane pitch conflicts with confirmed uniform pitch.')
+    }
+    return pitch
+  })
 
+  // Validate each plane and the collection: self-intersection, containment,
+  // crossings and shared boundaries are all checked before a quantity is released.
+  const pixelAreas = accepted.map(plane => polygonAreaPixels(plane.vertices))
+  const aggregate = aggregateTracePlanes(
+    accepted.map(plane => plane.vertices.map(({ x, y }) => [y, x] as [number, number])),
+    'pixels',
+  )
+  if (!aggregate.valid) throw new RangeError(aggregate.warning || 'Roof geometry is invalid.')
   const pixelsPerFoot = input.scaleReferencePixels / input.scaleReferenceFeet
-  const planAreaSqFt = accepted.reduce((total, plane) => total + polygonAreaPixels(plane.vertices), 0) / (pixelsPerFoot * pixelsPerFoot)
-  const slopeMultiplier = Math.sqrt(1 + (input.pitchRisePer12 / 12) ** 2)
-  const roofAreaSqFt = planAreaSqFt * slopeMultiplier
+  const planAreaSqFt = pixelAreas.reduce((sum, area) => sum + area, 0) / (pixelsPerFoot * pixelsPerFoot)
+  const roofAreaSqFt = pixelAreas.reduce((sum, area, index) =>
+    sum + area * Math.sqrt(1 + (pitches[index] / 12) ** 2), 0) / (pixelsPerFoot * pixelsPerFoot)
+  const slopeMultiplier = roofAreaSqFt / planAreaSqFt
   const roofSquares = roofAreaSqFt / 100
   if (![pixelsPerFoot, planAreaSqFt, slopeMultiplier, roofAreaSqFt, roofSquares].every(Number.isFinite)
     || roofAreaSqFt <= 0 || roofAreaSqFt > MAX_DRAFT_AREA_SQFT) {

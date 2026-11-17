@@ -13,6 +13,40 @@ See docs/PARALLEL-FREE-RESEARCH.md; source creation alone is not a production ve
 
 Markers: [ ] pending, [~] in progress, [✓] verified, [!] blocked, [—] out of scope.
 
+## 2026-11-17 — Driveway grade + 3D estimation: TDD math slice (PR #466)
+
+- [✓] Added `docs/contractor-os/DRIVEWAY-3D-GRADING-ESTIMATOR-PLAN.md` reviewing actual 3D plugin tool limits, GIS/data licensing, grade/tonnage assumptions, address-first/manual workflow, field/permit and Supabase release gates. All 20 AI functions and nine releases remain mandatory.
+- [✓] **Observed test-first RED:** dedicated CI job `134173178277` on test-only PR head `ee709177b48ad237f806bfd75599dc11aa335d49` failed `ERR_MODULE_NOT_FOUND` for new earthwork module, as intended before code.
+- [✓] **Isolated GREEN:** after adding `lib/measurements/driveway-earthwork.ts` at commit `d92c161eba1570187f079195380a41d54612490e`, the dedicated `earthwork-precision` job succeeded. Synthetic unit assertions cover tapered area, depth-to-cubic-yards conversion, benchmark-referenced grade, cut/fill survey cells, incompatible density basis, absent supplier yield, and 150-ton-per-yd³ unit-safety rejection.
+- [~] Full latest-head PR check/review and eventual post-merge verification remain separate; do not consider a branch-green isolated job to be a production release.
+- [!] **Not implemented or field-approved:** actual Michigan property terrain/scale measurement, lidar rights/accuracy, legal imagery, address-first driveway UI, supplier prices, road/drainage permits, geotechnical/utility checks, mobile grade sync, 3D rendering, real site quantities, owner-approved customer bid. No quantity, price or permit was guessed.
+- [~] Follow-on retaining wall/landscaping/cabinet domains reuse verified geometry and CAD tools but remain planned work; never silently fabricate a load-bearing design.
+- [✓] Separately confirmed PR #465 merged as `e2740b4a7d1ab6319d4c07edd408ffaa1e74a7cd`; the five main CI jobs and Vercel succeeded. This is measurement software evidence, not site measurement accuracy.
+- [!] Active Supabase Roof OS read-only verification: human review columns and ContractorOS control-plane tables have not been applied; do not merge draft #461 (renumbered SQL 103) into production without staging, backup, schema/RLS checks, and owner authorization.
+- [~] Parallel draft #455's isolated GitHub live anonymous MCP smoke passed with no API key, alongside mocked contract; real BAILEY app-host and source-quality pilot remain unverified, no paid API fallback.
+
+## 2026-11-17 — Mako Check-In: verified R2 merge + hardening in progress
+
+- [✓] PR #462 merged into main at `1b8393a09bec55a87766eee3aa3d0903ed5e4b61`. All five exact-head CI jobs, Vercel, preview-feedback check, and five post-merge main CI jobs succeeded. This is repository evidence, **not** field acceptance.
+- [✓] Reviewed per-plane pitch entry, saved `reviewed:<rise>/12` provenance, cached pitch restoration, and provisional mixed-pitch draft save are present in merged source. The helper-only notation in the older PR #460 checkpoint below is historical and superseded by #462 at source level.
+- [✓] ContractorOS controlled foundation PR #463 merged as `68fc020e733cf504c10473997201b859f2b8221f`; migration `102_contractor_os_control_plane.sql` is in main, **not** confirmed applied to hosted Supabase.
+- [~] This follow-up branch adds explicit top-down/pitch attestation, saves review metadata in existing `aerial_measurements.ai_formulation.human_geometry_review`, recomputes draft quantities server-side from persisted workspace-scoped polygons and reviewed pitch markers, and rejects stale client previews. No new migration or production mutation. **Pending fresh PR CI, runtime authentication/RLS, and independent review.**
+- [!] Draft PR #461 remains unmerged; it adds `102_reviewed_plane_pitch.sql` with the same migration version as the merged ContractorOS migration and depends on absent hosted columns. Reconcile/version its migration and current main code, and verify backup, staging, RLS and target schema before deploying it.
+- [!] Draft PR #455 (free-only anonymous Parallel research) remains unmerged until current-head CI, deployment-host connectivity and source-quality pilot pass. No paid API fallback permitted.
+- [~] Superpowers ledger records all 15 reviewed skills but preserves the unperformed subagent, independent-review, SD3 worktree and field-verification boundaries. The approved 20 AI functions and nine releases remain mandatory, not implicitly completed.
+- [!] Production field accuracy, authenticated read/write/reload, inter-workspace isolation, owner approval, UI/mobile-device checks, backup/rollback, address-first aerial coverage, and driveway/grade estimating remain separate release gates.
+
+## 2026-11-16 — Dossier R2 roof-plane precision (PR #460)
+
+- [✓] Test-first overlap/shared-edge/calibration regressions: observed RED in PR CI `43967807554` before implementation, then corrected and verified with full five-job green PR CI `43968942343` on source SHA `e9e65a8304df860e8b22be91dffbee1ac5c4ed07`.
+- [✓] Reject cross-plane overlaps, containment and duplicate outlines in the manual trace and calibrated draft paths; prevent double-counted plan area.
+- [✓] Exclude valid shared internal boundaries from summed plan-outline perimeter. This number is **not** inferred eave, gutter, ridge, hip or valley footage.
+- [✓] Require reviewed geometry, top-down confirmation and explicit pitch confirmation before draft quantities; mixed pitch must supply each plane's measured pitch to the calculation helper.
+- [✓] Manual drawing refuses an overlapping newly finished plane; supported geometry/area/perimeter tests run in PR CI.
+- [~] Link per-plane pitch editing, evidence, approvals and persistence through the measurement UI and versioned record; mixed-pitch support is currently **calculation helper only**.
+- [~] Verify real address-first imagery coverage, scale and legal attribution, classification of all roof edges, actual site pitch and owner-rule estimate integration; do not require photo where real aerial can be obtained and do not invent imagery.
+- [!] Customer/field operational approval remains blocked by production-auth, full staging/restore, provider, device and owner acceptance gates. GitHub CI is not field certification.
+
 ## 2026-10-29 — Storm theme collection
 
 - [✓] Six theme choices: Professional, Tornado Alley, Storm Tracker 11, Hail Core, Lightning Front, After the Storm.

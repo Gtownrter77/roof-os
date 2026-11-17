@@ -1,3 +1,31 @@
+## 2026-11-17 — Driveway/earthwork 3D slice and no-skipping Superpowers checkpoint
+
+- The user-directed Michigan driveway-grade estimation is integrated as a **required future construction-domain slice** in `docs/contractor-os/DRIVEWAY-3D-GRADING-ESTIMATOR-PLAN.md`. 3D Garden Designer is flat-ground concept only; Spline/Blendstra are visualizers; QGIS/GDAL/MapLibre, independently sourced field elevations and mandatory manual fallback form the proposed measurement core. No paid tools or field quantities were used.
+- This PR #466 adds a **pure measurement/quantity helper**, not a finished driveway estimator. `scripts/driveway-earthwork-test.mjs` and the GitHub web + dedicated job cover tapered area, thickness-based volume, grade on a stated vertical datum, cut/fill from surveyed cells, and evidence-verified supplier yield before computing tons.
+- **Observed TDD RED:** isolated CI `earthwork-precision` job `134173178277` failed on test-only SHA `ee709177b48ad237f806bfd75599dc11aa335d49` because the named module was absent. **Isolated GREEN:** same job passed after implementation SHA `d92c161eba1570187f079195380a41d54612490e`.
+- The complete latest-head PR checks, independent review and post-merge CI are distinct evidence gates. No customer photos/terrain, official driveway slope, Michigan road-entrance approvals, underlying soil/frost design, field-device/owner acceptance, or real quote has been verified.
+- All 15 Superpowers skills are given an honest disposition in the roadmap. All 20 AI domains and nine releases remain mandatory. Do not clone onto local Chromebook storage; the GitHub connector operates on a remote feature branch. No payment or production database changes.
+
+## 2026-11-17 — Mako check-in resume, verified merges and remediation
+
+- Current GitHub main is `1b8393a09bec55a87766eee3aa3d0903ed5e4b61`. PR #462 merged; five exact-head CI jobs and five post-merge CI jobs passed, along with Vercel success. Foundation PR #463 remains included in main.
+- Draft PR #461 is **not** merged: its 102 pitch-column migration collides with merged 102 ContractorOS schema and the active hosted project reportedly lacks the new columns. No production migration or paid service was authorized.
+- A source-only follow-up GitHub branch `docs/mako-checkin-r2-20261117` changes explicit review/quantity saving to fail closed, recompute from persisted workspace-scoped geometry and detect stale browser previews without new columns. This branch is not accepted until fresh CI and review.
+- Draft PR #455 (free-only Parallel research) still requires its own handshake, tests and deployment verification. Retain the no-fee/no-paid-fallback policy.
+- All 15 Superpowers dispositions are preserved, with unperformed steps acknowledged; no SD3 or local clone claimed. All 20 approved AI functions and nine releases remain required. See Living Build Checklist and `docs/contractor-os/RELEASE-1-TRACEABILITY.md`.
+- Outstanding production tasks: authenticated API/DB integration, cross-workspace isolation, staged backup and rollback, owner acceptance, physical roof/driveway validation, and role/revision workflow checks.
+
+## 2026-11-16 — BAILEY BOSS R2 roof-plane precision (PR #460, source-only)
+
+- **Approved dossier scope:** geometry/roof measurement R2: prevent double-counting, handle shared internal boundaries, require calibrated and reviewed evidence, and support per-plane pitch math without fabricating site data. Existing code preserved; no production system changed.
+- **Branch:** `fix/measurement-plane-overlap-20261116`. **Code-bearing checkpoint:** `e9e65a8304df860e8b22be91dffbee1ac5c4ed07`.
+- **TDD RED:** CI run `43967807554` failed `npm run test:roofing-precision` against new overlap/shared-edge/calibration tests before production changes. A later CI run `43968492471` exposed a real import failure in the existing CommonJS test harness; fixed by explicitly loading shared geometry and reversing old unsafe acceptance assertions.
+- **TDD GREEN:** CI run `43968942343` completed with five successful jobs: web (including measurement tests), mobile, preview-build, field-security, and migration-safety. This is source and CI evidence only; not production or device verification.
+- **Code:** `lib/measurements/trace-geometry.ts` rejects intersecting/contained/duplicate planes and removes legitimate shared boundaries from **plan-outline perimeter**, not gutter/eave measures. `lib/measurements/calibrated-roof-draft.ts` rejects unconfirmed top-down/geometry, pending plane reviews, mixed pitch without per-plane measurements, and overlapping planes; computes per-plane slope-weighted area when pitches are provided. `components/ManualDrawingTool.tsx` blocks adding overlapping planes and states the outer plan trace is not gutter length. Two tests extended.
+- **Known next work:** per-plane pitch **UI/persistence** still missing (helper-only support); true eave/hip/ridge edge classification remains separate from plan perimeter; address imagery rights/coverage and roof-geometry measurement need independent verification; live Supabase/Render/Vercel/browser/physical field tests not run. No external customer quote or material order is authorized by this checkpoint.
+- **Superpowers:** all 15 skills were read and accounted for; decisions and dispositions are in `docs/superpowers/plans/2026-11-16-roof-plane-precision.md`.
+- **Next:** connect reviewed plane pitch to UI/durable sketch records under a new TDD vertical slice; complete authorization, staging and owner quantity acceptance separately.
+
 ## 2026-11-11 — Current handoff and commercial status
 
 - **Commercial status:** pre-sales. ROOF/OS has sold **zero copies** and has **zero paid customers**. One prospective evaluator is considering it for a proof of concept (POC); that is an evaluation prospect, not a sale or a confirmed production deployment. Do not invent sales, subscriptions, revenue, or additional customers.
@@ -1264,3 +1292,41 @@ Runtime boundary: loopback means the host making the request. A locally running 
 - Fresh PR workflow run [42758481812](https://github.com/Gtownrter77/roof-os/actions/runs/42758481812) and two rerun attempts all failed before job execution. On attempt 3, `web`, `preview-build`, `mobile`, `field-security`, and `migration-safety` each report `runner_id: 0` and zero steps; only `refresh-field-lock (pull_request)` is skipped. GitHub exposes no failed-step log because no runner/step started. This is an external runner-allocation block, not a passing or failing code assertion.
 - PR #441 remains open and not merged. GitHub reports `mergeable: true` but `mergeable_state: unstable`; do not bypass this state. The SQL/RLS job never ran, and local PostgreSQL 16 was not installed because the package mirror download was impractically slow. Source tests and production build remain PASS as listed in the checkpoint above; database-tested status remains **UNVERIFIED**.
 - Next: restore GitHub Actions runner availability and rerun the required checks on the latest PR head. Merge PR #441 only after fresh checks complete successfully. It targets draft PR #440's feature branch, not `main`; the draft parent chain remains outside this PR-only merge.
+
+## ContractorOS Release 1 — controlled foundation checkpoint
+
+**Checkpoint:** 2026-11-16
+**Baseline:** current GitHub `main`, commit `68fc020`
+**Status:** foundation tranche merged into `main`; remaining Release 1 capabilities are explicitly tracked below.
+
+### Completed
+
+- [x] Confirmed the current GitHub repository is the authoritative ROOF/OS source; stale local/archive snapshots are not the implementation baseline.
+- [x] Completed the three-pass review of `ContractorOS_Unified_Master_Dossier-1.pdf`.
+- [x] Recorded the owner’s decisions: web and mobile surfaces, enterprise-wide scope, configurable role authority, all integrations through governed adapters, local Ollama default, and provider choice.
+- [x] Added `docs/contractor-os/FOUNDATION-MERGE-PLAN.md`.
+- [x] Added `docs/contractor-os/EFFICIENT-COMPLETION-RESEARCH.md` with Temporal, LangGraph, and Ollama source-backed architecture guidance.
+- [x] Added `docs/contractor-os/RELEASE-1-TRACEABILITY.md` with checked-off task ledger and dossier-to-repository mapping.
+- [x] Added migration `102_contractor_os_control_plane.sql` with owner-configurable authority profiles, bounded mandates, record revisions, evidence lineage, deduplicated events, durable execution state, and action-ledger extensions.
+- [x] Added `scripts/contractoros-control-plane-test.mjs` and `npm run test:contractoros-control-plane`.
+- [x] Preserved existing lead entry, magic-link authentication, mobile local/offline storage, inspection, estimate, production, invoice, and warranty surfaces.
+
+### Verification completed
+
+- [x] Release 1 control-plane contract test: PASS.
+- [x] TypeScript: PASS (`CI=1 npm run typecheck`).
+- [x] Migration numbering and `git diff --check`: PASS.
+- [x] Security-definer migration/search-path/trigger checks: PASS.
+- [x] Current baseline production build: PASS (`CI=1 NEXT_TELEMETRY_DISABLED=1 npm run build`).
+- [x] PR #463 merged into `main` as `68fc020`; fresh web, mobile, field-security, migration-safety, preview-build, Vercel, and preview-comment checks all passed.
+
+### Remaining before Release 1 is marked complete
+
+- [ ] Add narrow server/RPC writers and action-time authority evaluation.
+- [ ] Add event intake/reconciliation and durable workflow adapter.
+- [ ] Add Ollama/provider-neutral model routing and provenance records.
+- [ ] Complete the web/mobile first vertical slice and its correction/recovery cases.
+- [ ] Apply migration 102 to the target Supabase project and run Level 3 cross-workspace checks.
+- [x] Commit `4386c0d`, push, merge PR #463 into `main` as `68fc020`, and verify fresh GitHub checks on the merged commit.
+
+Do not claim Release 1 complete until every unchecked item above is either completed or explicitly marked deferred by the owner.

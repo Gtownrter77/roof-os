@@ -23,11 +23,27 @@ assert.equal(analyzeTracedPolygon([[0,0],[10,0]],'pixels').valid,false)
 assert.equal(analyzeTracedPolygon([[0,0],[10,10],[Number.NaN,0]],'pixels').valid,false)
 assert.equal(analyzeTracedPolygon([[0,0],[0,100],[100,100]],'unsupported').valid,false)
 
+// RED: independent planes must not silently double-count areas or shared edges.
 const multi = aggregateTracePlanes([rectangle, triangle],'pixels')
-assert.equal(multi.valid,true)
-assert.equal(multi.area,10000)
-assert.equal(multi.planeCount,2)
-assert.equal(multi.perimeter,300+(100+100+Math.sqrt(20000)))
+assert.equal(multi.valid,false)
+assert.match(multi.warning,/overlap/i)
+const adjacent = [[0,100],[0,200],[50,200],[50,100]]
+const joined = aggregateTracePlanes([rectangle, adjacent], 'pixels')
+assert.equal(joined.valid,true)
+assert.equal(joined.area,10000)
+assert.equal(joined.planeCount,2)
+assert.equal(joined.perimeter,500, 'shared 50-pixel edge must be counted once as internal, not perimeter')
+const partialNeighbor = [[10,100],[10,150],[40,150],[40,100]]
+const partial = aggregateTracePlanes([rectangle, partialNeighbor], 'pixels')
+assert.equal(partial.valid,true)
+assert.equal(partial.area,6500)
+assert.equal(partial.perimeter,400, 'partial shared edge of 30 pixels removed from both plane outlines')
+const contained = [[10,10],[10,30],[20,30],[20,10]]
+assert.equal(aggregateTracePlanes([rectangle, contained], 'pixels').valid,false)
+assert.equal(aggregateTracePlanes([rectangle, [...rectangle]], 'pixels').valid,false)
+const cornerOnly = [[50,100],[50,150],[100,150],[100,100]]
+assert.equal(aggregateTracePlanes([rectangle, cornerOnly], 'pixels').valid,true)
+assert.equal(aggregateTracePlanes([rectangle, cornerOnly], 'pixels').perimeter,500)
 assert.equal(aggregateTracePlanes([rectangle,bowTie],'pixels').valid,false)
 assert.equal(aggregateTracePlanes([],'pixels').valid,false)
 assert.equal(aggregateTracePlanes(Array.from({length:51},()=>rectangle),'pixels').valid,false)
@@ -48,6 +64,20 @@ const base = { planes:[{vertices:validPlane,review_status:'accepted'}],scaleRefe
   scaleReferenceFeet:10,pitchRisePer12:6,orthographicTopDownConfirmed:true,
   uniformPitchConfirmed:true,geometryConfirmed:true }
 assert.equal(calculateCalibratedRoofDraft(base).planAreaSqFt,50)
+for (const gate of ['orthographicTopDownConfirmed','geometryConfirmed']) {
+  assert.throws(() => calculateCalibratedRoofDraft({...base,[gate]:false}), /confirm|review|calibrat/i)
+}
+const converted = (pts) => pts.map(([y,x]) => ({x,y}))
+assert.throws(() => calculateCalibratedRoofDraft({...base,planes:[{vertices:converted(rectangle),review_status:'accepted'},{vertices:converted(triangle),review_status:'accepted'}]}),/overlap/i)
+const twoPlanes = {...base,planes:[{vertices:converted(rectangle),review_status:'accepted'},{vertices:converted(adjacent),review_status:'accepted'}]}
+assert.equal(calculateCalibratedRoofDraft(twoPlanes).planAreaSqFt,100)
+assert.throws(() => calculateCalibratedRoofDraft({...twoPlanes,uniformPitchConfirmed:false}), /pitch|confirm/i)
+const mixed = {...twoPlanes,uniformPitchConfirmed:false,planes:[
+  {vertices:converted(rectangle),review_status:'accepted',pitchRisePer12:0},
+  {vertices:converted(adjacent),review_status:'accepted',pitchRisePer12:12}
+]}
+assert.ok(Math.abs(calculateCalibratedRoofDraft(mixed).roofAreaSqFt - (50 + 50*Math.SQRT2)) < 0.02)
+assert.throws(() => calculateCalibratedRoofDraft({...base,planes:[{vertices:validPlane,review_status:'pending'}]}),/accept|review/i)
 assert.throws(()=>calculateCalibratedRoofDraft({...base,planes:[{vertices:bowTie.map(([y,x])=>({x,y})),review_status:'accepted'}]}),/overlaps itself|repeats adjacent/i)
 assert.throws(()=>calculateCalibratedRoofDraft({...base,planes:[{vertices:touching.map(([y,x])=>({x,y})),review_status:'accepted'}]}),/overlaps itself|repeats adjacent/i)
 
@@ -63,6 +93,37 @@ assert.match(manual,/Maximum 50 roof planes/)
 assert.match(manual,/scale changes automatically recalculate plan area/)
 assert.match(manual,/overlap/i)
 assert.match(manual,/Not a material order/)
+// Per-plane pitch must be editable, persisted as a reviewed numeric rise/12,
+// restored from the same saved field and used only after explicit confirmation.
+const aerialRoute=read('app/api/measurements/aerial/route.ts')
+assert.match(measure,/setPlanePitchRisePer12/)
+assert.match(measure,/reviewedPlanePitch/)
+assert.match(measure,/uniformPitchConfirmed \? pitchValue : 0/)
+assert.match(measure,/Each accepted plane needs a reviewed pitch/)
+assert.match(measure,/pitch: uniformPitchConfirmed \? \x60\$\{pitchRisePer12\}\/12\x60 : 'mixed'/)
+// Guard provisional reviewed-geometry save: preserve calculated quantities,
+// retain source provenance, and require confirmed geometry in the same workspace.
+const manualSaveRoute=read('app/api/measurements/manual/route.ts')
+assert.match(measure,/provisionalGeometryDraft: true/)
+assert.match(manualSaveRoute,/provisionalGeometryDraft\?: boolean/)
+assert.match(manualSaveRoute,/body\.provisionalGeometryDraft && body\.sourceType !== 'ai_formulated'/)
+assert.match(manualSaveRoute,/aerialMeasurement\.calibration_status !== 'confirmed'/)
+assert.match(manualSaveRoute,/confidence = 'unverified'/)
+assert.match(manualSaveRoute,/if \(body\.provisionalGeometryDraft\)/)
+assert.match(manualSaveRoute,/human_geometry_review/)
+assert.match(manualSaveRoute,/calculateCalibratedRoofDraft/)
+assert.match(manualSaveRoute,/\.from\('roof_planes'\)/)
+assert.match(manualSaveRoute,/Math\.abs\(body\.roofAreaSqft - derived\.roofAreaSqFt\) > 0\.05/)
+assert.match(manualSaveRoute,/confidence = 'unverified'/)
+assert.match(manualSaveRoute,/gutterLf = null; ridgeLf = null; eaveLf = null/)
+assert.match(aerialRoute,/orthographicTopDownConfirmed !== true/)
+assert.match(aerialRoute,/\.eq\('status', 'draft'\)\.eq\('calibration_status', 'calibrated'\)/)
+assert.match(aerialRoute,/human_geometry_review/)
+assert.match(measure,/orthographicTopDownConfirmed: orthographicTopDown/)
+assert.match(measure,/savedHumanReview\?\.uniform_pitch_confirmed/)
+assert.doesNotMatch(manualSaveRoute,/roofAreaSqft = body\.roofAreaSqft.*Provisional owner-reviewed/s)
+assert.match(aerialRoute,/validateReviewedPitch/)
+assert.match(aerialRoute,/update\.suggested_pitch = .*pitch/)
 assert.match(measure,/Manual vs. automatic measurement check/)
 assert.match(measure,/Difference: \{comparison\.toFixed\(1\)\}%/)
 assert.match(measure,/previewRoofAreaFromFootprint\(planSqFt, pitchValue\)/)

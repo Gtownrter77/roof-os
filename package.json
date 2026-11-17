@@ -57,6 +57,7 @@
     "test:roofing-workflows": "node --experimental-strip-types scripts/roofing-four-workflows-test.mjs",
     "test:roofing-automations": "node --experimental-strip-types scripts/roofing-automation-wizards-test.mjs",
     "test:roofing-precision": "node --experimental-strip-types scripts/roof-measurement-precision-test.mjs",
+    "test:driveway-earthwork": "node --experimental-strip-types scripts/driveway-earthwork-test.mjs",
     "test:estimate-creation-flow": "node scripts/estimate-creation-flow-test.mjs",
     "test:estimate-packet-manager-gate": "node scripts/estimate-packet-manager-gate-test.mjs",
     "verify:security": "node scripts/security-check.mjs",
@@ -126,7 +127,8 @@
     "test:security-definer-search-path": "node scripts/security-definer-search-path-test.mjs",
     "test:passport-rate-limit-rls": "node scripts/passport-rate-limit-rls-test.mjs",
     "test:onboarding-profile": "node --experimental-strip-types scripts/onboarding-profile-test.mjs",
-    "test:onboarding-workspace-ui": "node scripts/onboarding-workspace-ui-test.mjs"
+    "test:onboarding-workspace-ui": "node scripts/onboarding-workspace-ui-test.mjs",
+    "test:contractoros-control-plane": "node scripts/contractoros-control-plane-test.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.2",
