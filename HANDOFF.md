@@ -1275,3 +1275,40 @@ Runtime boundary: loopback means the host making the request. A locally running 
 - Fresh PR workflow run [42758481812](https://github.com/Gtownrter77/roof-os/actions/runs/42758481812) and two rerun attempts all failed before job execution. On attempt 3, `web`, `preview-build`, `mobile`, `field-security`, and `migration-safety` each report `runner_id: 0` and zero steps; only `refresh-field-lock (pull_request)` is skipped. GitHub exposes no failed-step log because no runner/step started. This is an external runner-allocation block, not a passing or failing code assertion.
 - PR #441 remains open and not merged. GitHub reports `mergeable: true` but `mergeable_state: unstable`; do not bypass this state. The SQL/RLS job never ran, and local PostgreSQL 16 was not installed because the package mirror download was impractically slow. Source tests and production build remain PASS as listed in the checkpoint above; database-tested status remains **UNVERIFIED**.
 - Next: restore GitHub Actions runner availability and rerun the required checks on the latest PR head. Merge PR #441 only after fresh checks complete successfully. It targets draft PR #440's feature branch, not `main`; the draft parent chain remains outside this PR-only merge.
+
+## ContractorOS Release 1 — controlled foundation checkpoint
+
+**Checkpoint:** 2026-11-16
+**Baseline:** current GitHub `main`, commit `da83961`
+**Status:** implementation and verification in progress; this section is the handoff ledger for the next crew.
+
+### Completed
+
+- [x] Confirmed the current GitHub repository is the authoritative ROOF/OS source; stale local/archive snapshots are not the implementation baseline.
+- [x] Completed the three-pass review of `ContractorOS_Unified_Master_Dossier-1.pdf`.
+- [x] Recorded the owner’s decisions: web and mobile surfaces, enterprise-wide scope, configurable role authority, all integrations through governed adapters, local Ollama default, and provider choice.
+- [x] Added `docs/contractor-os/FOUNDATION-MERGE-PLAN.md`.
+- [x] Added `docs/contractor-os/EFFICIENT-COMPLETION-RESEARCH.md` with Temporal, LangGraph, and Ollama source-backed architecture guidance.
+- [x] Added `docs/contractor-os/RELEASE-1-TRACEABILITY.md` with checked-off task ledger and dossier-to-repository mapping.
+- [x] Added migration `102_contractor_os_control_plane.sql` with owner-configurable authority profiles, bounded mandates, record revisions, evidence lineage, deduplicated events, durable execution state, and action-ledger extensions.
+- [x] Added `scripts/contractoros-control-plane-test.mjs` and `npm run test:contractoros-control-plane`.
+- [x] Preserved existing lead entry, magic-link authentication, mobile local/offline storage, inspection, estimate, production, invoice, and warranty surfaces.
+
+### Verification completed
+
+- [x] Release 1 control-plane contract test: PASS.
+- [x] TypeScript: PASS (`CI=1 npm run typecheck`).
+- [x] Migration numbering and `git diff --check`: PASS.
+- [x] Security-definer migration/search-path/trigger checks: PASS.
+- [x] Current baseline production build: PASS (`CI=1 NEXT_TELEMETRY_DISABLED=1 npm run build`).
+
+### Remaining before Release 1 is marked complete
+
+- [ ] Add narrow server/RPC writers and action-time authority evaluation.
+- [ ] Add event intake/reconciliation and durable workflow adapter.
+- [ ] Add Ollama/provider-neutral model routing and provenance records.
+- [ ] Complete the web/mobile first vertical slice and its correction/recovery cases.
+- [ ] Apply migration 102 to the target Supabase project and run Level 3 cross-workspace checks.
+- [ ] Commit, push, merge into `main`, and verify fresh GitHub checks on the merged commit.
+
+Do not claim Release 1 complete until every unchecked item above is either completed or explicitly marked deferred by the owner.
