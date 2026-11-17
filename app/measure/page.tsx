@@ -403,6 +403,7 @@ export default function MeasurePage() {
           pitch: uniformPitchConfirmed ? `${pitchRisePer12}/12` : 'mixed',
           sourceReference: `aerial-geometry:${measurementId}`,
           sourceType: 'ai_formulated',
+          provisionalGeometryDraft: true,
           confidence: suggestion?.formulation?.confidence ?? 'medium',
           notes,
         }),
