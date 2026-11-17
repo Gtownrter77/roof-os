@@ -65,3 +65,12 @@ The first slice is not accepted merely because the normal route renders. It must
 - Generic revisions, evidence, events, and execution state are read-only to ordinary clients until narrow server/RPC writers are added.
 - Existing lead entry, magic-link authentication, and mobile local/offline storage remain untouched by this foundation migration.
 - The schema is additive and does not replace existing inspection, estimate, production, invoice, or warranty tables.
+
+## 2026-11-17 current-main reconciliation
+
+- Current verified main: `1b8393a09bec55a87766eee3aa3d0903ed5e4b61`, following merged PR #462. The foundation from PR #463 is preserved.
+- PR #462 adds a provisional, human-reviewed per-plane pitch convention to the existing `roof_planes.suggested_pitch` field and supports a mixed-pitch draft. It does not complete an independent source-of-truth measurement approval, live Supabase verification, comprehensive evidence lineage, or release authority.
+- The explicit-confirmation and server-side quantity recomputation change is proposed in branch `docs/mako-checkin-r2-20261117` and is **not verified/merged** as of this checkpoint. This hardening uses the existing AI formulation JSON to store a separately named human attestation; a dedicated revision/evidence record remains to be designed and verified.
+- Never deploy draft PR #461 unchanged: its separate reviewed-plane migration is also numbered 102 and its new columns are absent from the hosted target per the PR's read-only evidence. Reconcile and renumber after confirming current schema.
+- Remain incomplete: narrow RPC writers, action-time authority enforcement, event/reconciliation worker, durable workflow adapter, Ollama/provider-neutral model routing with provenance, full web/mobile vertical slice and correction/recovery paths, production migration, and Level 3 workspace/RLS tests.
+- Dossier commitments, including all 20 AI functions and all nine releases, remain mandatory regardless of single-slice CI results.
