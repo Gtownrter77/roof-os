@@ -1,3 +1,11 @@
+## 2026-11-17 — Phase 0 merged and APK updated
+
+- PR #469 was merged into `main` as merge commit `8bb00b699f6d3d1fac4d1831995d97268284828` after all 8 required checks passed: web, mobile, migration-safety, field-security, preview-build, Vercel, preview comments, and driveway evidence.
+- The APK workflow was dispatched from that exact merged SHA: [run 44197803638](https://github.com/Gtownrter77/roof-os/actions/runs/44197803638). The build completed successfully through Expo validation, local EAS Android preview build, binary identity/signature verification, provenance generation, and artifact upload.
+- Published artifact: [roof-os-field-preview-8bb00b699f6d3d1fac4d1831995d97268284828e](https://github.com/Gtownrter77/roof-os/actions/runs/44197803638/artifacts/14380437500). APK version `0.5.0`, package `com.roofos.field`, version code `29`, size `73,545,980` bytes.
+- APK SHA-256: `14a63b5155f305a8b201ea025b1094c4c2b14224a27b8316fb283a6321f8bd1b`. Signing certificate SHA-256: `7a1c64b0a0bdae5ac87aef821ee7d6a6a56a6ec21ef53c249149b8e90b74868f`. Provenance manifest reports signature verification true and EAS CLI `27.2.0`.
+- This proves the merged-source APK artifact and signing provenance. Physical-device installation, authenticated offline/reconnect behavior, and live workspace-isolation testing remain separate external gates and are not claimed here.
+
 ## 2026-11-17 — Field dependency gate remediation
 
 - The Phase 0 PR initially exposed an existing field dependency audit blocker: `GHSA-fc5q-39xc-vjpf` is carried through Expo/Metro/Jest build tooling, with no patched `picomatch` release available in the reviewed registry range.
