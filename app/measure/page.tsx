@@ -254,9 +254,14 @@ export default function MeasurePage() {
       const cachedConfirmed = cachedMeasurement?.status === 'confirmed'
       setCalibrated(cachedCalibrated)
       setGeometryConfirmed(cachedConfirmed)
-      setOrthographicTopDown(cachedConfirmed)
+      const savedHumanReview = cachedMeasurement?.ai_formulation?.human_geometry_review
+      setOrthographicTopDown(savedHumanReview?.orthographic_top_down_confirmed === true)
       setUniformPitchConfirmed(false)
-      setPerPlanePitchMode(false)
+      if (savedHumanReview?.uniform_pitch_confirmed === true) setUniformPitchConfirmed(true)
+      setPerPlanePitchMode(savedHumanReview?.uniform_pitch_confirmed === false)
+      if (savedHumanReview?.uniform_pitch_confirmed === true && typeof savedHumanReview.uniform_pitch_rise_per_12 === 'number') {
+        setPitchRisePer12(String(savedHumanReview.uniform_pitch_rise_per_12))
+      }
       if (formulation) {
         setScalePixels(formulation.scale_reference_pixels == null ? '' : String(formulation.scale_reference_pixels))
         setScaleFeet(formulation.scale_reference_feet == null ? '' : String(formulation.scale_reference_feet))
@@ -336,14 +341,17 @@ export default function MeasurePage() {
   }
 
   async function confirm() {
-    if (!measurementId || !calibrated) return
+    if (!measurementId || !calibrated || !orthographicTopDown || (!uniformPitchConfirmed && !perPlanePitchMode)) {
+      setError('Confirm top-down imagery and measured uniform or per-plane pitch first.')
+      return
+    }
     setWorking(true)
     setError('')
     try {
       const response = await fetch('/api/measurements/aerial', {
         method: 'PATCH',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ action: 'confirm', aerialMeasurementId: measurementId }),
+        body: JSON.stringify({ action: 'confirm', aerialMeasurementId: measurementId, orthographicTopDownConfirmed: orthographicTopDown, uniformPitchConfirmed, pitchRisePer12: uniformPitchConfirmed ? pitchValue : undefined }),
       })
       const payload = await response.json()
       if (!response.ok) throw new Error(payload.error || 'Confirmation failed.')
