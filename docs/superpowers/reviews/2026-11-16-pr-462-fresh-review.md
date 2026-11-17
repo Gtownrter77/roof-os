@@ -32,3 +32,14 @@
 6. **Merging Foundation:** #463 and #464 were already merged to main before the combined-tree PR update; their files were preserved when carrying #462 forward.
 
 This report records **reviewed**, **performed**, **partial**, **blocked**, and **not triggered** separately. Reviewing a skill is not implementing every action it describes.
+
+## 2026-11-17 post-merge evidence addendum
+
+This section supersedes only PR #462's historical pre-merge status. It does not rewrite the original 15 skill dispositions.
+
+- PR [#462](https://github.com/Gtownrter77/roof-os/pull/462) **merged** on 2026-11-17 04:28:46 UTC. Head: `416fcfe9a84220b657b2d48e4c35b6148dad0091`. Resulting main commit: `1b8393a09bec55a87766eee3aa3d0903ed5e4b61`.
+- [Workflow 44017191910](https://github.com/Gtownrter77/roof-os/actions/runs/44017191910) passed web, mobile, field-security, migration-safety and preview-build. Vercel reported success; preview feedback reported zero unresolved comments. Post-merge main passed the same five jobs and a daily-cron dispatch job; Vercel main status succeeded.
+- No independent GitHub review submission was recorded. CI is not independent code review. This does not establish live Supabase application, customer/field accuracy, device acceptance or price correctness.
+- The same-day follow-up branch `docs/mako-checkin-r2-20261117` introduces a proposed server-side recompute/explicit confirmation hardening without introducing a schema migration. At the time of this ledger entry, this new work is **unverified until its own latest-head CI and review**.
+- [#461](https://github.com/Gtownrter77/roof-os/pull/461) remains draft and incompatible with main's migration version 102; do not merge unchanged or assume PR #462 fully implements its dedicated-column design.
+- The SD3-only cloning constraint remains; no local worktree was created. The original witnessed RED for #462 and independent reviewer/subagents remain unproven. All 15 upstream skills were reviewed, not necessarily executed.
