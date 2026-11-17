@@ -1,8 +1,8 @@
 # ContractorOS Release 1 Traceability
 
-**Baseline:** ROOF/OS `main` at `da83961`
+**Baseline:** ROOF/OS `main` at `68fc020`
 **Release:** 1 — Specification and controlled foundation
-**Status:** Foundation implementation in progress; this document is the acceptance index for the merged slice.
+**Status:** Foundation tranche merged into `main` at `68fc020`; remaining Release 1 capabilities are explicitly tracked below.
 
 ## Crew handoff checklist
 
@@ -22,7 +22,7 @@
 - [ ] Add Ollama/provider-neutral model routing with provenance records.
 - [ ] Complete and verify the web/mobile first vertical slice.
 - [ ] Run production Supabase migration 102 and complete cross-workspace Level 3 verification.
-- [ ] Push, merge, and verify the Release 1 branch in GitHub `main`.
+- [x] Commit `4386c0d`, push, merge PR #463 into `main` as `68fc020`, and verify all seven fresh GitHub checks: web, mobile, field security, migration safety, preview build, Vercel deployment, and preview comments.
 
 ## Dossier-to-repository coverage
 

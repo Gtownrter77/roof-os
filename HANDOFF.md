@@ -1279,8 +1279,8 @@ Runtime boundary: loopback means the host making the request. A locally running 
 ## ContractorOS Release 1 — controlled foundation checkpoint
 
 **Checkpoint:** 2026-11-16
-**Baseline:** current GitHub `main`, commit `da83961`
-**Status:** implementation and verification in progress; this section is the handoff ledger for the next crew.
+**Baseline:** current GitHub `main`, commit `68fc020`
+**Status:** foundation tranche merged into `main`; remaining Release 1 capabilities are explicitly tracked below.
 
 ### Completed
 
@@ -1301,6 +1301,7 @@ Runtime boundary: loopback means the host making the request. A locally running 
 - [x] Migration numbering and `git diff --check`: PASS.
 - [x] Security-definer migration/search-path/trigger checks: PASS.
 - [x] Current baseline production build: PASS (`CI=1 NEXT_TELEMETRY_DISABLED=1 npm run build`).
+- [x] PR #463 merged into `main` as `68fc020`; fresh web, mobile, field-security, migration-safety, preview-build, Vercel, and preview-comment checks all passed.
 
 ### Remaining before Release 1 is marked complete
 
@@ -1309,6 +1310,6 @@ Runtime boundary: loopback means the host making the request. A locally running 
 - [ ] Add Ollama/provider-neutral model routing and provenance records.
 - [ ] Complete the web/mobile first vertical slice and its correction/recovery cases.
 - [ ] Apply migration 102 to the target Supabase project and run Level 3 cross-workspace checks.
-- [ ] Commit, push, merge into `main`, and verify fresh GitHub checks on the merged commit.
+- [x] Commit `4386c0d`, push, merge PR #463 into `main` as `68fc020`, and verify fresh GitHub checks on the merged commit.
 
 Do not claim Release 1 complete until every unchecked item above is either completed or explicitly marked deferred by the owner.
