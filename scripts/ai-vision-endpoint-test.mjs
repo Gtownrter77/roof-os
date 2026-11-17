@@ -146,7 +146,7 @@ assert.ok(measurePage.includes('const cachedMeasurement = payload.cached ? paylo
 assert.ok(measurePage.includes('setCalibrated(cachedCalibrated)'))
 assert.ok(measurePage.includes('setGeometryConfirmed(cachedConfirmed)'))
 assert.ok(measurePage.includes('setOrthographicTopDown(cachedConfirmed)'))
-assert.ok(measurePage.includes('setUniformPitchConfirmed(cachedConfirmed)'))
+assert.ok(measurePage.includes('setUniformPitchConfirmed(false)'), 'cached geometry must not silently approve a uniform measured pitch')
 
 const previousGeminiKey = process.env.GEMINI_API_KEY
 const previousGeminiModel = process.env.GEMINI_VISION_MODEL
