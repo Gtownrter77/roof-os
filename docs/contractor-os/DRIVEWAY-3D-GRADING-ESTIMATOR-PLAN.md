@@ -3,7 +3,7 @@
 **Evidence date:** 2026-11-17  
 **Source of truth:** current `Gtownrter77/roof-os` `main`, beginning with merge `e2740b4a7d1ab6319d4c07edd408ffaa1e74a7cd`.  
 **Decision:** owner-approved comprehensive ContractorOS dossier remains in force: all 20 AI functions, nine releases, web/mobile, least-privilege governance and manual fallback. This document defines a **new required construction-domain vertical slice**, not a substitute for any existing release.  
-**Status:** scoped and researched, **NOT implemented or verified as a driveway estimator**; no customer/site measurements provided, no grades, prices, soil strengths, permits or tonnages invented.
+**Status:** researched and **pure deterministic quantity kernel implemented on this isolated PR branch with recorded RED→GREEN unit tests**. No connected driveway UI/GIS, mobile workflow, customer estimate or production acceptance is implemented; no customer/site measurements, grades, prices, soil strengths, permits or tonnages invented.
 
 ## 1. Contractor outcome and initial use case
 
@@ -84,7 +84,7 @@ Address first (no mandatory photo)
 ## 6. Efficient implementation phases and repositories
 
 1. **R1-contracts:** create versioned evidence, measurement/grade authority, benchmark and proposal status contracts that reuse the ContractorOS control-plane tables *only when the actual active schema is verified*. Migration 102 is source-only currently; neither it nor draft 103 may be assumed applied.
-2. **R2-grade kernel:** isolated `lib/measurements/driveway-earthwork.ts` with strict unit/shape validation, measured segment math, no pricing defaults; regression test for taper, differing widths, longitudinal grade, 12-inch yard conversion, and invalid/missing density. Use exact source/fixture tests and fail closed.
+2. **R2-grade kernel [source implemented; CI gate still applies]:** `lib/measurements/driveway-earthwork.ts` is an isolated, strictly measured, no-pricing math helper: tapered segment area/volume; benchmark-based grade; explicit constant-elevation survey-cell cut/fill; supplier evidence + matching volume basis before tonnage. `scripts/driveway-earthwork-test.mjs`, `npm run test:driveway-earthwork`, and the dedicated/final web CI jobs enforce regressions. The helper does **not** fetch imagery, read the user's survey, drive a UI or approve an estimate.
 3. **R2-GIS interface:** address-first property selection; licensed/attributed raster/footprint lookup; owner outline and stations; USGS 3DEP context with cell size/error displayed; map coordinate conversion and source-state unavailable fallback. Reuse existing MapLibre/Turf dependencies, avoid new paid APIs.
 4. **R2/R3-review:** web UI for approved elevation benchmark, station geometry, design choices, cut/fill review, quantities and corrections; original versions never overwritten. Offline/mobile input sync and conflict resolution share same domain math.
 5. **R3-R5-commercial/workflow:** alternative estimate pricing from real local suppliers, actual truck/haul/disposal rates, labor/equipment and overhead, owner-rule approvals, contract revision, production readiness and vendor/order workflows.
@@ -108,7 +108,7 @@ Use a single GitHub repo, no local Chromebook clone except SD3 on the actual use
 | 3D integrity | Model units match numeric geometry; any exaggeration is visually marked and excluded from material takeoff |
 | Release | Build/typecheck/CI, synthetic RLS and live approved staging, device test, backup+rollback, field benchmark, licensed imagery, owner acceptance separately captured |
 
-**Operational status:** all above are required work and currently **unverified** for a driveway; existing roof/CRM CI cannot count as driveway evidence. A successful source-only vertical slice will not be mislabeled as a finished remote driveway estimate.
+**Operational status:** the pure math fixtures are source-level tested only; every genuine site, GIS, UI, mobile, cross-workspace and commercial acceptance case remains **unverified** for a driveway. Existing roof/CRM CI cannot substitute for those. A successful source-only vertical slice is not a finished remote driveway estimate.
 
 ## 8. Superpowers applicability (no skipped skill names)
 
@@ -120,14 +120,14 @@ This document is a scoped design/implementation plan; it is *not* evidence of ex
 | brainstorming | Owner's existing approved dossier and driveway intent used, no fresh mockup sign-off |
 | writing-plans | This dependency/acceptance roadmap authored |
 | using-git-worktrees | Local SD3 inaccessible through GitHub connector; separate GitHub branch used instead |
-| test-driven-development | Not performed by this documentation artifact; explicit future RED→GREEN→REFACTOR gates |
+| test-driven-development | **Performed for the pure math sub-slice:** initial test/CI-only PR head `ee709177b48ad237f806bfd75599dc11aa335d49` failed exactly with ERR_MODULE_NOT_FOUND at `earthwork-precision` job `134173178277` before implementation; after implementing module at `d92c161eba1570187f079195380a41d54612490e`, the same isolated test passed. This is unit-source evidence, not field verification |
 | systematic-debugging | Capability boundaries audited; no failed driveway runtime investigated |
-| executing-plans | Planning/documentation only, not completed driveway implementation |
+| executing-plans | Partial: implemented tested R2 pure calculation kernel; geospatial sourcing, actual grade capture and estimate workflow remain to be built |
 | subagent-driven-development | No independent implementer dispatched; blocked/not claimed |
 | dispatching-parallel-agents | Not used; dependent grading/evidence kernel must be implemented in order |
 | requesting-code-review | New PR + CI is a gate, not an independent review |
 | receiving-code-review | Not triggered without actual reviewer comments |
-| verification-before-completion | Tool contracts and source repo reviewed; field/runtime tests remain missing |
+| verification-before-completion | RED and GREEN isolated CI verified for synthetic math only; latest PR full CI, field and authenticated runtime remain separate pending gates |
 | finishing-a-development-branch | PR verification/merge to be recorded against exact head |
 | writing-skills | No reusable `SKILL.md` added |
 | diagnosing-superpowers | Not requested; no forensics run |
