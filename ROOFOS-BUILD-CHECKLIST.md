@@ -1,5 +1,14 @@
 # ROOF/OS Living Build Checklist
 
+## 2026-11-17 — Dossier 1 × Dossier 2 roof-engineering reconciliation (documentation only)
+
+- [✓] Independently audited the original 16-page ContractorOS master (§§1–38) and user-provided 17-section Roofr-style measurement dossier, preserving all 24 work packages, 20 AI functions, nine releases, and existing owner estimating rules. Full crosswalk: `docs/contractor-os/ROOF-MEASUREMENT-DOSSIER-CROSSWALK-2026-11-17.md`.
+- [✓] Recalculated the second dossier's invalid illustrative GPS roof polygons/edges with WGS84 geodesic measurements and UTM planar intersection; found ~1,010 sq ft internal overlap, plus inaccurate facet and linear quantities. Corrected Mercator pixel and Bézier length formulas on paper; these calculations are **not** new tested runtime code.
+- [~] Dossier 2's valid design ideas (source-licensed address imagery, per-plane pitch, holes, typed edges, reliable revision lineage, reports) are **SPECIFIED** for R2 only, **not** automatically implemented, operational, licensed or production-approved.
+- [!] Follow-on TDD test fixture, hole/edge algorithms, /measure-to-/sketch authority linkage, usable aerial sources, server integration, staged RLS, mobile/field validation and owner acceptance remain required. Do not treat the source dossier's purported Roofr private architecture, API, 99%-style confidence or compliance claims as facts.
+- [—] Never copy source-only provider-locked Google aerial imagery for tracing/building extraction without appropriate rights; no paid fallback or production migration authorized.
+
+
 ## 2026-11-15 — Parallel anonymous/free-only public research
 
 - [~] Add separate authenticated BAILEY /research page and /api/research/parallel public-source lookup.
