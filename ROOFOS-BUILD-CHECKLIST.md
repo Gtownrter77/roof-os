@@ -2,13 +2,18 @@
 
 Markers: [ ] pending, [~] in progress, [✓] verified, [!] blocked, [—] out of scope.
 
+## 2026-11-17 — Reviewed pitch migration version reconciliation (PR #461)
+
+- [✓] Renamed duplicate 102 reviewed pitch migration to 103 because ContractorOS main already uses version 102. Source-only change, no hosted schema updates.
+- [!] Still draft and unmerged: rebase and compare current main #462/#465 semantics, stage/verify migration 102 then 103, backup/rollback and authenticated RLS before release.
+
 ## 2026-11-16 — Reviewed per-plane pitch and saved draft (PR #461)
 
 - [✓] Source TDD RED: `43973583322` (test-only commit `943c7f3`) fails on missing reviewed-pitch schema. Source GREEN: `43974736857` all five jobs green on code-bearing commit `07bb0b7`.
 - [✓] `/measure` permits saving measured pitch per accepted plane; supports uniform or mixed pitches and shows computed draft quantity from reviewed geometry.
 - [✓] API stores human-reviewed numeric pitch separately from model note, checks scale, shape, explicit top-down and pitch attestations before immutable confirmation.
 - [✓] Draft save API calculates quantity from the stored plane shapes and pitches rather than stale AI area; rejects changed previews and does not approve unverified AI edge lengths.
-- [✓] Additive repository migration `102_reviewed_plane_pitch.sql` added, **NOT applied to live DB**.
+- [✓] Additive repository migration `103_reviewed_plane_pitch.sql` added, **NOT applied to live DB**.
 - [!] Read-only Supabase Roof OS schema lacks new columns. **No merge or deployment while live DB is unmigrated.** Protected migration requires separate backup, staging and owner-approved production release.
 - [~] Final documentation-commit CI, independent reviewer, full staged/live end-to-end and owner acceptance remain required. No field claim.
 
