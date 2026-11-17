@@ -259,13 +259,13 @@ export default function MeasurePage() {
       setUniformPitchConfirmed(false)
       if (savedHumanReview?.uniform_pitch_confirmed === true) setUniformPitchConfirmed(true)
       setPerPlanePitchMode(savedHumanReview?.uniform_pitch_confirmed === false)
-      if (savedHumanReview?.uniform_pitch_confirmed === true && typeof savedHumanReview.uniform_pitch_rise_per_12 === 'number') {
-        setPitchRisePer12(String(savedHumanReview.uniform_pitch_rise_per_12))
-      }
       if (formulation) {
         setScalePixels(formulation.scale_reference_pixels == null ? '' : String(formulation.scale_reference_pixels))
         setScaleFeet(formulation.scale_reference_feet == null ? '' : String(formulation.scale_reference_feet))
         setPitchRisePer12(formulation.pitch_rise_per_12 == null ? '' : String(formulation.pitch_rise_per_12))
+      }
+      if (savedHumanReview?.uniform_pitch_confirmed === true && typeof savedHumanReview.uniform_pitch_rise_per_12 === 'number') {
+        setPitchRisePer12(String(savedHumanReview.uniform_pitch_rise_per_12))
       }
       setSavedMeasurementId('')
       setStatus(payload.cached
