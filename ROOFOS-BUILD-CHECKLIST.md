@@ -2,6 +2,18 @@
 
 Markers: [ ] pending, [~] in progress, [✓] verified, [!] blocked, [—] out of scope.
 
+## 2026-11-17 — Driveway grade + 3D estimation: TDD math slice (PR #466)
+
+- [✓] Added `docs/contractor-os/DRIVEWAY-3D-GRADING-ESTIMATOR-PLAN.md` reviewing actual 3D plugin tool limits, GIS/data licensing, grade/tonnage assumptions, address-first/manual workflow, field/permit and Supabase release gates. All 20 AI functions and nine releases remain mandatory.
+- [✓] **Observed test-first RED:** dedicated CI job `134173178277` on test-only PR head `ee709177b48ad237f806bfd75599dc11aa335d49` failed `ERR_MODULE_NOT_FOUND` for new earthwork module, as intended before code.
+- [✓] **Isolated GREEN:** after adding `lib/measurements/driveway-earthwork.ts` at commit `d92c161eba1570187f079195380a41d54612490e`, the dedicated `earthwork-precision` job succeeded. Synthetic unit assertions cover tapered area, depth-to-cubic-yards conversion, benchmark-referenced grade, cut/fill survey cells, incompatible density basis, absent supplier yield, and 150-ton-per-yd³ unit-safety rejection.
+- [~] Full latest-head PR check/review and eventual post-merge verification remain separate; do not consider a branch-green isolated job to be a production release.
+- [!] **Not implemented or field-approved:** actual Michigan property terrain/scale measurement, lidar rights/accuracy, legal imagery, address-first driveway UI, supplier prices, road/drainage permits, geotechnical/utility checks, mobile grade sync, 3D rendering, real site quantities, owner-approved customer bid. No quantity, price or permit was guessed.
+- [~] Follow-on retaining wall/landscaping/cabinet domains reuse verified geometry and CAD tools but remain planned work; never silently fabricate a load-bearing design.
+- [✓] Separately confirmed PR #465 merged as `e2740b4a7d1ab6319d4c07edd408ffaa1e74a7cd`; the five main CI jobs and Vercel succeeded. This is measurement software evidence, not site measurement accuracy.
+- [!] Active Supabase Roof OS read-only verification: human review columns and ContractorOS control-plane tables have not been applied; do not merge draft #461 (renumbered SQL 103) into production without staging, backup, schema/RLS checks, and owner authorization.
+- [~] Parallel draft #455's isolated GitHub live anonymous MCP smoke passed with no API key, alongside mocked contract; real BAILEY app-host and source-quality pilot remain unverified, no paid API fallback.
+
 ## 2026-11-17 — Mako Check-In: verified R2 merge + hardening in progress
 
 - [✓] PR #462 merged into main at `1b8393a09bec55a87766eee3aa3d0903ed5e4b61`. All five exact-head CI jobs, Vercel, preview-feedback check, and five post-merge main CI jobs succeeded. This is repository evidence, **not** field acceptance.
