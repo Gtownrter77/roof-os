@@ -21,3 +21,7 @@ Compare the same public, non-sensitive prompts against the existing BAILEY sourc
 ## Release evidence
 
 The regression proves only request wiring and no-key transport under a mocked response. Live anonymous MCP connectivity, production deployment, real source relevance, runtime rate limits, privacy policy, CI, and cross-workspace load are **not** verified until tested separately. Keep live-release status distinct from source completion.
+
+## 2026-11-17 verification improvement
+
+The dedicated GitHub workflow now runs both the mocked no-credential contract test and a **real, public, anonymous** MCP search from a GitHub-hosted CI runner. It uses a generic GAF product installation query only; no customer names, addresses, claim records, keys, payment accounts or paid calls. A red live check must keep the draft blocked; a green check proves CI-runner connectivity but **not** deployed BAILEY host connectivity or customer-specific source quality. Free anonymous use has lower provider rate limits and may be unavailable at times.
