@@ -139,6 +139,14 @@ export async function POST(request: NextRequest) {
         || review?.orthographic_top_down_confirmed !== true || typeof review?.uniform_pitch_confirmed !== 'boolean') {
         return NextResponse.json({ error: 'Confirmed human-reviewed roof geometry is required before a provisional draft can be saved.' }, { status: 409 })
       }
+      if (review.uniform_pitch_confirmed && (
+        typeof review.uniform_pitch_rise_per_12 !== 'number'
+        || !Number.isFinite(review.uniform_pitch_rise_per_12)
+        || review.uniform_pitch_rise_per_12 < 0
+        || review.uniform_pitch_rise_per_12 > 36
+      )) {
+        return NextResponse.json({ error: 'Saved uniform pitch attestation is invalid.' }, { status: 409 })
+      }
       const { data: planes, error: planeError } = await supabase.from('roof_planes')
         .select('vertices,review_status,suggested_pitch')
         .eq('workspace_id', workspaceId).eq('aerial_measurement_id', aerialMeasurement.id)
