@@ -345,7 +345,9 @@ export async function PATCH(request: NextRequest) {
       if (body.kind !== 'plane') return jsonError('Only roof planes can receive a reviewed pitch.', 400)
       const pitch = validateReviewedPitch(body.pitch)
       if (pitch === null) return jsonError('Reviewed pitch must be a numeric rise from 0 to 36 per 12 inches.', 400)
-      update.suggested_pitch = `${pitch}/12`
+      // Prefix separates a human-reviewed measurement from an AI suggestion,
+      // even after an edited plane is subsequently accepted and reloaded.
+      update.suggested_pitch = `reviewed:${pitch}/12`
     }
   }
 
