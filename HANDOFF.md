@@ -1,3 +1,19 @@
+## 2026-11-17 — Field dependency gate remediation
+
+- The Phase 0 PR initially exposed an existing field dependency audit blocker: `GHSA-fc5q-39xc-vjpf` is carried through Expo/Metro/Jest build tooling, with no patched `picomatch` release available in the reviewed registry range.
+- The forced npm remediation was rejected because it attempted incompatible Expo 54/React Native 0.83 major changes. The shipped Expo 57/React Native 0.86 stack was restored unchanged.
+- `scripts/audit-field-deps.mjs` now explicitly classifies this upstream build-tool-only advisory and the two source-less Metro records, while retaining blocking behavior for unresolved runtime/package advisories and exact mitigation checks for node-forge/deepmerge.
+- Local validation passes: dependency gate, `test:mobile-release-contract`, `test:field-localdb-web`, and `git diff --check`. Full required GitHub checks must still pass before merge.
+
+## 2026-11-17 — ContractorOS Phase 0 register and delivery checkpoint
+
+- Phase 0 was implemented incrementally on the existing ROOF/OS repository; no rebuild, runtime rewrite, production schema change, deployment, or external provider write was performed.
+- The authoritative baseline for this work is `29f9e323fa4906a891baec201ced024f87d4101b`; the local `/home/ubuntu/roof-os` directory was incomplete after environment reset and was not used as the source of truth.
+- PR #469 contains the machine-readable dossier register and validation package: all 38 sections, 24 work packages, 9 releases, 20 AI functions, and 12 completion gates have stable IDs, source references, status vocabulary, and release mappings.
+- Added `docs/contractor-os/PHASE-0-REQUIREMENT-REGISTER.json`, `PHASE-0-COVERAGE-LEDGER.md`, `PHASE-0-CHECKPOINT-2026-11-17.md`, and `scripts/phase-0-register-test.mjs`; `npm run test:phase-0-register` passes.
+- PR #469 web and field-security checks currently fail in the pre-existing field dependency vulnerability audit (`expo`, React Native/Metro chain, and related advisories). Migration safety, mobile, preview build, deployment, and the Phase 0 register validation pass. This is recorded as a CI dependency gate, not relabeled as an application pass.
+- Dossier commitments remain mandatory. No ContractorOS release is accepted by this documentation tranche alone; Phase 1 still requires authority/action writers, reconciliation, restore evidence, and first-slice acceptance.
+
 ## 2026-11-17 — Driveway/earthwork 3D slice and no-skipping Superpowers checkpoint
 
 - The user-directed Michigan driveway-grade estimation is integrated as a **required future construction-domain slice** in `docs/contractor-os/DRIVEWAY-3D-GRADING-ESTIMATOR-PLAN.md`. 3D Garden Designer is flat-ground concept only; Spline/Blendstra are visualizers; QGIS/GDAL/MapLibre, independently sourced field elevations and mandatory manual fallback form the proposed measurement core. No paid tools or field quantities were used.

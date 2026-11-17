@@ -10,6 +10,7 @@
     "test:runtime-smoke": "node scripts/runtime-smoke-test.mjs",
     "test:performance": "node --experimental-strip-types scripts/performance-optimization-verify.mjs",
     "typecheck": "tsc --noEmit",
+    "test:phase-0-register": "node scripts/phase-0-register-test.mjs",
     "release-check": "node scripts/security-definer-trigger-test.mjs && node scripts/security-definer-search-path-test.mjs && node scripts/production-followup-trigger-test.mjs && node scripts/mobile-apk-provenance-test.mjs && node scripts/passport-rate-limit-privacy-test.mjs && node scripts/passport-rate-limit-rls-test.mjs && node --experimental-strip-types scripts/mobile-local-db-migration-test.mjs && node scripts/release-check.mjs",
     "test:api-security": "node scripts/api-security-test.mjs",
     "test:auth-flow": "node scripts/auth-flow-test.mjs",
