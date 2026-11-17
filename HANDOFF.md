@@ -1,3 +1,12 @@
+## 2026-11-17 — Mako check-in resume, verified merges and remediation
+
+- Current GitHub main is `1b8393a09bec55a87766eee3aa3d0903ed5e4b61`. PR #462 merged; five exact-head CI jobs and five post-merge CI jobs passed, along with Vercel success. Foundation PR #463 remains included in main.
+- Draft PR #461 is **not** merged: its 102 pitch-column migration collides with merged 102 ContractorOS schema and the active hosted project reportedly lacks the new columns. No production migration or paid service was authorized.
+- A source-only follow-up GitHub branch `docs/mako-checkin-r2-20261117` changes explicit review/quantity saving to fail closed, recompute from persisted workspace-scoped geometry and detect stale browser previews without new columns. This branch is not accepted until fresh CI and review.
+- Draft PR #455 (free-only Parallel research) still requires its own handshake, tests and deployment verification. Retain the no-fee/no-paid-fallback policy.
+- All 15 Superpowers dispositions are preserved, with unperformed steps acknowledged; no SD3 or local clone claimed. All 20 approved AI functions and nine releases remain required. See Living Build Checklist and `docs/contractor-os/RELEASE-1-TRACEABILITY.md`.
+- Outstanding production tasks: authenticated API/DB integration, cross-workspace isolation, staged backup and rollback, owner acceptance, physical roof/driveway validation, and role/revision workflow checks.
+
 ## 2026-11-16 — BAILEY BOSS R2 roof-plane precision (PR #460, source-only)
 
 - **Approved dossier scope:** geometry/roof measurement R2: prevent double-counting, handle shared internal boundaries, require calibrated and reviewed evidence, and support per-plane pitch math without fabricating site data. Existing code preserved; no production system changed.

@@ -2,6 +2,17 @@
 
 Markers: [ ] pending, [~] in progress, [✓] verified, [!] blocked, [—] out of scope.
 
+## 2026-11-17 — Mako Check-In: verified R2 merge + hardening in progress
+
+- [✓] PR #462 merged into main at `1b8393a09bec55a87766eee3aa3d0903ed5e4b61`. All five exact-head CI jobs, Vercel, preview-feedback check, and five post-merge main CI jobs succeeded. This is repository evidence, **not** field acceptance.
+- [✓] Reviewed per-plane pitch entry, saved `reviewed:<rise>/12` provenance, cached pitch restoration, and provisional mixed-pitch draft save are present in merged source. The helper-only notation in the older PR #460 checkpoint below is historical and superseded by #462 at source level.
+- [✓] ContractorOS controlled foundation PR #463 merged as `68fc020e733cf504c10473997201b859f2b8221f`; migration `102_contractor_os_control_plane.sql` is in main, **not** confirmed applied to hosted Supabase.
+- [~] This follow-up branch adds explicit top-down/pitch attestation, saves review metadata in existing `aerial_measurements.ai_formulation.human_geometry_review`, recomputes draft quantities server-side from persisted workspace-scoped polygons and reviewed pitch markers, and rejects stale client previews. No new migration or production mutation. **Pending fresh PR CI, runtime authentication/RLS, and independent review.**
+- [!] Draft PR #461 remains unmerged; it adds `102_reviewed_plane_pitch.sql` with the same migration version as the merged ContractorOS migration and depends on absent hosted columns. Reconcile/version its migration and current main code, and verify backup, staging, RLS and target schema before deploying it.
+- [!] Draft PR #455 (free-only anonymous Parallel research) remains unmerged until current-head CI, deployment-host connectivity and source-quality pilot pass. No paid API fallback permitted.
+- [~] Superpowers ledger records all 15 reviewed skills but preserves the unperformed subagent, independent-review, SD3 worktree and field-verification boundaries. The approved 20 AI functions and nine releases remain mandatory, not implicitly completed.
+- [!] Production field accuracy, authenticated read/write/reload, inter-workspace isolation, owner approval, UI/mobile-device checks, backup/rollback, address-first aerial coverage, and driveway/grade estimating remain separate release gates.
+
 ## 2026-11-16 — Dossier R2 roof-plane precision (PR #460)
 
 - [✓] Test-first overlap/shared-edge/calibration regressions: observed RED in PR CI `43967807554` before implementation, then corrected and verified with full five-job green PR CI `43968942343` on source SHA `e9e65a8304df860e8b22be91dffbee1ac5c4ed07`.
