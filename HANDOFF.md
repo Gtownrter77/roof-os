@@ -1,3 +1,10 @@
+## 2026-11-17 — Dossier 1 × Roofr-style Dossier 2 integration audit
+
+- **Master stays authoritative:** `ContractorOS_Unified_Master_Dossier.pdf` is the user-approved 38-section specification with 24 packages, 20 AI functions and nine releases. The new 17-section Roofr-style user document is an **unverified architecture narrative**, not Roofr source, and adds no independent approval or implementation authority.
+- **Engineering crosswalk on this branch:** `docs/contractor-os/ROOF-MEASUREMENT-DOSSIER-CROSSWALK-2026-11-17.md` contains all 38×17 section dispositions, independent WGS84/UTM forensic computations (~1,010 sq ft overlapping roof facets), invalid sample payload, corrected Mercator/Bézier formulas, owner rules, licensing, R2 acceptance tests, and reviewed repo gaps.
+- **Historical baseline warning:** This audit began from GitHub `main` `29f9e323fa4906a891baec201ced024f87d4101b`, which already included merged PR #455. PR #461 remained open/draft; production schema and deployment acceptance are *not* asserted. Older SHAs and 'pending' remarks elsewhere in this file represent their dates, not current main.
+- **Scope:** documentation-only; no product code changed, no migration applied, no provider charges, no field measurement or hosted operating check performed. Treat resulting engineering spec as **SPECIFIED**, not **VERIFIED** runtime. Tests/field, imagery rights, review, price book and R1 permission/revision links are still gates. Future code must test the malformed illustrative Dossier 2 roof data as a **negative fixture** rather than accepting its fake numerical totals.
+
 ## 2026-11-17 — Driveway/earthwork 3D slice and no-skipping Superpowers checkpoint
 
 - The user-directed Michigan driveway-grade estimation is integrated as a **required future construction-domain slice** in `docs/contractor-os/DRIVEWAY-3D-GRADING-ESTIMATOR-PLAN.md`. 3D Garden Designer is flat-ground concept only; Spline/Blendstra are visualizers; QGIS/GDAL/MapLibre, independently sourced field elevations and mandatory manual fallback form the proposed measurement core. No paid tools or field quantities were used.
