@@ -33,15 +33,20 @@ export async function POST(request: NextRequest) {
     sourceType?: string
     confidence?: string
     allowSixSquareRepairThreshold?: boolean
+    provisionalGeometryDraft?: boolean
   }
 
   const numericKeys = ['roofAreaSqft', 'roofSquares', 'gutterLf', 'ridgeLf', 'eaveLf', 'rakeLf', 'valleyLf'] as const
   if (numericKeys.some((key) => body[key] !== undefined && typeof body[key] !== 'number')
     || ['pitch', 'notes', 'sourceReference', 'sourceType', 'confidence'].some((key) => body[key as keyof typeof body] !== undefined && typeof body[key as keyof typeof body] !== 'string')
-    || (body.allowSixSquareRepairThreshold !== undefined && typeof body.allowSixSquareRepairThreshold !== 'boolean')) {
+    || (body.allowSixSquareRepairThreshold !== undefined && typeof body.allowSixSquareRepairThreshold !== 'boolean')
+    || (body.provisionalGeometryDraft !== undefined && typeof body.provisionalGeometryDraft !== 'boolean')) {
     return NextResponse.json({ error: 'Measurement fields have invalid types.' }, { status: 400 })
   }
 
+  if (body.provisionalGeometryDraft && body.sourceType !== 'ai_formulated') {
+    return NextResponse.json({ error: 'Provisional geometry drafts require an aerial AI source reference.' }, { status: 400 })
+  }
   if (body.roofAreaSqft != null) {
     const rangeError = roofAreaRangeError(Number(body.roofAreaSqft))
     if (rangeError) return NextResponse.json({ error: rangeError }, { status: 400 })
@@ -110,7 +115,7 @@ export async function POST(request: NextRequest) {
     }
     const { data: aerialMeasurement, error: aerialError } = await supabase
       .from('aerial_measurements')
-      .select('id,inspection_id,measurement_source,ai_formulation')
+      .select('id,inspection_id,measurement_source,ai_formulation,calibration_status')
       .eq('id', sourceMatch[1])
       .eq('workspace_id', workspaceId)
       .maybeSingle()
@@ -118,6 +123,17 @@ export async function POST(request: NextRequest) {
     if (!aerialMeasurement || aerialMeasurement.measurement_source !== 'ai_formulated' || aerialMeasurement.inspection_id !== (body.inspectionId ?? null)) {
       return NextResponse.json({ error: 'The aerial measurement reference is not valid for this workspace and inspection.' }, { status: 400 })
     }
+    if (body.provisionalGeometryDraft) {
+      // Preserve the owner's provisional per-plane calculation, rather than replacing it
+      // with the original AI formulation. This is NOT a server-verified roof measurement.
+      if (aerialMeasurement.calibration_status !== 'confirmed' || body.roofAreaSqft == null || body.roofSquares == null || !body.notes?.trim()) {
+        return NextResponse.json({ error: 'A provisional geometry draft requires confirmed calibration, area, squares, and calculation notes.' }, { status: 400 })
+      }
+      sourceType = 'ai_formulated'
+      confidence = 'unverified'
+      pitch = body.pitch?.trim() || null
+      notes = `${body.notes.trim()} Provisional owner-reviewed AI geometry quantity; not independently measured or verified.`
+    } else {
     sourceType = 'ai_formulated'
     const formulation = aerialMeasurement.ai_formulation as {
       confidence?: unknown; roof_area_sqft?: unknown; roof_squares?: unknown; gutter_lf?: unknown; ridge_lf?: unknown; eave_lf?: unknown; rake_lf?: unknown; valley_lf?: unknown; pitch_rise_per_12?: unknown; assumptions?: unknown
@@ -133,6 +149,7 @@ export async function POST(request: NextRequest) {
     valleyLf = typeof formulation?.valley_lf === 'number' ? formulation.valley_lf : null
     pitch = typeof formulation?.pitch_rise_per_12 === 'number' ? `${formulation.pitch_rise_per_12}/12` : null
     notes = Array.isArray(formulation?.assumptions) ? formulation.assumptions.filter((item): item is string => typeof item === 'string').join(' ') || null : null
+    }
   }
   const order = roofAreaSqft != null ? purchasableRoofing(roofAreaSqft, body.allowSixSquareRepairThreshold === true) : null
   const { data, error } = await supabase.from('inspection_measurements').insert({
