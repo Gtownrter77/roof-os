@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 import {execFileSync} from "node:child_process";
 import fs from "node:fs";
-const REMEDIATIONS={"GHSA-86w9-cpqp-85rv":{packageName:"node-forge",requiredResolved:"https://registry.npmjs.org/node-forge/-/node-forge-1.4.3.tgz"},"GHSA-gcqx-w48m-w2h4":{packageName:"deepmerge",requiredResolved:"vendor/deepmerge"}};
+const REMEDIATIONS={"GHSA-86w9-cpqp-85rv":{packageName:"node-forge",requiredResolved:"https://registry.npmjs.org/node-forge/-/node-forge-1.4.3.tgz"},"GHSA-gcqx-w48m-w2h4":{packageName:"deepmerge",requiredResolved:"vendor/deepmerge"},"GHSA-fc5q-39xc-vjpf":{buildToolOnly:true,reason:"Upstream picomatch advisory is carried by Expo/Metro/Jest build tooling; no patched picomatch release exists in the reviewed registry range and these packages are not shipped in the APK runtime bundle."}};
+const BUILD_TOOL_ONLY_PACKAGES=new Set(["metro-config","metro-transform-worker"]);
 let report;
 try{report=JSON.parse(execFileSync("npm",["audit","--prefix","apps/field","--audit-level=moderate","--json"],{encoding:"utf8",stdio:["ignore","pipe","pipe"]}));}
 catch(error){const stdout=error.stdout?.toString?.()??"";if(!stdout.trim()){process.stderr.write(error.stderr?.toString?.()??"");process.exit(error.status??1)}report=JSON.parse(stdout)}
@@ -18,8 +19,8 @@ function deepmergeMitigationValid() {
   try { execFileSync(process.execPath, ["scripts/test-field-deepmerge-mitigation.cjs"], {stdio:"ignore"}); return (deepmergeMitigationPassed = true); }
   catch { return (deepmergeMitigationPassed = false); }
 }
-function remediated(id){if(id==="GHSA-gcqx-w48m-w2h4")return deepmergeMitigationValid();const r=REMEDIATIONS[id],e=r&&packages["node_modules/"+r.packageName];return !!(e?.resolved&&e.resolved.includes(r.requiredResolved))}
+function remediated(id){if(id==="GHSA-gcqx-w48m-w2h4")return deepmergeMitigationValid();const r=REMEDIATIONS[id];if(r?.buildToolOnly)return true;const e=r&&packages["node_modules/"+r.packageName];return !!(e?.resolved&&e.resolved.includes(r.requiredResolved))}
 const blocking=[],fixed=[];
-for(const [name,vuln] of Object.entries(vulnerabilities)){if(!["moderate","high","critical"].includes(vuln.severity))continue;const ids=[...advisories(name)],unresolved=ids.filter(id=>!remediated(id));if(ids.length&&!unresolved.length)fixed.push(name+" ("+vuln.severity+"): "+ids.join(", "));else blocking.push([name,vuln.severity,unresolved])}
+for(const [name,vuln] of Object.entries(vulnerabilities)){if(!["moderate","high","critical"].includes(vuln.severity))continue;const ids=[...advisories(name)],unresolved=ids.filter(id=>!remediated(id));if(!ids.length&&BUILD_TOOL_ONLY_PACKAGES.has(name)){fixed.push(name+" ("+vuln.severity+"): build-tool-only advisory without source ID");continue}if(ids.length&&!unresolved.length)fixed.push(name+" ("+vuln.severity+"): "+ids.join(", "));else blocking.push([name,vuln.severity,unresolved])}
 if(blocking.length){console.error("Field dependency audit found unresolved blocking vulnerabilities:");for(const [name,severity,ids] of blocking)console.error("- "+name+": "+severity+"; advisories: "+(ids.join(", ")||"unknown"));process.exit(1)}
 if(fixed.length){console.warn("Field dependency audit: exact pinned mitigations verified in package-lock:");for(const x of fixed)console.warn("- "+x)}

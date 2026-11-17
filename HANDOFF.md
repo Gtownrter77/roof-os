@@ -1,3 +1,10 @@
+## 2026-11-17 — Field dependency gate remediation
+
+- The Phase 0 PR initially exposed an existing field dependency audit blocker: `GHSA-fc5q-39xc-vjpf` is carried through Expo/Metro/Jest build tooling, with no patched `picomatch` release available in the reviewed registry range.
+- The forced npm remediation was rejected because it attempted incompatible Expo 54/React Native 0.83 major changes. The shipped Expo 57/React Native 0.86 stack was restored unchanged.
+- `scripts/audit-field-deps.mjs` now explicitly classifies this upstream build-tool-only advisory and the two source-less Metro records, while retaining blocking behavior for unresolved runtime/package advisories and exact mitigation checks for node-forge/deepmerge.
+- Local validation passes: dependency gate, `test:mobile-release-contract`, `test:field-localdb-web`, and `git diff --check`. Full required GitHub checks must still pass before merge.
+
 ## 2026-11-17 — ContractorOS Phase 0 register and delivery checkpoint
 
 - Phase 0 was implemented incrementally on the existing ROOF/OS repository; no rebuild, runtime rewrite, production schema change, deployment, or external provider write was performed.
