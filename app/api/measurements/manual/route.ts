@@ -126,8 +126,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'The aerial measurement reference is not valid for this workspace and inspection.' }, { status: 400 })
     }
     if (body.provisionalGeometryDraft) {
+      const formulation = aerialMeasurement.ai_formulation as { human_geometry_review?: { orthographic_top_down_confirmed?: unknown } } | null
+      const review = formulation?.human_geometry_review
       if (aerialMeasurement.status !== 'confirmed' || aerialMeasurement.calibration_status !== 'confirmed'
-        || aerialMeasurement.orthographic_top_down_confirmed !== true) {
+        || aerialMeasurement.orthographic_top_down_confirmed !== true || review?.orthographic_top_down_confirmed === false) {
         return NextResponse.json({ error: 'Confirmed human-reviewed roof geometry is required before a provisional draft can be saved.' }, { status: 409 })
       }
       confidence = 'unverified'
