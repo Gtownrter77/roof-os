@@ -26,7 +26,7 @@ create or replace function public.protect_inspection_photo_gps_verification()
 returns trigger language plpgsql security invoker set search_path = ''
 as $$
 begin
-  if coalesce(auth.role(), '') <> 'service_role' then
+  if current_user <> 'service_role' then
     if tg_op = 'INSERT' and (
       new.gps_verified or new.gps_latitude is not null or new.gps_longitude is not null
       or new.gps_address is not null or new.gps_verified_at is not null or new.gps_sha256 is not null
@@ -68,7 +68,7 @@ begin
   if (
     (tg_op = 'INSERT' and new.enable_auto_photo_measurements)
     or (tg_op = 'UPDATE' and new.enable_auto_photo_measurements is distinct from old.enable_auto_photo_measurements)
-  ) and coalesce(auth.role(), '') <> 'service_role'
+  ) and current_user <> 'service_role'
     and not exists (
       select 1 from public.workspace_members
       where workspace_id = new.workspace_id
@@ -109,3 +109,9 @@ alter table public.photo_to_report_jobs enable row level security;
 drop policy if exists photo_to_report_jobs_select on public.photo_to_report_jobs;
 create policy photo_to_report_jobs_select on public.photo_to_report_jobs
   for select to authenticated using (public.is_workspace_member(workspace_id));
+
+-- Explicit grants: RLS does not protect TRUNCATE. Give browser clients read-only
+-- access; service_role is the only database writer for automation job records.
+revoke all on table public.photo_to_report_jobs from PUBLIC, anon, authenticated;
+grant select on table public.photo_to_report_jobs to authenticated;
+grant all on table public.photo_to_report_jobs to service_role;
