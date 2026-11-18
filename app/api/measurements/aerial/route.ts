@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto'
+import { isCertifiedPhotoContent } from '../../../../lib/photo-provenance-integrity.mjs'
 import { NextRequest, NextResponse } from 'next/server'
 import { GEOMETRY_CONTRACT_VERSION, GeometryContractValidationError, validateGeometrySuggestion } from '../../../../lib/ai/geometry-contract'
 import { isUuid, readJson, requireWorkspaceMember } from '../../../../lib/api-security'
@@ -114,7 +115,7 @@ export async function POST(request: NextRequest) {
     const { supabase, user, workspaceId } = context
     const { data: photo, error: photoError } = await supabase
       .from('inspection_photos')
-      .select('id,workspace_id,inspection_id,uploaded_by,bucket_id,object_path,mime_type,file_size_bytes,upload_status,gps_verified,gps_address')
+      .select('id,workspace_id,inspection_id,uploaded_by,bucket_id,object_path,mime_type,file_size_bytes,upload_status,gps_verified,gps_address,gps_sha256,gps_latitude,gps_longitude')
       .eq('id', photoId)
       .eq('workspace_id', workspaceId)
       .eq('inspection_id', inspectionId)
@@ -139,6 +140,7 @@ export async function POST(request: NextRequest) {
     const bytes = await fetchBounded(signedUrl.toString(), 15_000, MAX_IMAGE_BYTES)
     if (!bytes.length || !isImage(bytes)) return jsonError('The selected image failed image validation.', 415)
     const contentHash = createHash('sha256').update(bytes).digest('hex')
+    if (!isCertifiedPhotoContent(photo, bytes)) return jsonError('The stored photo no longer matches its verified embedded GPS. Reverify the original photo before any automation.', 403)
 
     const { data: existing, error: existingError } = await supabase
       .from('aerial_measurements')

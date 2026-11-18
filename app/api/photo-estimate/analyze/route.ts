@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto'
+import { isCertifiedPhotoContent } from '../../../../lib/photo-provenance-integrity.mjs'
 import { NextRequest, NextResponse } from 'next/server'
 import { ROOF_AI_CONTRACT_VERSION, ROOF_AI_DISCLAIMER, validateRoofAIObservationPacket } from '../../../../lib/ai/roof-contract'
 import { analyzePhotosWithOllama, getOllamaVisionModel, LocalVisionError } from '../../../../lib/ai/local-vision.mjs'
@@ -40,6 +41,9 @@ type PhotoRow = {
   upload_status: string
   gps_verified: boolean
   gps_address: string | null
+  gps_sha256: string | null
+  gps_latitude: number | null
+  gps_longitude: number | null
 }
 
 type PreparedPhoto = { mimeType: string; bytes: Buffer; hash: string }
@@ -180,7 +184,7 @@ export async function POST(request: NextRequest) {
 
     const { data: rows, error: photoError } = await supabase
       .from('inspection_photos')
-      .select('id,workspace_id,inspection_id,uploaded_by,bucket_id,object_path,mime_type,file_size_bytes,upload_status,gps_verified,gps_address')
+      .select('id,workspace_id,inspection_id,uploaded_by,bucket_id,object_path,mime_type,file_size_bytes,upload_status,gps_verified,gps_address,gps_sha256,gps_latitude,gps_longitude')
       .in('id', photoIds)
       .eq('workspace_id', workspaceId)
       .eq('bucket_id', BUCKET)
@@ -242,6 +246,7 @@ export async function POST(request: NextRequest) {
       if (bytes.length === 0 || !isExpectedImage(bytes, expectedMimeTypes.get(photo.id) ?? '')) {
         throw new RouteError(415, 'A workflow photo does not match its declared JPEG, PNG, or WebP type.')
       }
+      if (!isCertifiedPhotoContent(photo, bytes)) return jsonError('A workflow photo no longer matches its embedded GPS certification. No photo AI automation started.', 403)
       totalBytes += bytes.length
       preparedPhotos.push({ mimeType: expectedMimeTypes.get(photo.id)!, bytes, hash: createHash('sha256').update(bytes).digest('hex') })
     }

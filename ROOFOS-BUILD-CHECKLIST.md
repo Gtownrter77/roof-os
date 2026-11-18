@@ -1,5 +1,13 @@
 # ROOF/OS Living Build Checklist
 
+## 2026-11-17 — Field-photo data integrity and Photo-to-Report retry hardening (pending PR)
+
+- [~] Preserve new technician camera photos inside durable app document storage before queuing them offline; never rely on temporary ImagePicker cache files.
+- [~] Failed server GPS verification and Photo-to-Report creation retain the original image in the retry queue rather than being silently marked synced or losing AI requests.
+- [~] Roof, siding, photo-estimate, and Photo-to-Report routes verify that current private photo bytes still match the server-certified EXIF GPS coordinates, embedded address, and SHA-256 digest.
+- [~] Add migration 106 for server-role-only atomic, idempotent Photo-to-Report packet creation. A new packet is always review-gated; no roof area, damage, or price is invented.
+- [!] Source tests, real Supabase migration, Render deployment, and real Expo Android capture/upload all require separate evidence. Do not mark operational from code alone.
+
 ## 2026-11-17 — Photo-to-Report embedded GPS / owner permission (PR #478)
 
 - [~] Native field camera captures high-accuracy GPS, stamps JPEG EXIF GPS and embedded candidate property address, and retains offline queue; unverifiable photos remain manual-only.
