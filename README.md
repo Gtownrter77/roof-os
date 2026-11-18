@@ -1,9 +1,9 @@
 # Current repository audit — 2026-11-18
 
-**Current main baseline at audit start:** `e755a4c3e9d611e15f90e7cf7c4fda928a50d2d7` (merged PR #482)
+**Current main:** `99792955cf69fb56c6473e3050b7d96dd9a31040` (merged PR #485; Metro parent `7008e22`, PR #483)
 **Current source migration head:** later than `104`; see `supabase/migrations/` for the ordered ledger
-**APK:** latest published GitHub Release is `field-apk-main-6976341`; newest successful workflow artifact is run `44197803638` from `8bb00b6`. Later main APK builds failed until Metro could resolve `lib/photo-provenance.mjs` from `apps/field`.
-**Current audit boundary:** source and CI evidence only; production schema parity, deployed SHA, provider execution, physical-device behavior, live two-workspace isolation, and backup/restore remain unverified.
+**APK:** newest successful workflow artifact is [run 44404219619](https://github.com/Gtownrter77/roof-os/actions/runs/44404219619) from `7008e22`, version code `42`, SHA-256 `d94e7fe1657a3041dd155d42ff5c253938542389f8e2b0ac7b46b2be8c7c404f`. Latest GitHub Release tag remains `field-apk-main-6976341`. Rebuild of current main `9979295` is a separate in-progress run.
+**Current audit boundary:** source, CI, and APK-artifact evidence only; production schema parity, deployed SHA, provider execution, physical-device behavior, live two-workspace isolation, and backup/restore remain unverified.
 
 The dated checkpoints below are historical snapshots and must not be treated as current-main evidence. Current source includes later ContractorOS migrations through `104`, the Phase 0 dossier/register, and the field APK artifact handoff. Legacy local migration prefix collisions at `021`–`023` are documented historical facts; do not rename or replay them. New migrations must use the protected repository/target-ledger workflow.
 
