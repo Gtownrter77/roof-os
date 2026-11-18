@@ -688,7 +688,7 @@ export default function App() {
         }
       } catch { /* A denied or failed GPS fix never fabricates location. */ }
       let stampedCount = 0
-      const preparedAssets = []
+      const preparedAssets: Array<{ uri: string; mimeType: string; fileSize: number | null; width: number | null; height: number | null; gpsEmbedded: boolean }> = []
       for (const asset of result.assets) {
         const mimeType = asset.mimeType ?? (/\.(jpe?g)$/i.test(asset.uri) ? 'image/jpeg' : 'application/octet-stream')
         let size = asset.fileSize ?? null
