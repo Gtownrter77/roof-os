@@ -87,3 +87,25 @@ for each row execute function public.protect_owner_photo_measurement_permission(
 
 create index if not exists inspection_photos_automation_provenance_idx
   on public.inspection_photos (workspace_id, inspection_id) where gps_verified;
+
+
+-- One-photo autonomous intake is idempotent. Only the trusted application
+-- service role creates/updates jobs; workspace users get read-only visibility.
+create table if not exists public.photo_to_report_jobs (
+  id uuid primary key default gen_random_uuid(),
+  workspace_id uuid not null references public.workspaces(id) on delete cascade,
+  inspection_id uuid not null references public.inspection_sessions(id) on delete cascade,
+  photo_id uuid not null references public.inspection_photos(id) on delete cascade,
+  workflow_id uuid references public.photo_estimate_workflows(id) on delete set null,
+  created_by uuid not null references auth.users(id) on delete restrict,
+  state text not null default 'property_review' check (state in ('property_review','measurement_review','report_review','blocked','completed')),
+  review_reason text not null default 'Property match, aerial geometry, roof quantities, damage and price require verification.',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (workspace_id, photo_id)
+);
+create index if not exists photo_to_report_jobs_inspection_idx on public.photo_to_report_jobs(workspace_id, inspection_id);
+alter table public.photo_to_report_jobs enable row level security;
+drop policy if exists photo_to_report_jobs_select on public.photo_to_report_jobs;
+create policy photo_to_report_jobs_select on public.photo_to_report_jobs
+  for select to authenticated using (public.is_workspace_member(workspace_id));
