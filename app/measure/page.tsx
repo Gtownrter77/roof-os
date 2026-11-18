@@ -19,7 +19,7 @@ import { canAutoLookupAddress, loadRoofingWorkflowPreferences, type RoofingWorkf
 const ManualDrawingTool = dynamic(() => import('../../components/ManualDrawingTool'), { ssr: false })
 
 type Point = { x: number; y: number }
-type Plane = { id: string; vertices: Point[]; suggested_pitch: string | null; confidence: string; dbId?: string; review_status?: string; pitchRisePer12?: number }
+type Plane = { id: string; vertices: Point[]; suggested_pitch: string | null; reviewed_pitch_rise_per_12?: number | null; confidence: string; dbId?: string; review_status?: string; pitchRisePer12?: number }
 type Edge = { id: string; start: Point; end: Point; classification: string; confidence: string; dbId?: string; review_status?: string }
 type Obj = { id: string; position: Point; type: string; confidence: string; dbId?: string; review_status?: string }
 type Suggestion = Omit<GeometrySuggestion, 'planes' | 'edges' | 'objects'> & { planes: Plane[]; edges: Edge[]; objects: Obj[] }
@@ -74,6 +74,7 @@ export default function MeasurePage() {
   const [orthographicTopDown, setOrthographicTopDown] = useState(false)
   const [uniformPitchConfirmed, setUniformPitchConfirmed] = useState(false)
   const [perPlanePitchMode, setPerPlanePitchMode] = useState(false)
+  const [planePitchDrafts, setPlanePitchDrafts] = useState<Record<string, string>>({})
   const [calibrated, setCalibrated] = useState(false)
   const [geometryConfirmed, setGeometryConfirmed] = useState(false)
   const [savedMeasurementId, setSavedMeasurementId] = useState('')
@@ -303,7 +304,9 @@ export default function MeasurePage() {
         return {
           ...current,
           [property]: current[property].map((entry) => entry.dbId === item.dbId
-            ? { ...entry, ...patch, review_status: action === 'delete' || action === 'reject' ? 'rejected' : action === 'accept' ? 'accepted' : 'edited' }
+            ? { ...entry, ...patch,
+                ...(kind === 'plane' && typeof patch.pitchRisePer12 === 'number' ? { reviewed_pitch_rise_per_12: patch.pitchRisePer12 } : {}),
+                review_status: action === 'delete' || action === 'reject' ? 'rejected' : action === 'accept' ? 'accepted' : 'edited' }
             : entry),
         }
       })
@@ -374,7 +377,7 @@ export default function MeasurePage() {
     if (!suggestion || !calibrated || !geometryConfirmed || !orthographicTopDown || (!uniformPitchConfirmed && !perPlanePitchMode) || (uniformPitchConfirmed && pitchRisePer12.trim() === '')) return null
     try {
       return calculateCalibratedRoofDraft({
-        planes: suggestion.planes.map(plane => ({ ...plane, pitchRisePer12: plane.pitchRisePer12 ?? reviewedPlanePitch(plane.suggested_pitch) ?? undefined })),
+        planes: suggestion.planes.map(plane => ({ ...plane, pitchRisePer12: plane.pitchRisePer12 ?? plane.reviewed_pitch_rise_per_12 ?? reviewedPlanePitch(plane.suggested_pitch) ?? undefined })),
         scaleReferencePixels: Number(scalePixels),
         scaleReferenceFeet: Number(scaleFeet),
         pitchRisePer12: uniformPitchConfirmed ? pitchValue : 0,
@@ -573,6 +576,12 @@ export default function MeasurePage() {
                   <button disabled={working || geometryConfirmed} onClick={() => void review('plane', plane, 'accept')} className="rounded bg-emerald-600 px-2 py-1 text-xs text-white disabled:opacity-50">Accept</button>
                   <button disabled={working || geometryConfirmed} onClick={() => void review('plane', plane, 'reject')} className="rounded bg-red-600 px-2 py-1 text-xs text-white disabled:opacity-50">Reject</button>
                   <button disabled={working || geometryConfirmed} onClick={() => void setPlanePitchRisePer12(plane)} className="rounded border border-white/20 px-2 py-1 text-xs disabled:opacity-50">Set measured pitch</button>
+                  <button disabled={working || geometryConfirmed || !plane.dbId} onClick={() => {
+                    const raw = planePitchDrafts[plane.dbId ?? plane.id] ?? (plane.reviewed_pitch_rise_per_12 == null ? '' : String(plane.reviewed_pitch_rise_per_12))
+                    const rise = Number(raw)
+                    if (!Number.isFinite(rise) || rise < 0 || rise > 36) { setError('Reviewed plane pitch must be 0–36 rise per 12.'); return }
+                    void review('plane', plane, 'edit', { pitch: String(rise), pitchRisePer12: rise, suggested_pitch: `reviewed:${rise}/12` })
+                  }} className="rounded border border-cyan-400/40 px-2 py-1 text-xs disabled:opacity-50">Save measured pitch</button>
                 </span>
               </div>
               {plane.review_status !== 'rejected' && <p className="mt-1 text-xs text-slate-300">Reviewed plane pitch: {plane.pitchRisePer12 == null && reviewedPlanePitch(plane.suggested_pitch) == null ? 'not measured' : `${plane.pitchRisePer12 ?? reviewedPlanePitch(plane.suggested_pitch)}/12`}</p>}
