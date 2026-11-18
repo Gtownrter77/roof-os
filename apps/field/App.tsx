@@ -709,6 +709,7 @@ export default function App() {
               latitude: gps.latitude, longitude: gps.longitude,
               address: resolvedAddress, capturedAt,
             })
+            stampedFile.create()
             stampedFile.write(stamped)
             const verified = readEmbeddedGps(new Uint8Array(await stampedFile.arrayBuffer()))
             if (!verified?.address?.trim()
@@ -719,7 +720,7 @@ export default function App() {
             finalPhoto = stampedFile
             gpsEmbedded = true
             stampedCount += 1
-            retained.delete()
+            try { retained.delete() } catch { /* Keep a second intact local copy. */ }
           } catch {
             // Keep the intact retained original for MANUAL evidence. Do not
             // claim GPS success or start any automations.
