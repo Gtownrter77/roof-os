@@ -17,6 +17,7 @@ type InspectionPhoto = {
   upload_status: 'queued' | 'uploading' | 'uploaded' | 'failed'
   mime_type: string
   file_size_bytes: number | null
+  gps_verified: boolean
 }
 
 export async function runInspectionQuality(
@@ -66,14 +67,20 @@ export async function runInspectionQuality(
 
       const { data: photos, error: photosError } = await supabase
         .from('inspection_photos')
-        .select('id,object_path,album,caption,upload_status,mime_type,file_size_bytes')
+        .select('id,object_path,album,caption,upload_status,mime_type,file_size_bytes,gps_verified')
         .eq('inspection_id', inspectionId)
         .eq('workspace_id', workspaceId)
         .order('created_at', { ascending: true })
 
       if (photosError) throw photosError
 
-      const rows = (photos ?? []) as InspectionPhoto[]
+      // Only server-certified embedded-GPS photos can trigger automation.
+      // All other photos remain manual-only, including legacy uploads.
+      const rows = ((photos ?? []) as InspectionPhoto[]).filter((photo) => photo.gps_verified === true)
+      if (!rows.length) return {
+        status: 'skipped' as const,
+        output: { inspection_id: inspectionId, reason: 'no_gps_verified_automation_evidence' },
+      }
       const issues: string[] = []
       if (rows.length === 0) issues.push('no_photos')
 

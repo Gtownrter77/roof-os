@@ -1,13 +1,22 @@
 # ROOF/OS Field Mobile Release 0.5.0
 
 
-## Current checkpoint — 2026-11-02
+## Current checkpoint — 2026-11-18
 
-**The APK currently published on GitHub is not the current app.** The latest release is [field-apk-main-2501cc2](https://github.com/Gtownrter77/roof-os/releases/tag/field-apk-main-2501cc2), published 2026-10-22 from commit `2501cc20fc5a0e346426a389bbfe46be6aaa44c5`. Current `main` is `b74d23431aa4affcf512710635197bc0e1923256), **119 commits ahead** of that APK source. The existing APK is 78,795,524 bytes and has GitHub asset SHA-256 `580d3ebac4ddc1143c9c5336123a0b7c12fc996185ee4cfdb3bdc77f31ec357b`. It has no companion provenance manifest or published checksum file.
+**Current `main`:** `5ae0af605f54afa3657b1924675a46e08c2bef32` (docs PR #487). Field code SHA is `99792955cf69fb56c6473e3050b7d96dd9a31040` (PR #485, Gradle retry/timeouts). Parent Metro repair is `7008e22f05bb566674ab38aa333c7c38c811c42b` (PR #483). Required CI on PRs #483, #485, #486, and #487 passed: web, mobile, field-security, migration-safety, preview-build, Vercel.
 
-The app source reports version `0.5.0` and package `com.roofos.field`. No APK has yet been built from the current `main`, no current-main APK binary has been inspected, and no physical-device installation/smoke test has been verified. Do not call the old release current or production-ready.
+**Current GitHub Release:** [field-apk-main-9979295](https://github.com/Gtownrter77/roof-os/releases/tag/field-apk-main-9979295) from workflow [run 44406863550](https://github.com/Gtownrter77/roof-os/actions/runs/44406863550). Direct APK: https://github.com/Gtownrter77/roof-os/releases/download/field-apk-main-9979295/roof-os-field-preview.apk. Version `0.5.0`, package `com.roofos.field`, version code `43`, size `73,559,240` bytes. SHA-256 `6d31895824bf36b1c04245b314dedd7cfd2a1ae14122a79f5d672ff1fc782b61` (local download matched the provenance file). Signing certificate SHA-256 `7a1c64b0a0bdae5ac87aef821ee7d6a6a56a6ec21ef53c249149b8e90b74868f`. EAS CLI `27.2.0`. Signature verified.
 
-### Current build pipeline in PR #375
+**Prior Metro APK (source `7008e22`):** [run 44404219619](https://github.com/Gtownrter77/roof-os/actions/runs/44404219619), version code `42`, SHA-256 `d94e7fe1657a3041dd155d42ff5c253938542389f8e2b0ac7b46b2be8c7c404f`. Docs-only main `5ae0af6` does not rebuild the APK.
+
+**What broke, then what was repaired:** PRs #478–#480 taught `apps/field/App.tsx` to import `../../lib/photo-provenance.mjs`. EAS bundling starts in `apps/field`, so Metro could not resolve that file (`Unable to resolve module`). `apps/field/metro.config.cjs` now watches the repo root and includes `.mjs`. After Metro succeeded (716 modules), the first push APK on `7008e22` ([run 44400175072](https://github.com/Gtownrter77/roof-os/actions/runs/44400175072)) failed resolving `kotlin-stdlib:2.2.21` and retries reused Gradle's negative cache. PR #485 writes 120s Maven HTTP timeouts into `gradle.properties` and wipes `$HOME/.gradle/caches` between attempts. A clean dispatch of the Metro SHA then produced the artifact above.
+
+**Older binaries:** GitHub Release [field-apk-main-6976341](https://github.com/Gtownrter77/roof-os/releases/tag/field-apk-main-6976341) is the previous Latest tag (2026-11-09, version code `15`). Prior successful workflow artifact was [run 44197803638](https://github.com/Gtownrter77/roof-os/actions/runs/44197803638) from `8bb00b6` (version code `29`).
+
+The app source reports version `0.5.0` and package `com.roofos.field`. Physical-device install and two-workspace live test remain separate unverified gates.
+
+### Current build pipeline
+
 
 - Manual workflow dispatch builds **protected `main` only**; it no longer accepts an arbitrary branch/ref input.
 - A `field-v*` tag builds that exact tag and must match `app.json` version.
@@ -15,7 +24,7 @@ The app source reports version `0.5.0` and package `com.roofos.field`. No APK ha
 - The workflow generates SHA-256 and a JSON provenance manifest, checks the actual APK package/version with Android build-tools, verifies its APK signature, and records the signing certificate fingerprint.
 - APK, checksum and manifest are retained as a 90-day GitHub artifact.
 - Tagged internal APK releases are prereleases. The EAS build job has read-only GitHub permission and only exposes `EXPO_TOKEN` to EAS steps; a separate artifact-only job receives release-write permission.
-- The workflow has not yet produced a current APK. `EXPO_TOKEN` presence is unverified through this connection. The preview profile increments the remote Android build number so an internal APK can update an existing installation.
+- The workflow produced APK run `44406863550` from `9979295` (version code `43`) and earlier run `44404219619` from `7008e22` (version code `42`). `EXPO_TOKEN` is present in Actions. The preview profile increments the remote Android build number so an internal APK can update an existing installation. Physical-device install remains unverified.
 
 ### Current app capability assessment
 
@@ -27,11 +36,11 @@ Highest-value next AI work: (1) missing-evidence/elevation checklist, (2) photo 
 
 ### Remaining release gates
 
-1. Final PR-head CI green, including migrations 075–078 and Android release contracts.
-2. EAS build from current protected `main` with `EXPO_TOKEN`.
-3. Inspect generated APK package/version, signature/certificate, source SHA, checksum and manifest.
-4. Install on a physical Android device and test sign-in, offline capture, process kill/restart, reconnect, retries, auth expiry, workspace switch, camera/location permissions and low-storage handling.
-5. Confirm Vercel production deployment SHA and authenticated API/runtime compatibility.
+1. Final PR-head CI green — **done** for PRs #483 and #485 (web, mobile, field-security, migration-safety, preview-build, Vercel).
+2. EAS build from protected `main` with `EXPO_TOKEN` — **done** for SHA `9979295` (run `44406863550`, version code `43`) and SHA `7008e22` (run `44404219619`, version code `42`).
+3. Inspect generated APK package/version, signature/certificate, source SHA, checksum and manifest — **done** for both artifacts (SHA-256 recorded above).
+4. Install on a physical Android device and test sign-in, offline capture, process kill/restart, reconnect, retries, auth expiry, workspace switch, camera/location permissions and low-storage handling — **UNVERIFIED**.
+5. Confirm Vercel production deployment SHA and authenticated API/runtime compatibility — **UNVERIFIED** for the current SHA.
 
 ---
 

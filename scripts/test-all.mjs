@@ -2,7 +2,7 @@ import { spawnSync } from 'node:child_process'
 
 const commands = [
   ['typecheck', 'npm', ['run', 'typecheck']],
-  ['dependency audit', 'npm', ['audit', '--omit=dev', '--audit-level=high']],
+  ['dependency audit', 'npm', ['audit', '--omit=dev', '--audit-level=moderate']],
   ['release check', 'npm', ['run', 'release-check']],
   ['security check', 'npm', ['run', 'verify:security']],
   ['API security', 'npm', ['run', 'test:api-security']],

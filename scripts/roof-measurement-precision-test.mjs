@@ -130,16 +130,14 @@ assert.match(measure,/previewRoofAreaFromFootprint\(planSqFt, pitchValue\)/)
 assert.match(measure,/Discrepancy requires manual review/)
 assert.doesNotMatch(manual,/fetch\(|\.insert\(|\.upsert\(/)
 // Reviewed pitch must remain distinct from model-suggested text, persist by plane,
- // survive cached reloads, and be recalculated on the server on save.
+// survive cached reloads, and be recalculated on the server on save.
 const saveRoute = read('app/api/measurements/manual/route.ts')
-const pitchMigration = read('supabase/migrations/105_reviewed_plane_pitch.sql')
+const pitchMigration = read('supabase/migrations/107_reviewed_plane_pitch.sql')
 assert.match(pitchMigration, /reviewed_pitch_rise_per_12 numeric/i)
 assert.match(pitchMigration, /orthographic_top_down_confirmed boolean/i)
 assert.match(pitchMigration, /uniform_pitch_confirmed boolean/i)
 assert.match(aerialRoute, /reviewed_pitch_rise_per_12/)
-// Every PATCH kind is supported: pitch column exists only on roof_planes, not roof_edges/roof_objects.
 assert.match(aerialRoute, /table === 'roof_planes' \? 'id,review_status,reviewed_by,reviewed_at,reviewed_pitch_rise_per_12'/)
-
 assert.match(aerialRoute, /pitchRisePer12/)
 assert.match(aerialRoute, /orthographicTopDownConfirmed/)
 assert.match(aerialRoute, /uniformPitchConfirmed/)
@@ -152,5 +150,16 @@ assert.match(measure, /Save measured pitch/)
 assert.match(measure, /planePitchDrafts/)
 assert.match(measure, /pitchRisePer12: plane\.reviewed_pitch_rise_per_12/)
 assert.doesNotMatch(measure, /Pitch description \(for notes only\)/)
+
+assert.match(measure, /const presented = useMemo\(\(\) => \{/)
+assert.match(measure, /System draft measurement — technician review/)
+assert.match(measure, /draftQuantity \? draftQuantity\.roofAreaSqFt/)
+assert.match(measure, /draftQuantity \? \(purchasableRoofing/)
+assert.match(measure, /id="roof-geometry-review"/)
+assert.match(measure, /document\.getElementById\('roof-geometry-review'\)/)
+assert.match(measure, /A confirmed draft remains unverified/)
+const detectionTool = read('components/AutoMeasurementTool.tsx')
+assert.match(detectionTool, /Draft geometry packet presented/)
+assert.doesNotMatch(detectionTool, /System measurement presented\. Verify the numbers\./)
 
 console.log('precision measurement test PASS: map/image area, perimeters, 50-plane limit, invalid outlines and provisional comparison')

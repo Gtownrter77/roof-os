@@ -68,6 +68,7 @@ export async function POST(request: NextRequest) {
     lead_id?: string
     template_version_id?: string
     price_book_id?: string
+    source_measurement_id?: string
     status?: string
     formula_version?: string
     customer_name?: string
@@ -100,6 +101,9 @@ export async function POST(request: NextRequest) {
   if (!ESTIMATE_STATUSES.includes(status as any)) {
     return NextResponse.json({ error: 'Invalid estimate status.' }, { status: 400 })
   }
+  if (body.source_measurement_id && status !== 'draft') {
+    return NextResponse.json({ error: 'A measurement handoff starts as a draft and cannot be approved during creation.' }, { status: 403 })
+  }
   // Production approval via create also requires workspace-admin authority.
   if (status === 'approved') {
     const { data: isAdminData, error: adminCheckError } = await supabase.rpc('is_workspace_admin', { target_workspace: workspaceId })
@@ -116,6 +120,9 @@ export async function POST(request: NextRequest) {
   }
   if (body.template_version_id !== undefined && body.template_version_id !== null && !isUuid(body.template_version_id)) {
     return NextResponse.json({ error: 'template_version_id must be a valid UUID.' }, { status: 400 })
+  }
+  if (body.source_measurement_id !== undefined && body.source_measurement_id !== null && !isUuid(body.source_measurement_id)) {
+    return NextResponse.json({ error: 'source_measurement_id must be a valid UUID.' }, { status: 400 })
   }
   if (body.price_book_id !== undefined && body.price_book_id !== null && !isUuid(body.price_book_id)) {
     return NextResponse.json({ error: 'price_book_id must be a valid UUID.' }, { status: 400 })
@@ -137,6 +144,28 @@ export async function POST(request: NextRequest) {
     const { data: template, error: templateError } = await supabase.from('estimate_templates').select('id').eq('id', version.template_id).eq('workspace_id', workspaceId).maybeSingle()
     if (templateError) return NextResponse.json({ error: 'Could not validate estimate-template workspace.' }, { status: 503 })
     if (!template) return NextResponse.json({ error: 'The estimate template does not belong to this workspace.' }, { status: 400 })
+  }
+  // Never trust a measurement ID or numeric quantity copied through the URL.
+  // Resolve source evidence under the authenticated workspace RLS before
+  // attaching a read-only, unpriced reference to the new draft.
+  let measurementReference: {
+    id: string; source_type: string; confidence: string;
+    roof_squares: number | null; roof_area_sqft: number | null;
+  } | null = null
+  if (body.source_measurement_id) {
+    const { data: sourceMeasurement, error: sourceError } = await supabase
+      .from('inspection_measurements')
+      .select('id,workspace_id,source_type,confidence,roof_squares,roof_area_sqft')
+      .eq('id', body.source_measurement_id).eq('workspace_id', workspaceId).maybeSingle()
+    if (sourceError) return NextResponse.json({ error: 'Measurement provenance could not be validated.' }, { status: 503 })
+    if (!sourceMeasurement) return NextResponse.json({ error: 'Measurement does not belong to this workspace.' }, { status: 403 })
+    measurementReference = {
+      id: sourceMeasurement.id,
+      source_type: sourceMeasurement.source_type,
+      confidence: sourceMeasurement.confidence,
+      roof_squares: sourceMeasurement.roof_squares,
+      roof_area_sqft: sourceMeasurement.roof_area_sqft,
+    }
   }
   const allowedCategories = new Set(['material', 'labor', 'allowance', 'fee', 'tax'])
   for (const [index, item] of lineItems.entries()) {
@@ -187,6 +216,11 @@ export async function POST(request: NextRequest) {
           internal: body.notes_internal,
           customer: body.notes_customer,
         },
+        // This is evidence for the estimator, NOT an estimate line item,
+        // verified material quantity, customer-facing report, or approval.
+        measurement_reference: measurementReference
+          ? { ...measurementReference, estimate_use: 'human_review_required', priced: false }
+          : null,
       },
     })
     .select('id,status,subtotal,tax,total,created_at,estimate_snapshot')

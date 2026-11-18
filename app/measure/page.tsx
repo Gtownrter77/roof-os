@@ -7,6 +7,7 @@ import { smartBack } from '../../lib/smart-back'
 import { createClient } from '../../lib/supabase/client'
 import type { GeometrySuggestion } from '../../lib/ai/geometry-contract'
 import { analyzeRoofImageWithLocalOllama } from '../../lib/ai/local-vision-browser'
+import { readEmbeddedGps } from '../../lib/photo-provenance.mjs'
 import { calculateCalibratedRoofDraft } from '../../lib/measurements/calibrated-roof-draft'
 import { previewRoofAreaFromFootprint } from '../../lib/measurements/footprint-preview'
 import { purchasableRoofing, roofAreaRangeError } from '../../lib/measurements/purchasable-roofing'
@@ -50,6 +51,9 @@ export default function MeasurePage() {
   const [address, setAddress] = useState('')
   const [automationPrefs, setAutomationPrefs] = useState<RoofingWorkflowPreferences>({ ...DEFAULT_ROOFING_WORKFLOW_PREFS })
   const lookupSeqRef = useRef(0)
+  const selectedPhotoSeqRef = useRef(0)
+  const [photoGps, setPhotoGps] = useState<{ latitude: number; longitude: number; embeddedAddress: string | null } | null>(null)
+  const [photoGpsChecked, setPhotoGpsChecked] = useState(false)
   const autoLookupAttemptRef = useRef('')
   useEffect(() => {
     const refresh = () => setAutomationPrefs(loadRoofingWorkflowPreferences())
@@ -106,6 +110,20 @@ export default function MeasurePage() {
     }
     if (preview) URL.revokeObjectURL(preview)
     setFile(next)
+    const gpsSeq = ++selectedPhotoSeqRef.current
+    setPhotoGps(null)
+    setPhotoGpsChecked(false)
+    if (next.size <= 30 * 1024 * 1024) {
+      void next.arrayBuffer().then((bytes) => {
+        const embedded = readEmbeddedGps(new Uint8Array(bytes))
+        if (gpsSeq !== selectedPhotoSeqRef.current) return
+        setPhotoGps(embedded ? {
+          latitude: embedded.latitude, longitude: embedded.longitude,
+          embeddedAddress: embedded.address || null,
+        } : null)
+      }).catch(() => { if (gpsSeq === selectedPhotoSeqRef.current) setPhotoGps(null) })
+        .finally(() => { if (gpsSeq === selectedPhotoSeqRef.current) setPhotoGpsChecked(true) })
+    } else setPhotoGpsChecked(true)
     setImageSize({ width: 0, height: 0 })
     const imageUrl = URL.createObjectURL(next)
     setPreview(imageUrl)
@@ -126,6 +144,62 @@ export default function MeasurePage() {
     image.onload = () => setImageSize({ width: image.naturalWidth, height: image.naturalHeight })
     image.onerror = () => setError('The selected image could not be decoded.')
     image.src = imageUrl
+  }
+
+  async function findHouseFromEmbeddedPhoto() {
+    if (!file || !photoGps) {
+      setError('No GPS coordinates embedded in the selected photo. Enter the property address for manual map search.')
+      return
+    }
+    // Deliberate technician action: GPS helps find candidate imagery, but it
+    // does not approve an automatic roof measurement or select a building.
+    const requestSeq = ++lookupSeqRef.current
+    setWorking(true)
+    setError('')
+    setMapCenter(null)
+    setAerialTileUrl('')
+    setAerialAttribution('')
+    setAddressCandidates([])
+    setSelectedBuildingIndex(null)
+    setManualArea(null)
+    setStatus('Looking up the candidate property from GPS embedded in this photo…')
+    try {
+      const { data: workspaceId } = await supabase.rpc('current_workspace_id')
+      if (!workspaceId) throw new Error('An active workspace is required.')
+      const query = new URLSearchParams({
+        workspaceId, lat: photoGps.latitude.toFixed(8), lon: photoGps.longitude.toFixed(8),
+      })
+      const response = await fetch('/api/measurements/property?' + query.toString(), { cache: 'no-store' })
+      const payload = await response.json()
+      if (requestSeq !== lookupSeqRef.current) return
+      if (!response.ok) throw new Error(payload.error || 'The photo address could not be located.')
+      const candidateAddress = typeof payload.geocode?.displayName === 'string' ? payload.geocode.displayName.trim() : ''
+      if (!candidateAddress) throw new Error('GPS did not resolve to a candidate property address.')
+      // Suppress duplicate address search; this response already carries the map.
+      autoLookupAttemptRef.current = candidateAddress
+      setAddress(candidateAddress)
+      const coordsValid = Number.isFinite(payload.geocode?.latitude) && Number.isFinite(payload.geocode?.longitude)
+      setMapCenter(coordsValid ? { latitude: payload.geocode.latitude, longitude: payload.geocode.longitude } : null)
+      const candidates = Array.isArray(payload.candidates) ? payload.candidates : []
+      setAddressCandidates(candidates)
+      setManualMode(coordsValid)
+      setSelectedBuildingIndex(null) // Never auto-select an adjacent roof.
+      const aerial = payload.aerial
+      const available = coordsValid && aerial?.status === 'available' && typeof aerial.tileUrl === 'string'
+      setAerialTileUrl(available ? aerial.tileUrl : '')
+      setAerialAttribution(available ? aerial.attribution || 'OpenAerialMap' : '')
+      setImageryNote(
+        'CANDIDATE PROPERTY ONLY: confirm the address and correct building before measurements. ' +
+        (available ? 'Open aerial imagery found; trace and verify each roof plane.' : 'Aerial imagery unavailable. Street-map/manual tracing remains available.')
+      )
+      setStatus('Photo EXIF GPS located a candidate address. Technician must confirm the actual building; no roof measurement was authorized.')
+    } catch (err) {
+      if (requestSeq !== lookupSeqRef.current) return
+      setError(err instanceof Error ? err.message : 'Photo location lookup unavailable.')
+      setStatus('Manual address search remains available.')
+    } finally {
+      if (requestSeq === lookupSeqRef.current) setWorking(false)
+    }
   }
 
   async function lookupImagery() {
@@ -229,6 +303,10 @@ export default function MeasurePage() {
         upload_status: 'uploaded',
       })
       if (metadataError) throw new Error('The image metadata could not be saved.')
+      const gpsResponse = await fetch('/api/photo-provenance/verify', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ photoId: objectId }) })
+      const gpsStatus = await gpsResponse.json().catch(() => null)
+      if (!gpsResponse.ok || gpsStatus?.gpsVerified !== true) throw new Error('Photo accepted for manual measurement only. Automatic analysis unavailable without verified embedded GPS and property address.')
+      if (gpsStatus.autoMeasurementsAllowed !== true) throw new Error('Photo saved for manual measurement. Automatic measurements are OFF until the workspace owner enables them.')
 
       setInspectionId(inspection.id)
       setPhotoId(objectId)
@@ -390,6 +468,21 @@ export default function MeasurePage() {
     }
   }, [suggestion, calibrated, geometryConfirmed, orthographicTopDown, uniformPitchConfirmed, perPlanePitchMode, pitchRisePer12, pitchValue, scalePixels, scaleFeet])
 
+  // Keep an immediate, honest summary of the AI-proposed geometry in view.
+  // Only the separately human-confirmed, server-recalculable draft quantity
+  // may display area or squares; never promote model guesses to measurements.
+  const presented = useMemo(() => {
+    if (!suggestion) return null
+    const entries = [...suggestion.planes, ...suggestion.edges, ...suggestion.objects]
+    const pending = entries.filter((item) => !item.review_status || item.review_status === 'pending').length
+    const accepted = entries.filter((item) => item.review_status === 'accepted' || item.review_status === 'edited').length
+    const reviewedPitchCount = suggestion.planes.filter((plane) =>
+      plane.review_status !== 'rejected' && (plane.pitchRisePer12 ?? reviewedPlanePitch(plane.suggested_pitch)) != null
+    ).length
+    return { planes: suggestion.planes.length, edges: suggestion.edges.length,
+      objects: suggestion.objects.length, pending, accepted, reviewedPitchCount }
+  }, [suggestion])
+
   async function saveDraftQuantity() {
     if (!draftQuantity || !inspectionId || !measurementId || savedMeasurementId) return
     const rangeError = roofAreaRangeError(draftQuantity.roofAreaSqFt)
@@ -425,8 +518,12 @@ export default function MeasurePage() {
       })
       const payload = await response.json()
       if (!response.ok) throw new Error(payload.error || 'The unverified draft quantity could not be saved.')
-      setSavedMeasurementId(payload.measurement?.id ?? 'saved')
-      setStatus('Saved as an unverified draft measurement. It is not authoritative and is not estimate-ready until independently reviewed.')
+      const savedId = payload.measurement?.id
+      if (typeof savedId !== 'string' || !/^[0-9a-f-]{36}$/i.test(savedId)) {
+        throw new Error('The server did not return a valid saved measurement reference.')
+      }
+      setSavedMeasurementId(savedId)
+      setStatus('Saved as an unverified draft measurement. You may send this reference to an estimate draft for human review; no quantity or price is approved.')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'The unverified draft quantity could not be saved.')
     } finally {
@@ -486,7 +583,13 @@ export default function MeasurePage() {
           <div className="mt-4 flex flex-wrap gap-2">
             <button onClick={() => inputRef.current?.click()} className="rounded-lg bg-slate-700 px-4 py-2 text-sm font-semibold text-white">{file ? 'Replace actual image' : 'Load actual aerial / inspection image'}</button>
             <button onClick={() => setManualMode(!manualMode)} className="rounded-lg bg-slate-700 px-4 py-2 text-sm font-semibold text-white">{manualMode ? 'Exit Manual Mode' : 'Manual Measurement'}</button>
+            <button type="button" onClick={() => void findHouseFromEmbeddedPhoto()} disabled={!photoGps || working} className="rounded-lg bg-cyan-800 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">
+              Find candidate skyview from photo GPS
+            </button>
           </div>
+          {file && photoGpsChecked && <p className="mt-2 text-xs text-slate-300" role="status">
+            {photoGps ? 'Embedded GPS found in the actual selected photo. Candidate address/roof must be verified; this does not authorize AI measurements.' : 'No embedded GPS found. This photo is manual-only and cannot trigger photo automations. Address-first manual skyview is still available.'}
+          </p>}
           {manualMode && <ManualDrawingTool
             key={preview || (mapCenter ? String(mapCenter.latitude) + ':' + String(mapCenter.longitude) + ':' + (aerialTileUrl || 'street-map') : 'no-map')}
             imageUrl={preview}
@@ -530,6 +633,24 @@ export default function MeasurePage() {
               setStatus(mapCenter ? 'Manual map tracing enabled. The mapped footprint is a ground reference, not roof surface area.' : 'Manual image tracing enabled. Enter a known scale reference before treating traced geometry as dimensions.')
             }}
           />
+          {presented && <section aria-label="Draft roof geometry — technician verification required" className="mt-3 rounded-xl border border-amber-400/35 bg-amber-400/10 p-4 text-sm text-amber-100">
+            <h2 className="font-semibold text-base">System draft measurement — technician review</h2>
+            <p className="mt-1 text-xs">Suggestions are presented automatically, but no area, material quantity, or price is approved until the technician checks the roof geometry, scale and measured pitch.</p>
+            <dl className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <div><dt>Suggested planes</dt><dd className="font-semibold">{presented.planes}</dd></div>
+              <div><dt>Suggested edges</dt><dd className="font-semibold">{presented.edges}</dd></div>
+              <div><dt>Suggested objects</dt><dd className="font-semibold">{presented.objects}</dd></div>
+              <div><dt>Pending review</dt><dd className="font-semibold">{presented.pending}</dd></div>
+              <div><dt>Reviewed items</dt><dd className="font-semibold">{presented.accepted}</dd></div>
+              <div><dt>Human-reviewed plane pitches</dt><dd className="font-semibold">{presented.reviewedPitchCount}</dd></div>
+              <div><dt>Draft slope area</dt><dd className="font-semibold">{draftQuantity ? draftQuantity.roofAreaSqFt.toLocaleString() + ' sq ft' : 'Not verified'}</dd></div>
+              <div><dt>Draft order squares</dt><dd className="font-semibold">{draftQuantity ? (purchasableRoofing(draftQuantity.roofAreaSqFt, allowSixSquareRepairThreshold)?.squaresLabel ?? String(draftQuantity.roofSquares)) : 'Not calculated'}</dd></div>
+            </dl>
+            <button type="button" onClick={() => document.getElementById('roof-geometry-review')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className="mt-3 rounded border border-amber-300/60 px-3 py-2 font-semibold text-amber-50">
+              Review planes, edges and measured pitch
+            </button>
+            <p className="mt-2 text-xs">A confirmed draft remains unverified until the independent estimate review is completed. This is not an order or customer-ready measurement.</p>
+          </section>}
           {file && <p className="mt-2 text-xs text-slate-400">{file.name} · {imageSize.width}×{imageSize.height}px · saved privately before local Ollama analysis. Requires Ollama model qwen3-vl:8b and this site's origin allowed in OLLAMA_ORIGINS.</p>}
           {error && <p className="mt-3 rounded-lg border border-red-400/30 bg-red-400/10 p-3 text-sm text-red-300" role="alert">{error}</p>}
           {status && <p className="mt-3 rounded-lg border border-emerald-400/30 bg-emerald-400/10 p-3 text-sm text-emerald-300" role="status">{status}</p>}
@@ -565,7 +686,7 @@ export default function MeasurePage() {
           {suggestion && <p className="mt-2 text-xs text-slate-400">Dashed cyan polygons = AI suggestions · amber lines = suggested edges · red dots = suggested objects. These are not quantities.</p>}
         </section>}
 
-        {suggestion && <section className="mt-4 grid gap-4 lg:grid-cols-3">
+        {suggestion && <section id="roof-geometry-review" className="mt-4 grid gap-4 lg:grid-cols-3">
           <div className="glass rounded-xl p-4 lg:col-span-2">
             <h2 className="font-semibold">Human review queue</h2>
             <p className="mb-3 text-xs text-slate-400">Accept, reject, or edit every suggestion. AI acceptance is never required. A pending item blocks geometry confirmation.</p>
@@ -661,7 +782,15 @@ export default function MeasurePage() {
             </dl>
             <p className="mt-2 text-xs text-amber-200">Plan area is computed from reviewed polygon coordinates and one scale. Slope area uses the confirmed uniform pitch or each saved, reviewed plane pitch. Verify edges, dormers, overhangs, valleys and actual site pitch independently.</p>
             <button onClick={() => void saveDraftQuantity()} disabled={working || Boolean(savedMeasurementId)} className="mt-3 rounded-lg bg-cyan-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{savedMeasurementId ? 'Saved as unverified draft' : 'Save as unverified draft measurement'}</button>
-            {savedMeasurementId && <p className="mt-2 text-xs text-emerald-200">Measurement record: {savedMeasurementId}</p>}
+            {savedMeasurementId && <>
+              <p className="mt-2 text-xs text-emerald-200">Unverified measurement record: {savedMeasurementId}</p>
+              <button type="button" disabled={working} onClick={() => {
+                const query = new URLSearchParams({ address: address.trim().slice(0, 240), measurementId: savedMeasurementId })
+                router.push('/estimate/new?' + query.toString())
+              }} className="mt-2 rounded-lg border border-amber-400/60 px-4 py-2 text-sm font-semibold text-amber-100 disabled:opacity-50">
+                Continue to estimate draft review
+              </button>
+            </>}
           </div> : <p className="mt-3 rounded-lg border border-white/10 bg-black/20 p-3 text-sm text-slate-400">No quantity yet. Confirm geometry, calibration, top-down image type, measured pitch, and uniform pitch across accepted planes; accept or edit at least one plane.</p>}
         </section>}
 
