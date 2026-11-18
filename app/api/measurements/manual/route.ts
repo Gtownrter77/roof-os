@@ -34,13 +34,19 @@ export async function POST(request: NextRequest) {
     sourceType?: string
     confidence?: string
     allowSixSquareRepairThreshold?: boolean
+    provisionalGeometryDraft?: boolean
   }
 
   const numericKeys = ['roofAreaSqft', 'roofSquares', 'gutterLf', 'ridgeLf', 'eaveLf', 'rakeLf', 'valleyLf'] as const
   if (numericKeys.some((key) => body[key] !== undefined && typeof body[key] !== 'number')
     || ['pitch', 'notes', 'sourceReference', 'sourceType', 'confidence'].some((key) => body[key as keyof typeof body] !== undefined && typeof body[key as keyof typeof body] !== 'string')
-    || (body.allowSixSquareRepairThreshold !== undefined && typeof body.allowSixSquareRepairThreshold !== 'boolean')) {
+    || (body.allowSixSquareRepairThreshold !== undefined && typeof body.allowSixSquareRepairThreshold !== 'boolean')
+    || (body.provisionalGeometryDraft !== undefined && typeof body.provisionalGeometryDraft !== 'boolean')) {
     return NextResponse.json({ error: 'Measurement fields have invalid types.' }, { status: 400 })
+  }
+
+  if (body.provisionalGeometryDraft && body.sourceType !== 'ai_formulated') {
+    return NextResponse.json({ error: 'Provisional geometry drafts require an aerial AI source reference.' }, { status: 400 })
   }
 
   if (body.roofAreaSqft != null) {
@@ -118,6 +124,12 @@ export async function POST(request: NextRequest) {
     if (aerialError) return NextResponse.json({ error: 'AI measurement provenance could not be verified.' }, { status: 503 })
     if (!aerialMeasurement || aerialMeasurement.measurement_source !== 'ai_formulated' || aerialMeasurement.inspection_id !== (body.inspectionId ?? null)) {
       return NextResponse.json({ error: 'The aerial measurement reference is not valid for this workspace and inspection.' }, { status: 400 })
+    }
+    if (body.provisionalGeometryDraft) {
+      if (aerialMeasurement.status !== 'confirmed' || aerialMeasurement.calibration_status !== 'confirmed'
+        || aerialMeasurement.orthographic_top_down_confirmed !== true) {
+        return NextResponse.json({ error: 'Confirmed human-reviewed roof geometry is required before a provisional draft can be saved.' }, { status: 409 })
+      }
     }
     if (aerialMeasurement.status !== 'confirmed' || aerialMeasurement.calibration_status !== 'confirmed'
       || aerialMeasurement.orthographic_top_down_confirmed !== true) {
