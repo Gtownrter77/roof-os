@@ -1,5 +1,14 @@
 # ROOF/OS Living Build Checklist
 
+## 2026-11-18 — PR #477 conflict-safe replacement: embedded EXIF to skyview to draft estimate
+
+- [~] Replace PR #477's browser current-location shortcut with coordinates decoded from the **selected photo's embedded EXIF**. Without embedded coordinates, stay manual-only; address-first manual lookup remains available.
+- [~] Owner-authorized automatic measurements remain a separate server-enforced setting and are **not** granted by a photo map preview.
+- [~] Reverse lookup produces a **candidate** property address; do not automatically select a neighboring building or certify roof geometry.
+- [~] Saved human-reviewed geometry can be passed to the estimate wizard only by actual persisted measurement UUID, validated in the current workspace. Human confirms property match. Unverified quantities remain an unpriced reference, not line items or approval.
+- [~] Regression test and five CI jobs required on exact-head PR; merge/deployment and user-device acceptance unverified until observed.
+- [!] Full automated roof measurements and priced reports still require actual scaled aerial geometry, independent pitch and source confirmation, and price-book review.
+
 ## 2026-11-17 — Field-photo data integrity and Photo-to-Report retry hardening (pending PR)
 
 - [~] Preserve new technician camera photos inside durable app document storage before queuing them offline; never rely on temporary ImagePicker cache files.
