@@ -377,7 +377,7 @@ export default function MeasurePage() {
     if (!suggestion || !calibrated || !geometryConfirmed || !orthographicTopDown || (!uniformPitchConfirmed && !perPlanePitchMode) || (uniformPitchConfirmed && pitchRisePer12.trim() === '')) return null
     try {
       return calculateCalibratedRoofDraft({
-        planes: suggestion.planes.map(plane => ({ ...plane, pitchRisePer12: plane.pitchRisePer12 ?? plane.reviewed_pitch_rise_per_12 ?? reviewedPlanePitch(plane.suggested_pitch) ?? undefined })),
+        planes: suggestion.planes.map(plane => ({ ...plane, pitchRisePer12: plane.pitchRisePer12 ?? plane.reviewed_pitch_rise_per_12 ?? reviewedPlanePitch(plane.suggested_pitch) ?? undefined, ...(plane.reviewed_pitch_rise_per_12 == null ? {} : { pitchRisePer12: plane.reviewed_pitch_rise_per_12 }) })),
         scaleReferencePixels: Number(scalePixels),
         scaleReferenceFeet: Number(scaleFeet),
         pitchRisePer12: uniformPitchConfirmed ? pitchValue : 0,
