@@ -56,6 +56,7 @@ jobs:
       - run: npm run test:roofing-workflows
       - run: npm run test:roofing-automations
       - run: npm run test:roofing-precision
+      - run: npm run test:photo-location
       - run: npm run test:driveway-earthwork
       - run: npm run test:estimate-creation-flow
       - run: npm run test:estimate-packet-manager-gate

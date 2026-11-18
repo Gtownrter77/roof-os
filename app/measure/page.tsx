@@ -14,7 +14,7 @@ import RoofSlopeCard from '../../components/RoofSlopeCard'
 import AutoMeasurementTool from '../../components/AutoMeasurementTool'
 import RoofingWorkflowSettings from '../../components/RoofingWorkflowSettings'
 import RoofingWizardNavigator from '../../components/RoofingWizardNavigator'
-import { canAutoLookupAddress, loadRoofingWorkflowPreferences, type RoofingWorkflowPreferences, DEFAULT_ROOFING_WORKFLOW_PREFS } from '../../lib/roofing-workflow-preferences'
+import { readEmbeddedLocation, stampLocation, UNABLE_TO_UPLOAD } from '../../lib/photos/location'
 
 const ManualDrawingTool = dynamic(() => import('../../components/ManualDrawingTool'), { ssr: false })
 
@@ -96,17 +96,38 @@ export default function MeasurePage() {
     window.localStorage.setItem('roofos.allowSixSquareRepairThreshold', enabled ? 'true' : 'false')
   }
 
-  function chooseFile(event: React.ChangeEvent<HTMLInputElement>) {
+  async function chooseFile(event: React.ChangeEvent<HTMLInputElement>) {
     const next = event.target.files?.[0] ?? null
     event.target.value = ''
-    if (!next || !MIME_EXTENSIONS[next.type]) {
-      setError('Choose a JPEG, PNG, or WebP inspection image.')
+    if (!next || next.type !== 'image/jpeg') {
+      setError(UNABLE_TO_UPLOAD)
+      return
+    }
+    const bytes = new Uint8Array(await next.arrayBuffer())
+    let located = readEmbeddedLocation(bytes)
+    let accepted = next
+    if (!located && navigator.geolocation) {
+      try {
+        const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 12000 })
+        })
+        const stamped = stampLocation(bytes, { latitude: position.coords.latitude, longitude: position.coords.longitude })
+        located = readEmbeddedLocation(stamped)
+        if (located) accepted = new File([stamped], next.name.replace(/\.\w+$/, '.jpg'), { type: 'image/jpeg' })
+      } catch {
+        located = null
+      }
+    }
+    if (!located) {
+      setFile(null)
+      setPreview('')
+      setError(UNABLE_TO_UPLOAD)
       return
     }
     if (preview) URL.revokeObjectURL(preview)
-    setFile(next)
+    setFile(accepted)
     setImageSize({ width: 0, height: 0 })
-    const imageUrl = URL.createObjectURL(next)
+    const imageUrl = URL.createObjectURL(accepted)
     setPreview(imageUrl)
     setSuggestion(null)
     setInspectionId('')
@@ -120,7 +141,7 @@ export default function MeasurePage() {
     setScalePixels('')
     setScaleFeet('')
     setError('')
-    setStatus('')
+    setStatus('Photo accepted. Location is in the file.')
     const image = new Image()
     image.onload = () => setImageSize({ width: image.naturalWidth, height: image.naturalHeight })
     image.onerror = () => setError('The selected image could not be decoded.')
@@ -211,6 +232,8 @@ export default function MeasurePage() {
         .single()
       if (inspectionError || !inspection) throw new Error('Could not create an inspection session.')
 
+      const photoBytes = new Uint8Array(await file.arrayBuffer())
+      if (!readEmbeddedLocation(photoBytes)) throw new Error(UNABLE_TO_UPLOAD)
       const objectId = crypto.randomUUID()
       const extension = MIME_EXTENSIONS[file.type]
       const path = `${workspaceId}/${user.id}/${inspection.id}/${objectId}.${extension}`
@@ -479,7 +502,7 @@ export default function MeasurePage() {
             <p className="mt-2 text-xs">Automatic footprint is sourced from map geometry, not independently measured roof edges. Use the manual multi-plane tracer below to compare its result.</p>
           </div>}
 
-          <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={chooseFile} />
+          <input ref={inputRef} type="file" accept="image/jpeg" className="hidden" onChange={chooseFile} />
           <div className="mt-4 flex flex-wrap gap-2">
             <button onClick={() => inputRef.current?.click()} className="rounded-lg bg-slate-700 px-4 py-2 text-sm font-semibold text-white">{file ? 'Replace actual image' : 'Load actual aerial / inspection image'}</button>
             <button onClick={() => setManualMode(!manualMode)} className="rounded-lg bg-slate-700 px-4 py-2 text-sm font-semibold text-white">{manualMode ? 'Exit Manual Mode' : 'Manual Measurement'}</button>

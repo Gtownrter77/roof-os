@@ -7,6 +7,7 @@ import * as SecureStore from 'expo-secure-store'
 import { createClient, type Session } from '@supabase/supabase-js'
 import { useEffect, useRef, useState } from 'react'
 import { File } from 'expo-file-system'
+import { readEmbeddedLocation, stampLocation, UNABLE_TO_UPLOAD } from './src/photoLocation'
 import {
   ActivityIndicator,
   Alert,
@@ -658,11 +659,31 @@ export default function App() {
         Alert.alert('Camera permission needed', 'Allow camera access to capture inspection evidence.')
         return
       }
-      const result = await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], quality: 0.8 })
+      const result = await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], quality: 0.8, exif: true })
       if (result.canceled) return
       if (!result.assets.length) {
         setError('The camera returned no image. Try capturing the photo again.')
         return
+      }
+      const locationPermission = await Location.requestForegroundPermissionsAsync()
+      if (!locationPermission.granted) {
+        Alert.alert(UNABLE_TO_UPLOAD, 'Location must be allowed so it can be written into the photo.')
+        return
+      }
+      const fix = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High })
+      for (const asset of result.assets) {
+        const source = new File(asset.uri)
+        const bytes = new Uint8Array(await source.arrayBuffer())
+        if (bytes[0] !== 0xff || bytes[1] !== 0xd8) {
+          Alert.alert(UNABLE_TO_UPLOAD, 'The photo must be a JPEG with location embedded.')
+          return
+        }
+        const stamped = stampLocation(bytes, { latitude: fix.coords.latitude, longitude: fix.coords.longitude })
+        if (!readEmbeddedLocation(stamped)) {
+          Alert.alert(UNABLE_TO_UPLOAD)
+          return
+        }
+        source.write(stamped)
       }
       const count = photos + result.assets.length
       const draftId = saveDraft(address, photos, point, selectedLeadId)
