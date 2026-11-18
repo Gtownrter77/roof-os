@@ -1425,3 +1425,10 @@ Do not claim the live writer integration gate is complete without non-production
 - [ ] Add event intake/reconciliation worker and durable workflow adapter.
 - [ ] Add Ollama/provider-neutral model routing with provenance records.
 - [ ] Complete and verify the web/mobile first vertical slice and correction/recovery cases.
+## 2026-11-17 — Fresh current-main audit and security fix
+
+- Fresh checkout of `main` at `85044b843a589bc59dab68d3147e729c73df6304` (merged PR #474); earlier checkpoints below are historical.
+- Fixed the current root dependency finding by upgrading exact Next.js `16.4.3` to `16.4.6`; root `npm audit --omit=dev --audit-level=moderate` is now clean.
+- Root `npm run test:all`, TypeScript, production build, and the field dependency gate pass locally. The field audit still reports upstream Expo/Metro `picomatch` advisories in its audit input, but the repository gate classifies them as build-tool-only and verifies the pinned runtime mitigations.
+- The repository contains legacy duplicate local migration prefixes `021`–`023` and skipped prefixes `096`–`100`; these are documented historical/reconciliation facts. They were not renamed because doing so could diverge from the target Supabase ledger. The current source head is `104`; any new migration must use the protected target-ledger workflow.
+- Current-main production, staging, device, provider, and backup/restore evidence remains unverified.
