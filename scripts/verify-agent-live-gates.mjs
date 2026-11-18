@@ -21,7 +21,7 @@
 import { pathToFileURL } from 'node:url'
 
 export const CONFIRM_PHRASE = 'I_UNDERSTAND_DRY_RUN_ONLY'
-const DEFAULT_PRODUCTION_HOSTS = ['roof-os-lemon.vercel.app']
+const DEFAULT_PRODUCTION_HOSTS = ['roof-os-lemon.vercel.app', 'roof-os.onrender.com']
 
 export class GateError extends Error {}
 
