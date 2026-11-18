@@ -5,34 +5,13 @@ import { createClient } from '../../../../lib/supabase/server'
 import { getSupabaseEnv } from '../../../../lib/supabase/env'
 import { isUuid, readJson } from '../../../../lib/api-security'
 import { readEmbeddedGps } from '../../../../lib/photo-provenance.mjs'
+import { fetchPrivatePhotoBytes } from '../../../../lib/photo-provenance-io'
 
 export const runtime = 'nodejs'
 const BUCKET = 'inspection-photos'
 const MAX_BYTES = 30 * 1024 * 1024
 
 function fail(error: string, status: number) { return NextResponse.json({ error }, { status }) }
-
-async function boundedBytes(response: Response) {
-  if (!response.ok || !response.body) throw new Error('The original photo is unavailable.')
-  const declared = Number(response.headers.get('content-length'))
-  if (declared > MAX_BYTES) throw new Error('The original photo is too large to verify.')
-  const reader = response.body.getReader()
-  const chunks: Uint8Array[] = []
-  let size = 0
-  try {
-    while (true) {
-      const chunk = await reader.read()
-      if (chunk.done) break
-      size += chunk.value.byteLength
-      if (size > MAX_BYTES) { await reader.cancel(); throw new Error('The original photo is too large to verify.') }
-      chunks.push(chunk.value)
-    }
-  } finally { reader.releaseLock() }
-  const result = new Uint8Array(size)
-  let at = 0
-  for (const chunk of chunks) { result.set(chunk, at); at += chunk.byteLength }
-  return result
-}
 
 export async function POST(request: NextRequest) {
   try {
@@ -80,12 +59,7 @@ export async function POST(request: NextRequest) {
     if (signed.error || !signed.data?.signedUrl) return fail('The private photo cannot be read.', 503)
     const signedUrl = new URL(signed.data.signedUrl, url)
     if (signedUrl.origin !== new URL(url).origin) return fail('Invalid private storage origin.', 403)
-    const controller = new AbortController()
-    const timer = setTimeout(() => controller.abort(), 15000)
-    let bytes: Uint8Array
-    try {
-      bytes = await boundedBytes(await fetch(signedUrl, { signal: controller.signal, cache: 'no-store', redirect: 'error' }))
-    } finally { clearTimeout(timer) }
+    const bytes = await fetchPrivatePhotoBytes(signedUrl, MAX_BYTES, 15_000)
     const gps = readEmbeddedGps(bytes)
     // GPS alone is not a reliable property ID. Require both embedded coordinates
     // and a non-empty embedded address to qualify for any photo automation.
