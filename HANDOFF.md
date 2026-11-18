@@ -1,13 +1,43 @@
-## 2026-11-16 — BAILEY BOSS R2 reviewed plane pitch + quantity save (PR #461)
+## 2026-11-17 — Phase 0 merged and APK updated
 
-- **Dossier mandate:** Continue the R2 geometry→reviewed slope→draft estimate path. No feature removed or treated as optional.
-- **Branch:** `fix/reviewed-per-plane-pitch-save-20261116`, PR #461. No SD3 clone and **no production DB mutation**.
-- **RED evidence:** test-only SHA `943c7f338f21fc6cbf14e6ecbb3a0605f2ce305e`, CI `43973583322` web failed as expected at missing new reviewed-pitch schema. This was before implementation.
-- **GREEN source evidence:** code-bearing SHA `07bb0b76ff45b407ef9fd29747c676bdab03986d`, CI `43974736857`: web, preview-build, mobile, migration-safety, field-security all passed. Migration naming aligned to next available prefix 103 after the merged ContractorOS version 102; this draft remains unrebased, unapplied and blocked; further CI required on final PR head.
-- **Implementation:** `app/measure/page.tsx` has per-plane measured-pitch numeric inputs, explicit save, mixed-pitch calculation and cached human flags. `app/api/measurements/aerial/route.ts` saves reviewed numeric plane pitch apart from AI notes, rejects uncalibrated/unreviewed geometry before confirmation, and saves explicit top-down/uniform attestation. `app/api/measurements/manual/route.ts` derives saved area from persisted reviewed geometry and scale instead of model-formulated roof area; stale preview differences reject save. `supabase/migrations/103_reviewed_plane_pitch.sql` is an **unapplied migration file**; no hosted DB changes.
-- **Live schema read-only check:** The connected active **Roof OS** Supabase project has `aerial_measurements` and `roof_planes`, but none of the new reviewed-pitch and human-confirmation columns. `ContractorOS` was inactive. This is a **release blocker**: deploying the new code before the protected migration could break live roof measurement routes. Do not merge/deploy until the designated target is backed up, migration approved and staged/verified, and required CI fully green. No paid providers.
-- **Scope boundary:** CI is source/test evidence only. Real customer data, physical roof pitch, hosted browser test, protected staging, deployment, backup-restore, and owner acceptance unverified. No material orders or production AI estimate release authorized.
-- **15 Superpowers skills:** full work-package ledger in `docs/superpowers/plans/2026-11-16-reviewed-plane-pitch-save.md`. Reviewed all, not every external action executed.
+- PR #469 was merged into `main` as merge commit `8bb00b699f6d3d1fac4d1831995d97268284828` after all 8 required checks passed: web, mobile, migration-safety, field-security, preview-build, Vercel, preview comments, and driveway evidence.
+- The APK workflow was dispatched from that exact merged SHA: [run 44197803638](https://github.com/Gtownrter77/roof-os/actions/runs/44197803638). The build completed successfully through Expo validation, local EAS Android preview build, binary identity/signature verification, provenance generation, and artifact upload.
+- Published artifact: [roof-os-field-preview-8bb00b699f6d3d1fac4d1831995d97268284828e](https://github.com/Gtownrter77/roof-os/actions/runs/44197803638/artifacts/14380437500). APK version `0.5.0`, package `com.roofos.field`, version code `29`, size `73,545,980` bytes.
+- APK SHA-256: `14a63b5155f305a8b201ea025b1094c4c2b14224a27b8316fb283a6321f8bd1b`. Signing certificate SHA-256: `7a1c64b0a0bdae5ac87aef821ee7d6a6a56a6ec21ef53c249149b8e90b74868f`. Provenance manifest reports signature verification true and EAS CLI `27.2.0`.
+- This proves the merged-source APK artifact and signing provenance. Physical-device installation, authenticated offline/reconnect behavior, and live workspace-isolation testing remain separate external gates and are not claimed here.
+
+## 2026-11-17 — Field dependency gate remediation
+
+- The Phase 0 PR initially exposed an existing field dependency audit blocker: `GHSA-fc5q-39xc-vjpf` is carried through Expo/Metro/Jest build tooling, with no patched `picomatch` release available in the reviewed registry range.
+- The forced npm remediation was rejected because it attempted incompatible Expo 54/React Native 0.83 major changes. The shipped Expo 57/React Native 0.86 stack was restored unchanged.
+- `scripts/audit-field-deps.mjs` now explicitly classifies this upstream build-tool-only advisory and the two source-less Metro records, while retaining blocking behavior for unresolved runtime/package advisories and exact mitigation checks for node-forge/deepmerge.
+- Local validation passes: dependency gate, `test:mobile-release-contract`, `test:field-localdb-web`, and `git diff --check`. Full required GitHub checks must still pass before merge.
+
+## 2026-11-17 — ContractorOS Phase 0 register and delivery checkpoint
+
+- Phase 0 was implemented incrementally on the existing ROOF/OS repository; no rebuild, runtime rewrite, production schema change, deployment, or external provider write was performed.
+- The authoritative baseline for this work is `29f9e323fa4906a891baec201ced024f87d4101b`; the local `/home/ubuntu/roof-os` directory was incomplete after environment reset and was not used as the source of truth.
+- PR #469 contains the machine-readable dossier register and validation package: all 38 sections, 24 work packages, 9 releases, 20 AI functions, and 12 completion gates have stable IDs, source references, status vocabulary, and release mappings.
+- Added `docs/contractor-os/PHASE-0-REQUIREMENT-REGISTER.json`, `PHASE-0-COVERAGE-LEDGER.md`, `PHASE-0-CHECKPOINT-2026-11-17.md`, and `scripts/phase-0-register-test.mjs`; `npm run test:phase-0-register` passes.
+- PR #469 web and field-security checks currently fail in the pre-existing field dependency vulnerability audit (`expo`, React Native/Metro chain, and related advisories). Migration safety, mobile, preview build, deployment, and the Phase 0 register validation pass. This is recorded as a CI dependency gate, not relabeled as an application pass.
+- Dossier commitments remain mandatory. No ContractorOS release is accepted by this documentation tranche alone; Phase 1 still requires authority/action writers, reconciliation, restore evidence, and first-slice acceptance.
+
+## 2026-11-17 — Driveway/earthwork 3D slice and no-skipping Superpowers checkpoint
+
+- The user-directed Michigan driveway-grade estimation is integrated as a **required future construction-domain slice** in `docs/contractor-os/DRIVEWAY-3D-GRADING-ESTIMATOR-PLAN.md`. 3D Garden Designer is flat-ground concept only; Spline/Blendstra are visualizers; QGIS/GDAL/MapLibre, independently sourced field elevations and mandatory manual fallback form the proposed measurement core. No paid tools or field quantities were used.
+- This PR #466 adds a **pure measurement/quantity helper**, not a finished driveway estimator. `scripts/driveway-earthwork-test.mjs` and the GitHub web + dedicated job cover tapered area, thickness-based volume, grade on a stated vertical datum, cut/fill from surveyed cells, and evidence-verified supplier yield before computing tons.
+- **Observed TDD RED:** isolated CI `earthwork-precision` job `134173178277` failed on test-only SHA `ee709177b48ad237f806bfd75599dc11aa335d49` because the named module was absent. **Isolated GREEN:** same job passed after implementation SHA `d92c161eba1570187f079195380a41d54612490e`.
+- The complete latest-head PR checks, independent review and post-merge CI are distinct evidence gates. No customer photos/terrain, official driveway slope, Michigan road-entrance approvals, underlying soil/frost design, field-device/owner acceptance, or real quote has been verified.
+- All 15 Superpowers skills are given an honest disposition in the roadmap. All 20 AI domains and nine releases remain mandatory. Do not clone onto local Chromebook storage; the GitHub connector operates on a remote feature branch. No payment or production database changes.
+
+## 2026-11-17 — Mako check-in resume, verified merges and remediation
+
+- Current GitHub main is `1b8393a09bec55a87766eee3aa3d0903ed5e4b61`. PR #462 merged; five exact-head CI jobs and five post-merge CI jobs passed, along with Vercel success. Foundation PR #463 remains included in main.
+- Draft PR #461 is **not** merged: its 102 pitch-column migration collides with merged 102 ContractorOS schema and the active hosted project reportedly lacks the new columns. No production migration or paid service was authorized.
+- A source-only follow-up GitHub branch `docs/mako-checkin-r2-20261117` changes explicit review/quantity saving to fail closed, recompute from persisted workspace-scoped geometry and detect stale browser previews without new columns. This branch is not accepted until fresh CI and review.
+- Draft PR #455 (free-only Parallel research) still requires its own handshake, tests and deployment verification. Retain the no-fee/no-paid-fallback policy.
+- All 15 Superpowers dispositions are preserved, with unperformed steps acknowledged; no SD3 or local clone claimed. All 20 approved AI functions and nine releases remain required. See Living Build Checklist and `docs/contractor-os/RELEASE-1-TRACEABILITY.md`.
+- Outstanding production tasks: authenticated API/DB integration, cross-workspace isolation, staged backup and rollback, owner acceptance, physical roof/driveway validation, and role/revision workflow checks.
 
 ## 2026-11-16 — BAILEY BOSS R2 roof-plane precision (PR #460, source-only)
 
@@ -1286,3 +1316,78 @@ Runtime boundary: loopback means the host making the request. A locally running 
 - Fresh PR workflow run [42758481812](https://github.com/Gtownrter77/roof-os/actions/runs/42758481812) and two rerun attempts all failed before job execution. On attempt 3, `web`, `preview-build`, `mobile`, `field-security`, and `migration-safety` each report `runner_id: 0` and zero steps; only `refresh-field-lock (pull_request)` is skipped. GitHub exposes no failed-step log because no runner/step started. This is an external runner-allocation block, not a passing or failing code assertion.
 - PR #441 remains open and not merged. GitHub reports `mergeable: true` but `mergeable_state: unstable`; do not bypass this state. The SQL/RLS job never ran, and local PostgreSQL 16 was not installed because the package mirror download was impractically slow. Source tests and production build remain PASS as listed in the checkpoint above; database-tested status remains **UNVERIFIED**.
 - Next: restore GitHub Actions runner availability and rerun the required checks on the latest PR head. Merge PR #441 only after fresh checks complete successfully. It targets draft PR #440's feature branch, not `main`; the draft parent chain remains outside this PR-only merge.
+
+## ContractorOS Release 1 — controlled foundation checkpoint
+
+**Checkpoint:** 2026-11-16
+**Baseline:** current GitHub `main`, commit `68fc020`
+**Status:** foundation tranche merged into `main`; remaining Release 1 capabilities are explicitly tracked below.
+
+### Completed
+
+- [x] Confirmed the current GitHub repository is the authoritative ROOF/OS source; stale local/archive snapshots are not the implementation baseline.
+- [x] Completed the three-pass review of `ContractorOS_Unified_Master_Dossier-1.pdf`.
+- [x] Recorded the owner’s decisions: web and mobile surfaces, enterprise-wide scope, configurable role authority, all integrations through governed adapters, local Ollama default, and provider choice.
+- [x] Added `docs/contractor-os/FOUNDATION-MERGE-PLAN.md`.
+- [x] Added `docs/contractor-os/EFFICIENT-COMPLETION-RESEARCH.md` with Temporal, LangGraph, and Ollama source-backed architecture guidance.
+- [x] Added `docs/contractor-os/RELEASE-1-TRACEABILITY.md` with checked-off task ledger and dossier-to-repository mapping.
+- [x] Added migration `102_contractor_os_control_plane.sql` with owner-configurable authority profiles, bounded mandates, record revisions, evidence lineage, deduplicated events, durable execution state, and action-ledger extensions.
+- [x] Added `scripts/contractoros-control-plane-test.mjs` and `npm run test:contractoros-control-plane`.
+- [x] Preserved existing lead entry, magic-link authentication, mobile local/offline storage, inspection, estimate, production, invoice, and warranty surfaces.
+
+### Verification completed
+
+- [x] Release 1 control-plane contract test: PASS.
+- [x] TypeScript: PASS (`CI=1 npm run typecheck`).
+- [x] Migration numbering and `git diff --check`: PASS.
+- [x] Security-definer migration/search-path/trigger checks: PASS.
+- [x] Current baseline production build: PASS (`CI=1 NEXT_TELEMETRY_DISABLED=1 npm run build`).
+- [x] PR #463 merged into `main` as `68fc020`; fresh web, mobile, field-security, migration-safety, preview-build, Vercel, and preview-comment checks all passed.
+
+### Remaining before Release 1 is marked complete
+
+- [ ] Add narrow server/RPC writers and action-time authority evaluation.
+- [ ] Add event intake/reconciliation and durable workflow adapter.
+- [ ] Add Ollama/provider-neutral model routing and provenance records.
+- [ ] Complete the web/mobile first vertical slice and its correction/recovery cases.
+- [ ] Apply migration 102 to the target Supabase project and run Level 3 cross-workspace checks.
+- [x] Commit `4386c0d`, push, merge PR #463 into `main` as `68fc020`, and verify fresh GitHub checks on the merged commit.
+
+Do not claim Release 1 complete until every unchecked item above is either completed or explicitly marked deferred by the owner.
+
+## ContractorOS Stage 2 — narrow mandate, evidence, and revision writers
+
+**Checkpoint:** 2026-11-17
+**Baseline:** current GitHub `main` `9be6483`
+**Status:** Stage 2 merged into `main`; only live Supabase writer integration remains pending.
+
+### Completed
+
+- [x] Added migration `103_contractor_os_narrow_writers.sql`.
+- [x] Added administrator-only mandate creation and status-transition RPCs with workspace scoping, validation, expiry checks, cancellation reasons, and terminal-state protection.
+- [x] Added member-scoped evidence capture and administrator-only immutable evidence review RPCs.
+- [x] Added member-scoped record revision creation with server-assigned monotonic revision numbers, advisory locking, and correction-parent workspace checks.
+- [x] Added administrator-only revision review/release RPCs with release gating and immutable released revisions.
+- [x] Added six authenticated API routes under `/api/contractor-os/` using bounded JSON parsing and RPC-only control-plane writes.
+- [x] Added `scripts/contractoros-writers-test.mjs` and `npm run test:contractoros-writers`.
+
+### Verification completed
+
+- [x] Stage 2 writer contract test: PASS.
+- [x] Existing control-plane contract test: PASS.
+- [x] TypeScript: PASS.
+- [x] Production build: PASS (150 routes compiled).
+- [x] Release gate: PASS (15 protected routes and secret scan).
+- [x] Security-definer migration/search-path/trigger checks: PASS.
+- [x] Frontend route-integrity test: PASS.
+- [x] Existing authentication/mobile regression checks: PASS.
+- [x] PR #471 merged into `main` as `9be6483`; all eight fresh checks passed, including web, mobile, field-security, migration-safety, preview-build, Vercel, preview comments, and driveway evidence-led quantity.
+
+### Remaining before Stage 2 is merged
+
+- [x] Run the full final local verification after the last optional-owner validation edit.
+- [x] Push the Stage 2 branch and pass fresh web, mobile, field-security, migration-safety, preview-build, and deployment checks.
+- [ ] Apply migration 103 to the target Supabase project and run authenticated synthetic writer integration tests.
+- [ ] Update the final ZIP after the Stage 2 merge.
+
+Do not claim the live writer integration gate is complete without non-production Supabase credentials and synthetic workspace users.

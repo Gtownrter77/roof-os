@@ -10,6 +10,7 @@
     "test:runtime-smoke": "node scripts/runtime-smoke-test.mjs",
     "test:performance": "node --experimental-strip-types scripts/performance-optimization-verify.mjs",
     "typecheck": "tsc --noEmit",
+    "test:phase-0-register": "node scripts/phase-0-register-test.mjs",
     "release-check": "node scripts/security-definer-trigger-test.mjs && node scripts/security-definer-search-path-test.mjs && node scripts/production-followup-trigger-test.mjs && node scripts/mobile-apk-provenance-test.mjs && node scripts/passport-rate-limit-privacy-test.mjs && node scripts/passport-rate-limit-rls-test.mjs && node --experimental-strip-types scripts/mobile-local-db-migration-test.mjs && node scripts/release-check.mjs",
     "test:api-security": "node scripts/api-security-test.mjs",
     "test:auth-flow": "node scripts/auth-flow-test.mjs",
@@ -57,6 +58,7 @@
     "test:roofing-workflows": "node --experimental-strip-types scripts/roofing-four-workflows-test.mjs",
     "test:roofing-automations": "node --experimental-strip-types scripts/roofing-automation-wizards-test.mjs",
     "test:roofing-precision": "node --experimental-strip-types scripts/roof-measurement-precision-test.mjs",
+    "test:driveway-earthwork": "node --experimental-strip-types scripts/driveway-earthwork-test.mjs",
     "test:estimate-creation-flow": "node scripts/estimate-creation-flow-test.mjs",
     "test:estimate-packet-manager-gate": "node scripts/estimate-packet-manager-gate-test.mjs",
     "verify:security": "node scripts/security-check.mjs",
@@ -126,7 +128,9 @@
     "test:security-definer-search-path": "node scripts/security-definer-search-path-test.mjs",
     "test:passport-rate-limit-rls": "node scripts/passport-rate-limit-rls-test.mjs",
     "test:onboarding-profile": "node --experimental-strip-types scripts/onboarding-profile-test.mjs",
-    "test:onboarding-workspace-ui": "node scripts/onboarding-workspace-ui-test.mjs"
+    "test:onboarding-workspace-ui": "node scripts/onboarding-workspace-ui-test.mjs",
+    "test:contractoros-control-plane": "node scripts/contractoros-control-plane-test.mjs",
+    "test:contractoros-writers": "node scripts/contractoros-writers-test.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.2",

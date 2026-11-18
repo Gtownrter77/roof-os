@@ -1,0 +1,19 @@
+name: Driveway evidence-led quantity test
+on:
+  pull_request:
+    paths:
+      - 'lib/measurements/driveway-earthwork.ts'
+      - 'scripts/driveway-earthwork-test.mjs'
+      - '.github/workflows/driveway-earthwork.yml'
+      - 'package.json'
+jobs:
+  earthwork-precision:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --experimental-strip-types scripts/driveway-earthwork-test.mjs

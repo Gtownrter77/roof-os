@@ -19,7 +19,7 @@ import { canAutoLookupAddress, loadRoofingWorkflowPreferences, type RoofingWorkf
 const ManualDrawingTool = dynamic(() => import('../../components/ManualDrawingTool'), { ssr: false })
 
 type Point = { x: number; y: number }
-type Plane = { id: string; vertices: Point[]; suggested_pitch: string | null; reviewed_pitch_rise_per_12?: number | null; confidence: string; dbId?: string; review_status?: string }
+type Plane = { id: string; vertices: Point[]; suggested_pitch: string | null; confidence: string; dbId?: string; review_status?: string; pitchRisePer12?: number }
 type Edge = { id: string; start: Point; end: Point; classification: string; confidence: string; dbId?: string; review_status?: string }
 type Obj = { id: string; position: Point; type: string; confidence: string; dbId?: string; review_status?: string }
 type Suggestion = Omit<GeometrySuggestion, 'planes' | 'edges' | 'objects'> & { planes: Plane[]; edges: Edge[]; objects: Obj[] }
@@ -27,6 +27,18 @@ type ReviewKind = 'plane' | 'edge' | 'object'
 type ReviewItem = Plane | Edge | Obj
 
 const MIME_EXTENSIONS: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' }
+
+function parsePitchRise(value: string): number | null {
+  if (!/^\d+(?:\.\d+)?$/.test(value.trim())) return null
+  const rise = Number(value.trim())
+  return Number.isFinite(rise) && rise >= 0 && rise <= 36 ? rise : null
+}
+
+function reviewedPlanePitch(value: string | null | undefined): number | null {
+  // Only owner-reviewed values carry the durable prefix.
+  if (typeof value !== 'string' || !/^reviewed:\d+(?:\.\d+)?\/12$/.test(value.trim())) return null
+  return parsePitchRise(value.trim().slice('reviewed:'.length).replace(/\/12$/, ''))
+}
 
 export default function MeasurePage() {
   const router = useRouter()
@@ -59,9 +71,9 @@ export default function MeasurePage() {
   const [scalePixels, setScalePixels] = useState('')
   const [scaleFeet, setScaleFeet] = useState('')
   const [pitchRisePer12, setPitchRisePer12] = useState('')
-  const [planePitchDrafts, setPlanePitchDrafts] = useState<Record<string, string>>({})
   const [orthographicTopDown, setOrthographicTopDown] = useState(false)
   const [uniformPitchConfirmed, setUniformPitchConfirmed] = useState(false)
+  const [perPlanePitchMode, setPerPlanePitchMode] = useState(false)
   const [calibrated, setCalibrated] = useState(false)
   const [geometryConfirmed, setGeometryConfirmed] = useState(false)
   const [savedMeasurementId, setSavedMeasurementId] = useState('')
@@ -103,6 +115,8 @@ export default function MeasurePage() {
     setSavedMeasurementId('')
     setCalibrated(false)
     setGeometryConfirmed(false)
+    setPerPlanePitchMode(false)
+    setUniformPitchConfirmed(false)
     setScalePixels('')
     setScaleFeet('')
     setError('')
@@ -233,23 +247,30 @@ export default function MeasurePage() {
       const payload = await response.json().catch(() => null)
       if (!response.ok) throw new Error(payload?.error || 'Validated AI geometry could not be saved.')
       setMeasurementId(payload.measurement.id)
-      setSuggestion(payload.suggestion ?? null)
-      setPlanePitchDrafts({})
+      setSuggestion(payload.suggestion ? { ...payload.suggestion, planes: payload.suggestion.planes.map((plane: Plane) => ({ ...plane, pitchRisePer12: reviewedPlanePitch(plane.suggested_pitch) ?? undefined })) } : null)
       const formulation = payload.suggestion?.formulation
       const cachedMeasurement = payload.cached ? payload.measurement : null
       const cachedCalibrated = cachedMeasurement?.calibration_status === 'calibrated' || cachedMeasurement?.calibration_status === 'confirmed'
       const cachedConfirmed = cachedMeasurement?.status === 'confirmed'
       setCalibrated(cachedCalibrated)
       setGeometryConfirmed(cachedConfirmed)
-      setOrthographicTopDown(cachedMeasurement?.orthographic_top_down_confirmed === true)
-      setUniformPitchConfirmed(cachedMeasurement?.uniform_pitch_confirmed === true)
-      setScalePixels(cachedMeasurement?.scale_reference_pixels != null ? String(cachedMeasurement.scale_reference_pixels)
-        : formulation?.scale_reference_pixels == null ? '' : String(formulation.scale_reference_pixels))
-      setScaleFeet(cachedMeasurement?.scale_reference_feet != null ? String(cachedMeasurement.scale_reference_feet)
-        : formulation?.scale_reference_feet == null ? '' : String(formulation.scale_reference_feet))
-      setPitchRisePer12(cachedMeasurement?.uniform_pitch_confirmed && cachedMeasurement.confirmed_uniform_pitch_rise_per_12 != null
-        ? String(cachedMeasurement.confirmed_uniform_pitch_rise_per_12)
-        : formulation?.pitch_rise_per_12 == null ? '' : String(formulation.pitch_rise_per_12))
+      const savedHumanReview = cachedMeasurement?.ai_formulation?.human_geometry_review
+      setOrthographicTopDown(savedHumanReview?.orthographic_top_down_confirmed === true)
+      setUniformPitchConfirmed(false)
+      if (savedHumanReview?.uniform_pitch_confirmed === true) setUniformPitchConfirmed(true)
+      setPerPlanePitchMode(savedHumanReview?.uniform_pitch_confirmed === false)
+      if (formulation) {
+        setScalePixels(formulation.scale_reference_pixels == null ? '' : String(formulation.scale_reference_pixels))
+        setScaleFeet(formulation.scale_reference_feet == null ? '' : String(formulation.scale_reference_feet))
+        setPitchRisePer12(formulation.pitch_rise_per_12 == null ? '' : String(formulation.pitch_rise_per_12))
+      }
+      if (cachedMeasurement) {
+        setScalePixels(cachedMeasurement.scale_reference_pixels == null ? '' : String(cachedMeasurement.scale_reference_pixels))
+        setScaleFeet(cachedMeasurement.scale_reference_feet == null ? '' : String(cachedMeasurement.scale_reference_feet))
+      }
+      if (savedHumanReview?.uniform_pitch_confirmed === true && typeof savedHumanReview.uniform_pitch_rise_per_12 === 'number') {
+        setPitchRisePer12(String(savedHumanReview.uniform_pitch_rise_per_12))
+      }
       setSavedMeasurementId('')
       setStatus(payload.cached
         ? cachedConfirmed ? 'Confirmed AI geometry loaded from the workspace.' : cachedCalibrated ? 'Calibrated AI geometry loaded. Confirm geometry or continue review.' : 'Existing AI suggestions loaded. Review and calibration state preserved.'
@@ -282,9 +303,7 @@ export default function MeasurePage() {
         return {
           ...current,
           [property]: current[property].map((entry) => entry.dbId === item.dbId
-            ? { ...entry, ...patch,
-                ...(kind === 'plane' && typeof patch.pitchRisePer12 === 'number' ? { reviewed_pitch_rise_per_12: patch.pitchRisePer12 } : {}),
-                review_status: action === 'delete' || action === 'reject' ? 'rejected' : action === 'accept' ? 'accepted' : 'edited' }
+            ? { ...entry, ...patch, review_status: action === 'delete' || action === 'reject' ? 'rejected' : action === 'accept' ? 'accepted' : 'edited' }
             : entry),
         }
       })
@@ -293,6 +312,15 @@ export default function MeasurePage() {
     } finally {
       setWorking(false)
     }
+  }
+
+  async function setPlanePitchRisePer12(plane: Plane) {
+    if (geometryConfirmed || working || !plane.dbId) return
+    const raw = window.prompt('Measured roof pitch rise per 12 inches (0–36). Enter the number only.', plane.pitchRisePer12 == null ? '' : String(plane.pitchRisePer12))
+    if (raw === null) return
+    const rise = parsePitchRise(raw)
+    if (rise === null) { setError('Enter a measured numeric pitch between 0/12 and 36/12.'); return }
+    await review('plane', plane, 'edit', { pitch: String(rise), pitchRisePer12: rise, suggested_pitch: `reviewed:${rise}/12` })
   }
 
   async function calibrate() {
@@ -317,17 +345,17 @@ export default function MeasurePage() {
   }
 
   async function confirm() {
-    if (!measurementId || !calibrated || !orthographicTopDown) return
+    if (!measurementId || !calibrated || !orthographicTopDown || (!uniformPitchConfirmed && !perPlanePitchMode)) {
+      setError('Confirm top-down imagery and measured uniform or per-plane pitch first.')
+      return
+    }
     setWorking(true)
     setError('')
     try {
       const response = await fetch('/api/measurements/aerial', {
         method: 'PATCH',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ action: 'confirm', aerialMeasurementId: measurementId,
-          orthographicTopDownConfirmed: orthographicTopDown, uniformPitchConfirmed,
-          ...(uniformPitchConfirmed ? { pitchRisePer12: Number(pitchRisePer12) } : {}),
-        }),
+        body: JSON.stringify({ action: 'confirm', aerialMeasurementId: measurementId, orthographicTopDownConfirmed: orthographicTopDown, uniformPitchConfirmed, pitchRisePer12: uniformPitchConfirmed ? pitchValue : undefined }),
       })
       const payload = await response.json()
       if (!response.ok) throw new Error(payload.error || 'Confirmation failed.')
@@ -343,13 +371,10 @@ export default function MeasurePage() {
   const visiblePlanes = suggestion?.planes.filter((item) => item.review_status !== 'rejected') ?? []
   const pitchValue = pitchRisePer12.trim() === '' ? Number.NaN : Number(pitchRisePer12)
   const draftQuantity = useMemo(() => {
-    if (!suggestion || !calibrated || !geometryConfirmed || !orthographicTopDown ||
-      (uniformPitchConfirmed && (pitchRisePer12.trim() === '' || !Number.isFinite(pitchValue)))) return null
+    if (!suggestion || !calibrated || !geometryConfirmed || !orthographicTopDown || (!uniformPitchConfirmed && !perPlanePitchMode) || (uniformPitchConfirmed && pitchRisePer12.trim() === '')) return null
     try {
       return calculateCalibratedRoofDraft({
-        planes: suggestion.planes.map(plane => ({ ...plane,
-          ...(plane.reviewed_pitch_rise_per_12 == null ? {} : { pitchRisePer12: plane.reviewed_pitch_rise_per_12 }),
-        })),
+        planes: suggestion.planes.map(plane => ({ ...plane, pitchRisePer12: plane.pitchRisePer12 ?? reviewedPlanePitch(plane.suggested_pitch) ?? undefined })),
         scaleReferencePixels: Number(scalePixels),
         scaleReferenceFeet: Number(scaleFeet),
         pitchRisePer12: uniformPitchConfirmed ? pitchValue : 0,
@@ -360,7 +385,7 @@ export default function MeasurePage() {
     } catch {
       return null
     }
-  }, [suggestion, calibrated, geometryConfirmed, orthographicTopDown, uniformPitchConfirmed, pitchRisePer12, pitchValue, scalePixels, scaleFeet])
+  }, [suggestion, calibrated, geometryConfirmed, orthographicTopDown, uniformPitchConfirmed, perPlanePitchMode, pitchRisePer12, pitchValue, scalePixels, scaleFeet])
 
   async function saveDraftQuantity() {
     if (!draftQuantity || !inspectionId || !measurementId || savedMeasurementId) return
@@ -375,9 +400,9 @@ export default function MeasurePage() {
       const notes = [
         'AI-FORMULATED MEASUREMENT. Derived from the model packet, source image, geometry, scale, and pitch formulation.',
         `AI scale formulation: ${scalePixels} image pixels = ${scaleFeet} feet (${draftQuantity.pixelsPerFoot} px/ft).`,
-        `Human-reviewed roof pitches: ${uniformPitchConfirmed ? pitchRisePer12 + '/12 on all planes' : 'per-plane values'}; slope multiplier ${draftQuantity.slopeMultiplier}.`,
+        uniformPitchConfirmed ? `Human-confirmed uniform pitch: ${pitchRisePer12}/12; slope multiplier ${draftQuantity.slopeMultiplier}.` : `Human-reviewed mixed pitch by plane: ${suggestion?.planes.filter(p => p.review_status !== 'rejected').map(p => `${p.id}=${p.pitchRisePer12 ?? reviewedPlanePitch(p.suggested_pitch)}/12`).join(', ')}; effective slope multiplier ${draftQuantity.slopeMultiplier}.`,
         `Derived plan area ${draftQuantity.planAreaSqFt} sq ft; slope-adjusted roof area ${draftQuantity.roofAreaSqFt} sq ft; ${draftQuantity.roofSquares} squares.`,
-        'Formula: each accepted plane pixel area ÷ (pixels per foot squared) × its reviewed slope multiplier; sum plane areas.',
+        'Formula: sum of accepted-plane shoelace pixel areas multiplied by each plane slope factor sqrt(1 + (rise/12)^2), divided by pixels-per-foot squared.',
       ].join(' ')
       const response = await fetch('/api/measurements/manual', {
         method: 'POST',
@@ -390,6 +415,7 @@ export default function MeasurePage() {
           pitch: uniformPitchConfirmed ? `${pitchRisePer12}/12` : 'mixed',
           sourceReference: `aerial-geometry:${measurementId}`,
           sourceType: 'ai_formulated',
+          provisionalGeometryDraft: true,
           confidence: suggestion?.formulation?.confidence ?? 'medium',
           notes,
         }),
@@ -546,26 +572,10 @@ export default function MeasurePage() {
                 <span className="flex gap-1">
                   <button disabled={working || geometryConfirmed} onClick={() => void review('plane', plane, 'accept')} className="rounded bg-emerald-600 px-2 py-1 text-xs text-white disabled:opacity-50">Accept</button>
                   <button disabled={working || geometryConfirmed} onClick={() => void review('plane', plane, 'reject')} className="rounded bg-red-600 px-2 py-1 text-xs text-white disabled:opacity-50">Reject</button>
-                  <label className="flex items-center gap-1 text-xs">Measured pitch (/12)
-                    <input type="number" inputMode="decimal" min="0" max="36" step="0.1"
-                      value={planePitchDrafts[plane.dbId ?? plane.id] ?? (plane.reviewed_pitch_rise_per_12 == null ? '' : String(plane.reviewed_pitch_rise_per_12))}
-                      onChange={event => setPlanePitchDrafts(current => ({ ...current, [plane.dbId ?? plane.id]: event.target.value }))}
-                      disabled={working || geometryConfirmed || plane.review_status === 'rejected'}
-                      aria-label={`Measured pitch for plane ${plane.id}`}
-                      className="w-20 rounded border border-white/20 bg-slate-900 px-2 py-1 text-xs text-white" />
-                  </label>
-                  <button disabled={working || geometryConfirmed || plane.review_status === 'rejected'}
-                    onClick={() => {
-                      const raw = planePitchDrafts[plane.dbId ?? plane.id] ?? (plane.reviewed_pitch_rise_per_12 == null ? '' : String(plane.reviewed_pitch_rise_per_12))
-                      const measured = Number(raw)
-                      if (raw.trim() === '' || !Number.isFinite(measured) || measured < 0 || measured > 36) {
-                        setError('Enter a measured plane pitch from 0 to 36 rise per 12.')
-                        return
-                      }
-                      void review('plane', plane, 'edit', { pitchRisePer12: measured })
-                    }} className="rounded border border-cyan-400/40 px-2 py-1 text-xs disabled:opacity-50">Save measured pitch</button>
+                  <button disabled={working || geometryConfirmed} onClick={() => void setPlanePitchRisePer12(plane)} className="rounded border border-white/20 px-2 py-1 text-xs disabled:opacity-50">Set measured pitch</button>
                 </span>
               </div>
+              {plane.review_status !== 'rejected' && <p className="mt-1 text-xs text-slate-300">Reviewed plane pitch: {plane.pitchRisePer12 == null && reviewedPlanePitch(plane.suggested_pitch) == null ? 'not measured' : `${plane.pitchRisePer12 ?? reviewedPlanePitch(plane.suggested_pitch)}/12`}</p>}
             </div>)}
             {suggestion.edges.map((edge) => <div key={edge.dbId ?? edge.id} className="mb-2 rounded-lg border border-amber-400/20 bg-amber-400/10 p-2 text-sm">
               <div className="flex flex-wrap items-center justify-between gap-2">
@@ -600,7 +610,7 @@ export default function MeasurePage() {
                 <input value={scaleFeet} onChange={(event) => setScaleFeet(event.target.value)} placeholder="e.g. 20 feet" inputMode="decimal" type="number" min="0.01" step="0.01" className="mt-1 w-full rounded-lg border border-white/15 bg-black/25 p-2 text-sm" />
               </label>
               <button onClick={() => void calibrate()} disabled={working || geometryConfirmed} className="rounded-lg bg-slate-700 px-3 py-2 text-sm text-white disabled:opacity-50">{calibrated ? 'Update scale calibration' : 'Save human scale calibration'}</button>
-              <button onClick={() => void confirm()} disabled={working || !calibrated || !orthographicTopDown || geometryConfirmed} className="rounded-lg bg-emerald-700 px-3 py-2 text-sm text-white disabled:opacity-50">{geometryConfirmed ? 'Geometry confirmed' : 'Confirm reviewed geometry'}</button>
+              <button onClick={() => void confirm()} disabled={working || !calibrated || geometryConfirmed} className="rounded-lg bg-emerald-700 px-3 py-2 text-sm text-white disabled:opacity-50">{geometryConfirmed ? 'Geometry confirmed' : 'Confirm reviewed geometry'}</button>
             </div>
             <p className="mt-3 text-xs text-amber-300">One scale applies only to a top-down orthographic image. Perspective/oblique photos cannot produce reliable area from one scale.</p>
           </div>
@@ -614,15 +624,20 @@ export default function MeasurePage() {
               <input type="checkbox" checked={orthographicTopDown} onChange={(event) => setOrthographicTopDown(event.target.checked)} className="mt-1" />
               <span>I confirm this image is top-down orthographic/orthomosaic—not a perspective phone photo—and the scale applies uniformly.</span>
             </label>
-            <label className="text-sm text-slate-200">Uniform pitch rise per 12 inches (used only if confirmed below)
+            <label className="text-sm text-slate-200">Human-measured roof pitch rise per 12 inches of run
               <input value={pitchRisePer12} onChange={(event) => setPitchRisePer12(event.target.value)} type="number" min="0" max="36" step="0.1" placeholder="e.g. 6 for 6/12" className="mt-1 w-full rounded-lg border border-white/15 bg-black/25 p-2" />
-              <span className="mt-1 block text-xs text-slate-400">Uncheck uniform pitch to calculate from each saved, reviewed plane pitch instead.</span>
+              <span className="mt-1 block text-xs text-slate-400">AI pitch notes are ignored for this calculation.</span>
             </label>
           </div>
           <label className="mt-3 flex items-start gap-2 text-sm text-slate-200">
-            <input type="checkbox" checked={uniformPitchConfirmed} onChange={(event) => setUniformPitchConfirmed(event.target.checked)} className="mt-1" />
-            <span>I measured this pitch and confirm it applies to every accepted roof plane. Uncheck for mixed-pitch roofs.</span>
+            <input type="checkbox" checked={uniformPitchConfirmed} onChange={(event) => { setUniformPitchConfirmed(event.target.checked); if (event.target.checked) setPerPlanePitchMode(false) }} className="mt-1" />
+            <span>I measured this pitch and confirm it applies to every accepted roof plane.</span>
           </label>
+          <label className="mt-3 flex items-start gap-2 text-sm text-slate-200">
+            <input type="checkbox" checked={perPlanePitchMode} onChange={(event) => { setPerPlanePitchMode(event.target.checked); if (event.target.checked) setUniformPitchConfirmed(false) }} className="mt-1" />
+            <span>Use separately measured pitches for each accepted plane (saved in the review queue before confirmation).</span>
+          </label>
+          {perPlanePitchMode && !uniformPitchConfirmed && suggestion?.planes.some(plane => plane.review_status !== 'rejected' && (plane.pitchRisePer12 ?? reviewedPlanePitch(plane.suggested_pitch)) == null) && <p className="mt-2 text-xs text-amber-300">Each accepted plane needs a reviewed pitch before a mixed-pitch draft can be calculated.</p>}
           {draftQuantity ? <div className="mt-4 rounded-lg border border-cyan-400/25 bg-cyan-400/10 p-3">
             <p className="font-semibold text-cyan-100">Draft only · not estimate-authoritative</p>
             <dl className="mt-2 grid grid-cols-2 gap-2 text-sm">
@@ -632,10 +647,10 @@ export default function MeasurePage() {
               <div><dt className="text-slate-400">Order squares</dt><dd>{purchasableRoofing(draftQuantity.roofAreaSqFt, allowSixSquareRepairThreshold)?.squaresLabel ?? draftQuantity.roofSquares}</dd></div>
               <div><dt className="text-slate-400">Standard bundles</dt><dd>{purchasableRoofing(draftQuantity.roofAreaSqFt, allowSixSquareRepairThreshold)?.bundles ?? Math.ceil(draftQuantity.roofSquares * 3)} whole bundles</dd></div>
               <div><dt className="text-slate-400">Job class</dt><dd>{purchasableRoofing(draftQuantity.roofAreaSqFt, allowSixSquareRepairThreshold)?.jobLabel ?? 'Full replacement starts at 10 squares.'}</dd></div>
-              <div><dt className="text-slate-400">Measured pitch</dt><dd>{uniformPitchConfirmed ? `${draftQuantity.pitchRisePer12}/12` : 'Mixed — reviewed per plane'}</dd></div>
+              <div><dt className="text-slate-400">Measured pitch</dt><dd>{uniformPitchConfirmed ? `${draftQuantity.pitchRisePer12}/12` : 'Mixed — per plane'}</dd></div>
               <div><dt className="text-slate-400">Slope multiplier</dt><dd>{draftQuantity.slopeMultiplier}</dd></div>
             </dl>
-            <p className="mt-2 text-xs text-amber-200">Plan area uses reviewed polygons and one scale; slope area sums each plane with its confirmed measured pitch. Verify edges, dormers, overhangs, valleys, and roof access independently.</p>
+            <p className="mt-2 text-xs text-amber-200">Plan area is computed from reviewed polygon coordinates and one scale. Slope area uses the confirmed uniform pitch or each saved, reviewed plane pitch. Verify edges, dormers, overhangs, valleys and actual site pitch independently.</p>
             <button onClick={() => void saveDraftQuantity()} disabled={working || Boolean(savedMeasurementId)} className="mt-3 rounded-lg bg-cyan-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{savedMeasurementId ? 'Saved as unverified draft' : 'Save as unverified draft measurement'}</button>
             {savedMeasurementId && <p className="mt-2 text-xs text-emerald-200">Measurement record: {savedMeasurementId}</p>}
           </div> : <p className="mt-3 rounded-lg border border-white/10 bg-black/20 p-3 text-sm text-slate-400">No quantity yet. Confirm geometry, calibration, top-down image type, measured pitch, and uniform pitch across accepted planes; accept or edit at least one plane.</p>}

@@ -145,8 +145,8 @@ assert.ok(measurePage.includes('file.size > 12 * 1024 * 1024'))
 assert.ok(measurePage.includes('const cachedMeasurement = payload.cached ? payload.measurement : null'))
 assert.ok(measurePage.includes('setCalibrated(cachedCalibrated)'))
 assert.ok(measurePage.includes('setGeometryConfirmed(cachedConfirmed)'))
-assert.ok(measurePage.includes('setOrthographicTopDown(cachedMeasurement?.orthographic_top_down_confirmed === true)'))
-assert.ok(measurePage.includes('setUniformPitchConfirmed(cachedMeasurement?.uniform_pitch_confirmed === true)'))
+assert.ok(measurePage.includes('setOrthographicTopDown(savedHumanReview?.orthographic_top_down_confirmed === true)'), 'only persisted explicit human top-down attestation may be restored')
+assert.ok(measurePage.includes('setUniformPitchConfirmed(false)'), 'cached geometry must not silently approve a uniform measured pitch')
 
 const previousGeminiKey = process.env.GEMINI_API_KEY
 const previousGeminiModel = process.env.GEMINI_VISION_MODEL

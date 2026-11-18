@@ -139,7 +139,7 @@ export async function POST(request: NextRequest) {
 
     const { data: existing, error: existingError } = await supabase
       .from('aerial_measurements')
-      .select('id,status,calibration_status,source_photo_id,image_width,image_height,created_by,scale_reference_pixels,scale_reference_feet,orthographic_top_down_confirmed,uniform_pitch_confirmed,confirmed_uniform_pitch_rise_per_12')
+      .select('id,status,calibration_status,source_photo_id,image_width,image_height,created_by,ai_formulation,scale_reference_pixels,scale_reference_feet,orthographic_top_down_confirmed,uniform_pitch_confirmed,confirmed_uniform_pitch_rise_per_12')
       .eq('workspace_id', workspaceId)
       .eq('source_photo_id', photoId)
       .maybeSingle()
@@ -266,7 +266,7 @@ export async function PATCH(request: NextRequest) {
 
   const { data: measurement } = await supabase
     .from('aerial_measurements')
-    .select('id,workspace_id,status,calibration_status,scale_reference_pixels,scale_reference_feet,pixels_per_foot,calibrated_by,calibrated_at,orthographic_top_down_confirmed,uniform_pitch_confirmed,confirmed_uniform_pitch_rise_per_12')
+    .select('id,workspace_id,status,calibration_status,scale_reference_pixels,scale_reference_feet,pixels_per_foot,calibrated_by,calibrated_at,ai_formulation,orthographic_top_down_confirmed,uniform_pitch_confirmed,confirmed_uniform_pitch_rise_per_12')
     .eq('id', body.aerialMeasurementId)
     .eq('workspace_id', workspaceId)
     .maybeSingle()

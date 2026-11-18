@@ -1,21 +1,40 @@
 # ROOF/OS Living Build Checklist
 
+## 2026-11-15 — Parallel anonymous/free-only public research
+
+- [~] Add separate authenticated BAILEY /research page and /api/research/parallel public-source lookup.
+- [~] Restrict network endpoint to anonymous Parallel MCP web_search with no billing key, sign-in, API fallback, or other providers replaced.
+- [~] Mock MCP handshake and response tests with no paid calls; GitHub PR check pending.
+- [!] Live BAILEY production network test, source-quality comparison and hosted deployment require evidence.
+- [—] Parallel authenticated web_research and paid API: explicitly outside owner-approved $0 scope.
+
+See docs/PARALLEL-FREE-RESEARCH.md; source creation alone is not a production verification.
+
+
 Markers: [ ] pending, [~] in progress, [✓] verified, [!] blocked, [—] out of scope.
 
-## 2026-11-17 — Reviewed pitch migration version reconciliation (PR #461)
+## 2026-11-17 — Driveway grade + 3D estimation: TDD math slice (PR #466)
 
-- [✓] Renamed duplicate 102 reviewed pitch migration to 103 because ContractorOS main already uses version 102. Source-only change, no hosted schema updates.
-- [!] Still draft and unmerged: rebase and compare current main #462/#465 semantics, stage/verify migration 102 then 103, backup/rollback and authenticated RLS before release.
+- [✓] Added `docs/contractor-os/DRIVEWAY-3D-GRADING-ESTIMATOR-PLAN.md` reviewing actual 3D plugin tool limits, GIS/data licensing, grade/tonnage assumptions, address-first/manual workflow, field/permit and Supabase release gates. All 20 AI functions and nine releases remain mandatory.
+- [✓] **Observed test-first RED:** dedicated CI job `134173178277` on test-only PR head `ee709177b48ad237f806bfd75599dc11aa335d49` failed `ERR_MODULE_NOT_FOUND` for new earthwork module, as intended before code.
+- [✓] **Isolated GREEN:** after adding `lib/measurements/driveway-earthwork.ts` at commit `d92c161eba1570187f079195380a41d54612490e`, the dedicated `earthwork-precision` job succeeded. Synthetic unit assertions cover tapered area, depth-to-cubic-yards conversion, benchmark-referenced grade, cut/fill survey cells, incompatible density basis, absent supplier yield, and 150-ton-per-yd³ unit-safety rejection.
+- [~] Full latest-head PR check/review and eventual post-merge verification remain separate; do not consider a branch-green isolated job to be a production release.
+- [!] **Not implemented or field-approved:** actual Michigan property terrain/scale measurement, lidar rights/accuracy, legal imagery, address-first driveway UI, supplier prices, road/drainage permits, geotechnical/utility checks, mobile grade sync, 3D rendering, real site quantities, owner-approved customer bid. No quantity, price or permit was guessed.
+- [~] Follow-on retaining wall/landscaping/cabinet domains reuse verified geometry and CAD tools but remain planned work; never silently fabricate a load-bearing design.
+- [✓] Separately confirmed PR #465 merged as `e2740b4a7d1ab6319d4c07edd408ffaa1e74a7cd`; the five main CI jobs and Vercel succeeded. This is measurement software evidence, not site measurement accuracy.
+- [!] Active Supabase Roof OS read-only verification: human review columns and ContractorOS control-plane tables have not been applied; do not merge draft #461 (renumbered SQL 103) into production without staging, backup, schema/RLS checks, and owner authorization.
+- [~] Parallel draft #455's isolated GitHub live anonymous MCP smoke passed with no API key, alongside mocked contract; real BAILEY app-host and source-quality pilot remain unverified, no paid API fallback.
 
-## 2026-11-16 — Reviewed per-plane pitch and saved draft (PR #461)
+## 2026-11-17 — Mako Check-In: verified R2 merge + hardening in progress
 
-- [✓] Source TDD RED: `43973583322` (test-only commit `943c7f3`) fails on missing reviewed-pitch schema. Source GREEN: `43974736857` all five jobs green on code-bearing commit `07bb0b7`.
-- [✓] `/measure` permits saving measured pitch per accepted plane; supports uniform or mixed pitches and shows computed draft quantity from reviewed geometry.
-- [✓] API stores human-reviewed numeric pitch separately from model note, checks scale, shape, explicit top-down and pitch attestations before immutable confirmation.
-- [✓] Draft save API calculates quantity from the stored plane shapes and pitches rather than stale AI area; rejects changed previews and does not approve unverified AI edge lengths.
-- [✓] Additive repository migration `103_reviewed_plane_pitch.sql` added, **NOT applied to live DB**.
-- [!] Read-only Supabase Roof OS schema lacks new columns. **No merge or deployment while live DB is unmigrated.** Protected migration requires separate backup, staging and owner-approved production release.
-- [~] Final documentation-commit CI, independent reviewer, full staged/live end-to-end and owner acceptance remain required. No field claim.
+- [✓] PR #462 merged into main at `1b8393a09bec55a87766eee3aa3d0903ed5e4b61`. All five exact-head CI jobs, Vercel, preview-feedback check, and five post-merge main CI jobs succeeded. This is repository evidence, **not** field acceptance.
+- [✓] Reviewed per-plane pitch entry, saved `reviewed:<rise>/12` provenance, cached pitch restoration, and provisional mixed-pitch draft save are present in merged source. The helper-only notation in the older PR #460 checkpoint below is historical and superseded by #462 at source level.
+- [✓] ContractorOS controlled foundation PR #463 merged as `68fc020e733cf504c10473997201b859f2b8221f`; migration `102_contractor_os_control_plane.sql` is in main, **not** confirmed applied to hosted Supabase.
+- [~] This follow-up branch adds explicit top-down/pitch attestation, saves review metadata in existing `aerial_measurements.ai_formulation.human_geometry_review`, recomputes draft quantities server-side from persisted workspace-scoped polygons and reviewed pitch markers, and rejects stale client previews. No new migration or production mutation. **Pending fresh PR CI, runtime authentication/RLS, and independent review.**
+- [!] Draft PR #461 remains unmerged; it adds `102_reviewed_plane_pitch.sql` with the same migration version as the merged ContractorOS migration and depends on absent hosted columns. Reconcile/version its migration and current main code, and verify backup, staging, RLS and target schema before deploying it.
+- [!] Draft PR #455 (free-only anonymous Parallel research) remains unmerged until current-head CI, deployment-host connectivity and source-quality pilot pass. No paid API fallback permitted.
+- [~] Superpowers ledger records all 15 reviewed skills but preserves the unperformed subagent, independent-review, SD3 worktree and field-verification boundaries. The approved 20 AI functions and nine releases remain mandatory, not implicitly completed.
+- [!] Production field accuracy, authenticated read/write/reload, inter-workspace isolation, owner approval, UI/mobile-device checks, backup/rollback, address-first aerial coverage, and driveway/grade estimating remain separate release gates.
 
 ## 2026-11-16 — Dossier R2 roof-plane precision (PR #460)
 
