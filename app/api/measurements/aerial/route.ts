@@ -242,6 +242,10 @@ export async function POST(request: NextRequest) {
   }
 }
 
+function validateReviewedPitch(value: unknown) {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 36
+}
+
 export async function PATCH(request: NextRequest) {
   const context = await getContext()
   if ('response' in context) return context.response
@@ -386,8 +390,7 @@ export async function PATCH(request: NextRequest) {
     }
     if (body.pitch !== undefined) update.suggested_pitch = typeof body.pitch === 'string' ? body.pitch.slice(0, 80) : null
     if (body.pitchRisePer12 !== undefined) {
-      if (table !== 'roof_planes' || typeof body.pitchRisePer12 !== 'number' || !Number.isFinite(body.pitchRisePer12)
-        || body.pitchRisePer12 < 0 || body.pitchRisePer12 > 36) return jsonError('Reviewed plane pitch must be 0–36 rise per 12.', 400)
+      if (table !== 'roof_planes' || !validateReviewedPitch(body.pitchRisePer12)) return jsonError('Reviewed plane pitch must be 0–36 rise per 12.', 400)
       update.reviewed_pitch_rise_per_12 = body.pitchRisePer12
     }
   }
