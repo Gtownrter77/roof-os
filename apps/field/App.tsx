@@ -894,9 +894,26 @@ export default function App() {
         if (uploadError && !/already exists|duplicate/i.test(uploadError.message)) throw uploadError
         const { data, error: recordError } = await supabase.from('inspection_photos').upsert({ inspection_id: remoteId, client_id: photo.client_id, workspace_id: workspaceId, uploaded_by: session.user.id, bucket_id: 'inspection-photos', object_path: objectPath, album: photo.album, caption: photo.caption, mime_type: photo.mime_type, file_size_bytes: photo.file_size_bytes, width: photo.width, height: photo.height, captured_at: photo.captured_at, upload_status: 'uploaded' }, { onConflict: 'workspace_id,client_id' }).select('id').single()
         if (recordError) throw recordError
+        // Only the server can certify GPS based on the actual image bytes.
+        // Network, EXIF or migration failure leaves this upload manual-only.
+        let gpsVerified = false
+        try {
+          const baseUrl = webAppUrl.replace(/\/$/, '')
+          const verificationResponse = await fetch(baseUrl + '/api/photo-provenance/verify', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json', authorization: 'Bearer ' + session.access_token },
+            body: JSON.stringify({ photoId: data.id }),
+          })
+          const verification = await verificationResponse.json()
+          gpsVerified = verificationResponse.ok && verification.gpsVerified === true
+        } catch { /* Photo is accepted, automation remains off. */ }
         db.withTransactionSync(() => {
           db.runSync('UPDATE inspection_photo_queue SET sync_status = ?, remote_id = ?, last_error = NULL, next_retry_at = NULL WHERE id = ?', 'synced', data.id, photo.id)
-          db.runSync('UPDATE inspection_ai_request_queue SET status = ?, source_photo_id = ?, updated_at = ? WHERE photo_queue_id = ? AND status = ?', 'pending_analysis', data.id, timestamp(), photo.id, 'waiting_for_upload')
+          if (gpsVerified) {
+            db.runSync('UPDATE inspection_ai_request_queue SET status = ?, source_photo_id = ?, updated_at = ? WHERE photo_queue_id = ? AND status = ?', 'pending_analysis', data.id, timestamp(), photo.id, 'waiting_for_upload')
+          } else {
+            db.runSync('DELETE FROM inspection_ai_request_queue WHERE photo_queue_id = ?', photo.id)
+          }
         })
       }
       if (draftRef.current?.id === draftToSync.id) setPendingUploads(pendingRowCount(draftToSync.id))
