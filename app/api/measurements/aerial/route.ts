@@ -144,14 +144,14 @@ export async function POST(request: NextRequest) {
 
     const { data: existing, error: existingError } = await supabase
       .from('aerial_measurements')
-      .select('id,status,calibration_status,source_photo_id,image_width,image_height,created_by,ai_formulation,scale_reference_pixels,scale_reference_feet')
+      .select('id,status,calibration_status,source_photo_id,image_width,image_height,created_by,ai_formulation,scale_reference_pixels,scale_reference_feet,orthographic_top_down_confirmed,uniform_pitch_confirmed,confirmed_uniform_pitch_rise_per_12')
       .eq('workspace_id', workspaceId)
       .eq('source_photo_id', photoId)
       .maybeSingle()
     if (existingError) return jsonError('Existing aerial measurement state could not be verified.', 503)
     if (existing) {
       const [planes, edges, objects] = await Promise.all([
-        supabase.from('roof_planes').select('id,vertices,suggested_pitch,confidence,review_status').eq('aerial_measurement_id', existing.id).eq('workspace_id', workspaceId),
+        supabase.from('roof_planes').select('id,vertices,suggested_pitch,reviewed_pitch_rise_per_12,confidence,review_status').eq('aerial_measurement_id', existing.id).eq('workspace_id', workspaceId),
         supabase.from('roof_edges').select('id,start_point,end_point,classification,confidence,review_status').eq('aerial_measurement_id', existing.id).eq('workspace_id', workspaceId),
         supabase.from('roof_objects').select('id,object_type,position,confidence,review_status').eq('aerial_measurement_id', existing.id).eq('workspace_id', workspaceId),
       ])
@@ -164,7 +164,7 @@ export async function POST(request: NextRequest) {
             image_width: existing.image_width,
             image_height: existing.image_height,
             source_image_reference: 'persisted-review-suggestions',
-            planes: (planes.data ?? []).map((row) => ({ id: row.id, dbId: row.id, vertices: row.vertices, suggested_pitch: row.suggested_pitch, confidence: row.confidence, review_status: row.review_status })),
+            planes: (planes.data ?? []).map((row) => ({ id: row.id, dbId: row.id, vertices: row.vertices, suggested_pitch: row.suggested_pitch, reviewed_pitch_rise_per_12: row.reviewed_pitch_rise_per_12, confidence: row.confidence, review_status: row.review_status })),
             edges: (edges.data ?? []).map((row) => ({ id: row.id, dbId: row.id, start: row.start_point, end: row.end_point, classification: row.classification, confidence: row.confidence, review_status: row.review_status })),
             objects: (objects.data ?? []).map((row) => ({ id: row.id, dbId: row.id, type: row.object_type, position: row.position, confidence: row.confidence, review_status: row.review_status })),
             warnings: ['Persisted suggestions loaded; no existing geometry was overwritten.'],
@@ -182,7 +182,7 @@ export async function POST(request: NextRequest) {
         ai_model_version: 'browser-local-ollama',
         ai_formulated_at: new Date().toISOString(),
         measurement_source: 'ai_formulated',
-        }).eq('id', existing.id).eq('workspace_id', workspaceId).eq('created_by', user.id).select('id,status,calibration_status,source_photo_id').single()).data
+        }).eq('id', existing.id).eq('workspace_id', workspaceId).eq('created_by', user.id).select('id,status,calibration_status,source_photo_id,orthographic_top_down_confirmed,uniform_pitch_confirmed,confirmed_uniform_pitch_rise_per_12').single()).data
         : existing
       : (await supabase.from('aerial_measurements').insert({
         workspace_id: workspaceId,
@@ -196,7 +196,7 @@ export async function POST(request: NextRequest) {
         ai_formulated_at: new Date().toISOString(),
         measurement_source: 'ai_formulated',
         created_by: user.id,
-      }).select('id,status,calibration_status,source_photo_id').single()).data
+      }).select('id,status,calibration_status,source_photo_id,orthographic_top_down_confirmed,uniform_pitch_confirmed,confirmed_uniform_pitch_rise_per_12').single()).data
     if (!measurement) return jsonError('Could not create the aerial measurement workspace.', 502)
 
     const sourceReference = `inspection-photo:${photoId}:sha256:${contentHash}`
@@ -242,20 +242,6 @@ export async function POST(request: NextRequest) {
   }
 }
 
-function reviewedPitchRise(value: unknown): number | null {
-  if (typeof value !== 'string') return null
-  const matched = /^reviewed:(\d+(?:\.\d+)?)\/12$/.exec(value.trim())
-  if (!matched) return null
-  const rise = Number(matched[1])
-  return Number.isFinite(rise) && rise >= 0 && rise <= 36 ? rise : null
-}
-
-function validateReviewedPitch(value: unknown): number | null {
-  if (typeof value !== 'string' || !/^(?:\d+(?:\.\d+)?)(?:\/12)?$/.test(value.trim())) return null
-  const rise = Number(value.trim().replace(/\/12$/, ''))
-  return Number.isFinite(rise) && rise >= 0 && rise <= 36 ? rise : null
-}
-
 export async function PATCH(request: NextRequest) {
   const context = await getContext()
   if ('response' in context) return context.response
@@ -275,9 +261,9 @@ export async function PATCH(request: NextRequest) {
     imageHeight?: unknown
     classification?: unknown
     pitch?: unknown
+    pitchRisePer12?: unknown
     orthographicTopDownConfirmed?: unknown
     uniformPitchConfirmed?: unknown
-    pitchRisePer12?: unknown
   }
   const action = typeof body.action === 'string' ? body.action : ''
   if (!['accept', 'reject', 'edit', 'delete', 'calibrate', 'confirm'].includes(action)) return jsonError('Unsupported review action.', 400)
@@ -285,7 +271,7 @@ export async function PATCH(request: NextRequest) {
 
   const { data: measurement } = await supabase
     .from('aerial_measurements')
-    .select('id,workspace_id,status,calibration_status,scale_reference_pixels,scale_reference_feet,pixels_per_foot,calibrated_by,calibrated_at,ai_formulation')
+    .select('id,workspace_id,status,calibration_status,scale_reference_pixels,scale_reference_feet,pixels_per_foot,calibrated_by,calibrated_at,ai_formulation,orthographic_top_down_confirmed,uniform_pitch_confirmed,confirmed_uniform_pitch_rise_per_12')
     .eq('id', body.aerialMeasurementId)
     .eq('workspace_id', workspaceId)
     .maybeSingle()
@@ -316,44 +302,42 @@ export async function PATCH(request: NextRequest) {
   }
 
   if (action === 'confirm') {
-    if (measurement.status === 'confirmed') return jsonError('Confirmed geometry is immutable; start a new formulation for corrections.', 409)
+    if (measurement.status === 'confirmed') return jsonError('Confirmed geometry is immutable; start a new formulation if a correction is required.', 409)
     if (measurement.calibration_status !== 'calibrated') return jsonError('Save scale calibration before confirming geometry.', 409)
     if (body.orthographicTopDownConfirmed !== true || typeof body.uniformPitchConfirmed !== 'boolean') {
-      return jsonError('Confirm orthographic top-down imagery and pitch review explicitly.', 400)
+      return jsonError('Explicit top-down imagery and pitch review confirmation are required.', 400)
     }
     const uniformPitch = body.uniformPitchConfirmed
     const uniformRise = body.pitchRisePer12
     if (uniformPitch && (typeof uniformRise !== 'number' || !Number.isFinite(uniformRise) || uniformRise < 0 || uniformRise > 36)) {
-      return jsonError('A numeric human-measured uniform pitch (0–36 rise/12) is required.', 400)
+      return jsonError('A measured uniform roof pitch between 0 and 36/12 is required.', 400)
     }
-    const { data: persistedPlanes, error: planeError } = await supabase.from('roof_planes')
-      .select('vertices,review_status,suggested_pitch')
+    const { data: roofPlanes, error: planeError } = await supabase.from('roof_planes')
+      .select('vertices,review_status,reviewed_pitch_rise_per_12')
       .eq('aerial_measurement_id', measurement.id).eq('workspace_id', workspaceId)
-    if (planeError) return jsonError('Persisted roof plane reviews could not be loaded.', 503)
+    if (planeError) return jsonError('Reviewed roof geometry could not be verified.', 503)
     try {
       calculateCalibratedRoofDraft({
-        planes: (persistedPlanes ?? []).map(plane => ({
+        planes: (roofPlanes ?? []).map(plane => ({
           vertices: plane.vertices,
           review_status: plane.review_status,
-          pitchRisePer12: reviewedPitchRise(plane.suggested_pitch) ?? undefined,
+          ...(plane.reviewed_pitch_rise_per_12 == null ? {} : { pitchRisePer12: Number(plane.reviewed_pitch_rise_per_12) }),
         })),
         scaleReferencePixels: Number(measurement.scale_reference_pixels),
         scaleReferenceFeet: Number(measurement.scale_reference_feet),
         pitchRisePer12: uniformPitch ? Number(uniformRise) : 0,
-        orthographicTopDownConfirmed: true,
-        uniformPitchConfirmed: uniformPitch,
-        geometryConfirmed: true,
+        orthographicTopDownConfirmed: true, uniformPitchConfirmed: uniformPitch, geometryConfirmed: true,
       })
     } catch (error) {
-      return jsonError(error instanceof Error ? error.message : 'Review all roof planes and pitch before confirmation.', 409)
+      return jsonError(error instanceof Error ? error.message : 'Reviewed roof geometry cannot be confirmed.', 409)
     }
-    // Existing AI formulation JSON retains original model provenance. This separately
-    // labelled human attestation is provisional until dedicated versioned review fields ship.
-    const formulation = measurement.ai_formulation && typeof measurement.ai_formulation === 'object' && !Array.isArray(measurement.ai_formulation)
-      ? measurement.ai_formulation : {}
+    const formulation = (measurement.ai_formulation && typeof measurement.ai_formulation === 'object') ? measurement.ai_formulation as Record<string, unknown> : {}
     const { data, error } = await supabase.from('aerial_measurements').update({
       status: 'confirmed',
       calibration_status: 'confirmed',
+      orthographic_top_down_confirmed: true,
+      uniform_pitch_confirmed: uniformPitch,
+      confirmed_uniform_pitch_rise_per_12: uniformPitch ? uniformRise : null,
       ai_formulation: { ...formulation, human_geometry_review: {
         orthographic_top_down_confirmed: true,
         uniform_pitch_confirmed: uniformPitch,
@@ -364,9 +348,9 @@ export async function PATCH(request: NextRequest) {
       confirmed_at: new Date().toISOString(),
     }).eq('id', measurement.id).eq('workspace_id', workspaceId)
       .eq('status', 'draft').eq('calibration_status', 'calibrated')
-      .select('id,calibration_status,scale_reference_pixels,scale_reference_feet,pixels_per_foot,calibrated_by,calibrated_at,confirmed_by,confirmed_at,ai_formulation').single()
-    if (error || !data) return jsonError('Geometry confirmation failed or was changed concurrently.', 409)
-    return NextResponse.json({ measurement: data, warning: 'Human-reviewed geometry saved. Draft quantities remain unverified.' })
+      .select('id,calibration_status,orthographic_top_down_confirmed,uniform_pitch_confirmed,confirmed_uniform_pitch_rise_per_12,scale_reference_pixels,scale_reference_feet,pixels_per_foot,calibrated_by,calibrated_at,confirmed_by,confirmed_at').single()
+    if (error || !data) return jsonError('Geometry confirmation could not be saved.', 502)
+    return NextResponse.json({ measurement: data, warning: 'Reviewed geometry and explicit pitch attestations saved; source still requires independent quantity approval.' })
   }
 
   if (!isUuid(body.suggestionId)) return jsonError('suggestionId must be a valid UUID.', 400)
@@ -400,13 +384,11 @@ export async function PATCH(request: NextRequest) {
       if (typeof body.classification !== 'string' || !EDGE_TYPES.has(body.classification)) return jsonError('Edge classification is invalid.', 400)
       update.classification = body.classification
     }
-    if (body.pitch !== undefined) {
-      if (body.kind !== 'plane') return jsonError('Only roof planes can receive a reviewed pitch.', 400)
-      const pitch = validateReviewedPitch(body.pitch)
-      if (pitch === null) return jsonError('Reviewed pitch must be a numeric rise from 0 to 36 per 12 inches.', 400)
-      // Prefix separates a human-reviewed measurement from an AI suggestion,
-      // even after an edited plane is subsequently accepted and reloaded.
-      update.suggested_pitch = `reviewed:${pitch}/12`
+    if (body.pitch !== undefined) update.suggested_pitch = typeof body.pitch === 'string' ? body.pitch.slice(0, 80) : null
+    if (body.pitchRisePer12 !== undefined) {
+      if (table !== 'roof_planes' || typeof body.pitchRisePer12 !== 'number' || !Number.isFinite(body.pitchRisePer12)
+        || body.pitchRisePer12 < 0 || body.pitchRisePer12 > 36) return jsonError('Reviewed plane pitch must be 0–36 rise per 12.', 400)
+      update.reviewed_pitch_rise_per_12 = body.pitchRisePer12
     }
   }
 
@@ -414,7 +396,7 @@ export async function PATCH(request: NextRequest) {
     .eq('id', body.suggestionId)
     .eq('aerial_measurement_id', measurement.id)
     .eq('workspace_id', workspaceId)
-    .select('id,review_status,reviewed_by,reviewed_at').single()
+    .select(table === 'roof_planes' ? 'id,review_status,reviewed_by,reviewed_at,reviewed_pitch_rise_per_12' : 'id,review_status,reviewed_by,reviewed_at').single()
   if (error || !data) return jsonError('Suggestion could not be updated.', 502)
   return NextResponse.json({ suggestion: data, warning: 'AI-formulated geometry remains linked to the source image and model provenance.' })
 }
