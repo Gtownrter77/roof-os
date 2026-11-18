@@ -1,3 +1,12 @@
+## 2026-11-18 — Field APK Metro resolution repair
+
+- Forensic audit of GitHub `main` `e755a4c3e9d611e15f90e7cf7c4fda928a50d2d7` (PR #482). Required CI on that SHA: web, mobile, field-security, migration-safety, preview-build all **success**.
+- Latest published APK release remains [field-apk-main-6976341](https://github.com/Gtownrter77/roof-os/releases/tag/field-apk-main-6976341) (2026-11-09). Newest successful APK *artifact* is workflow [run 44197803638](https://github.com/Gtownrter77/roof-os/actions/runs/44197803638) from `8bb00b6` (2026-11-17). Three later main APK runs failed at EAS eager bundle: `44238193777`, `44239707819`, `44242517518`.
+- Observed failure (job `134593554133`): `Unable to resolve module ../../lib/photo-provenance.mjs from apps/field/App.tsx`. Metro's project root is `apps/field`; the shared GPS helper lives in repo `lib/`.
+- Repair: `apps/field/metro.config.cjs` watches the workspace root and includes `.mjs`; login copy no longer claims fallback credentials; `scripts/mobile-release-contract-test.mjs` now requires that Metro config; mobile CI runs the contract. Docs in `MOBILE-FIELD-RELEASE.md` and this handoff updated to current SHAs.
+- Open PR #461 remains **CONFLICTING** and was not merged. On-device AI stays disabled by design. Physical-device install and live two-workspace isolation remain unverified.
+- Next: merge this repair to `main`, dispatch `ROOF OS Mobile APK`, and record the new artifact SHA.
+
 ## 2026-11-17 — Phase 0 merged and APK updated
 
 - PR #469 was merged into `main` as merge commit `8bb00b699f6d3d1fac4d1831995d97268284828` after all 8 required checks passed: web, mobile, migration-safety, field-security, preview-build, Vercel, preview comments, and driveway evidence.

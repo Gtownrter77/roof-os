@@ -1,13 +1,18 @@
 # ROOF/OS Field Mobile Release 0.5.0
 
 
-## Current checkpoint — 2026-11-02
+## Current checkpoint — 2026-11-18
 
-**The APK currently published on GitHub is not the current app.** The latest release is [field-apk-main-2501cc2](https://github.com/Gtownrter77/roof-os/releases/tag/field-apk-main-2501cc2), published 2026-10-22 from commit `2501cc20fc5a0e346426a389bbfe46be6aaa44c5`. Current `main` is `b74d23431aa4affcf512710635197bc0e1923256), **119 commits ahead** of that APK source. The existing APK is 78,795,524 bytes and has GitHub asset SHA-256 `580d3ebac4ddc1143c9c5336123a0b7c12fc996185ee4cfdb3bdc77f31ec357b`. It has no companion provenance manifest or published checksum file.
+**Current `main` at audit start:** `e755a4c3e9d611e15f90e7cf7c4fda928a50d2d7` (PR #482). Required CI jobs on that SHA passed: web, mobile, field-security, migration-safety, preview-build.
 
-The app source reports version `0.5.0` and package `com.roofos.field`. No APK has yet been built from the current `main`, no current-main APK binary has been inspected, and no physical-device installation/smoke test has been verified. Do not call the old release current or production-ready.
+**APK that is not current `main`:** GitHub Release [field-apk-main-6976341](https://github.com/Gtownrter77/roof-os/releases/tag/field-apk-main-6976341) is the latest published release (2026-11-09, version code `15`). The newest *successful* APK workflow is [run 44197803638](https://github.com/Gtownrter77/roof-os/actions/runs/44197803638) from merge `8bb00b6` (2026-11-17, version code `29`). Three later `main` APK runs failed before a new binary: `44238193777`, `44239707819`, `44242517518`.
 
-### Current build pipeline in PR #375
+**Root cause of the APK break:** PRs #478–#480 taught `apps/field/App.tsx` to import `../../lib/photo-provenance.mjs`. EAS local bundling starts in `apps/field`, so Metro could not resolve that shared file. Failure: `Unable to resolve module ../../lib/photo-provenance.mjs`. `apps/field/metro.config.cjs` now watches the repo root and adds `.mjs` to `sourceExts`. Login copy no longer claims bundled fallback Supabase credentials when the Expo env is missing.
+
+The app source reports version `0.5.0` and package `com.roofos.field`. A current-main APK, physical-device install, and two-workspace live test remain separate gates until the APK workflow succeeds on the repaired SHA.
+
+### Current build pipeline
+
 
 - Manual workflow dispatch builds **protected `main` only**; it no longer accepts an arbitrary branch/ref input.
 - A `field-v*` tag builds that exact tag and must match `app.json` version.

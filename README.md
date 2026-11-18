@@ -1,7 +1,8 @@
-# Current repository audit — 2026-11-17
+# Current repository audit — 2026-11-18
 
-**Current main baseline:** `85044b843a589bc59dab68d3147e729c73df6304` (merged PR #474)
-**Current source migration head:** `104_contractor_os_action_authority.sql`
+**Current main baseline at audit start:** `e755a4c3e9d611e15f90e7cf7c4fda928a50d2d7` (merged PR #482)
+**Current source migration head:** later than `104`; see `supabase/migrations/` for the ordered ledger
+**APK:** latest published GitHub Release is `field-apk-main-6976341`; newest successful workflow artifact is run `44197803638` from `8bb00b6`. Later main APK builds failed until Metro could resolve `lib/photo-provenance.mjs` from `apps/field`.
 **Current audit boundary:** source and CI evidence only; production schema parity, deployed SHA, provider execution, physical-device behavior, live two-workspace isolation, and backup/restore remain unverified.
 
 The dated checkpoints below are historical snapshots and must not be treated as current-main evidence. Current source includes later ContractorOS migrations through `104`, the Phase 0 dossier/register, and the field APK artifact handoff. Legacy local migration prefix collisions at `021`–`023` are documented historical facts; do not rename or replay them. New migrations must use the protected repository/target-ledger workflow.
