@@ -213,6 +213,8 @@ export default function PhotoEstimatePage() {
         await supabase.storage.from('inspection-photos').remove([path]).catch(() => undefined)
         throw new Error('Photo metadata could not be saved. Please retry.')
       }
+      // Fail closed: an unverified photo remains valid manual evidence but cannot power AI automation.
+      await fetch('/api/photo-provenance/verify', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ photoId: photo.id }) }).catch(() => null)
       ids.push(photo.id)
       setPhotoIds([...ids])
     }
