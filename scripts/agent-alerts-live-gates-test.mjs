@@ -101,6 +101,7 @@ assert.deepEqual(assertNonProductionTarget(okEnv), { baseUrl: 'http://127.0.0.1:
 assert.throws(() => assertNonProductionTarget({ ...okEnv, ROOF_AGENT_GATES_NONPROD: undefined }), /NONPROD/)
 assert.throws(() => assertNonProductionTarget({ ...okEnv, ROOF_AGENT_GATES_CONFIRM: 'yes' }), /CONFIRM/)
 assert.throws(() => assertNonProductionTarget({ ...okEnv, ROOF_AGENT_GATES_BASE_URL: 'https://roof-os-lemon.vercel.app' }), /production host/)
+assert.throws(() => assertNonProductionTarget({ ...okEnv, ROOF_AGENT_GATES_BASE_URL: 'https://roof-os.onrender.com' }), /production host/)
 assert.throws(() => assertNonProductionTarget({ ...okEnv, ROOF_AGENT_GATES_BASE_URL: 'https://app.example.com', ROOF_PRODUCTION_HOSTS: 'app.example.com' }), /production host/)
 assert.throws(() => assertNonProductionTarget({ ...okEnv, CRON_SECRET: ' ' }), /CRON_SECRET/)
 
