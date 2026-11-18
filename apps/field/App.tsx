@@ -879,6 +879,8 @@ export default function App() {
         db.runSync('UPDATE inspection_measurements_local SET sync_status = ?, last_error = NULL, next_retry_at = NULL WHERE id = ?', 'synced', measurement.id)
       }
       const queued = db.getAllSync<{ id: number; client_id: string; local_uri: string; album: string; caption: string | null; mime_type: string; file_size_bytes: number | null; width: number | null; height: number | null; captured_at: string }>('SELECT id, client_id, local_uri, album, caption, mime_type, file_size_bytes, width, height, captured_at FROM inspection_photo_queue WHERE draft_id = ? AND sync_status IN (?, ?) AND (next_retry_at IS NULL OR next_retry_at <= ?)', draftToSync.id, 'queued', 'retrying', now)
+      let reviewPacketsCreated = 0
+      let manualOnlyPhotos = 0
       for (const photo of queued) {
         const extension = photo.mime_type.split('/')[1]?.replace('jpeg', 'jpg') || 'bin'; const objectPath = `${workspaceId}/${session.user.id}/${remoteId}/${photo.client_id}.${extension}`
         let body: Blob | ArrayBuffer
@@ -897,6 +899,7 @@ export default function App() {
         // Only the server can certify GPS based on the actual image bytes.
         // Network, EXIF or migration failure leaves this upload manual-only.
         let gpsVerified = false
+        let automaticMeasurementsAllowed = false
         try {
           const baseUrl = webAppUrl.replace(/\/$/, '')
           const verificationResponse = await fetch(baseUrl + '/api/photo-provenance/verify', {
@@ -906,7 +909,20 @@ export default function App() {
           })
           const verification = await verificationResponse.json()
           gpsVerified = verificationResponse.ok && verification.gpsVerified === true
+          automaticMeasurementsAllowed = gpsVerified && verification.autoMeasurementsAllowed === true
         } catch { /* Photo is accepted, automation remains off. */ }
+        if (!gpsVerified) manualOnlyPhotos += 1
+        if (automaticMeasurementsAllowed) {
+          try {
+            const reportResponse = await fetch(webAppUrl.replace(/\/$/, '') + '/api/photo-to-report', {
+              method: 'POST',
+              headers: { 'content-type': 'application/json', authorization: 'Bearer ' + session.access_token },
+              body: JSON.stringify({ photoId: data.id }),
+            })
+            const report = await reportResponse.json()
+            if (reportResponse.ok && report.automationStarted === true) reviewPacketsCreated += 1
+          } catch { /* The photograph remains synced; no fabricated report. */ }
+        }
         db.withTransactionSync(() => {
           db.runSync('UPDATE inspection_photo_queue SET sync_status = ?, remote_id = ?, last_error = NULL, next_retry_at = NULL WHERE id = ?', 'synced', data.id, photo.id)
           if (gpsVerified) {
@@ -918,7 +934,7 @@ export default function App() {
       }
       if (draftRef.current?.id === draftToSync.id) setPendingUploads(pendingRowCount(draftToSync.id))
       syncSucceeded = true
-      setNotice('Synced securely to the workspace. Evidence and estimates remain review-gated.')
+      setNotice('Synced securely. ' + reviewPacketsCreated + ' Photo-to-Report property packets created; ' + manualOnlyPhotos + ' manual-only photos. Evidence and estimates remain review-gated.')
     } catch (syncError) {
       const message = syncError instanceof Error ? syncError.message : 'Unknown sync error'
       if (isSessionExpiryError(syncError)) {
