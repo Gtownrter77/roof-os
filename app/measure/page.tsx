@@ -465,6 +465,21 @@ export default function MeasurePage() {
     }
   }, [suggestion, calibrated, geometryConfirmed, orthographicTopDown, uniformPitchConfirmed, perPlanePitchMode, pitchRisePer12, pitchValue, scalePixels, scaleFeet])
 
+  // Keep an immediate, honest summary of the AI-proposed geometry in view.
+  // Only the separately human-confirmed, server-recalculable draft quantity
+  // may display area or squares; never promote model guesses to measurements.
+  const presented = useMemo(() => {
+    if (!suggestion) return null
+    const entries = [...suggestion.planes, ...suggestion.edges, ...suggestion.objects]
+    const pending = entries.filter((item) => !item.review_status || item.review_status === 'pending').length
+    const accepted = entries.filter((item) => item.review_status === 'accepted' || item.review_status === 'edited').length
+    const reviewedPitchCount = suggestion.planes.filter((plane) =>
+      plane.review_status !== 'rejected' && (plane.pitchRisePer12 ?? reviewedPlanePitch(plane.suggested_pitch)) != null
+    ).length
+    return { planes: suggestion.planes.length, edges: suggestion.edges.length,
+      objects: suggestion.objects.length, pending, accepted, reviewedPitchCount }
+  }, [suggestion])
+
   async function saveDraftQuantity() {
     if (!draftQuantity || !inspectionId || !measurementId || savedMeasurementId) return
     const rangeError = roofAreaRangeError(draftQuantity.roofAreaSqFt)
@@ -615,6 +630,24 @@ export default function MeasurePage() {
               setStatus(mapCenter ? 'Manual map tracing enabled. The mapped footprint is a ground reference, not roof surface area.' : 'Manual image tracing enabled. Enter a known scale reference before treating traced geometry as dimensions.')
             }}
           />
+          {presented && <section aria-label="Draft roof geometry — technician verification required" className="mt-3 rounded-xl border border-amber-400/35 bg-amber-400/10 p-4 text-sm text-amber-100">
+            <h2 className="font-semibold text-base">System draft measurement — technician review</h2>
+            <p className="mt-1 text-xs">Suggestions are presented automatically, but no area, material quantity, or price is approved until the technician checks the roof geometry, scale and measured pitch.</p>
+            <dl className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <div><dt>Suggested planes</dt><dd className="font-semibold">{presented.planes}</dd></div>
+              <div><dt>Suggested edges</dt><dd className="font-semibold">{presented.edges}</dd></div>
+              <div><dt>Suggested objects</dt><dd className="font-semibold">{presented.objects}</dd></div>
+              <div><dt>Pending review</dt><dd className="font-semibold">{presented.pending}</dd></div>
+              <div><dt>Reviewed items</dt><dd className="font-semibold">{presented.accepted}</dd></div>
+              <div><dt>Human-reviewed plane pitches</dt><dd className="font-semibold">{presented.reviewedPitchCount}</dd></div>
+              <div><dt>Draft slope area</dt><dd className="font-semibold">{draftQuantity ? draftQuantity.roofAreaSqFt.toLocaleString() + ' sq ft' : 'Not verified'}</dd></div>
+              <div><dt>Draft order squares</dt><dd className="font-semibold">{draftQuantity ? (purchasableRoofing(draftQuantity.roofAreaSqFt, allowSixSquareRepairThreshold)?.squaresLabel ?? String(draftQuantity.roofSquares)) : 'Not calculated'}</dd></div>
+            </dl>
+            <button type="button" onClick={() => document.getElementById('roof-geometry-review')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className="mt-3 rounded border border-amber-300/60 px-3 py-2 font-semibold text-amber-50">
+              Review planes, edges and measured pitch
+            </button>
+            <p className="mt-2 text-xs">A confirmed draft remains unverified until the independent estimate review is completed. This is not an order or customer-ready measurement.</p>
+          </section>}
           {file && <p className="mt-2 text-xs text-slate-400">{file.name} · {imageSize.width}×{imageSize.height}px · saved privately before local Ollama analysis. Requires Ollama model qwen3-vl:8b and this site's origin allowed in OLLAMA_ORIGINS.</p>}
           {error && <p className="mt-3 rounded-lg border border-red-400/30 bg-red-400/10 p-3 text-sm text-red-300" role="alert">{error}</p>}
           {status && <p className="mt-3 rounded-lg border border-emerald-400/30 bg-emerald-400/10 p-3 text-sm text-emerald-300" role="status">{status}</p>}
@@ -650,7 +683,7 @@ export default function MeasurePage() {
           {suggestion && <p className="mt-2 text-xs text-slate-400">Dashed cyan polygons = AI suggestions · amber lines = suggested edges · red dots = suggested objects. These are not quantities.</p>}
         </section>}
 
-        {suggestion && <section className="mt-4 grid gap-4 lg:grid-cols-3">
+        {suggestion && <section id="roof-geometry-review" className="mt-4 grid gap-4 lg:grid-cols-3">
           <div className="glass rounded-xl p-4 lg:col-span-2">
             <h2 className="font-semibold">Human review queue</h2>
             <p className="mb-3 text-xs text-slate-400">Accept, reject, or edit every suggestion. AI acceptance is never required. A pending item blocks geometry confirmation.</p>
