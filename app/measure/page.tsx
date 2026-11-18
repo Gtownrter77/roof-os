@@ -105,7 +105,7 @@ export default function MeasurePage() {
     const next = event.target.files?.[0] ?? null
     event.target.value = ''
     if (!next || next.type !== 'image/jpeg') {
-      setError(UNABLE_TO_UPLOAD)
+      setError('unable to upload')
       return
     }
     const bytes = new Uint8Array(await next.arrayBuffer())
@@ -126,7 +126,7 @@ export default function MeasurePage() {
     if (!located) {
       setFile(null)
       setPreview('')
-      setError(UNABLE_TO_UPLOAD)
+      setError('unable to upload')
       return
     }
     if (preview) URL.revokeObjectURL(preview)
@@ -306,7 +306,7 @@ export default function MeasurePage() {
       if (inspectionError || !inspection) throw new Error('Could not create an inspection session.')
 
       const photoBytes = new Uint8Array(await file.arrayBuffer())
-      if (!readEmbeddedLocation(photoBytes)) throw new Error(UNABLE_TO_UPLOAD)
+      if (!readEmbeddedLocation(photoBytes)) throw new Error('unable to upload')
       const objectId = crypto.randomUUID()
       const extension = MIME_EXTENSIONS[file.type]
       const path = `${workspaceId}/${user.id}/${inspection.id}/${objectId}.${extension}`
