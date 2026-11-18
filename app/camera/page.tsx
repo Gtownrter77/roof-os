@@ -235,6 +235,9 @@ function CameraInner() {
         if (metaError) throw new Error(metaError.message)
         const verification = await fetch('/api/photo-provenance/verify', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ photoId }) }).then((r) => r.ok ? r.json() : null).catch(() => null)
         if (verification?.gpsVerified !== true) manualOnlyCount += 1
+        else if (verification.autoMeasurementsAllowed === true) {
+          await fetch('/api/photo-to-report', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ photoId }) }).catch(() => null)
+        }
       }
 
       if (leadId) {
