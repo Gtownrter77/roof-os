@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
+import { createHash } from 'node:crypto'
+import { isCertifiedPhotoContent } from '../lib/photo-provenance-integrity.mjs'
 import { embedGpsIntoJpeg, readEmbeddedGps, hasEmbeddedGps } from '../lib/photo-provenance.mjs'
 
 const jpeg = Uint8Array.from([0xff,0xd8,0xff,0xd9])
@@ -20,6 +22,25 @@ assert.ok(Math.abs(gps.longitude - -84.705123) < 0.00001)
 assert.equal(gps.address, '123 Test Street, Testville, GA 30000')
 assert.equal(gps.capturedAt, '2026-11-17T12:30:00.000Z')
 assert.equal(hasEmbeddedGps(photo), true)
+// Certification is tied to exact original photo bytes and embedded coordinates,
+// never to a database boolean alone.
+const certification = {
+  gps_verified: true,
+  gps_sha256: createHash('sha256').update(photo).digest('hex'),
+  gps_latitude: gps.latitude,
+  gps_longitude: gps.longitude,
+  gps_address: gps.address,
+}
+assert.equal(isCertifiedPhotoContent(certification, photo), true)
+const modifiedBytes = new Uint8Array(photo.byteLength + 1)
+modifiedBytes.set(photo)
+modifiedBytes[photo.byteLength] = 42
+assert.equal(isCertifiedPhotoContent(certification, modifiedBytes), false, 'Changing any image byte revokes automation eligibility')
+assert.equal(isCertifiedPhotoContent({ ...certification, gps_verified: false }, photo), false)
+assert.equal(isCertifiedPhotoContent({ ...certification, gps_sha256: '0'.repeat(64) }, photo), false)
+assert.equal(isCertifiedPhotoContent({ ...certification, gps_address: 'Different property' }, photo), false)
+assert.equal(isCertifiedPhotoContent({ ...certification, gps_latitude: 1 }, photo), false)
+
 assert.ok(photo.byteLength > jpeg.byteLength)
 const restamped = embedGpsIntoJpeg(photo, {
   latitude: -15.75, longitude: 72.5,
@@ -68,7 +89,26 @@ assert.match(field, /embedGpsIntoJpeg/)
 assert.match(field, /readEmbeddedGps/)
 assert.match(field, /asset\.gpsEmbedded/)
 assert.match(field, /DELETE FROM inspection_ai_request_queue WHERE photo_queue_id/)
+assert.match(field, /Paths\.document/, 'Offline image cannot rely on temporary camera cache')
+assert.match(field, /await new File\(asset\.uri\)\.copy\(retained\)/, 'Original image must be retained before queuing')
+assert.match(field, /if \(!verificationResponse\.ok\)/, 'Failed GPS verification must retry')
+assert.match(field, /throw new Error\('GPS verification service unavailable/, 'Failed GPS service must not consume queue')
+assert.match(field, /if \(!reportResponse\.ok \|\| report\?\.automationStarted !== true\)/, 'Failed report packet must retry')
 const worker = source('workers/inspection-quality.ts')
 assert.match(worker, /filter\(\(photo\) => photo\.gps_verified === true\)/)
 assert.match(source('app/api/photo-to-report/route.ts'), /enable_auto_photo_measurements/)
+assert.match(source('app/api/photo-to-report/route.ts'), /start_photo_to_report_review_packet/)
+assert.match(source('app/api/photo-to-report/route.ts'), /isCertifiedPhotoContent\(photo, originalBytes\)/)
+const atomic = source('supabase/migrations/106_photo_to_report_atomic_packet.sql')
+assert.match(atomic, /on conflict \(workspace_id,photo_id\) do nothing/)
+assert.match(atomic, /current_user <> 'service_role'/)
+assert.match(atomic, /grant execute on function .*start_photo_to_report_review_packet/s)
+for (const route of [
+  'app/api/measurements/aerial/route.ts',
+  'app/api/measurements/aerial/ai-suggest/route.ts',
+  'app/api/photo-estimate/analyze/route.ts',
+  'app/api/siding/analyze/route.ts',
+]) {
+  assert.match(source(route), /isCertifiedPhotoContent\(/, route + ' must check actual image bytes')
+}
 console.log('Photo GPS/owner automation gate tests passed.')
