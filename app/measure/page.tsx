@@ -16,6 +16,7 @@ import AutoMeasurementTool from '../../components/AutoMeasurementTool'
 import RoofingWorkflowSettings from '../../components/RoofingWorkflowSettings'
 import RoofingWizardNavigator from '../../components/RoofingWizardNavigator'
 import { readEmbeddedLocation, stampLocation, UNABLE_TO_UPLOAD } from '../../lib/photos/location'
+import { canAutoLookupAddress, loadRoofingWorkflowPreferences, type RoofingWorkflowPreferences, DEFAULT_ROOFING_WORKFLOW_PREFS } from '../../lib/roofing-workflow-preferences'
 
 const ManualDrawingTool = dynamic(() => import('../../components/ManualDrawingTool'), { ssr: false })
 
@@ -117,7 +118,7 @@ export default function MeasurePage() {
         })
         const stamped = stampLocation(bytes, { latitude: position.coords.latitude, longitude: position.coords.longitude })
         located = readEmbeddedLocation(stamped)
-        if (located) accepted = new File([stamped], next.name.replace(/\.\w+$/, '.jpg'), { type: 'image/jpeg' })
+        if (located) accepted = new File([new Uint8Array(stamped)], next.name.replace(/\.\w+$/, '.jpg'), { type: 'image/jpeg' })
       } catch {
         located = null
       }
