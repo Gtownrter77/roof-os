@@ -18,6 +18,7 @@ export const WORKSPACE_FEATURE_FLAGS = {
   require_photo_completeness_report_gate: true,
   require_technician_signature_signoff: true,
   enable_2021_irc_statutory_code_suggestions: true,
+  enable_auto_photo_measurements: false,
   yolo_mode: false,
 } as const
 
@@ -140,6 +141,11 @@ export const FEATURE_FLAG_ENFORCEMENT: Record<WorkspaceFeatureFlag, FeatureFlagE
     enforced: true,
     surfaces: ['app/api/building-codes/route.ts'],
     note: 'Adds the drip edge and ice barrier statutory notes to the building code lookup.',
+  },
+  enable_auto_photo_measurements: {
+    enforced: true,
+    surfaces: ['app/api/settings/route.ts', 'app/api/measurements/aerial/route.ts', 'app/api/measurements/aerial/ai-suggest/route.ts', 'supabase/migrations/105_photo_gps_automation_authority.sql'],
+    note: 'Owner-only, OFF by default. Automatic photo measurement requires server-verified embedded GPS, an embedded property address, and this owner permission.',
   },
   yolo_mode: {
     enforced: true,
