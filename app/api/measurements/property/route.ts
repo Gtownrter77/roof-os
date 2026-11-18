@@ -34,25 +34,68 @@ export async function GET(request: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Authentication required.' }, { status: 401 })
   const params = request.nextUrl.searchParams
   const workspaceId = params.get('workspaceId')
-  const address = params.get('address')?.trim()
+  const address = params.get('address')?.trim() ?? ''
+  const latParam = params.get('lat')
+  const lonParam = params.get('lon')
+  const usingPhotoCoordinates = latParam !== null || lonParam !== null
   if (!isUuid(workspaceId)) return NextResponse.json({ error: 'workspaceId must be a valid workspace UUID.' }, { status: 400 })
   const membership = await requireWorkspaceMember(supabase, user.id, workspaceId)
   if (membership.response) return membership.response
-  if (!address || address.length > 240) return NextResponse.json({ error: 'address is required.' }, { status: 400 })
+  if (usingPhotoCoordinates && (!latParam || !lonParam)) {
+    return NextResponse.json({ error: 'Both embedded photo GPS coordinates are required.' }, { status: 400 })
+  }
+  if (!usingPhotoCoordinates && (!address || address.length > 240)) return NextResponse.json({ error: 'address is required.' }, { status: 400 })
 
-  const geocodeUrl = new URL(NOMINATIM)
-  geocodeUrl.searchParams.set('q', address)
-  geocodeUrl.searchParams.set('format', 'jsonv2')
-  geocodeUrl.searchParams.set('limit', '1')
-  const geocodeResponse = await fetchWithTimeout(geocodeUrl, { headers: { 'user-agent': USER_AGENT, accept: 'application/json' }, cache: 'no-store' })
-  if (!geocodeResponse.ok) return NextResponse.json({ error: 'Address lookup failed.' }, { status: 502 })
-  const geocoded = await geocodeResponse.json()
-  const geocodeResult = Array.isArray(geocoded) && record(geocoded[0]) ? geocoded[0] : null
-  if (!geocodeResult) return NextResponse.json({ error: 'Address could not be located.' }, { status: 404 })
-  const latitude = Number(geocodeResult.lat)
-  const longitude = Number(geocodeResult.lon)
-  if (!Number.isFinite(latitude) || !Number.isFinite(longitude) || latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
-    return NextResponse.json({ error: 'Address lookup returned invalid coordinates.' }, { status: 502 })
+  let latitude: number
+  let longitude: number
+  let candidateAddress: string
+  if (usingPhotoCoordinates) {
+    // This is a manual property-preview action, not a certified automation
+    // or a roof measurement. The client reads GPS from selected photo bytes.
+    if (!/^-?\d{1,3}(?:\.\d{1,9})?$/.test(latParam!) || !/^-?\d{1,3}(?:\.\d{1,9})?$/.test(lonParam!)) {
+      return NextResponse.json({ error: 'Embedded GPS coordinates are invalid.' }, { status: 400 })
+    }
+    latitude = Number(latParam)
+    longitude = Number(lonParam)
+    if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
+      return NextResponse.json({ error: 'Embedded GPS coordinates are out of range.' }, { status: 400 })
+    }
+    try {
+      const reverseUrl = new URL('https://nominatim.openstreetmap.org/reverse')
+      reverseUrl.searchParams.set('lat', String(latitude))
+      reverseUrl.searchParams.set('lon', String(longitude))
+      reverseUrl.searchParams.set('format', 'jsonv2')
+      const response = await fetchWithTimeout(reverseUrl, { headers: { 'user-agent': USER_AGENT, accept: 'application/json' }, cache: 'no-store' })
+      if (!response.ok) return NextResponse.json({ error: 'Photo location address lookup unavailable. Enter an address manually.' }, { status: 502 })
+      const reverse: unknown = await response.json()
+      if (!record(reverse) || typeof reverse.display_name !== 'string' || !reverse.display_name.trim()) {
+        return NextResponse.json({ error: 'No candidate address found for the photo GPS. Enter the property address manually.' }, { status: 404 })
+      }
+      candidateAddress = reverse.display_name.trim().slice(0, 240)
+    } catch {
+      return NextResponse.json({ error: 'Photo address lookup failed. Manual address search remains available.' }, { status: 502 })
+    }
+  } else {
+    const geocodeUrl = new URL(NOMINATIM)
+    geocodeUrl.searchParams.set('q', address)
+    geocodeUrl.searchParams.set('format', 'jsonv2')
+    geocodeUrl.searchParams.set('limit', '1')
+    let geocodeResult: Record<string, unknown> | null = null
+    try {
+      const response = await fetchWithTimeout(geocodeUrl, { headers: { 'user-agent': USER_AGENT, accept: 'application/json' }, cache: 'no-store' })
+      if (!response.ok) return NextResponse.json({ error: 'Address lookup failed.' }, { status: 502 })
+      const geocoded: unknown = await response.json()
+      geocodeResult = Array.isArray(geocoded) && record(geocoded[0]) ? geocoded[0] : null
+    } catch {
+      return NextResponse.json({ error: 'Address lookup unavailable. Manual tracing is still possible.' }, { status: 502 })
+    }
+    if (!geocodeResult) return NextResponse.json({ error: 'Address could not be located.' }, { status: 404 })
+    latitude = Number(geocodeResult.lat)
+    longitude = Number(geocodeResult.lon)
+    candidateAddress = typeof geocodeResult.display_name === 'string' ? geocodeResult.display_name : address
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude) || latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
+      return NextResponse.json({ error: 'Address lookup returned invalid coordinates.' }, { status: 502 })
+    }
   }
 
   // Query actual open aerial STAC items rather than treating catalog counts as imagery.
@@ -113,5 +156,5 @@ export async function GET(request: NextRequest) {
     return { osmId: element.id ?? null, buildingType, footprintSqFt: Math.round(measurements.areaSqM * FEET_PER_METER * FEET_PER_METER), perimeterFt: Math.round(measurements.perimeterM * FEET_PER_METER), source: 'OpenStreetMap', confidence: 'low' }
   }).filter((candidate): candidate is NonNullable<typeof candidate> => candidate !== null && candidate.footprintSqFt > 0).sort((a, b) => b.footprintSqFt - a.footprintSqFt).slice(0, MAX_BUILDING_CANDIDATES)
 
-  return NextResponse.json({ address, geocode: { latitude, longitude, displayName: typeof geocodeResult.display_name === 'string' ? geocodeResult.display_name : address }, candidates, aerial, footprintWarning, interpretation: 'Building footprint is not roof surface area. Roof pitch, overhangs, dormers, valleys, hips, waste, and gutters require aerial/roof measurement or human verification.', verificationLinks: { officialParcelViewerSearch: 'https://www.arcgis.com/home/search.html?q=parcel%20viewer', cobbExampleParcelViewer: 'https://geo-cobbcountyga.hub.arcgis.com/app/e22d8c597b4e4762bcd2caa6127696e4' }, attribution: '© OpenStreetMap contributors' })
+  return NextResponse.json({ address: candidateAddress, geocode: { latitude, longitude, displayName: candidateAddress, candidateOnly: true, source: usingPhotoCoordinates ? 'photo_gps_preview' : 'address_search' }, candidates, aerial, footprintWarning, interpretation: 'Building footprint is not roof surface area. Roof pitch, overhangs, dormers, valleys, hips, waste, and gutters require aerial/roof measurement or human verification.', verificationLinks: { officialParcelViewerSearch: 'https://www.arcgis.com/home/search.html?q=parcel%20viewer', cobbExampleParcelViewer: 'https://geo-cobbcountyga.hub.arcgis.com/app/e22d8c597b4e4762bcd2caa6127696e4' }, attribution: '© OpenStreetMap contributors' })
 }

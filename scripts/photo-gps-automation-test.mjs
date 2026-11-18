@@ -22,6 +22,24 @@ assert.ok(Math.abs(gps.longitude - -84.705123) < 0.00001)
 assert.equal(gps.address, '123 Test Street, Testville, GA 30000')
 assert.equal(gps.capturedAt, '2026-11-17T12:30:00.000Z')
 assert.equal(hasEmbeddedGps(photo), true)
+for (const [latitude, longitude] of [
+  [33.9, -84.6],
+  [-33.9, 84.6],
+  [0, 0],
+  [89.999999999, -179.999999999],
+  [-89.999999999, 179.999999999],
+  [90, 180],
+]) {
+  const stamped = embedGpsIntoJpeg(jpeg, {
+    latitude, longitude, address: 'Measured property', capturedAt: '2026-11-18T05:00:00.000Z',
+  })
+  const embedded = readEmbeddedGps(stamped)
+  assert.ok(embedded, 'EXIF GPS must survive normalized DMS rounding')
+  assert.ok(Math.abs(embedded.latitude - latitude) <= 0.00001, 'GPS latitude precision lost')
+  assert.ok(Math.abs(embedded.longitude - longitude) <= 0.00001, 'GPS longitude precision lost')
+  assert.equal(embedded.address, 'Measured property')
+}
+
 // Certification is tied to exact original photo bytes and embedded coordinates,
 // never to a database boolean alone.
 const certification = {
