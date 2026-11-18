@@ -326,12 +326,19 @@ export async function PATCH(request: NextRequest) {
     } catch (error) {
       return jsonError(error instanceof Error ? error.message : 'Reviewed roof geometry cannot be confirmed.', 409)
     }
+    const formulation = (measurement.ai_formulation && typeof measurement.ai_formulation === 'object') ? measurement.ai_formulation as Record<string, unknown> : {}
     const { data, error } = await supabase.from('aerial_measurements').update({
       status: 'confirmed',
       calibration_status: 'confirmed',
       orthographic_top_down_confirmed: true,
       uniform_pitch_confirmed: uniformPitch,
       confirmed_uniform_pitch_rise_per_12: uniformPitch ? uniformRise : null,
+      ai_formulation: { ...formulation, human_geometry_review: {
+        orthographic_top_down_confirmed: true,
+        uniform_pitch_confirmed: uniformPitch,
+        uniform_pitch_rise_per_12: uniformPitch ? uniformRise : null,
+        confirmed_by: user.id,
+      } },
       confirmed_by: user.id,
       confirmed_at: new Date().toISOString(),
     }).eq('id', measurement.id).eq('workspace_id', workspaceId)
