@@ -1354,3 +1354,39 @@ Runtime boundary: loopback means the host making the request. A locally running 
 - [x] Commit `4386c0d`, push, merge PR #463 into `main` as `68fc020`, and verify fresh GitHub checks on the merged commit.
 
 Do not claim Release 1 complete until every unchecked item above is either completed or explicitly marked deferred by the owner.
+
+## ContractorOS Stage 2 — narrow mandate, evidence, and revision writers
+
+**Checkpoint:** 2026-11-17
+**Baseline:** current working branch from merged `main` `620e12f`
+**Status:** implementation complete locally; ready for PR review and migration-safety CI.
+
+### Completed
+
+- [x] Added migration `103_contractor_os_narrow_writers.sql`.
+- [x] Added administrator-only mandate creation and status-transition RPCs with workspace scoping, validation, expiry checks, cancellation reasons, and terminal-state protection.
+- [x] Added member-scoped evidence capture and administrator-only immutable evidence review RPCs.
+- [x] Added member-scoped record revision creation with server-assigned monotonic revision numbers, advisory locking, and correction-parent workspace checks.
+- [x] Added administrator-only revision review/release RPCs with release gating and immutable released revisions.
+- [x] Added six authenticated API routes under `/api/contractor-os/` using bounded JSON parsing and RPC-only control-plane writes.
+- [x] Added `scripts/contractoros-writers-test.mjs` and `npm run test:contractoros-writers`.
+
+### Verification completed
+
+- [x] Stage 2 writer contract test: PASS.
+- [x] Existing control-plane contract test: PASS.
+- [x] TypeScript: PASS.
+- [x] Production build: PASS (150 routes compiled).
+- [x] Release gate: PASS (15 protected routes and secret scan).
+- [x] Security-definer migration/search-path/trigger checks: PASS.
+- [x] Frontend route-integrity test: PASS.
+- [x] Existing authentication/mobile regression checks: PASS before the release gate was rerun; the rerun stopped only on the visible-auth guard rule and passed after the route guards were made explicit.
+
+### Remaining before Stage 2 is merged
+
+- [ ] Run the full final local verification after the last optional-owner validation edit.
+- [ ] Push the Stage 2 branch and pass fresh web, mobile, field-security, migration-safety, preview-build, and deployment checks.
+- [ ] Apply migration 103 to the target Supabase project and run authenticated synthetic writer integration tests.
+- [ ] Update the final ZIP after the Stage 2 merge.
+
+Do not claim the live writer integration gate is complete without non-production Supabase credentials and synthetic workspace users.

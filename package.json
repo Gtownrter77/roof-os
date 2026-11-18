@@ -129,7 +129,8 @@
     "test:passport-rate-limit-rls": "node scripts/passport-rate-limit-rls-test.mjs",
     "test:onboarding-profile": "node --experimental-strip-types scripts/onboarding-profile-test.mjs",
     "test:onboarding-workspace-ui": "node scripts/onboarding-workspace-ui-test.mjs",
-    "test:contractoros-control-plane": "node scripts/contractoros-control-plane-test.mjs"
+    "test:contractoros-control-plane": "node scripts/contractoros-control-plane-test.mjs",
+    "test:contractoros-writers": "node scripts/contractoros-writers-test.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.2",
