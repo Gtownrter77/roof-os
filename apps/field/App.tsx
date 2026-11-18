@@ -7,6 +7,7 @@ import * as SecureStore from 'expo-secure-store'
 import { createClient, type Session } from '@supabase/supabase-js'
 import { useEffect, useRef, useState } from 'react'
 import { File } from 'expo-file-system'
+import { embedGpsIntoJpeg, readEmbeddedGps } from '../../lib/photo-provenance.mjs'
 import {
   ActivityIndicator,
   Alert,
@@ -658,20 +659,64 @@ export default function App() {
         Alert.alert('Camera permission needed', 'Allow camera access to capture inspection evidence.')
         return
       }
-      const result = await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], quality: 0.8 })
+      const result = await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], quality: 0.8, exif: true })
       if (result.canceled) return
       if (!result.assets.length) {
         setError('The camera returned no image. Try capturing the photo again.')
         return
       }
-      const count = photos + result.assets.length
-      const draftId = saveDraft(address, photos, point, selectedLeadId)
-      if (!draftId) return
       const capturedAt = timestamp()
+      let gps: { latitude: number; longitude: number; accuracy: number } | null = null
+      let resolvedAddress = address.trim()
+      try {
+        const locationPermission = await Location.requestForegroundPermissionsAsync()
+        if (locationPermission.granted) {
+          const location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Highest })
+          const latitude = location.coords.latitude, longitude = location.coords.longitude
+          const accuracy = location.coords.accuracy
+          if (Number.isFinite(latitude) && Number.isFinite(longitude)
+            && Math.abs(latitude) <= 90 && Math.abs(longitude) <= 180
+            && typeof accuracy === 'number' && Number.isFinite(accuracy) && accuracy <= 50) {
+            gps = { latitude, longitude, accuracy }
+            if (!resolvedAddress) {
+              try {
+                const places = await Location.reverseGeocodeAsync({ latitude, longitude })
+                resolvedAddress = formatGeocodedAddress(places[0]) || ''
+              } catch { /* An offline or unresolved photo stays manual-only. */ }
+            }
+          }
+        }
+      } catch { /* A denied or failed GPS fix never fabricates location. */ }
+      let stampedCount = 0
+      const preparedAssets = []
+      for (const asset of result.assets) {
+        const mimeType = asset.mimeType ?? (/\.(jpe?g)$/i.test(asset.uri) ? 'image/jpeg' : 'application/octet-stream')
+        let size = asset.fileSize ?? null
+        let gpsEmbedded = false
+        if (gps && resolvedAddress && mimeType === 'image/jpeg') {
+          try {
+            const image = new File(asset.uri)
+            const stamped = embedGpsIntoJpeg(new Uint8Array(await image.arrayBuffer()), {
+              latitude: gps.latitude, longitude: gps.longitude,
+              address: resolvedAddress, capturedAt,
+            })
+            image.write(stamped)
+            const verified = readEmbeddedGps(new Uint8Array(await image.arrayBuffer()))
+            if (!verified?.address?.trim()) throw new Error('Missing embedded photo address')
+            size = image.size
+            gpsEmbedded = true
+            stampedCount += 1
+          } catch { /* Retain unstamped photo as manual-only. */ }
+        }
+        preparedAssets.push({ ...asset, mimeType, fileSize: size, gpsEmbedded })
+      }
+      const count = photos + preparedAssets.length
+      const draftId = saveDraft(resolvedAddress || address, photos, gps ?? point, selectedLeadId)
+      if (!draftId) return
       let pendingCount = 0
       try {
         db.withTransactionSync(() => {
-          result.assets.forEach((asset) => {
+          preparedAssets.forEach((asset) => {
             const photoInsert = db.runSync('INSERT INTO inspection_photo_queue (draft_id, client_id, local_uri, album, caption, mime_type, file_size_bytes, width, height, captured_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', draftId, clientId('photo'), asset.uri, photoAlbum, photoCaption.trim() || null, asset.mimeType ?? 'image/jpeg', asset.fileSize ?? null, asset.width ?? null, asset.height ?? null, capturedAt)
             const photoQueueId = Number(photoInsert.lastInsertRowId)
             const requestedFeatures: Array<[FieldAiFeature, boolean]> = [
@@ -679,7 +724,7 @@ export default function App() {
               ['photo_completeness', fieldAiPreferences.photoCompletenessEnabled],
             ]
             for (const [feature, enabled] of requestedFeatures) {
-              if (!enabled || !photoQueueId) continue
+              if (!enabled || !photoQueueId || !asset.gpsEmbedded) continue
               db.runSync(
                 'INSERT OR IGNORE INTO inspection_ai_request_queue (request_key, draft_id, photo_queue_id, feature_key, status, source_photo_id, expires_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
                 clientId('ai'), draftId, photoQueueId, feature, 'waiting_for_upload', null,
@@ -694,12 +739,14 @@ export default function App() {
         setError('Could not save the captured photos to the offline queue. The inspection draft is still on the phone; try again.')
         return
       }
-      saveDraft(address, count, point, selectedLeadId)
+      if (gps) setPoint({ latitude: gps.latitude, longitude: gps.longitude })
+      if (resolvedAddress && !address.trim()) setAddress(resolvedAddress)
+      saveDraft(resolvedAddress || address, count, gps ?? point, selectedLeadId)
       setPhotos(count)
       setPendingUploads(pendingCount)
       setPhotoCaption('')
       refreshPhotoQueue(draftId)
-      setNotice(`${result.assets.length} photo${result.assets.length === 1 ? '' : 's'} saved to the offline upload queue.`)
+      setNotice(`${preparedAssets.length} photo${preparedAssets.length === 1 ? '' : 's'} saved. ${stampedCount} GPS+address embedded; ${preparedAssets.length - stampedCount} manual-only (no automations).`)
       if (session) void syncNow()
     } catch {
       setError('Camera capture failed. Your existing inspection and queued evidence have not been changed.')
