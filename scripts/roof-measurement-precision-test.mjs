@@ -133,7 +133,7 @@ assert.doesNotMatch(manual,/fetch\(|\.insert\(|\.upsert\(/)
  // survive cached reloads, and be recalculated on the server on save.
 const aerialRoute = read('app/api/measurements/aerial/route.ts')
 const saveRoute = read('app/api/measurements/manual/route.ts')
-const pitchMigration = read('supabase/migrations/103_reviewed_plane_pitch.sql')
+const pitchMigration = read('supabase/migrations/104_reviewed_plane_pitch.sql')
 assert.match(pitchMigration, /reviewed_pitch_rise_per_12 numeric/i)
 assert.match(pitchMigration, /orthographic_top_down_confirmed boolean/i)
 assert.match(pitchMigration, /uniform_pitch_confirmed boolean/i)
