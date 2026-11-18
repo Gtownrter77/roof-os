@@ -104,6 +104,16 @@ jobs:
             echo 'The generated Gradle wrapper is missing the 120-second network timeout.' >&2
             exit 1
           }
+          GRADLE_PROPERTIES="android/gradle.properties"
+          test -s "$GRADLE_PROPERTIES"
+          grep -Fq 'systemProp.org.gradle.internal.http.connectionTimeout=120000' "$GRADLE_PROPERTIES" || {
+            echo 'gradle.properties is missing the 120-second Maven HTTP connection timeout.' >&2
+            exit 1
+          }
+          grep -Fq 'systemProp.org.gradle.internal.http.socketTimeout=120000' "$GRADLE_PROPERTIES" || {
+            echo 'gradle.properties is missing the 120-second Maven HTTP socket timeout.' >&2
+            exit 1
+          }
 
       - name: Build Android preview APK locally with EAS
         id: eas
@@ -123,12 +133,13 @@ jobs:
             else
               status=$?
               rm -f "$APK"
+              rm -rf "$HOME/.gradle/caches"
               if [ "$attempt" -eq 3 ]; then
                 echo "Local APK build failed after 3 attempts (last exit: $status)." >&2
                 exit "$status"
               fi
               delay=$((attempt * 20))
-              echo "Build attempt failed; retrying after ${delay}s for transient dependency/CDN errors." >&2
+              echo "Build attempt failed; cleared Gradle caches and retrying after ${delay}s for transient Maven/CDN errors." >&2
               sleep "$delay"
             fi
           done
