@@ -53,4 +53,33 @@ assert.ok(
   'Login copy must not claim fallback credentials when none are bundled',
 )
 
+const gradlePlugin = readFileSync(join(fieldDir, 'plugins/with-gradle-wrapper-network-timeout.cjs'), 'utf8')
+assert.match(
+  gradlePlugin,
+  /connectionTimeout/,
+  'Gradle HTTP timeouts must cover Maven artifact fetches, not only the wrapper ZIP',
+)
+assert.match(
+  gradlePlugin,
+  /socketTimeout/,
+  'Gradle socket timeouts must cover Maven artifact fetches',
+)
+assert.ok(
+  workflow.includes('$HOME/.gradle/caches') && workflow.includes('rm -rf'),
+  'APK retries must clear Gradle caches so a Maven miss is not reused on the next attempt',
+)
+assert.ok(
+  /eas build[\s\S]{0,1200}rm -rf "\$HOME\/\.gradle\/caches"/m.test(workflow) ||
+    /rm -rf "\$HOME\/\.gradle\/caches"[\s\S]{0,800}eas build/m.test(workflow),
+  'Gradle cache wipe must happen inside the EAS local APK retry loop',
+)
+assert.ok(
+  workflow.includes('systemProp.org.gradle.internal.http.connectionTimeout=120000'),
+  'APK prebuild must verify Gradle Maven HTTP connectionTimeout was written',
+)
+assert.ok(
+  workflow.includes('systemProp.org.gradle.internal.http.socketTimeout=120000'),
+  'APK prebuild must verify Gradle Maven HTTP socketTimeout was written',
+)
+
 console.log('mobile-release-contract-test: PASS')
