@@ -30,6 +30,8 @@
     "test:cinema-theme": "node scripts/cinema-theme-test.mjs",
     "test:dashboard-skin": "node --experimental-strip-types scripts/dashboard-skin-test.mjs",
     "test:photo-estimate-flow": "node scripts/photo-estimate-flow-test.mjs",
+    "test:photo-gps-automation": "node scripts/photo-gps-automation-test.mjs",
+    "test:photo-skyview-handoff": "node scripts/photo-skyview-handoff-test.mjs",
     "test:photo-full-report-flow": "node scripts/photo-full-report-flow-test.mjs",
     "test:measurement-estimate-authority": "node scripts/measurement-estimate-authority-test.mjs",
     "test:reliability": "node scripts/reliability-check.mjs",

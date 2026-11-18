@@ -1,8 +1,9 @@
-# Current repository audit — 2026-11-17
+# Current repository audit — 2026-11-18
 
-**Current main baseline:** `85044b843a589bc59dab68d3147e729c73df6304` (merged PR #474)
-**Current source migration head:** `104_contractor_os_action_authority.sql`
-**Current audit boundary:** source and CI evidence only; production schema parity, deployed SHA, provider execution, physical-device behavior, live two-workspace isolation, and backup/restore remain unverified.
+**Current main:** `5ae0af605f54afa3657b1924675a46e08c2bef32` (docs PR #487; field code `9979295` PR #485; Metro parent `7008e22` PR #483)
+**Current source migration head:** later than `104`; see `supabase/migrations/` for the ordered ledger
+**APK:** GitHub Release [field-apk-main-9979295](https://github.com/Gtownrter77/roof-os/releases/tag/field-apk-main-9979295) from [run 44406863550](https://github.com/Gtownrter77/roof-os/actions/runs/44406863550), version code `43`, SHA-256 `6d31895824bf36b1c04245b314dedd7cfd2a1ae14122a79f5d672ff1fc782b61`. Direct APK: https://github.com/Gtownrter77/roof-os/releases/download/field-apk-main-9979295/roof-os-field-preview.apk. Prior Metro artifact is run `44404219619` from `7008e22`, version code `42`.
+**Current audit boundary:** source, CI, and APK-artifact evidence only; production schema parity, deployed SHA, provider execution, physical-device behavior, live two-workspace isolation, and backup/restore remain unverified.
 
 The dated checkpoints below are historical snapshots and must not be treated as current-main evidence. Current source includes later ContractorOS migrations through `104`, the Phase 0 dossier/register, and the field APK artifact handoff. Legacy local migration prefix collisions at `021`–`023` are documented historical facts; do not rename or replay them. New migrations must use the protected repository/target-ledger workflow.
 

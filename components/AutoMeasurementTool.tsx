@@ -23,7 +23,7 @@ export default function AutoMeasurementTool({ hasImage, working = false, onDetec
     setStatus('Saving the private photo, then connecting to Ollama on this same device…')
     try {
       await onDetect()
-      setStatus('Local AI suggestions saved. Review every plane, edge, and object before calibration.')
+      setStatus('Draft geometry packet presented. Technician must review planes, edges, scale and pitch before any measurement is used.')
     } catch (err) {
       setStatus('Local AI did not complete. Manual tracing is available.')
       setError(err instanceof Error ? err.message : 'Local Ollama roof analysis could not be completed.')

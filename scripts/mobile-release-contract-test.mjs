@@ -1,11 +1,13 @@
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
+import { join, resolve } from 'node:path'
 
 const app = JSON.parse(readFileSync('apps/field/app.json', 'utf8'))
 const eas = JSON.parse(readFileSync('apps/field/eas.json', 'utf8'))
 const document = readFileSync('MOBILE-FIELD-RELEASE.md', 'utf8')
 const workflow = readFileSync('.github/workflows/mobile-apk.yml', 'utf8')
 const source = readFileSync('apps/field/App.tsx', 'utf8')
+const fieldDir = resolve('apps/field')
 assert.equal(app.expo.version, '0.5.0')
 assert.equal(eas.cli.appVersionSource, 'remote')
 
@@ -33,4 +35,51 @@ assert.ok(source.includes('Local inspection drafts remain safely stored'))
 assert.ok(source.includes('session expired'))
 assert.ok(source.includes("client_version: 'field-0.5.0'"))
 assert.ok(source.includes('Field release 0.5.0'))
+
+const provenanceImport = source.match(/from ['"](\.\.\/\.\.\/lib\/photo-provenance(?:\.mjs)?)['"]/)
+assert.ok(provenanceImport, 'Field App must import the shared photo-provenance module')
+const importedPath = resolve(fieldDir, provenanceImport[1])
+assert.equal(existsSync(importedPath), true, `Imported photo-provenance file must exist at ${importedPath}`)
+
+const metroCandidates = ['metro.config.cjs', 'metro.config.js']
+const metroFile = metroCandidates.find((name) => existsSync(join(fieldDir, name)))
+assert.ok(metroFile, 'Field Metro config must exist so EAS can resolve files outside apps/field')
+const metro = readFileSync(join(fieldDir, metroFile), 'utf8')
+assert.match(metro, /watchFolders/, 'Metro must watch the repository root so ../../lib resolves during APK bundling')
+assert.match(metro, /sourceExts/, 'Metro must include .mjs so photo-provenance.mjs bundles')
+assert.match(metro, /getDefaultConfig/, 'Metro config must extend Expo defaults')
+assert.ok(
+  !source.includes('Using fallback production Supabase credentials'),
+  'Login copy must not claim fallback credentials when none are bundled',
+)
+
+const gradlePlugin = readFileSync(join(fieldDir, 'plugins/with-gradle-wrapper-network-timeout.cjs'), 'utf8')
+assert.match(
+  gradlePlugin,
+  /connectionTimeout/,
+  'Gradle HTTP timeouts must cover Maven artifact fetches, not only the wrapper ZIP',
+)
+assert.match(
+  gradlePlugin,
+  /socketTimeout/,
+  'Gradle socket timeouts must cover Maven artifact fetches',
+)
+assert.ok(
+  workflow.includes('$HOME/.gradle/caches') && workflow.includes('rm -rf'),
+  'APK retries must clear Gradle caches so a Maven miss is not reused on the next attempt',
+)
+assert.ok(
+  /eas build[\s\S]{0,1200}rm -rf "\$HOME\/\.gradle\/caches"/m.test(workflow) ||
+    /rm -rf "\$HOME\/\.gradle\/caches"[\s\S]{0,800}eas build/m.test(workflow),
+  'Gradle cache wipe must happen inside the EAS local APK retry loop',
+)
+assert.ok(
+  workflow.includes('systemProp.org.gradle.internal.http.connectionTimeout=120000'),
+  'APK prebuild must verify Gradle Maven HTTP connectionTimeout was written',
+)
+assert.ok(
+  workflow.includes('systemProp.org.gradle.internal.http.socketTimeout=120000'),
+  'APK prebuild must verify Gradle Maven HTTP socketTimeout was written',
+)
+
 console.log('mobile-release-contract-test: PASS')

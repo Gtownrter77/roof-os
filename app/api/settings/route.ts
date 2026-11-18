@@ -18,10 +18,11 @@ async function context() {
 export async function GET() {
   const { supabase, user, workspaceId } = await context()
   if (!user) return NextResponse.json({ error: 'Authentication required.' }, { status: 401 })
-  if (!workspaceId) return NextResponse.json({ settings: defaultWorkspaceSettings(), persisted: false })
+  if (!workspaceId) return NextResponse.json({ settings: defaultWorkspaceSettings(), persisted: false, canManageAutoMeasurements: false })
   const { data, error } = await supabase.from('workspace_settings').select('*').eq('workspace_id', workspaceId).maybeSingle()
   if (error) return NextResponse.json({ error: 'Could not load workspace settings.', detail: error.message }, { status: 502 })
-  return NextResponse.json({ settings: readWorkspaceSettings(data), persisted: Boolean(data) })
+  const { data: roleRow, error: membershipError } = await supabase.from('workspace_members').select('role').eq('workspace_id', workspaceId).eq('user_id', user.id).maybeSingle()
+  return NextResponse.json({ settings: readWorkspaceSettings(data), persisted: Boolean(data), canManageAutoMeasurements: !membershipError && roleRow?.role === 'owner' })
 }
 
 export async function PUT(request: NextRequest) {
@@ -45,6 +46,11 @@ export async function PUT(request: NextRequest) {
   }
   if (confirmation !== 'AUTHORIZE SETTINGS') {
     return NextResponse.json({ error: 'Part 2 failed. Type AUTHORIZE SETTINGS to confirm.' }, { status: 403 })
+  }
+  if ('enable_auto_photo_measurements' in body) {
+    const { data: ownerRole, error: ownerRoleError } = await supabase.from('workspace_members').select('role').eq('workspace_id', workspaceId).eq('user_id', user.id).maybeSingle()
+    if (ownerRoleError) return NextResponse.json({ error: 'Photo measurement owner permission could not be verified.' }, { status: 503 })
+    if (ownerRole?.role !== 'owner') return NextResponse.json({ error: 'Only this workspace owner may authorize automatic photo measurements.' }, { status: 403 })
   }
   if ('yolo_mode' in body) {
     const { data: isOwner } = await supabase.rpc('is_system_owner')

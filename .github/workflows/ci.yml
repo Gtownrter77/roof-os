@@ -99,6 +99,8 @@ jobs:
       - run: npm run test:inspection-quality-agent
       - run: npm run test:prototype-guardrails
       - run: npm run test:photo-estimate-flow
+      - run: npm run test:photo-gps-automation
+      - run: npm run test:photo-skyview-handoff
       - run: npm run test:siding-measurement
       - run: npm run test:siding-authority
       - run: npm run test:siding-ai-authority
@@ -172,6 +174,7 @@ jobs:
           cd ../..
           node scripts/mobile-auth-test.mjs
           node scripts/mobile-offline-sync-test.mjs
+          node scripts/mobile-release-contract-test.mjs
           node --experimental-strip-types scripts/mobile-local-db-migration-test.mjs
           node --experimental-strip-types scripts/field-ai-assistance-test.mjs
           node --experimental-strip-types scripts/field-coach-test.mjs

@@ -212,6 +212,7 @@ function CameraInner() {
     }
 
     try {
+      let manualOnlyCount = 0
       const sessionId = await ensureInspection(user.id, workspaceId)
       for (const photo of photos) {
         const extension = photo.file.name.split('.').pop()?.toLowerCase() || 'jpg'
@@ -232,6 +233,11 @@ function CameraInner() {
           upload_status: 'uploaded',
         })
         if (metaError) throw new Error(metaError.message)
+        const verification = await fetch('/api/photo-provenance/verify', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ photoId }) }).then((r) => r.ok ? r.json() : null).catch(() => null)
+        if (verification?.gpsVerified !== true) manualOnlyCount += 1
+        else if (verification.autoMeasurementsAllowed === true) {
+          await fetch('/api/photo-to-report', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ photoId }) }).catch(() => null)
+        }
       }
 
       if (leadId) {
@@ -246,7 +252,7 @@ function CameraInner() {
           .eq('workspace_id', workspaceId)
       }
 
-      setMessage(`${photos.length} photo${photos.length === 1 ? '' : 's'} saved to inspection ${sessionId.slice(0, 8)}.`)
+      setMessage(`${photos.length} photo${photos.length === 1 ? '' : 's'} saved to inspection ${sessionId.slice(0, 8)}. ${manualOnlyCount ? `${manualOnlyCount} manual-only (no verified embedded GPS/address; no photo automations).` : 'Embedded GPS/address verified for photo automation eligibility.'}`)
       photos.forEach((photo) => URL.revokeObjectURL(photo.preview))
       setPhotos([])
     } catch (err) {

@@ -48,6 +48,7 @@ type Settings = {
   require_photo_completeness_report_gate: boolean
   require_technician_signature_signoff: boolean
   enable_2021_irc_statutory_code_suggestions: boolean
+  enable_auto_photo_measurements: boolean
   yolo_mode: boolean
 }
 
@@ -76,6 +77,7 @@ const initialSettings: Settings = {
   require_photo_completeness_report_gate: true,
   require_technician_signature_signoff: true,
   enable_2021_irc_statutory_code_suggestions: true,
+  enable_auto_photo_measurements: false,
   yolo_mode: false,
 }
 
@@ -96,6 +98,7 @@ export default function SettingsPage() {
   const [ownerEmailConfirm, setOwnerEmailConfirm] = useState('')
   const [ownerPhraseConfirm, setOwnerPhraseConfirm] = useState('')
   const [isSystemOwner, setIsSystemOwner] = useState(false)
+  const [canManageAutoMeasurements, setCanManageAutoMeasurements] = useState(false)
 
   useEffect(() => {
     setRadarPrefs(loadRadarLayerPrefs())
@@ -104,6 +107,7 @@ export default function SettingsPage() {
       const settingsPayload = await settingsResponse.json()
       const pricingPayload = await pricingResponse.json()
       if (settingsResponse.ok && settingsPayload.settings) {
+        setCanManageAutoMeasurements(settingsPayload.canManageAutoMeasurements === true)
         setSettings({ ...initialSettings, ...settingsPayload.settings, preferred_brands: { ...initialSettings.preferred_brands, ...(settingsPayload.settings.preferred_brands ?? {}) } })
       }
       if (pricingResponse.ok) {
@@ -134,7 +138,9 @@ export default function SettingsPage() {
     setSaving(true)
     setMessage('Saving owner settings & feature toggles…')
     try {
-      const settingsResponse = await fetch('/api/settings', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ...settings, ownerAuthorization: { email: ownerEmailConfirm, confirmation: ownerPhraseConfirm } }) })
+      const { enable_auto_photo_measurements, ...otherSettings } = settings
+      const editableSettings = { ...otherSettings, ...(canManageAutoMeasurements ? { enable_auto_photo_measurements } : {}) }
+      const settingsResponse = await fetch('/api/settings', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ...editableSettings, ownerAuthorization: { email: ownerEmailConfirm, confirmation: ownerPhraseConfirm } }) })
       const settingsPayload = await settingsResponse.json().catch(() => ({}))
       if (!settingsResponse.ok) {
         setMessage(settingsPayload.error ?? 'Could not save workspace settings.')
@@ -206,6 +212,14 @@ export default function SettingsPage() {
           />
         </section>
         )}
+
+        {canManageAutoMeasurements && <section className="glass rounded-xl p-4 border-l-4 border-amber-400 space-y-3">
+          <h2 className="font-bold text-white">Owner permission: Photo-to-Report automatic measurements</h2>
+          <ToggleRow label="Enable automatic measurements from GPS-tagged photos"
+            desc="OFF by default. Only the workspace owner can enable it. Photos require server-verified embedded GPS and address. Untagged photos are manual-only; no photo AI automation."
+            checked={settings.enable_auto_photo_measurements}
+            onToggle={() => toggleSetting('enable_auto_photo_measurements')} flag="enable_auto_photo_measurements" />
+        </section>}
 
         {/* AI & Automation Toggles */}
         <section className="glass rounded-xl p-4 border-l-4 border-indigo-600 space-y-3">

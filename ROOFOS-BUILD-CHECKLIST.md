@@ -1,5 +1,40 @@
 # ROOF/OS Living Build Checklist
 
+## 2026-11-18 — Technician-first measurement review, PR #476 replacement
+
+- [~] Show the AI-produced roof-geometry packet immediately in a simple technician review panel: suggested planes, edges, objects, pending review and human-reviewed pitches.
+- [~] Keep slope area and roofing squares **unavailable until geometry, scale, orthographic top-down assumption and measured pitch are confirmed**; no hidden AI claim becomes an estimate-ready quantity.
+- [~] Primary action moves the technician into the existing human geometry review queue, not automatic approval.
+- [~] Regression checks for safe summary wording, manual fallback and quantity gates. Exact-head CI, merge, deployment and physical field validation require separate evidence.
+- [!] This presentation change does not deliver automated geometry on Android without a configured local vision provider, certified roof dimensions, or priced estimates.
+
+## 2026-11-18 — PR #477 conflict-safe replacement: embedded EXIF to skyview to draft estimate
+
+- [~] Replace PR #477's browser current-location shortcut with coordinates decoded from the **selected photo's embedded EXIF**. Without embedded coordinates, stay manual-only; address-first manual lookup remains available.
+- [~] Owner-authorized automatic measurements remain a separate server-enforced setting and are **not** granted by a photo map preview.
+- [~] Reverse lookup produces a **candidate** property address; do not automatically select a neighboring building or certify roof geometry.
+- [~] Saved human-reviewed geometry can be passed to the estimate wizard only by actual persisted measurement UUID, validated in the current workspace. Human confirms property match. Unverified quantities remain an unpriced reference, not line items or approval.
+- [~] Regression test and five CI jobs required on exact-head PR; merge/deployment and user-device acceptance unverified until observed.
+- [!] Full automated roof measurements and priced reports still require actual scaled aerial geometry, independent pitch and source confirmation, and price-book review.
+
+## 2026-11-17 — Field-photo data integrity and Photo-to-Report retry hardening (pending PR)
+
+- [~] Preserve new technician camera photos inside durable app document storage before queuing them offline; never rely on temporary ImagePicker cache files.
+- [~] Failed server GPS verification and Photo-to-Report creation retain the original image in the retry queue rather than being silently marked synced or losing AI requests.
+- [~] Roof, siding, photo-estimate, and Photo-to-Report routes verify that current private photo bytes still match the server-certified EXIF GPS coordinates, embedded address, and SHA-256 digest.
+- [~] Add migration 106 for server-role-only atomic, idempotent Photo-to-Report packet creation. A new packet is always review-gated; no roof area, damage, or price is invented.
+- [!] Source tests, real Supabase migration, Render deployment, and real Expo Android capture/upload all require separate evidence. Do not mark operational from code alone.
+
+## 2026-11-17 — Photo-to-Report embedded GPS / owner permission (PR #478)
+
+- [~] Native field camera captures high-accuracy GPS, stamps JPEG EXIF GPS and embedded candidate property address, and retains offline queue; unverifiable photos remain manual-only.
+- [~] Server reads original private photo bytes, certifies GPS with a service-role-only provenance update, and fails closed if data is absent, permission denied or verification unavailable.
+- [~] Web/field photo uploads preserve untagged manual evidence, and photo AI routes plus inspection-quality automation reject unverified GPS evidence.
+- [~] Automatic photo measurements are OFF by default and workspace-owner-only in settings/API/database; owner-activated GPS photos create idempotent, review-gated Photo-to-Report property packets.
+- [~] EXIF coordinate roundtrip, manual-only prohibition and owner enforcement are in CI; **do not mark verified until exact-head checks pass and merge is confirmed**.
+- [!] This feature starts the property review packet, not an automatically certified roof measurement or priced customer report. Property/building identity, licensed aerial imagery and roof scale/pitch, field evidence, host migration/deployment, actual iOS/Android APK camera behavior and all production signoffs remain unverified. Never invent missing values.
+
+
 ## 2026-11-15 — Parallel anonymous/free-only public research
 
 - [~] Add separate authenticated BAILEY /research page and /api/research/parallel public-source lookup.

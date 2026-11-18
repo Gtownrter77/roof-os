@@ -6,8 +6,8 @@ import NetInfo from '@react-native-community/netinfo'
 import * as SecureStore from 'expo-secure-store'
 import { createClient, type Session } from '@supabase/supabase-js'
 import { useEffect, useRef, useState } from 'react'
-import { File } from 'expo-file-system'
-import { readEmbeddedLocation, stampLocation, UNABLE_TO_UPLOAD } from './src/photoLocation'
+import { File, Paths } from 'expo-file-system'
+import { embedGpsIntoJpeg, readEmbeddedGps } from '../../lib/photo-provenance.mjs'
 import {
   ActivityIndicator,
   Alert,
@@ -42,7 +42,7 @@ const supabaseUrl =
 const supabaseAnonKey =
   process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ||
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-const webAppUrl = process.env.EXPO_PUBLIC_WEB_APP_URL ?? 'https://roof-os-lemon.vercel.app'
+const webAppUrl = process.env.EXPO_PUBLIC_WEB_APP_URL ?? 'https://roof-os.onrender.com'
 
 import { db, initLocalDb } from './src/localDb'
 import { ensureLocalColumns } from './src/localMigrations'
@@ -665,42 +665,88 @@ export default function App() {
         setError('The camera returned no image. Try capturing the photo again.')
         return
       }
-      const locationPermission = await Location.requestForegroundPermissionsAsync()
-      if (!locationPermission.granted) {
-        Alert.alert(UNABLE_TO_UPLOAD, 'Location must be allowed so it can be written into the photo.')
-        return
-      }
-      const fix = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High })
-      for (const asset of result.assets) {
-        const source = new File(asset.uri)
-        const bytes = new Uint8Array(await source.arrayBuffer())
-        if (bytes[0] !== 0xff || bytes[1] !== 0xd8) {
-          Alert.alert(UNABLE_TO_UPLOAD, 'The photo must be a JPEG with location embedded.')
-          return
-        }
-        const stamped = stampLocation(bytes, { latitude: fix.coords.latitude, longitude: fix.coords.longitude })
-        if (!readEmbeddedLocation(stamped)) {
-          Alert.alert(UNABLE_TO_UPLOAD)
-          return
-        }
-        source.write(stamped)
-      }
-      const count = photos + result.assets.length
-      const draftId = saveDraft(address, photos, point, selectedLeadId)
-      if (!draftId) return
       const capturedAt = timestamp()
+      let gps: { latitude: number; longitude: number; accuracy: number } | null = null
+      let resolvedAddress = address.trim()
+      try {
+        const locationPermission = await Location.requestForegroundPermissionsAsync()
+        if (locationPermission.granted) {
+          const location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Highest })
+          const latitude = location.coords.latitude, longitude = location.coords.longitude
+          const accuracy = location.coords.accuracy
+          if (Number.isFinite(latitude) && Number.isFinite(longitude)
+            && Math.abs(latitude) <= 90 && Math.abs(longitude) <= 180
+            && typeof accuracy === 'number' && Number.isFinite(accuracy) && accuracy <= 50) {
+            gps = { latitude, longitude, accuracy }
+            if (!resolvedAddress) {
+              try {
+                const places = await Location.reverseGeocodeAsync({ latitude, longitude })
+                resolvedAddress = formatGeocodedAddress(places[0]) || ''
+              } catch { /* An offline or unresolved photo stays manual-only. */ }
+            }
+          }
+        }
+      } catch { /* A denied or failed GPS fix never fabricates location. */ }
+      let stampedCount = 0
+      const preparedAssets: Array<{ clientId: string; uri: string; mimeType: string; fileSize: number | null; width: number | null; height: number | null; gpsEmbedded: boolean }> = []
+      for (const asset of result.assets) {
+        const mimeType = asset.mimeType ?? (/\.(jpe?g)$/i.test(asset.uri) ? 'image/jpeg' : 'application/octet-stream')
+        const photoClientId = clientId('photo')
+        const extension = mimeType === 'image/jpeg' ? 'jpg' : mimeType === 'image/png' ? 'png' : mimeType === 'image/webp' ? 'webp' : 'bin'
+        // ImagePicker returns a cache URI. Copy the original to persistent
+        // document storage BEFORE creating the offline SQLite queue.
+        const retained = new File(Paths.document, photoClientId + '.' + extension)
+        await new File(asset.uri).copy(retained)
+        if (!retained.exists || retained.size <= 0) {
+          throw new Error('The captured photo could not be preserved on this device.')
+        }
+        let finalPhoto = retained
+        let gpsEmbedded = false
+        if (gps && resolvedAddress && mimeType === 'image/jpeg') {
+          const stampedFile = new File(Paths.document, photoClientId + '-gps.jpg')
+          try {
+            const stamped = embedGpsIntoJpeg(new Uint8Array(await retained.arrayBuffer()), {
+              latitude: gps.latitude, longitude: gps.longitude,
+              address: resolvedAddress, capturedAt,
+            })
+            stampedFile.create()
+            stampedFile.write(stamped)
+            const verified = readEmbeddedGps(new Uint8Array(await stampedFile.arrayBuffer()))
+            if (!verified?.address?.trim()
+              || Math.abs(verified.latitude - gps.latitude) > 0.00001
+              || Math.abs(verified.longitude - gps.longitude) > 0.00001) {
+              throw new Error('GPS stamping did not survive the write to disk.')
+            }
+            finalPhoto = stampedFile
+            gpsEmbedded = true
+            stampedCount += 1
+            try { retained.delete() } catch { /* Keep a second intact local copy. */ }
+          } catch {
+            // Keep the intact retained original for MANUAL evidence. Do not
+            // claim GPS success or start any automations.
+            try { if (stampedFile.exists) stampedFile.delete() } catch {}
+          }
+        }
+        preparedAssets.push({
+          clientId: photoClientId, uri: finalPhoto.uri, mimeType, fileSize: finalPhoto.size,
+          width: asset.width ?? null, height: asset.height ?? null, gpsEmbedded,
+        })
+      }
+      const count = photos + preparedAssets.length
+      const draftId = saveDraft(resolvedAddress || address, photos, gps ?? point, selectedLeadId)
+      if (!draftId) return
       let pendingCount = 0
       try {
         db.withTransactionSync(() => {
-          result.assets.forEach((asset) => {
-            const photoInsert = db.runSync('INSERT INTO inspection_photo_queue (draft_id, client_id, local_uri, album, caption, mime_type, file_size_bytes, width, height, captured_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', draftId, clientId('photo'), asset.uri, photoAlbum, photoCaption.trim() || null, asset.mimeType ?? 'image/jpeg', asset.fileSize ?? null, asset.width ?? null, asset.height ?? null, capturedAt)
+          preparedAssets.forEach((asset) => {
+            const photoInsert = db.runSync('INSERT INTO inspection_photo_queue (draft_id, client_id, local_uri, album, caption, mime_type, file_size_bytes, width, height, captured_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', draftId, asset.clientId, asset.uri, photoAlbum, photoCaption.trim() || null, asset.mimeType ?? 'image/jpeg', asset.fileSize ?? null, asset.width ?? null, asset.height ?? null, capturedAt)
             const photoQueueId = Number(photoInsert.lastInsertRowId)
             const requestedFeatures: Array<[FieldAiFeature, boolean]> = [
               ['caption_album', fieldAiPreferences.photoCaptionAlbumEnabled],
               ['photo_completeness', fieldAiPreferences.photoCompletenessEnabled],
             ]
             for (const [feature, enabled] of requestedFeatures) {
-              if (!enabled || !photoQueueId) continue
+              if (!enabled || !photoQueueId || !asset.gpsEmbedded) continue
               db.runSync(
                 'INSERT OR IGNORE INTO inspection_ai_request_queue (request_key, draft_id, photo_queue_id, feature_key, status, source_photo_id, expires_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
                 clientId('ai'), draftId, photoQueueId, feature, 'waiting_for_upload', null,
@@ -715,12 +761,17 @@ export default function App() {
         setError('Could not save the captured photos to the offline queue. The inspection draft is still on the phone; try again.')
         return
       }
-      saveDraft(address, count, point, selectedLeadId)
+      if (gps) setPoint({ latitude: gps.latitude, longitude: gps.longitude })
+      if (resolvedAddress && !address.trim()) setAddress(resolvedAddress)
+      saveDraft(resolvedAddress || address, count, gps ?? point, selectedLeadId)
       setPhotos(count)
       setPendingUploads(pendingCount)
       setPhotoCaption('')
       refreshPhotoQueue(draftId)
-      setNotice(`${result.assets.length} photo${result.assets.length === 1 ? '' : 's'} saved to the offline upload queue.`)
+      if (stampedCount !== preparedAssets.length) {
+        Alert.alert('unable to upload', 'Location must be embedded in the photo. Allow precise location and try again.')
+        return
+      }
       if (session) void syncNow()
     } catch {
       setError('Camera capture failed. Your existing inspection and queued evidence have not been changed.')
@@ -853,6 +904,8 @@ export default function App() {
         db.runSync('UPDATE inspection_measurements_local SET sync_status = ?, last_error = NULL, next_retry_at = NULL WHERE id = ?', 'synced', measurement.id)
       }
       const queued = db.getAllSync<{ id: number; client_id: string; local_uri: string; album: string; caption: string | null; mime_type: string; file_size_bytes: number | null; width: number | null; height: number | null; captured_at: string }>('SELECT id, client_id, local_uri, album, caption, mime_type, file_size_bytes, width, height, captured_at FROM inspection_photo_queue WHERE draft_id = ? AND sync_status IN (?, ?) AND (next_retry_at IS NULL OR next_retry_at <= ?)', draftToSync.id, 'queued', 'retrying', now)
+      let reviewPacketsCreated = 0
+      let manualOnlyPhotos = 0
       for (const photo of queued) {
         const extension = photo.mime_type.split('/')[1]?.replace('jpeg', 'jpg') || 'bin'; const objectPath = `${workspaceId}/${session.user.id}/${remoteId}/${photo.client_id}.${extension}`
         let body: Blob | ArrayBuffer
@@ -868,14 +921,50 @@ export default function App() {
         if (uploadError && !/already exists|duplicate/i.test(uploadError.message)) throw uploadError
         const { data, error: recordError } = await supabase.from('inspection_photos').upsert({ inspection_id: remoteId, client_id: photo.client_id, workspace_id: workspaceId, uploaded_by: session.user.id, bucket_id: 'inspection-photos', object_path: objectPath, album: photo.album, caption: photo.caption, mime_type: photo.mime_type, file_size_bytes: photo.file_size_bytes, width: photo.width, height: photo.height, captured_at: photo.captured_at, upload_status: 'uploaded' }, { onConflict: 'workspace_id,client_id' }).select('id').single()
         if (recordError) throw recordError
+        // Only the server can certify GPS based on the actual image bytes.
+        // Network, EXIF or migration failure leaves this upload manual-only.
+        // A valid manual-only verdict is terminal; a network/server failure is
+        // NOT. Leave this photo in the retry queue until provenance is known.
+        const baseUrl = webAppUrl.replace(/\/$/, '')
+        const verificationResponse = await fetch(baseUrl + '/api/photo-provenance/verify', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', authorization: 'Bearer ' + session.access_token },
+          body: JSON.stringify({ photoId: data.id }),
+        })
+        if (!verificationResponse.ok) {
+          throw new Error('GPS verification service unavailable. Photo is stored securely and will retry; no automations started.')
+        }
+        const verification = await verificationResponse.json()
+        if (!verification || !['gps_verified', 'manual_only'].includes(verification.status)) {
+          throw new Error('GPS verification returned an invalid response. Retrying safely.')
+        }
+        const gpsVerified = verification.gpsVerified === true && verification.status === 'gps_verified'
+        const automaticMeasurementsAllowed = gpsVerified && verification.autoMeasurementsAllowed === true
+        if (!gpsVerified) manualOnlyPhotos += 1
+        if (automaticMeasurementsAllowed) {
+          const reportResponse = await fetch(webAppUrl.replace(/\/$/, '') + '/api/photo-to-report', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json', authorization: 'Bearer ' + session.access_token },
+            body: JSON.stringify({ photoId: data.id }),
+          })
+          const report = await reportResponse.json().catch(() => null)
+          if (!reportResponse.ok || report?.automationStarted !== true) {
+            throw new Error('Photo-to-Report packet could not be recorded. Retrying safely without approving any estimate.')
+          }
+          reviewPacketsCreated += 1
+        }
         db.withTransactionSync(() => {
           db.runSync('UPDATE inspection_photo_queue SET sync_status = ?, remote_id = ?, last_error = NULL, next_retry_at = NULL WHERE id = ?', 'synced', data.id, photo.id)
-          db.runSync('UPDATE inspection_ai_request_queue SET status = ?, source_photo_id = ?, updated_at = ? WHERE photo_queue_id = ? AND status = ?', 'pending_analysis', data.id, timestamp(), photo.id, 'waiting_for_upload')
+          if (gpsVerified) {
+            db.runSync('UPDATE inspection_ai_request_queue SET status = ?, source_photo_id = ?, updated_at = ? WHERE photo_queue_id = ? AND status = ?', 'pending_analysis', data.id, timestamp(), photo.id, 'waiting_for_upload')
+          } else {
+            db.runSync('DELETE FROM inspection_ai_request_queue WHERE photo_queue_id = ?', photo.id)
+          }
         })
       }
       if (draftRef.current?.id === draftToSync.id) setPendingUploads(pendingRowCount(draftToSync.id))
       syncSucceeded = true
-      setNotice('Synced securely to the workspace. Evidence and estimates remain review-gated.')
+      setNotice('Synced securely. ' + reviewPacketsCreated + ' Photo-to-Report property packets created; ' + manualOnlyPhotos + ' manual-only photos. Evidence and estimates remain review-gated.')
     } catch (syncError) {
       const message = syncError instanceof Error ? syncError.message : 'Unknown sync error'
       if (isSessionExpiryError(syncError)) {
@@ -1658,7 +1747,7 @@ function AuthScreen({
 
         {!configured ? (
           <Text style={styles.error}>
-            Using fallback production Supabase credentials. Rebuild with EXPO_PUBLIC_* to override.
+            Mobile Supabase environment is not configured. Add EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY to the Expo/EAS build environment, then rebuild the app.
           </Text>
         ) : null}
       </View>

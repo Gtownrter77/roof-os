@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto'
+import { isCertifiedPhotoContent } from '../../../../../lib/photo-provenance-integrity.mjs'
 import { NextRequest, NextResponse } from 'next/server'
 import { analyzeRoofGeometryWithGemini, GeminiVisionError } from '../../../../../lib/ai/gemini-vision.mjs'
 import { GEOMETRY_CONTRACT_VERSION, GeometryContractValidationError, validateGeometrySuggestion } from '../../../../../lib/ai/geometry-contract'
@@ -92,7 +93,7 @@ export async function POST(request: NextRequest) {
 
     const { data: photo, error: photoError } = await supabase
       .from('inspection_photos')
-      .select('id,workspace_id,inspection_id,uploaded_by,bucket_id,object_path,mime_type,file_size_bytes,upload_status')
+      .select('id,workspace_id,inspection_id,uploaded_by,bucket_id,object_path,mime_type,file_size_bytes,upload_status,gps_verified,gps_address,gps_sha256,gps_latitude,gps_longitude')
       .eq('id', photoId)
       .eq('workspace_id', workspaceId)
       .eq('inspection_id', inspectionId)
@@ -101,6 +102,9 @@ export async function POST(request: NextRequest) {
     if (!photo || photo.uploaded_by !== user.id || photo.bucket_id !== BUCKET || photo.upload_status !== 'uploaded') {
       return jsonError('The selected roof photo is not available to this user in this workspace.', 403)
     }
+    if (photo.gps_verified !== true || !photo.gps_address?.trim()) return jsonError('Automatic photo measurements require server-verified embedded GPS and property address. Manual measurement remains available.', 403)
+    const { data: autoPermission, error: permissionError } = await supabase.from('workspace_settings').select('enable_auto_photo_measurements').eq('workspace_id', workspaceId).maybeSingle()
+    if (permissionError || autoPermission?.enable_auto_photo_measurements !== true) return jsonError('Automatic photo measurements are OFF until the workspace owner authorizes them.', 403)
     const extension = photo.mime_type === 'image/jpeg' ? 'jpg'
       : photo.mime_type === 'image/png' ? 'png'
       : photo.mime_type === 'image/webp' ? 'webp' : null
@@ -147,6 +151,7 @@ export async function POST(request: NextRequest) {
     if (!bytes.length || !isExpectedImage(bytes, photo.mime_type)) throw new RouteError(415, 'The selected roof photo failed image validation.')
 
     const hash = createHash('sha256').update(bytes).digest('hex')
+    if (!isCertifiedPhotoContent(photo, bytes)) return jsonError('The stored photo no longer matches its verified embedded GPS. Automatic measurement is blocked.', 403)
     const sourceReference = `inspection-photo:${photoId}:sha256:${hash}`
     const prompt = `${PROMPT}\nOriginal image dimensions: ${width} by ${height} pixels.\nSource reference: ${sourceReference}`
     const result = await analyzeRoofGeometryWithGemini({
