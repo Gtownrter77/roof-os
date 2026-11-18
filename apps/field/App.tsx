@@ -1744,7 +1744,7 @@ function AuthScreen({
 
         {!configured ? (
           <Text style={styles.error}>
-            Using fallback production Supabase credentials. Rebuild with EXPO_PUBLIC_* to override.
+            Mobile Supabase environment is not configured. Add EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY to the Expo/EAS build environment, then rebuild the app.
           </Text>
         ) : null}
       </View>

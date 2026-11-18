@@ -173,6 +173,7 @@ jobs:
           cd ../..
           node scripts/mobile-auth-test.mjs
           node scripts/mobile-offline-sync-test.mjs
+          node scripts/mobile-release-contract-test.mjs
           node --experimental-strip-types scripts/mobile-local-db-migration-test.mjs
           node --experimental-strip-types scripts/field-ai-assistance-test.mjs
           node --experimental-strip-types scripts/field-coach-test.mjs
