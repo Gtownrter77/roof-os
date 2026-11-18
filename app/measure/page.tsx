@@ -500,8 +500,12 @@ export default function MeasurePage() {
       })
       const payload = await response.json()
       if (!response.ok) throw new Error(payload.error || 'The unverified draft quantity could not be saved.')
-      setSavedMeasurementId(payload.measurement?.id ?? 'saved')
-      setStatus('Saved as an unverified draft measurement. It is not authoritative and is not estimate-ready until independently reviewed.')
+      const savedId = payload.measurement?.id
+      if (typeof savedId !== 'string' || !/^[0-9a-f-]{36}$/i.test(savedId)) {
+        throw new Error('The server did not return a valid saved measurement reference.')
+      }
+      setSavedMeasurementId(savedId)
+      setStatus('Saved as an unverified draft measurement. You may send this reference to an estimate draft for human review; no quantity or price is approved.')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'The unverified draft quantity could not be saved.')
     } finally {
@@ -736,7 +740,15 @@ export default function MeasurePage() {
             </dl>
             <p className="mt-2 text-xs text-amber-200">Plan area is computed from reviewed polygon coordinates and one scale. Slope area uses the confirmed uniform pitch or each saved, reviewed plane pitch. Verify edges, dormers, overhangs, valleys and actual site pitch independently.</p>
             <button onClick={() => void saveDraftQuantity()} disabled={working || Boolean(savedMeasurementId)} className="mt-3 rounded-lg bg-cyan-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{savedMeasurementId ? 'Saved as unverified draft' : 'Save as unverified draft measurement'}</button>
-            {savedMeasurementId && <p className="mt-2 text-xs text-emerald-200">Measurement record: {savedMeasurementId}</p>}
+            {savedMeasurementId && <>
+              <p className="mt-2 text-xs text-emerald-200">Unverified measurement record: {savedMeasurementId}</p>
+              <button type="button" disabled={working} onClick={() => {
+                const query = new URLSearchParams({ address: address.trim().slice(0, 240), measurementId: savedMeasurementId })
+                router.push('/estimate/new?' + query.toString())
+              }} className="mt-2 rounded-lg border border-amber-400/60 px-4 py-2 text-sm font-semibold text-amber-100 disabled:opacity-50">
+                Continue to estimate draft review
+              </button>
+            </>}
           </div> : <p className="mt-3 rounded-lg border border-white/10 bg-black/20 p-3 text-sm text-slate-400">No quantity yet. Confirm geometry, calibration, top-down image type, measured pitch, and uniform pitch across accepted planes; accept or edit at least one plane.</p>}
         </section>}
 
