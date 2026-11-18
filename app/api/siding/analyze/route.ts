@@ -16,8 +16,9 @@ export async function POST(request:NextRequest){try{
  const member=await requireWorkspaceMember(supabase,auth.data.user.id,workspaceId);if(member.response)return member.response
  const parsed=await readJson(request,16*1024);if('error'in parsed)return bad(parsed.error,parsed.status);const body=parsed.body as Record<string,unknown>
  if(!isUuid(body.photoId)||!isUuid(body.inspectionId))return bad('photoId and inspectionId must be valid UUIDs.')
- const {data:photo}=await supabase.from('inspection_photos').select('id,workspace_id,inspection_id,bucket_id,object_path,mime_type,upload_status').eq('id',body.photoId).eq('workspace_id',workspaceId).eq('inspection_id',body.inspectionId).maybeSingle()
+ const {data:photo}=await supabase.from('inspection_photos').select('id,workspace_id,inspection_id,bucket_id,object_path,mime_type,upload_status,gps_verified,gps_address').eq('id',body.photoId).eq('workspace_id',workspaceId).eq('inspection_id',body.inspectionId).maybeSingle()
  if(!photo||photo.bucket_id!==BUCKET||photo.upload_status!=='uploaded'||!['image/jpeg','image/png','image/webp'].includes(photo.mime_type))return bad('Authorized inspection photo required.',403)
+ if(photo.gps_verified!==true||!photo.gps_address?.trim())return bad('Photo automation unavailable: embedded GPS coordinates and address not verified. Manual measurement remains available.',403)
  const {data:signed,error:se}=await supabase.storage.from(BUCKET).createSignedUrl(photo.object_path,60);if(se||!signed?.signedUrl)return bad('Photo could not be signed.',502)
  const {url:supabaseUrl}=getSupabaseEnv(),base=new URL(supabaseUrl).origin,url=new URL(signed.signedUrl,base);if(url.origin!==base)return bad('Invalid private storage URL.',502)
  const image=await getBytes(url.toString())
