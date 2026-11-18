@@ -1,8 +1,8 @@
 # ContractorOS Release 1 Traceability
 
-**Baseline:** ROOF/OS `main` at `9be6483`
+**Baseline:** ROOF/OS `main` at `f12c058`
 **Release:** 1 — Specification and controlled foundation
-**Status:** Foundation and Stage 2 are merged into `main`; Stage 3 authority enforcement is implemented on the current branch and awaiting CI/merge.
+**Status:** Foundation, Stage 2, and Stage 3 authority enforcement are merged into `main`; live Supabase approval/denial integration remains explicitly pending.
 
 ## Stage 3 — action-time authority and role management
 
@@ -12,7 +12,7 @@
 - [x] Added authenticated owner/admin authority-profile API read/write routes.
 - [x] Added the ContractorOS authority-profile panel to workspace settings.
 - [x] Added Stage 3 contract coverage; TypeScript, production build, release, and security-definer checks pass locally.
-- [ ] Run real PostgreSQL migration-safety tests and merge the Stage 3 branch.
+- [x] Run real PostgreSQL migration-safety tests and merge the Stage 3 branch; PR #473 passed all eight fresh checks and merged into `main` at `f12c058`.
 - [ ] Apply migration 104 to the target Supabase project and run authenticated approval/denial integration tests.
 
 ## Stage 2 — narrow writers
