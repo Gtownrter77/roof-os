@@ -1,5 +1,15 @@
 # ROOF/OS Living Build Checklist
 
+## 2026-11-17 — Photo-to-Report embedded GPS / owner permission (PR #478)
+
+- [~] Native field camera captures high-accuracy GPS, stamps JPEG EXIF GPS and embedded candidate property address, and retains offline queue; unverifiable photos remain manual-only.
+- [~] Server reads original private photo bytes, certifies GPS with a service-role-only provenance update, and fails closed if data is absent, permission denied or verification unavailable.
+- [~] Web/field photo uploads preserve untagged manual evidence, and photo AI routes plus inspection-quality automation reject unverified GPS evidence.
+- [~] Automatic photo measurements are OFF by default and workspace-owner-only in settings/API/database; owner-activated GPS photos create idempotent, review-gated Photo-to-Report property packets.
+- [~] EXIF coordinate roundtrip, manual-only prohibition and owner enforcement are in CI; **do not mark verified until exact-head checks pass and merge is confirmed**.
+- [!] This feature starts the property review packet, not an automatically certified roof measurement or priced customer report. Property/building identity, licensed aerial imagery and roof scale/pitch, field evidence, host migration/deployment, actual iOS/Android APK camera behavior and all production signoffs remain unverified. Never invent missing values.
+
+
 ## 2026-11-15 — Parallel anonymous/free-only public research
 
 - [~] Add separate authenticated BAILEY /research page and /api/research/parallel public-source lookup.

@@ -228,6 +228,10 @@ export default function MeasurePage() {
         upload_status: 'uploaded',
       })
       if (metadataError) throw new Error('The image metadata could not be saved.')
+      const gpsResponse = await fetch('/api/photo-provenance/verify', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ photoId: objectId }) })
+      const gpsStatus = await gpsResponse.json().catch(() => null)
+      if (!gpsResponse.ok || gpsStatus?.gpsVerified !== true) throw new Error('Photo accepted for manual measurement only. Automatic analysis unavailable without verified embedded GPS and property address.')
+      if (gpsStatus.autoMeasurementsAllowed !== true) throw new Error('Photo saved for manual measurement. Automatic measurements are OFF until the workspace owner enables them.')
 
       setInspectionId(inspection.id)
       setPhotoId(objectId)

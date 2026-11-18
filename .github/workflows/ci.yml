@@ -98,6 +98,7 @@ jobs:
       - run: npm run test:inspection-quality-agent
       - run: npm run test:prototype-guardrails
       - run: npm run test:photo-estimate-flow
+      - run: npm run test:photo-gps-automation
       - run: npm run test:siding-measurement
       - run: npm run test:siding-authority
       - run: npm run test:siding-ai-authority

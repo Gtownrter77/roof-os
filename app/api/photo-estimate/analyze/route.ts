@@ -38,6 +38,8 @@ type PhotoRow = {
   mime_type: string
   file_size_bytes: number | string | null
   upload_status: string
+  gps_verified: boolean
+  gps_address: string | null
 }
 
 type PreparedPhoto = { mimeType: string; bytes: Buffer; hash: string }
@@ -178,7 +180,7 @@ export async function POST(request: NextRequest) {
 
     const { data: rows, error: photoError } = await supabase
       .from('inspection_photos')
-      .select('id,workspace_id,inspection_id,uploaded_by,bucket_id,object_path,mime_type,file_size_bytes,upload_status')
+      .select('id,workspace_id,inspection_id,uploaded_by,bucket_id,object_path,mime_type,file_size_bytes,upload_status,gps_verified,gps_address')
       .in('id', photoIds)
       .eq('workspace_id', workspaceId)
       .eq('bucket_id', BUCKET)
@@ -194,6 +196,9 @@ export async function POST(request: NextRequest) {
     }
 
     const authorizedRows = orderedRows as PhotoRow[]
+    if (authorizedRows.some((photo) => photo.gps_verified !== true || !photo.gps_address?.trim())) {
+      return jsonError('Photo AI automation unavailable: one or more photos lack server-verified embedded GPS and property address. Manual evidence and reports remain available.', 403)
+    }
 
     let declaredTotal = 0
     const expectedMimeTypes = new Map<string, string>()
