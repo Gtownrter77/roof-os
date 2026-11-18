@@ -1358,8 +1358,8 @@ Do not claim Release 1 complete until every unchecked item above is either compl
 ## ContractorOS Stage 2 — narrow mandate, evidence, and revision writers
 
 **Checkpoint:** 2026-11-17
-**Baseline:** current working branch from merged `main` `620e12f`
-**Status:** implementation complete locally; ready for PR review and migration-safety CI.
+**Baseline:** current GitHub `main` `9be6483`
+**Status:** Stage 2 merged into `main`; only live Supabase writer integration remains pending.
 
 ### Completed
 
@@ -1380,12 +1380,13 @@ Do not claim Release 1 complete until every unchecked item above is either compl
 - [x] Release gate: PASS (15 protected routes and secret scan).
 - [x] Security-definer migration/search-path/trigger checks: PASS.
 - [x] Frontend route-integrity test: PASS.
-- [x] Existing authentication/mobile regression checks: PASS before the release gate was rerun; the rerun stopped only on the visible-auth guard rule and passed after the route guards were made explicit.
+- [x] Existing authentication/mobile regression checks: PASS.
+- [x] PR #471 merged into `main` as `9be6483`; all eight fresh checks passed, including web, mobile, field-security, migration-safety, preview-build, Vercel, preview comments, and driveway evidence-led quantity.
 
 ### Remaining before Stage 2 is merged
 
-- [ ] Run the full final local verification after the last optional-owner validation edit.
-- [ ] Push the Stage 2 branch and pass fresh web, mobile, field-security, migration-safety, preview-build, and deployment checks.
+- [x] Run the full final local verification after the last optional-owner validation edit.
+- [x] Push the Stage 2 branch and pass fresh web, mobile, field-security, migration-safety, preview-build, and deployment checks.
 - [ ] Apply migration 103 to the target Supabase project and run authenticated synthetic writer integration tests.
 - [ ] Update the final ZIP after the Stage 2 merge.
 

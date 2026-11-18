@@ -1,6 +1,6 @@
 # ContractorOS Release 1 Traceability
 
-**Baseline:** ROOF/OS `main` at `68fc020`
+**Baseline:** ROOF/OS `main` at `9be6483`
 **Release:** 1 — Specification and controlled foundation
 **Status:** Foundation tranche merged into `main` at `68fc020`; remaining Release 1 capabilities are explicitly tracked below.
 
