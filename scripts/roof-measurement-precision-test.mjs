@@ -131,7 +131,6 @@ assert.match(measure,/Discrepancy requires manual review/)
 assert.doesNotMatch(manual,/fetch\(|\.insert\(|\.upsert\(/)
 // Reviewed pitch must remain distinct from model-suggested text, persist by plane,
  // survive cached reloads, and be recalculated on the server on save.
-const aerialRoute = read('app/api/measurements/aerial/route.ts')
 const saveRoute = read('app/api/measurements/manual/route.ts')
 const pitchMigration = read('supabase/migrations/105_reviewed_plane_pitch.sql')
 assert.match(pitchMigration, /reviewed_pitch_rise_per_12 numeric/i)
