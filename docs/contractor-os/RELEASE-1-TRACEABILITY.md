@@ -4,6 +4,17 @@
 **Release:** 1 — Specification and controlled foundation
 **Status:** Foundation tranche merged into `main` at `68fc020`; remaining Release 1 capabilities are explicitly tracked below.
 
+## Stage 2 — narrow writers
+
+- [x] Added migration 103 with security-definer mandate, evidence, and revision writers.
+- [x] Mandate creation and transitions are administrator-only, workspace-scoped, validated, and terminal-state protected.
+- [x] Evidence capture is member-scoped; evidence review is administrator-only and immutable after decision.
+- [x] Revision creation is member-scoped with server-assigned monotonic numbers and correction-parent checks.
+- [x] Revision review/release is administrator-only and release-gated; released revisions are immutable.
+- [x] Added authenticated API routes using bounded JSON input and narrow RPCs only.
+- [x] Added Stage 2 contract coverage and passed TypeScript, build, release, security-definer, and regression checks locally.
+- [ ] Apply migration 103 to the target Supabase project and run authenticated writer integration tests with synthetic non-production users.
+
 ## Crew handoff checklist
 
 - [x] Confirmed the authoritative source is the current GitHub `main`, not the stale local handoff.
@@ -16,7 +27,7 @@
 - [x] Added dossier-to-repository traceability and explicit unresolved-rule handling.
 - [x] Ran the source-only two-workspace isolation contract test: PASS.
 - [x] Reran the live two-workspace test with its non-production safety guard; it stopped safely because this sandbox has no `SUPABASE_URL` or synthetic test credentials. No live RLS result is claimed.
-- [ ] Add narrow server/RPC writers for mandates, reviewed evidence, revisions, events, and execution state.
+- [x] Add narrow server/RPC writers for mandates, reviewed evidence, and revisions.
 - [ ] Add action-time authority evaluation and role-management UI.
 - [ ] Add event intake/reconciliation worker and durable workflow adapter.
 - [ ] Add Ollama/provider-neutral model routing with provenance records.
@@ -28,10 +39,10 @@
 
 | Dossier requirement | Current or added implementation | Evidence / remaining work |
 |---|---|---|
-| Shared authoritative records and revisions | Existing domain tables plus `contractor_record_revisions` in migration 102 | Add record-specific revision writers in the first vertical slice |
-| Original evidence versus derived/reviewed conclusions | Existing inspection/photo records plus `contractor_evidence_items` | Add review UI/API bindings and source references to estimate packets |
+| Shared authoritative records and revisions | Existing domain tables plus `contractor_record_revisions` in migrations 102–103 | Add record-specific revision writers in the first vertical slice |
+| Original evidence versus derived/reviewed conclusions | Existing inspection/photo records plus `contractor_evidence_items` and Stage 2 capture/review RPCs | Add review UI/API bindings and source references to estimate packets |
 | Owner-controlled authority progression | Existing workspace/system-owner controls plus `contractor_authority_profiles` | Add role-management UI and action-time capability evaluation |
-| Mandates with scope, limits, expiry, cancellation, escalation | `contractor_mandates` | Add create/pause/revoke API and owner workspace UI |
+| Mandates with scope, limits, expiry, cancellation, escalation | `contractor_mandates` plus Stage 2 create/transition RPCs and API routes | Add owner workspace UI |
 | Controlled action gateway | Existing `agent_action_batches`, `agent_actions`, approval RPC; migration 102 adds mandate, target scope, expected revision, verification, and recovery fields | Add generalized action types and executor adapters per integration |
 | Event identity, duplicate handling, delayed/out-of-order processing | `contractor_events` with unique event key and processing/reconciliation state | Add event intake endpoint and reconciliation worker |
 | Durable AI/workflow execution state | `contractor_work_executions` | Add worker adapter; Temporal is the durable runtime for long-running external waits |
