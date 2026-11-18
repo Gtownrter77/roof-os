@@ -130,6 +130,7 @@ export async function POST(request: NextRequest) {
         || aerialMeasurement.orthographic_top_down_confirmed !== true) {
         return NextResponse.json({ error: 'Confirmed human-reviewed roof geometry is required before a provisional draft can be saved.' }, { status: 409 })
       }
+      confidence = 'unverified'
     }
     if (aerialMeasurement.status !== 'confirmed' || aerialMeasurement.calibration_status !== 'confirmed'
       || aerialMeasurement.orthographic_top_down_confirmed !== true) {
