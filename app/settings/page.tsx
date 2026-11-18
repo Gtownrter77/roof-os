@@ -17,6 +17,7 @@ import RoofingWorkflowSettings from '../../components/RoofingWorkflowSettings'
 import RoofingWizardNavigator from '../../components/RoofingWizardNavigator'
 import DashboardSkinToggle from '../../components/DashboardSkinToggle'
 import AgentSwitches from '../../components/AgentSwitches'
+import ContractorAuthorityProfiles from '../../components/ContractorAuthorityProfiles'
 import { FEATURE_FLAG_ENFORCEMENT, type WorkspaceFeatureFlag } from '../../lib/workspace-settings'
 
 type Settings = {
@@ -244,6 +245,7 @@ export default function SettingsPage() {
         </section>
 
         <AgentSwitches />
+        <ContractorAuthorityProfiles />
 
         {/* Pricing & Margin Controls */}
         <section className="glass rounded-xl p-4 border-l-4 border-emerald-600 space-y-3">

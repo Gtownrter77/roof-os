@@ -1391,3 +1391,36 @@ Do not claim Release 1 complete until every unchecked item above is either compl
 - [ ] Update the final ZIP after the Stage 2 merge.
 
 Do not claim the live writer integration gate is complete without non-production Supabase credentials and synthetic workspace users.
+
+## ContractorOS Stage 3 — action-time authority and role management
+
+**Checkpoint:** 2026-11-17
+**Baseline:** current merged `main` `8469098`
+**Status:** implementation complete locally; ready for PR migration-safety and merge checks.
+
+### Completed
+
+- [x] Added migration `104_contractor_os_action_authority.sql`.
+- [x] Added deterministic effective-role resolution from `workspace_members.employee_layer`/role with safe owner, admin, and member defaults.
+- [x] Added an atomic `agent_approval_events` trigger that evaluates the approver's role/profile against action risk and fails closed when authority is insufficient.
+- [x] Added authority evaluation state and resolved profile role fields to action batches and actions.
+- [x] Added authenticated authority-profile GET/PUT API routes with owner/admin enforcement, bounded input, supported role/level allowlists, and no service-role bypass.
+- [x] Added the authority-profile management panel to workspace settings.
+- [x] Added `scripts/contractoros-authority-test.mjs` and `npm run test:contractoros-authority`.
+
+### Verification completed
+
+- [x] Stage 3 authority contract test: PASS.
+- [x] Stage 2 writer and Release 1 control-plane contract tests: PASS.
+- [x] TypeScript: PASS.
+- [x] Production build: PASS (151 routes compiled).
+- [x] Release gate: PASS.
+- [x] Security-definer migration/search-path/trigger checks: PASS (60 functions checked).
+- [ ] Real PostgreSQL migration-safety test: pending PR CI.
+- [ ] Live Supabase approval/denial integration test: unavailable until non-production Supabase credentials and synthetic users are provided.
+
+### Next tranche after Stage 3
+
+- [ ] Add event intake/reconciliation worker and durable workflow adapter.
+- [ ] Add Ollama/provider-neutral model routing with provenance records.
+- [ ] Complete and verify the web/mobile first vertical slice and correction/recovery cases.

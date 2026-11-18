@@ -2,7 +2,18 @@
 
 **Baseline:** ROOF/OS `main` at `9be6483`
 **Release:** 1 — Specification and controlled foundation
-**Status:** Foundation tranche merged into `main` at `68fc020`; remaining Release 1 capabilities are explicitly tracked below.
+**Status:** Foundation and Stage 2 are merged into `main`; Stage 3 authority enforcement is implemented on the current branch and awaiting CI/merge.
+
+## Stage 3 — action-time authority and role management
+
+- [x] Added migration 104 with effective role/profile resolution and safe owner/admin/member defaults.
+- [x] Added an atomic approval-event trigger that rejects approvals exceeding the approver's configured authority.
+- [x] Recorded authority evaluation state and resolved profile role on approved batches/actions.
+- [x] Added authenticated owner/admin authority-profile API read/write routes.
+- [x] Added the ContractorOS authority-profile panel to workspace settings.
+- [x] Added Stage 3 contract coverage; TypeScript, production build, release, and security-definer checks pass locally.
+- [ ] Run real PostgreSQL migration-safety tests and merge the Stage 3 branch.
+- [ ] Apply migration 104 to the target Supabase project and run authenticated approval/denial integration tests.
 
 ## Stage 2 — narrow writers
 
@@ -28,7 +39,7 @@
 - [x] Ran the source-only two-workspace isolation contract test: PASS.
 - [x] Reran the live two-workspace test with its non-production safety guard; it stopped safely because this sandbox has no `SUPABASE_URL` or synthetic test credentials. No live RLS result is claimed.
 - [x] Add narrow server/RPC writers for mandates, reviewed evidence, and revisions.
-- [ ] Add action-time authority evaluation and role-management UI.
+- [x] Add action-time authority evaluation and role-management UI.
 - [ ] Add event intake/reconciliation worker and durable workflow adapter.
 - [ ] Add Ollama/provider-neutral model routing with provenance records.
 - [ ] Complete and verify the web/mobile first vertical slice.
@@ -41,9 +52,9 @@
 |---|---|---|
 | Shared authoritative records and revisions | Existing domain tables plus `contractor_record_revisions` in migrations 102–103 | Add record-specific revision writers in the first vertical slice |
 | Original evidence versus derived/reviewed conclusions | Existing inspection/photo records plus `contractor_evidence_items` and Stage 2 capture/review RPCs | Add review UI/API bindings and source references to estimate packets |
-| Owner-controlled authority progression | Existing workspace/system-owner controls plus `contractor_authority_profiles` | Add role-management UI and action-time capability evaluation |
+| Owner-controlled authority progression | Existing workspace/system-owner controls plus `contractor_authority_profiles`, Stage 3 profile API/UI, and approval trigger | Apply migration 104 and run authenticated approval/denial integration tests |
 | Mandates with scope, limits, expiry, cancellation, escalation | `contractor_mandates` plus Stage 2 create/transition RPCs and API routes | Add owner workspace UI |
-| Controlled action gateway | Existing `agent_action_batches`, `agent_actions`, approval RPC; migration 102 adds mandate, target scope, expected revision, verification, and recovery fields | Add generalized action types and executor adapters per integration |
+| Controlled action gateway | Existing `agent_action_batches`, `agent_actions`, approval RPC; migrations 102–104 add mandate, target scope, expected revision, verification, recovery, and approval-authority enforcement | Add generalized action types and executor adapters per integration |
 | Event identity, duplicate handling, delayed/out-of-order processing | `contractor_events` with unique event key and processing/reconciliation state | Add event intake endpoint and reconciliation worker |
 | Durable AI/workflow execution state | `contractor_work_executions` | Add worker adapter; Temporal is the durable runtime for long-running external waits |
 | Local-first selectable AI runtime | Existing AI surfaces; provider-neutral routing is specified in the merger plan | Add Ollama adapter and model/policy provenance records |
