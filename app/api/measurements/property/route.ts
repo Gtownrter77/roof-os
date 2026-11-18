@@ -34,10 +34,30 @@ export async function GET(request: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Authentication required.' }, { status: 401 })
   const params = request.nextUrl.searchParams
   const workspaceId = params.get('workspaceId')
-  const address = params.get('address')?.trim()
+  let address = params.get('address')?.trim() ?? ''
+  const latParam = params.get('lat')
+  const lonParam = params.get('lon')
   if (!isUuid(workspaceId)) return NextResponse.json({ error: 'workspaceId must be a valid workspace UUID.' }, { status: 400 })
   const membership = await requireWorkspaceMember(supabase, user.id, workspaceId)
   if (membership.response) return membership.response
+
+  if (latParam && lonParam) {
+    const lat = Number(latParam)
+    const lon = Number(lonParam)
+    if (!Number.isFinite(lat) || !Number.isFinite(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+      return NextResponse.json({ error: 'lat and lon must be valid coordinates.' }, { status: 400 })
+    }
+    const reverse = new URL('https://nominatim.openstreetmap.org/reverse')
+    reverse.searchParams.set('lat', String(lat))
+    reverse.searchParams.set('lon', String(lon))
+    reverse.searchParams.set('format', 'jsonv2')
+    const reverseResponse = await fetchWithTimeout(reverse, { headers: { 'user-agent': USER_AGENT, accept: 'application/json' }, cache: 'no-store' })
+    if (!reverseResponse.ok) return NextResponse.json({ error: 'Could not turn this location into an address.' }, { status: 502 })
+    const reversed = await reverseResponse.json()
+    if (!record(reversed) || typeof reversed.display_name !== 'string') return NextResponse.json({ error: 'No address found for this location.' }, { status: 404 })
+    address = reversed.display_name.slice(0, 240)
+  }
+
   if (!address || address.length > 240) return NextResponse.json({ error: 'address is required.' }, { status: 400 })
 
   const geocodeUrl = new URL(NOMINATIM)

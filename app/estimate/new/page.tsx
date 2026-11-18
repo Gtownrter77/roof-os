@@ -45,7 +45,10 @@ export default function NewEstimatePage() {
   const [city, setCity] = useState('')
   const [state, setState] = useState('')
   const [zip, setZip] = useState('')
-  const [notes, setNotes] = useState('')
+  const [notes, setNotes] = useState(() => {
+    const squares = searchParams.get('squares')
+    return squares ? `System measurement presented: ${squares} squares. Tech verifies before this estimate is used.` : ''
+  })
   const [lineItems, setLineItems] = useState<LineItem[]>(() => itemsFor(TEMPLATES.find((item) => item.id === initialTemplate)))
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')

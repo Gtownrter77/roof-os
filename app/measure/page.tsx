@@ -127,6 +127,32 @@ export default function MeasurePage() {
     image.src = imageUrl
   }
 
+  async function findHouseFromHere() {
+    if (!navigator.geolocation) { setError('This device cannot share its location.'); return }
+    setWorking(true)
+    setError('')
+    setStatus('Reading this location, then finding the address…')
+    try {
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 12000 })
+      })
+      const { data: workspaceId } = await supabase.rpc('current_workspace_id')
+      if (!workspaceId) throw new Error('An active workspace is required.')
+      const response = await fetch(`/api/measurements/property?workspaceId=${encodeURIComponent(workspaceId)}&lat=${position.coords.latitude}&lon=${position.coords.longitude}`, { cache: 'no-store' })
+      const payload = await response.json()
+      if (!response.ok) throw new Error(payload.error || 'Could not find the address from this location.')
+      const found = typeof payload.geocode?.displayName === 'string' ? payload.geocode.displayName : payload.address
+      if (!found) throw new Error('No address came back for this location.')
+      setAddress(found)
+      setStatus(`Address found: ${found}. Loading skyview.`)
+      autoLookupAttemptRef.current = ''
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not find the house from this location.')
+    } finally {
+      setWorking(false)
+    }
+  }
+
   async function lookupImagery() {
     const requestedAddress = address.trim()
     if (!requestedAddress) { setError('Enter a property address first.'); return }
@@ -454,6 +480,7 @@ export default function MeasurePage() {
                 Owner setting: treat under 6sq as repair. Off by default. Full replacement still starts at 10sq.
               </label>
               <button onClick={() => void lookupImagery()} disabled={working} className="rounded-lg border border-white/20 px-3 py-2 text-sm text-slate-200 hover:border-cyan-400/60 disabled:opacity-50">Lookup address & aerial map</button>
+              <button onClick={() => void findHouseFromHere()} disabled={working} className="rounded-lg bg-cyan-700 px-3 py-2 text-sm font-semibold text-white disabled:opacity-50">Find address from this photo location</button>
               <button onClick={() => void router.push('/photo-estimate')} className="rounded-lg border border-white/20 px-3 py-2 text-sm text-cyan-300">Inspection photos</button>
             </div>
           </div>
@@ -471,6 +498,9 @@ export default function MeasurePage() {
               <p className="text-xs text-amber-200">OpenStreetMap, low confidence. Not roof surface area or an estimate-ready quantity. Verify the building, roof outline, overhangs, and pitch before estimating.</p>
             </div>)}
           </section>}
+          {address.trim() && <p className="mt-3 text-sm text-slate-200">Skyview is loaded from this address. When the measurement is ready, send it to the estimate wizard.
+            <a className="ml-2 text-cyan-300 underline" href={`/estimate/new?address=${encodeURIComponent(address.trim())}${draftQuantity ? `&squares=${encodeURIComponent(String(draftQuantity.roofSquares))}` : ''}`}>Open estimate wizard</a>
+          </p>}
           {selectedBuildingIndex !== null && addressCandidates[selectedBuildingIndex] && <div className="mt-3 rounded-lg border border-amber-400/30 bg-amber-400/10 p-3 text-sm text-amber-100" role="status">
             <p className="font-semibold">Automatic map measurement candidate — not estimate-ready</p>
             <p>Mapped horizontal building footprint: {addressCandidates[selectedBuildingIndex].footprintSqFt.toLocaleString()} sq ft. Approximate ground perimeter: {addressCandidates[selectedBuildingIndex].perimeterFt.toLocaleString()} ft.</p>
