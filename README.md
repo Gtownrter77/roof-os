@@ -1,9 +1,10 @@
-# Current repository audit — 2026-10-25
+# Current repository audit — 2026-11-17
 
-**Current main baseline:** `b04d33a` (PR #319)
-**Current audit record:** [AUDIT-STATUS-2026-10-21.md](AUDIT-STATUS-2026-10-21.md) plus the [GAPS-REVIEW.md](GAPS-REVIEW.md) checkpoint.
+**Current main baseline:** `85044b843a589bc59dab68d3147e729c73df6304` (merged PR #474)
+**Current source migration head:** `104_contractor_os_action_authority.sql`
+**Current audit boundary:** source and CI evidence only; production schema parity, deployed SHA, provider execution, physical-device behavior, live two-workspace isolation, and backup/restore remain unverified.
 
-The dated checkpoints below are historical snapshots, not proof that every production workflow works. Current source includes the public homeowner passport share flow, consolidated Vercel crons (`GET /api/cron/daily` + weekly `GET /api/cron/retailer-prices`), and migration `056` rate limiting for the token-gated passport endpoint. Production migration application, authenticated two-workspace isolation, real-device mobile behavior, provider execution, and backup/restore rehearsal remain evidence-gated. Migrations `054`–`056` are present in source; the next new local prefix is `057`.
+The dated checkpoints below are historical snapshots and must not be treated as current-main evidence. Current source includes later ContractorOS migrations through `104`, the Phase 0 dossier/register, and the field APK artifact handoff. Legacy local migration prefix collisions at `021`–`023` are documented historical facts; do not rename or replay them. New migrations must use the protected repository/target-ledger workflow.
 
 ## Vercel Hobby limits
 
