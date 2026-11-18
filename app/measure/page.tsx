@@ -77,6 +77,7 @@ export default function MeasurePage() {
   const [calibrated, setCalibrated] = useState(false)
   const [geometryConfirmed, setGeometryConfirmed] = useState(false)
   const [savedMeasurementId, setSavedMeasurementId] = useState('')
+  const [verifiedByTech, setVerifiedByTech] = useState(false)
   const [imageryNote, setImageryNote] = useState('')
   const [aerialTileUrl, setAerialTileUrl] = useState('')
   const [aerialAttribution, setAerialAttribution] = useState('')
@@ -369,6 +370,26 @@ export default function MeasurePage() {
   }
 
   const visiblePlanes = suggestion?.planes.filter((item) => item.review_status !== 'rejected') ?? []
+  const presented = useMemo(() => {
+    if (!suggestion) return null
+    const formulation = suggestion.formulation
+    const pitches = suggestion.planes
+      .map((plane) => plane.suggested_pitch)
+      .filter((value): value is string => Boolean(value))
+    const area = formulation?.roof_area_sqft ?? null
+    const order = area != null ? purchasableRoofing(area, allowSixSquareRepairThreshold) : null
+    return {
+      planes: suggestion.planes.length,
+      edges: suggestion.edges.length,
+      objects: suggestion.objects.length,
+      pitches: pitches.length ? pitches : formulation?.pitch_rise_per_12 != null ? [`${formulation.pitch_rise_per_12}/12`] : [],
+      planSqFt: formulation?.plan_area_sqft ?? null,
+      roofSqFt: area,
+      squaresLabel: order?.squaresLabel ?? (formulation?.roof_squares != null ? `${formulation.roof_squares}sq` : null),
+      bundles: order?.bundles ?? null,
+      jobLabel: order?.jobLabel ?? null,
+    }
+  }, [suggestion, allowSixSquareRepairThreshold])
   const pitchValue = pitchRisePer12.trim() === '' ? Number.NaN : Number(pitchRisePer12)
   const draftQuantity = useMemo(() => {
     if (!suggestion || !calibrated || !geometryConfirmed || !orthographicTopDown || (!uniformPitchConfirmed && !perPlanePitchMode) || (uniformPitchConfirmed && pitchRisePer12.trim() === '')) return null
@@ -438,7 +459,7 @@ export default function MeasurePage() {
           <button onClick={() => smartBack(router)} className="mb-2 text-xs text-cyan-300">← Back</button>
           <p className="ops-label">ROOF/OS Phase D · Measurement control</p>
           <h1 className="text-3xl font-black">AI-assisted roof geometry</h1>
-          <p className="mt-1 max-w-3xl text-sm text-slate-400"><b className="text-white">AI formulates. ROOF/OS validates and records provenance.</b> Geometry, scale, pitch, and quantities are produced as one measurement packet.</p>
+          <p className="mt-1 max-w-3xl text-sm text-slate-400"><b className="text-white">The system generates the measurement and presents it.</b> The tech verifies what is on the screen. Correct only what is wrong.</p>
         </header>
 
         <RoofingWizardNavigator active="/measure" />
@@ -562,10 +583,33 @@ export default function MeasurePage() {
           {suggestion && <p className="mt-2 text-xs text-slate-400">Dashed cyan polygons = AI suggestions · amber lines = suggested edges · red dots = suggested objects. These are not quantities.</p>}
         </section>}
 
+        {presented && <section className="glass mt-4 rounded-xl border border-cyan-400/40 p-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="ops-label">System measurement</p>
+              <h2 className="text-xl font-black">Presented for verification</h2>
+              <p className="mt-1 text-sm text-slate-300">The system generated this. Check it. Verify if it is right. Correct only what is wrong.</p>
+            </div>
+            <button type="button" onClick={() => { setVerifiedByTech(true); setStatus('Tech verified the presented measurement.') }} className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white">{verifiedByTech ? 'Verified' : 'Verify measurement'}</button>
+          </div>
+          <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
+            <div><dt className="text-slate-400">Planes</dt><dd className="text-lg font-semibold">{presented.planes}</dd></div>
+            <div><dt className="text-slate-400">Edges</dt><dd className="text-lg font-semibold">{presented.edges}</dd></div>
+            <div><dt className="text-slate-400">Pitch</dt><dd className="text-lg font-semibold">{presented.pitches.length ? presented.pitches.join(', ') : 'Not in packet'}</dd></div>
+            <div><dt className="text-slate-400">Objects</dt><dd className="text-lg font-semibold">{presented.objects}</dd></div>
+            <div><dt className="text-slate-400">Plan area</dt><dd className="text-lg font-semibold">{presented.planSqFt != null ? `${presented.planSqFt.toLocaleString()} sq ft` : 'Not in packet'}</dd></div>
+            <div><dt className="text-slate-400">Roof area</dt><dd className="text-lg font-semibold">{presented.roofSqFt != null ? `${presented.roofSqFt.toLocaleString()} sq ft` : 'Not in packet'}</dd></div>
+            <div><dt className="text-slate-400">Squares</dt><dd className="text-lg font-semibold">{presented.squaresLabel ?? 'Not in packet'}</dd></div>
+            <div><dt className="text-slate-400">Bundles</dt><dd className="text-lg font-semibold">{presented.bundles != null ? `${presented.bundles} bundles` : 'Not in packet'}</dd></div>
+          </dl>
+          {presented.jobLabel && <p className="mt-3 text-sm text-slate-200">{presented.jobLabel}</p>}
+          {verifiedByTech && <p className="mt-3 text-sm text-emerald-300">Tech verified. This is the measurement.</p>}
+        </section>}
+
         {suggestion && <section className="mt-4 grid gap-4 lg:grid-cols-3">
           <div className="glass rounded-xl p-4 lg:col-span-2">
-            <h2 className="font-semibold">Human review queue</h2>
-            <p className="mb-3 text-xs text-slate-400">Accept, reject, or edit every suggestion. AI acceptance is never required. A pending item blocks geometry confirmation.</p>
+            <h2 className="font-semibold">Corrections</h2>
+            <p className="mb-3 text-xs text-slate-400">Only if something in the presented measurement is wrong. Accept, reject, or edit that item. The system already produced the packet.</p>
             {suggestion.planes.map((plane) => <div key={plane.dbId ?? plane.id} className="mb-2 rounded-lg border border-cyan-400/20 bg-cyan-400/10 p-2 text-sm">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span>Plane <b>{plane.id}</b> · {plane.confidence} confidence · {plane.review_status ?? 'pending'}</span>
@@ -653,7 +697,7 @@ export default function MeasurePage() {
             <p className="mt-2 text-xs text-amber-200">Plan area is computed from reviewed polygon coordinates and one scale. Slope area uses the confirmed uniform pitch or each saved, reviewed plane pitch. Verify edges, dormers, overhangs, valleys and actual site pitch independently.</p>
             <button onClick={() => void saveDraftQuantity()} disabled={working || Boolean(savedMeasurementId)} className="mt-3 rounded-lg bg-cyan-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{savedMeasurementId ? 'Saved as unverified draft' : 'Save as unverified draft measurement'}</button>
             {savedMeasurementId && <p className="mt-2 text-xs text-emerald-200">Measurement record: {savedMeasurementId}</p>}
-          </div> : <p className="mt-3 rounded-lg border border-white/10 bg-black/20 p-3 text-sm text-slate-400">No quantity yet. Confirm geometry, calibration, top-down image type, measured pitch, and uniform pitch across accepted planes; accept or edit at least one plane.</p>}
+          </div> : <p className="mt-3 rounded-lg border border-white/10 bg-black/20 p-3 text-sm text-slate-400">The system measurement is above. Verify it. This box fills when the server recalculates from the saved geometry.</p>}
         </section>}
 
         {!suggestion && <section className="glass mt-4 rounded-xl border-dashed p-4 text-sm text-slate-400">Manual measurement remains available even when AI analysis is unavailable. No fabricated image, geometry, scale, or measurement is shown.</section>}

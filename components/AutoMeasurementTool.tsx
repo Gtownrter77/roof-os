@@ -23,7 +23,7 @@ export default function AutoMeasurementTool({ hasImage, working = false, onDetec
     setStatus('Saving the private photo, then connecting to Ollama on this same device…')
     try {
       await onDetect()
-      setStatus('Local AI suggestions saved. Review every plane, edge, and object before calibration.')
+      setStatus('System measurement presented. Verify the numbers.')
     } catch (err) {
       setStatus('Local AI did not complete. Manual tracing is available.')
       setError(err instanceof Error ? err.message : 'Local Ollama roof analysis could not be completed.')
@@ -35,7 +35,7 @@ export default function AutoMeasurementTool({ hasImage, working = false, onDetec
     <section className="glass mt-4 rounded-xl p-4">
       <h2 className="font-semibold">Roof Detection</h2>
       <p className="text-sm text-slate-400">
-        Automatic detection uses Ollama running on this same device at localhost:11434 with the qwen3-vl:8b vision model. The photo is saved to private inspection storage first, then sent directly from this browser to local Ollama; it is not sent to a hosted AI service. This setup does not include an Ollama server on Android by default, so Android users should use manual tracing unless they have separately installed and configured a compatible local service. AI suggestions are not verified measurements: review the geometry and calibrate scale and pitch before using quantities.
+        Automatic detection uses Ollama on this device. The system generates the planes, edges, pitch, area, squares, and bundles, then presents them. The tech verifies the result. The photo stays in private inspection storage and is not sent to a hosted AI service.
       </p>
       <div className="mt-3 flex flex-wrap gap-2">
         <button
