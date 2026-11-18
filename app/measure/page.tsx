@@ -7,6 +7,7 @@ import { smartBack } from '../../lib/smart-back'
 import { createClient } from '../../lib/supabase/client'
 import type { GeometrySuggestion } from '../../lib/ai/geometry-contract'
 import { analyzeRoofImageWithLocalOllama } from '../../lib/ai/local-vision-browser'
+import { readEmbeddedGps } from '../../lib/photo-provenance.mjs'
 import { calculateCalibratedRoofDraft } from '../../lib/measurements/calibrated-roof-draft'
 import { previewRoofAreaFromFootprint } from '../../lib/measurements/footprint-preview'
 import { purchasableRoofing, roofAreaRangeError } from '../../lib/measurements/purchasable-roofing'
@@ -50,6 +51,9 @@ export default function MeasurePage() {
   const [address, setAddress] = useState('')
   const [automationPrefs, setAutomationPrefs] = useState<RoofingWorkflowPreferences>({ ...DEFAULT_ROOFING_WORKFLOW_PREFS })
   const lookupSeqRef = useRef(0)
+  const selectedPhotoSeqRef = useRef(0)
+  const [photoGps, setPhotoGps] = useState<{ latitude: number; longitude: number; embeddedAddress: string | null } | null>(null)
+  const [photoGpsChecked, setPhotoGpsChecked] = useState(false)
   const autoLookupAttemptRef = useRef('')
   useEffect(() => {
     const refresh = () => setAutomationPrefs(loadRoofingWorkflowPreferences())
@@ -105,6 +109,20 @@ export default function MeasurePage() {
     }
     if (preview) URL.revokeObjectURL(preview)
     setFile(next)
+    const gpsSeq = ++selectedPhotoSeqRef.current
+    setPhotoGps(null)
+    setPhotoGpsChecked(false)
+    if (next.size <= 30 * 1024 * 1024) {
+      void next.arrayBuffer().then((bytes) => {
+        const embedded = readEmbeddedGps(new Uint8Array(bytes))
+        if (gpsSeq !== selectedPhotoSeqRef.current) return
+        setPhotoGps(embedded ? {
+          latitude: embedded.latitude, longitude: embedded.longitude,
+          embeddedAddress: embedded.address || null,
+        } : null)
+      }).catch(() => { if (gpsSeq === selectedPhotoSeqRef.current) setPhotoGps(null) })
+        .finally(() => { if (gpsSeq === selectedPhotoSeqRef.current) setPhotoGpsChecked(true) })
+    } else setPhotoGpsChecked(true)
     setImageSize({ width: 0, height: 0 })
     const imageUrl = URL.createObjectURL(next)
     setPreview(imageUrl)
@@ -125,6 +143,62 @@ export default function MeasurePage() {
     image.onload = () => setImageSize({ width: image.naturalWidth, height: image.naturalHeight })
     image.onerror = () => setError('The selected image could not be decoded.')
     image.src = imageUrl
+  }
+
+  async function findHouseFromEmbeddedPhoto() {
+    if (!file || !photoGps) {
+      setError('No GPS coordinates embedded in the selected photo. Enter the property address for manual map search.')
+      return
+    }
+    // Deliberate technician action: GPS helps find candidate imagery, but it
+    // does not approve an automatic roof measurement or select a building.
+    const requestSeq = ++lookupSeqRef.current
+    setWorking(true)
+    setError('')
+    setMapCenter(null)
+    setAerialTileUrl('')
+    setAerialAttribution('')
+    setAddressCandidates([])
+    setSelectedBuildingIndex(null)
+    setManualArea(null)
+    setStatus('Looking up the candidate property from GPS embedded in this photo…')
+    try {
+      const { data: workspaceId } = await supabase.rpc('current_workspace_id')
+      if (!workspaceId) throw new Error('An active workspace is required.')
+      const query = new URLSearchParams({
+        workspaceId, lat: String(photoGps.latitude), lon: String(photoGps.longitude),
+      })
+      const response = await fetch('/api/measurements/property?' + query.toString(), { cache: 'no-store' })
+      const payload = await response.json()
+      if (requestSeq !== lookupSeqRef.current) return
+      if (!response.ok) throw new Error(payload.error || 'The photo address could not be located.')
+      const candidateAddress = typeof payload.geocode?.displayName === 'string' ? payload.geocode.displayName.trim() : ''
+      if (!candidateAddress) throw new Error('GPS did not resolve to a candidate property address.')
+      // Suppress duplicate address search; this response already carries the map.
+      autoLookupAttemptRef.current = candidateAddress
+      setAddress(candidateAddress)
+      const coordsValid = Number.isFinite(payload.geocode?.latitude) && Number.isFinite(payload.geocode?.longitude)
+      setMapCenter(coordsValid ? { latitude: payload.geocode.latitude, longitude: payload.geocode.longitude } : null)
+      const candidates = Array.isArray(payload.candidates) ? payload.candidates : []
+      setAddressCandidates(candidates)
+      setManualMode(coordsValid)
+      setSelectedBuildingIndex(null) // Never auto-select an adjacent roof.
+      const aerial = payload.aerial
+      const available = coordsValid && aerial?.status === 'available' && typeof aerial.tileUrl === 'string'
+      setAerialTileUrl(available ? aerial.tileUrl : '')
+      setAerialAttribution(available ? aerial.attribution || 'OpenAerialMap' : '')
+      setImageryNote(
+        'CANDIDATE PROPERTY ONLY: confirm the address and correct building before measurements. ' +
+        (available ? 'Open aerial imagery found; trace and verify each roof plane.' : 'Aerial imagery unavailable. Street-map/manual tracing remains available.')
+      )
+      setStatus('Photo EXIF GPS located a candidate address. Technician must confirm the actual building; no roof measurement was authorized.')
+    } catch (err) {
+      if (requestSeq !== lookupSeqRef.current) return
+      setError(err instanceof Error ? err.message : 'Photo location lookup unavailable.')
+      setStatus('Manual address search remains available.')
+    } finally {
+      if (requestSeq === lookupSeqRef.current) setWorking(false)
+    }
   }
 
   async function lookupImagery() {
@@ -487,7 +561,13 @@ export default function MeasurePage() {
           <div className="mt-4 flex flex-wrap gap-2">
             <button onClick={() => inputRef.current?.click()} className="rounded-lg bg-slate-700 px-4 py-2 text-sm font-semibold text-white">{file ? 'Replace actual image' : 'Load actual aerial / inspection image'}</button>
             <button onClick={() => setManualMode(!manualMode)} className="rounded-lg bg-slate-700 px-4 py-2 text-sm font-semibold text-white">{manualMode ? 'Exit Manual Mode' : 'Manual Measurement'}</button>
+            <button type="button" onClick={() => void findHouseFromEmbeddedPhoto()} disabled={!photoGps || working} className="rounded-lg bg-cyan-800 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">
+              Find candidate skyview from photo GPS
+            </button>
           </div>
+          {file && photoGpsChecked && <p className="mt-2 text-xs text-slate-300" role="status">
+            {photoGps ? 'Embedded GPS found in the actual selected photo. Candidate address/roof must be verified; this does not authorize AI measurements.' : 'No embedded GPS found. This photo is manual-only and cannot trigger photo automations. Address-first manual skyview is still available.'}
+          </p>}
           {manualMode && <ManualDrawingTool
             key={preview || (mapCenter ? String(mapCenter.latitude) + ':' + String(mapCenter.longitude) + ':' + (aerialTileUrl || 'street-map') : 'no-map')}
             imageUrl={preview}
