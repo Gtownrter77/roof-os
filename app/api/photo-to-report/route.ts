@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '../../../lib/supabase/admin'
 import { createClient } from '../../../lib/supabase/server'
 import { isUuid, readJson } from '../../../lib/api-security'
+import { getSupabaseEnv } from '../../../lib/supabase/env'
+import { fetchPrivatePhotoBytes } from '../../../lib/photo-provenance-io'
+import { isCertifiedPhotoContent } from '../../../lib/photo-provenance-integrity.mjs'
 
 export const runtime = 'nodejs'
 function error(message: string, status: number) { return NextResponse.json({ error: message }, { status }) }
@@ -29,7 +32,7 @@ export async function POST(request: NextRequest) {
     if (!isUuid(photoId)) return error('Valid photo ID required.', 400)
 
     const { data: photo, error: photoError } = await admin.from('inspection_photos')
-      .select('id,inspection_id,workspace_id,uploaded_by,gps_verified,gps_latitude,gps_longitude,gps_address,upload_status')
+      .select('id,inspection_id,workspace_id,uploaded_by,gps_verified,gps_latitude,gps_longitude,gps_address,gps_sha256,bucket_id,object_path,upload_status')
       .eq('id', photoId).maybeSingle()
     if (photoError) return error('Photo access could not be verified.', 503)
     if (!photo) return error('Photo not found.', 404)
@@ -47,6 +50,22 @@ export async function POST(request: NextRequest) {
     if (settingError || settings?.enable_auto_photo_measurements !== true) {
       return NextResponse.json({ accepted: true, automationStarted: false, status: 'owner_permission_required',
         reason: 'Automatic photo measurements are OFF until workspace owner approval.' })
+    }
+
+    // Recheck the bytes at the time of automation; a database GPS flag alone
+    // cannot prove the stored image has not since been overwritten.
+    const expectedPrefix = [photo.workspace_id, photo.uploaded_by, photo.inspection_id].join('/') + '/'
+    if (photo.bucket_id !== 'inspection-photos' || !photo.object_path.startsWith(expectedPrefix)) {
+      return error('Photo storage provenance does not match its inspection.', 403)
+    }
+    const signed = await admin.storage.from('inspection-photos').createSignedUrl(photo.object_path, 60)
+    if (signed.error || !signed.data?.signedUrl) return error('The original photo is unavailable for verification.', 503)
+    const { url: supabaseUrl } = getSupabaseEnv()
+    const signedUrl = new URL(signed.data.signedUrl, supabaseUrl)
+    if (signedUrl.origin !== new URL(supabaseUrl).origin) return error('Invalid private photo source.', 403)
+    const originalBytes = await fetchPrivatePhotoBytes(signedUrl, 30 * 1024 * 1024, 15_000)
+    if (!isCertifiedPhotoContent(photo, originalBytes)) {
+      return error('Original photo no longer matches its embedded GPS certification. No automation started.', 403)
     }
 
     const { data: inspection } = await admin.from('inspection_sessions').select('id,workspace_id,lead_id')
