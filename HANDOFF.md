@@ -1358,7 +1358,7 @@ Do not claim Release 1 complete until every unchecked item above is either compl
 ## ContractorOS Stage 2 — narrow mandate, evidence, and revision writers
 
 **Checkpoint:** 2026-11-17
-**Baseline:** current GitHub `main` `9be6483`
+**Baseline:** current GitHub `main` `f12c058`
 **Status:** Stage 2 merged into `main`; only live Supabase writer integration remains pending.
 
 ### Completed
@@ -1388,6 +1388,40 @@ Do not claim Release 1 complete until every unchecked item above is either compl
 - [x] Run the full final local verification after the last optional-owner validation edit.
 - [x] Push the Stage 2 branch and pass fresh web, mobile, field-security, migration-safety, preview-build, and deployment checks.
 - [ ] Apply migration 103 to the target Supabase project and run authenticated synthetic writer integration tests.
-- [ ] Update the final ZIP after the Stage 2 merge.
+- [x] Update the final ZIP after the Stage 2 merge; the current ZIP also includes Stage 3.
 
 Do not claim the live writer integration gate is complete without non-production Supabase credentials and synthetic workspace users.
+
+## ContractorOS Stage 3 — action-time authority and role management
+
+**Checkpoint:** 2026-11-17
+**Baseline:** current merged `main` `f12c058`
+**Status:** Stage 3 merged into `main`; only live Supabase approval/denial integration remains pending.
+
+### Completed
+
+- [x] Added migration `104_contractor_os_action_authority.sql`.
+- [x] Added deterministic effective-role resolution from `workspace_members.employee_layer`/role with safe owner, admin, and member defaults.
+- [x] Added an atomic `agent_approval_events` trigger that evaluates the approver's role/profile against action risk and fails closed when authority is insufficient.
+- [x] Added authority evaluation state and resolved profile role fields to action batches and actions.
+- [x] Added authenticated authority-profile GET/PUT API routes with owner/admin enforcement, bounded input, supported role/level allowlists, and no service-role bypass.
+- [x] Added the authority-profile management panel to workspace settings.
+- [x] Added `scripts/contractoros-authority-test.mjs` and `npm run test:contractoros-authority`.
+
+### Verification completed
+
+- [x] Stage 3 authority contract test: PASS.
+- [x] Stage 2 writer and Release 1 control-plane contract tests: PASS.
+- [x] TypeScript: PASS.
+- [x] Production build: PASS (151 routes compiled).
+- [x] Release gate: PASS.
+- [x] Security-definer migration/search-path/trigger checks: PASS (60 functions checked).
+- [x] Real PostgreSQL migration-safety test: PASS in PR #473 migration-safety CI.
+- [x] PR #473 merged into `main` as `f12c058`; all eight fresh checks passed.
+- [ ] Live Supabase approval/denial integration test: unavailable until non-production Supabase credentials and synthetic users are provided.
+
+### Next tranche after Stage 3
+
+- [ ] Add event intake/reconciliation worker and durable workflow adapter.
+- [ ] Add Ollama/provider-neutral model routing with provenance records.
+- [ ] Complete and verify the web/mobile first vertical slice and correction/recovery cases.
