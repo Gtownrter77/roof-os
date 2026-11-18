@@ -15,8 +15,8 @@ const read = (path) => readFileSync(join(root, path), 'utf8')
 
 // 1. Every owner toggle is persisted on the workspace settings row.
 for (const flag of WORKSPACE_FEATURE_FLAG_KEYS) {
-  const migration = flag === 'yolo_mode' ? read('supabase/migrations/081_owner_yolo_mode.sql') : read('supabase/migrations/057_workspace_feature_flags.sql')
-  const expectedDefault = flag === 'yolo_mode' ? 'false' : 'true'
+  const migration = flag === 'yolo_mode' ? read('supabase/migrations/081_owner_yolo_mode.sql') : flag === 'enable_auto_photo_measurements' ? read('supabase/migrations/105_photo_gps_automation_authority.sql') : read('supabase/migrations/057_workspace_feature_flags.sql')
+  const expectedDefault = flag === 'yolo_mode' || flag === 'enable_auto_photo_measurements' ? 'false' : 'true'
   assert.ok(migration.includes(`${flag} boolean not null default ${expectedDefault}`), `the owning migration must persist ${flag}`)
 }
 const featureMigration = read('supabase/migrations/057_workspace_feature_flags.sql')
@@ -73,7 +73,7 @@ const defaults = defaultWorkspaceSettings()
 assert.equal(defaults.price_refresh_frequency, 'weekly')
 assert.equal(defaults.default_language, 'en-US')
 assert.equal(defaults.material_search_mode, 'catalog_and_retailer')
-for (const flag of WORKSPACE_FEATURE_FLAG_KEYS) assert.equal(defaults[flag], flag === 'yolo_mode' ? false : true, `${flag} must use its documented default`)
+for (const flag of WORKSPACE_FEATURE_FLAG_KEYS) assert.equal(defaults[flag], flag === 'yolo_mode' || flag === 'enable_auto_photo_measurements' ? false : true, `${flag} must use its documented default`)
 
 const merged = readWorkspaceSettings({ enable_ai_receptionist: false, default_language: 'es-US', preferred_brands: { shingles: 'GAF' } })
 assert.equal(merged.enable_ai_receptionist, false)
