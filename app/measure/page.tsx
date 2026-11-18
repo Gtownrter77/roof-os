@@ -166,7 +166,7 @@ export default function MeasurePage() {
       const { data: workspaceId } = await supabase.rpc('current_workspace_id')
       if (!workspaceId) throw new Error('An active workspace is required.')
       const query = new URLSearchParams({
-        workspaceId, lat: String(photoGps.latitude), lon: String(photoGps.longitude),
+        workspaceId, lat: photoGps.latitude.toFixed(8), lon: photoGps.longitude.toFixed(8),
       })
       const response = await fetch('/api/measurements/property?' + query.toString(), { cache: 'no-store' })
       const payload = await response.json()
