@@ -6,7 +6,7 @@ import NetInfo from '@react-native-community/netinfo'
 import * as SecureStore from 'expo-secure-store'
 import { createClient, type Session } from '@supabase/supabase-js'
 import { useEffect, useRef, useState } from 'react'
-import { File } from 'expo-file-system'
+import { File, Paths } from 'expo-file-system'
 import { embedGpsIntoJpeg, readEmbeddedGps } from '../../lib/photo-provenance.mjs'
 import {
   ActivityIndicator,
@@ -688,27 +688,48 @@ export default function App() {
         }
       } catch { /* A denied or failed GPS fix never fabricates location. */ }
       let stampedCount = 0
-      const preparedAssets: Array<{ uri: string; mimeType: string; fileSize: number | null; width: number | null; height: number | null; gpsEmbedded: boolean }> = []
+      const preparedAssets: Array<{ clientId: string; uri: string; mimeType: string; fileSize: number | null; width: number | null; height: number | null; gpsEmbedded: boolean }> = []
       for (const asset of result.assets) {
         const mimeType = asset.mimeType ?? (/\.(jpe?g)$/i.test(asset.uri) ? 'image/jpeg' : 'application/octet-stream')
-        let size = asset.fileSize ?? null
+        const photoClientId = clientId('photo')
+        const extension = mimeType === 'image/jpeg' ? 'jpg' : mimeType === 'image/png' ? 'png' : mimeType === 'image/webp' ? 'webp' : 'bin'
+        // ImagePicker returns a cache URI. Copy the original to persistent
+        // document storage BEFORE creating the offline SQLite queue.
+        const retained = new File(Paths.document, photoClientId + '.' + extension)
+        await new File(asset.uri).copy(retained)
+        if (!retained.exists || retained.size <= 0) {
+          throw new Error('The captured photo could not be preserved on this device.')
+        }
+        let finalPhoto = retained
         let gpsEmbedded = false
         if (gps && resolvedAddress && mimeType === 'image/jpeg') {
+          const stampedFile = new File(Paths.document, photoClientId + '-gps.jpg')
           try {
-            const image = new File(asset.uri)
-            const stamped = embedGpsIntoJpeg(new Uint8Array(await image.arrayBuffer()), {
+            const stamped = embedGpsIntoJpeg(new Uint8Array(await retained.arrayBuffer()), {
               latitude: gps.latitude, longitude: gps.longitude,
               address: resolvedAddress, capturedAt,
             })
-            image.write(stamped)
-            const verified = readEmbeddedGps(new Uint8Array(await image.arrayBuffer()))
-            if (!verified?.address?.trim()) throw new Error('Missing embedded photo address')
-            size = image.size
+            stampedFile.write(stamped)
+            const verified = readEmbeddedGps(new Uint8Array(await stampedFile.arrayBuffer()))
+            if (!verified?.address?.trim()
+              || Math.abs(verified.latitude - gps.latitude) > 0.00001
+              || Math.abs(verified.longitude - gps.longitude) > 0.00001) {
+              throw new Error('GPS stamping did not survive the write to disk.')
+            }
+            finalPhoto = stampedFile
             gpsEmbedded = true
             stampedCount += 1
-          } catch { /* Retain unstamped photo as manual-only. */ }
+            retained.delete()
+          } catch {
+            // Keep the intact retained original for MANUAL evidence. Do not
+            // claim GPS success or start any automations.
+            try { if (stampedFile.exists) stampedFile.delete() } catch {}
+          }
         }
-        preparedAssets.push({ ...asset, mimeType, fileSize: size, gpsEmbedded })
+        preparedAssets.push({
+          clientId: photoClientId, uri: finalPhoto.uri, mimeType, fileSize: finalPhoto.size,
+          width: asset.width ?? null, height: asset.height ?? null, gpsEmbedded,
+        })
       }
       const count = photos + preparedAssets.length
       const draftId = saveDraft(resolvedAddress || address, photos, gps ?? point, selectedLeadId)
@@ -717,7 +738,7 @@ export default function App() {
       try {
         db.withTransactionSync(() => {
           preparedAssets.forEach((asset) => {
-            const photoInsert = db.runSync('INSERT INTO inspection_photo_queue (draft_id, client_id, local_uri, album, caption, mime_type, file_size_bytes, width, height, captured_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', draftId, clientId('photo'), asset.uri, photoAlbum, photoCaption.trim() || null, asset.mimeType ?? 'image/jpeg', asset.fileSize ?? null, asset.width ?? null, asset.height ?? null, capturedAt)
+            const photoInsert = db.runSync('INSERT INTO inspection_photo_queue (draft_id, client_id, local_uri, album, caption, mime_type, file_size_bytes, width, height, captured_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', draftId, asset.clientId, asset.uri, photoAlbum, photoCaption.trim() || null, asset.mimeType ?? 'image/jpeg', asset.fileSize ?? null, asset.width ?? null, asset.height ?? null, capturedAt)
             const photoQueueId = Number(photoInsert.lastInsertRowId)
             const requestedFeatures: Array<[FieldAiFeature, boolean]> = [
               ['caption_album', fieldAiPreferences.photoCaptionAlbumEnabled],
@@ -898,30 +919,35 @@ export default function App() {
         if (recordError) throw recordError
         // Only the server can certify GPS based on the actual image bytes.
         // Network, EXIF or migration failure leaves this upload manual-only.
-        let gpsVerified = false
-        let automaticMeasurementsAllowed = false
-        try {
-          const baseUrl = webAppUrl.replace(/\/$/, '')
-          const verificationResponse = await fetch(baseUrl + '/api/photo-provenance/verify', {
+        // A valid manual-only verdict is terminal; a network/server failure is
+        // NOT. Leave this photo in the retry queue until provenance is known.
+        const baseUrl = webAppUrl.replace(/\/$/, '')
+        const verificationResponse = await fetch(baseUrl + '/api/photo-provenance/verify', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', authorization: 'Bearer ' + session.access_token },
+          body: JSON.stringify({ photoId: data.id }),
+        })
+        if (!verificationResponse.ok) {
+          throw new Error('GPS verification service unavailable. Photo is stored securely and will retry; no automations started.')
+        }
+        const verification = await verificationResponse.json()
+        if (!verification || !['gps_verified', 'manual_only'].includes(verification.status)) {
+          throw new Error('GPS verification returned an invalid response. Retrying safely.')
+        }
+        const gpsVerified = verification.gpsVerified === true && verification.status === 'gps_verified'
+        const automaticMeasurementsAllowed = gpsVerified && verification.autoMeasurementsAllowed === true
+        if (!gpsVerified) manualOnlyPhotos += 1
+        if (automaticMeasurementsAllowed) {
+          const reportResponse = await fetch(webAppUrl.replace(/\/$/, '') + '/api/photo-to-report', {
             method: 'POST',
             headers: { 'content-type': 'application/json', authorization: 'Bearer ' + session.access_token },
             body: JSON.stringify({ photoId: data.id }),
           })
-          const verification = await verificationResponse.json()
-          gpsVerified = verificationResponse.ok && verification.gpsVerified === true
-          automaticMeasurementsAllowed = gpsVerified && verification.autoMeasurementsAllowed === true
-        } catch { /* Photo is accepted, automation remains off. */ }
-        if (!gpsVerified) manualOnlyPhotos += 1
-        if (automaticMeasurementsAllowed) {
-          try {
-            const reportResponse = await fetch(webAppUrl.replace(/\/$/, '') + '/api/photo-to-report', {
-              method: 'POST',
-              headers: { 'content-type': 'application/json', authorization: 'Bearer ' + session.access_token },
-              body: JSON.stringify({ photoId: data.id }),
-            })
-            const report = await reportResponse.json()
-            if (reportResponse.ok && report.automationStarted === true) reviewPacketsCreated += 1
-          } catch { /* The photograph remains synced; no fabricated report. */ }
+          const report = await reportResponse.json().catch(() => null)
+          if (!reportResponse.ok || report?.automationStarted !== true) {
+            throw new Error('Photo-to-Report packet could not be recorded. Retrying safely without approving any estimate.')
+          }
+          reviewPacketsCreated += 1
         }
         db.withTransactionSync(() => {
           db.runSync('UPDATE inspection_photo_queue SET sync_status = ?, remote_id = ?, last_error = NULL, next_retry_at = NULL WHERE id = ?', 'synced', data.id, photo.id)
