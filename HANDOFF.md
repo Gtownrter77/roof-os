@@ -1,3 +1,10 @@
+## 2026-11-18 — Field APK Metro + Gradle repair, artifact recorded
+
+- GitHub `main` is `99792955cf69fb56c6473e3050b7d96dd9a31040` (squash-merge PR #485). Metro repair landed earlier as `7008e22f05bb566674ab38aa333c7c38c811c42b` (PR #483). Required CI on PR #485: web, mobile, field-security, migration-safety, preview-build, Vercel all **success**.
+- Successful APK for Metro SHA `7008e22`: [run 44404219619](https://github.com/Gtownrter77/roof-os/actions/runs/44404219619). Artifact `roof-os-field-preview-7008e22f05bb566674ab38aa333c7c38c811c42b`. Version `0.5.0`, package `com.roofos.field`, version code `42`. SHA-256 `d94e7fe1657a3041dd155d42ff5c253938542389f8e2b0ac7b46b2be8c7c404f` (local file hash matched the provenance manifest). Signing certificate SHA-256 `7a1c64b0a0bdae5ac87aef821ee7d6a6a56a6ec21ef53c249149b8e90b74868f`. EAS CLI `27.2.0`. This is a workflow artifact, not a new GitHub Release tag.
+- Push APK on `7008e22` first failed at Gradle (`kotlin-stdlib:2.2.21`, run `44400175072`); retries reused a negative cache. PR #485 adds Maven HTTP 120s timeouts and wipes `$HOME/.gradle/caches` between EAS attempts. Rebuild of current main `9979295` is run `44406863550` and was in progress when this note was written.
+- Latest GitHub Release tag remains [field-apk-main-6976341](https://github.com/Gtownrter77/roof-os/releases/tag/field-apk-main-6976341). Open PR #461 remains **CONFLICTING**. On-device AI stays disabled by design. Physical-device install and live two-workspace isolation remain unverified.
+
 ## 2026-11-18 — Field APK Metro resolution repair
 
 - Forensic audit of GitHub `main` `e755a4c3e9d611e15f90e7cf7c4fda928a50d2d7` (PR #482). Required CI on that SHA: web, mobile, field-security, migration-safety, preview-build all **success**.
