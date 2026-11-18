@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto'
+import { isCertifiedPhotoContent } from '../../../../../lib/photo-provenance-integrity.mjs'
 import { NextRequest, NextResponse } from 'next/server'
 import { analyzeRoofGeometryWithGemini, GeminiVisionError } from '../../../../../lib/ai/gemini-vision.mjs'
 import { GEOMETRY_CONTRACT_VERSION, GeometryContractValidationError, validateGeometrySuggestion } from '../../../../../lib/ai/geometry-contract'
@@ -92,7 +93,7 @@ export async function POST(request: NextRequest) {
 
     const { data: photo, error: photoError } = await supabase
       .from('inspection_photos')
-      .select('id,workspace_id,inspection_id,uploaded_by,bucket_id,object_path,mime_type,file_size_bytes,upload_status,gps_verified,gps_address')
+      .select('id,workspace_id,inspection_id,uploaded_by,bucket_id,object_path,mime_type,file_size_bytes,upload_status,gps_verified,gps_address,gps_sha256,gps_latitude,gps_longitude')
       .eq('id', photoId)
       .eq('workspace_id', workspaceId)
       .eq('inspection_id', inspectionId)
@@ -150,6 +151,7 @@ export async function POST(request: NextRequest) {
     if (!bytes.length || !isExpectedImage(bytes, photo.mime_type)) throw new RouteError(415, 'The selected roof photo failed image validation.')
 
     const hash = createHash('sha256').update(bytes).digest('hex')
+    if (!isCertifiedPhotoContent(photo, bytes)) return jsonError('The stored photo no longer matches its verified embedded GPS. Automatic measurement is blocked.', 403)
     const sourceReference = `inspection-photo:${photoId}:sha256:${hash}`
     const prompt = `${PROMPT}\nOriginal image dimensions: ${width} by ${height} pixels.\nSource reference: ${sourceReference}`
     const result = await analyzeRoofGeometryWithGemini({
