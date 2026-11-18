@@ -1,4 +1,5 @@
 import {createHash} from 'node:crypto'
+import {isCertifiedPhotoContent} from '../../../../lib/photo-provenance-integrity.mjs'
 import {NextRequest,NextResponse} from 'next/server'
 import {analyzePhotosWithOllama,getOllamaVisionModel,LocalVisionError} from '../../../../lib/ai/local-vision.mjs'
 import {validateSidingVisionObservation,SIDING_VISION_CONTRACT_VERSION,SIDING_VISION_DISCLAIMER} from '../../../../lib/ai/siding-vision-contract'
@@ -16,13 +17,14 @@ export async function POST(request:NextRequest){try{
  const member=await requireWorkspaceMember(supabase,auth.data.user.id,workspaceId);if(member.response)return member.response
  const parsed=await readJson(request,16*1024);if('error'in parsed)return bad(parsed.error,parsed.status);const body=parsed.body as Record<string,unknown>
  if(!isUuid(body.photoId)||!isUuid(body.inspectionId))return bad('photoId and inspectionId must be valid UUIDs.')
- const {data:photo}=await supabase.from('inspection_photos').select('id,workspace_id,inspection_id,bucket_id,object_path,mime_type,upload_status,gps_verified,gps_address').eq('id',body.photoId).eq('workspace_id',workspaceId).eq('inspection_id',body.inspectionId).maybeSingle()
+ const {data:photo}=await supabase.from('inspection_photos').select('id,workspace_id,inspection_id,bucket_id,object_path,mime_type,upload_status,gps_verified,gps_address,gps_sha256,gps_latitude,gps_longitude').eq('id',body.photoId).eq('workspace_id',workspaceId).eq('inspection_id',body.inspectionId).maybeSingle()
  if(!photo||photo.bucket_id!==BUCKET||photo.upload_status!=='uploaded'||!['image/jpeg','image/png','image/webp'].includes(photo.mime_type))return bad('Authorized inspection photo required.',403)
  if(photo.gps_verified!==true||!photo.gps_address?.trim())return bad('Photo automation unavailable: embedded GPS coordinates and address not verified. Manual measurement remains available.',403)
  const {data:signed,error:se}=await supabase.storage.from(BUCKET).createSignedUrl(photo.object_path,60);if(se||!signed?.signedUrl)return bad('Photo could not be signed.',502)
  const {url:supabaseUrl}=getSupabaseEnv(),base=new URL(supabaseUrl).origin,url=new URL(signed.signedUrl,base);if(url.origin!==base)return bad('Invalid private storage URL.',502)
  const image=await getBytes(url.toString())
  const hash=createHash('sha256').update(image).digest('hex')
+ if(!isCertifiedPhotoContent(photo,image))return bad('Stored siding photo no longer matches its GPS certification. Analysis blocked.',403)
  const prompt='Analyze this actual siding/elevation photograph. Return exactly one JSON object matching ROOF/OS siding vision contract '+SIDING_VISION_CONTRACT_VERSION+'. Count visible siding courses/rows when possible. Estimate visible siding exposure in inches only when visually supportable. Identify openings and approximate dimensions only when supportable. A human must verify every value. Never invent scale or claim exact measurement. Do not return prices, estimates, waste, square footage, roofing quantities, insurance decisions, or building-code determinations. Include authority_disclaimer exactly as: '+SIDING_VISION_DISCLAIMER+'. If the photo does not support a value, return null and explain in warnings. No Markdown.'
  let localResult:{model:string;text:string}
  try{localResult=await analyzePhotosWithOllama({prompt,photos:[{mimeType:photo.mime_type,bytes:image}],model:MODEL,timeoutMs:90000})}catch(error){if(error instanceof LocalVisionError)return bad(error.message+' Manual measurement remains available.',error.status);return bad('The local vision service is unavailable. Manual measurement remains available.',503)}
