@@ -1,5 +1,13 @@
 # ROOF/OS Living Build Checklist
 
+## 2026-11-18 — Technician-first measurement review, PR #476 replacement
+
+- [~] Show the AI-produced roof-geometry packet immediately in a simple technician review panel: suggested planes, edges, objects, pending review and human-reviewed pitches.
+- [~] Keep slope area and roofing squares **unavailable until geometry, scale, orthographic top-down assumption and measured pitch are confirmed**; no hidden AI claim becomes an estimate-ready quantity.
+- [~] Primary action moves the technician into the existing human geometry review queue, not automatic approval.
+- [~] Regression checks for safe summary wording, manual fallback and quantity gates. Exact-head CI, merge, deployment and physical field validation require separate evidence.
+- [!] This presentation change does not deliver automated geometry on Android without a configured local vision provider, certified roof dimensions, or priced estimates.
+
 ## 2026-11-18 — PR #477 conflict-safe replacement: embedded EXIF to skyview to draft estimate
 
 - [~] Replace PR #477's browser current-location shortcut with coordinates decoded from the **selected photo's embedded EXIF**. Without embedded coordinates, stay manual-only; address-first manual lookup remains available.
