@@ -105,15 +105,7 @@ export default function MeasurePage() {
     const next = event.target.files?.[0] ?? null
     event.target.value = ''
     if (!next || next.type !== 'image/jpeg') {
-      setError('unable to upload')
-      return
-    }
-    const bytes = new Uint8Array(await next.arrayBuffer())
-    const located = readEmbeddedLocation(bytes)
-    if (!located) {
-      setFile(null)
-      setPreview('')
-      setError('unable to upload')
+      setError('Choose a JPEG inspection image.')
       return
     }
     if (preview) URL.revokeObjectURL(preview)
@@ -145,7 +137,7 @@ export default function MeasurePage() {
     setScalePixels('')
     setScaleFeet('')
     setError('')
-    setStatus('Photo accepted. Location is in the file.')
+    setStatus('Photo accepted. Automation starts only if location is embedded in the file.')
     const image = new Image()
     image.onload = () => setImageSize({ width: image.naturalWidth, height: image.naturalHeight })
     image.onerror = () => setError('The selected image could not be decoded.')
@@ -293,7 +285,7 @@ export default function MeasurePage() {
       if (inspectionError || !inspection) throw new Error('Could not create an inspection session.')
 
       const photoBytes = new Uint8Array(await file.arrayBuffer())
-      if (!readEmbeddedLocation(photoBytes)) throw new Error('unable to upload')
+      if (!readEmbeddedLocation(photoBytes)) setStatus('No embedded location. This photo is manual-only and cannot trigger photo automations.')
       const objectId = crypto.randomUUID()
       const extension = MIME_EXTENSIONS[file.type]
       const path = `${workspaceId}/${user.id}/${inspection.id}/${objectId}.${extension}`

@@ -769,8 +769,9 @@ export default function App() {
       setPhotoCaption('')
       refreshPhotoQueue(draftId)
       if (stampedCount !== preparedAssets.length) {
-        Alert.alert('unable to upload', 'Location must be embedded in the photo. Allow precise location and try again.')
-        return
+        setNotice(`${preparedAssets.length} photo${preparedAssets.length === 1 ? '' : 's'} saved. ${stampedCount} with embedded location. ${preparedAssets.length - stampedCount} manual-only and cannot trigger photo automations.`)
+      } else {
+        setNotice(`${preparedAssets.length} photo${preparedAssets.length === 1 ? '' : 's'} saved with embedded location.`)
       }
       if (session) void syncNow()
     } catch {
