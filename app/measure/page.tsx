@@ -109,20 +109,7 @@ export default function MeasurePage() {
       return
     }
     const bytes = new Uint8Array(await next.arrayBuffer())
-    let located = readEmbeddedLocation(bytes)
-    let accepted = next
-    if (!located && navigator.geolocation) {
-      try {
-        const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 12000 })
-        })
-        const stamped = stampLocation(bytes, { latitude: position.coords.latitude, longitude: position.coords.longitude })
-        located = readEmbeddedLocation(stamped)
-        if (located) accepted = new File([new Uint8Array(stamped)], next.name.replace(/\.\w+$/, '.jpg'), { type: 'image/jpeg' })
-      } catch {
-        located = null
-      }
-    }
+    const located = readEmbeddedLocation(bytes)
     if (!located) {
       setFile(null)
       setPreview('')
@@ -130,11 +117,11 @@ export default function MeasurePage() {
       return
     }
     if (preview) URL.revokeObjectURL(preview)
-    setFile(accepted)
+    setFile(next)
     const gpsSeq = ++selectedPhotoSeqRef.current
     setPhotoGps(null)
     setPhotoGpsChecked(false)
-    void accepted.arrayBuffer().then((bytes) => {
+    void next.arrayBuffer().then((bytes) => {
       const embedded = readEmbeddedGps(new Uint8Array(bytes))
       if (gpsSeq !== selectedPhotoSeqRef.current) return
       setPhotoGps(embedded ? {
@@ -144,7 +131,7 @@ export default function MeasurePage() {
     }).catch(() => { if (gpsSeq === selectedPhotoSeqRef.current) setPhotoGps(null) })
       .finally(() => { if (gpsSeq === selectedPhotoSeqRef.current) setPhotoGpsChecked(true) })
     setImageSize({ width: 0, height: 0 })
-    const imageUrl = URL.createObjectURL(accepted)
+    const imageUrl = URL.createObjectURL(next)
     setPreview(imageUrl)
     setSuggestion(null)
     setInspectionId('')
