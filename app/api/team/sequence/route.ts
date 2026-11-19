@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '../../../../lib/supabase/server'
+import { readJson } from '../../../../lib/api-security'
 
 const STEPS = ['self', 'inspector', 'closer', 'operations', 'owner'] as const
 
@@ -28,7 +29,9 @@ export async function PUT(request: NextRequest) {
   if (adminError) return NextResponse.json({ error: 'Workspace authorization could not be verified.' }, { status: 502 })
   if (!isAdmin) return NextResponse.json({ error: 'Only the owner sets the lockout sequence.' }, { status: 403 })
 
-  const body = await request.json().catch(() => ({})) as { memberId?: string; sequence?: string[] }
+  const parsedBody = await readJson(request)
+  if ('error' in parsedBody) return NextResponse.json({ error: parsedBody.error }, { status: parsedBody.status })
+  const body = parsedBody as { memberId?: string; sequence?: string[] }
   const sequence = Array.isArray(body.sequence) ? body.sequence.filter((step) => STEPS.includes(step as typeof STEPS[number])) : []
   if (!body.memberId || sequence.length < 1 || sequence.length > 4) {
     return NextResponse.json({ error: 'The owner sequence must be 1 to 4 steps: self, inspector, closer, operations, owner.' }, { status: 400 })
