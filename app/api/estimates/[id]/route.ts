@@ -98,19 +98,11 @@ export async function PUT(
   // Handle status transitions
   let approved_by = existing.approved_by
   let approved_at = existing.approved_at
-  // Approval level is set by the owner through the member layer and lockout count.
-  // Each tag is one lockout sequence. Send stays locked until every sequence is tagged.
+  // Direct approval stays an owner/admin act. The lockout route is the sequence.
   if (status === 'approved' && existing.status !== 'approved') {
-    const { data: membership, error: memberError } = await supabase
-      .from('workspace_members')
-      .select('role,employee_layer,approval_sequences')
-      .eq('workspace_id', workspaceId)
-      .eq('user_id', user.id)
-      .maybeSingle()
-    if (memberError) return NextResponse.json({ error: 'Workspace authorization could not be verified.' }, { status: 502 })
-    const layer = membership?.employee_layer || membership?.role || ''
-    const canApprove = ['owner', 'admin', 'operations', 'inspector', 'closer'].includes(layer)
-    if (!canApprove) return NextResponse.json({ error: 'This approval level is set by the owner. Your layer cannot tag an estimate.' }, { status: 403 })
+    const { data: isAdminData, error: adminCheckError } = await supabase.rpc('is_workspace_admin', { target_workspace: workspaceId })
+    if (adminCheckError) return NextResponse.json({ error: 'Workspace authorization could not be verified.' }, { status: 502 })
+    if (!isAdminData) return NextResponse.json({ error: 'Workspace administrator authority is required to approve this estimate.' }, { status: 403 })
     approved_by = user.id
     approved_at = new Date().toISOString()
   } else if (status !== 'approved') {
