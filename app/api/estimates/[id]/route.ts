@@ -23,7 +23,7 @@ export async function GET(
   const { id } = await params
   const { data, error } = await supabase
     .from('estimates')
-    .select('id,lead_id,template_version_id,price_book_id,status,formula_version,subtotal,tax,total,created_by,approved_by,approved_at,created_at,updated_at,estimate_snapshot,estimate_line_items(*)')
+    .select('id,lead_id,template_version_id,price_book_id,status,formula_version,subtotal,tax,total,created_by,approved_by,approved_at,approval_tags,created_at,updated_at,estimate_snapshot,estimate_line_items(*)')
     .eq('id', id)
     .eq('workspace_id', workspaceId)
     .maybeSingle()
@@ -98,7 +98,7 @@ export async function PUT(
   // Handle status transitions
   let approved_by = existing.approved_by
   let approved_at = existing.approved_at
-  // Production estimate approval requires workspace-admin authority.
+  // Direct approval stays an owner/admin act. The lockout route is the sequence.
   if (status === 'approved' && existing.status !== 'approved') {
     const { data: isAdminData, error: adminCheckError } = await supabase.rpc('is_workspace_admin', { target_workspace: workspaceId })
     if (adminCheckError) return NextResponse.json({ error: 'Workspace authorization could not be verified.' }, { status: 502 })

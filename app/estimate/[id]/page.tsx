@@ -84,6 +84,7 @@ type Estimate = {
   tax: number
   total: number
   created_at: string
+  approval_tags?: Array<{ step: string; layer: string; tagged_at: string }>
   estimate_snapshot?: {
     customer?: { name?: string; email?: string; phone?: string }
     property?: { address?: string; city?: string; state?: string; zip?: string }
@@ -269,6 +270,57 @@ export default function EstimateDetailPage() {
               <section className="rounded-xl border border-white/10 bg-slate-900 p-5">
                 <h2 className="font-semibold mb-2">Customer notes</h2>
                 <p className="whitespace-pre-wrap text-sm text-slate-300">{estimate.estimate_snapshot.notes.customer}</p>
+              </section>
+            )}
+            {estimate.status !== 'approved' && (
+              <section className="rounded-xl border border-amber-400/40 bg-slate-900 p-5 space-y-3">
+                <h2 className="font-semibold">Lockout / tagout</h2>
+                <p className="text-sm text-slate-300">The AI did the work. The tech checks it. The owner set the sequence. Each lock must be tagged before this estimate can be sent.</p>
+                <ol className="space-y-1 text-sm text-slate-200">
+                  {(estimate.approval_tags ?? []).map((tag, index) => (
+                    <li key={`${tag.step}-${index}`}>Lock {index + 1}: {tag.step} tagged by {tag.layer}</li>
+                  ))}
+                  <li>Next lock is open. Tag it only if the work is correct.</li>
+                </ol>
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={async () => {
+                    setSaving(true)
+                    setRecordError('')
+                    const response = await fetch('/api/estimates/' + encodeURIComponent(estimate.id) + '/lockout', { method: 'POST' })
+                    const payload = await response.json().catch(() => ({}))
+                    if (!response.ok) setRecordError(payload.error || 'Could not tag this lock.')
+                    else window.location.reload()
+                    setSaving(false)
+                  }}
+                  className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-black disabled:opacity-50"
+                >
+                  Tag this lock if correct
+                </button>
+              </section>
+            )}
+            {estimate.status === 'approved' && (
+              <section className="rounded-xl border border-white/10 bg-slate-900 p-5 space-y-3">
+                <h2 className="font-semibold">Send to the homeowner</h2>
+                <p className="text-sm text-slate-300">The AI built this estimate. You approved it. One click opens the email or the text to the homeowner.</p>
+                <div className="flex flex-wrap gap-2">
+                  <a
+                    href={`mailto:${encodeURIComponent(estimate.estimate_snapshot?.customer?.email || '')}?subject=${encodeURIComponent('Your roof estimate')}&body=${encodeURIComponent(`Your roof estimate is ready.\nAddress: ${estimate.estimate_snapshot?.property?.address || ''}\nTotal: ${money(estimate.total)}\nThis estimate was reviewed and approved by the technician.`)}`}
+                    className="rounded-lg bg-cyan-700 px-4 py-2 text-sm font-semibold text-white"
+                  >
+                    Email the homeowner
+                  </a>
+                  <a
+                    href={`sms:${encodeURIComponent(estimate.estimate_snapshot?.customer?.phone || '')}?&body=${encodeURIComponent(`Your roof estimate is ready. Address: ${estimate.estimate_snapshot?.property?.address || ''}. Total: ${money(estimate.total)}. Reviewed and approved by the technician.`)}`}
+                    className="rounded-lg border border-cyan-400/60 px-4 py-2 text-sm font-semibold text-cyan-100"
+                  >
+                    Text the homeowner
+                  </a>
+                </div>
+                {!estimate.estimate_snapshot?.customer?.email && !estimate.estimate_snapshot?.customer?.phone && (
+                  <p className="text-xs text-amber-200">No homeowner email or phone is on this estimate yet. Add it, then send.</p>
+                )}
               </section>
             )}
             {estimate.status === 'approved' && (
