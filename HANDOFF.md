@@ -1,3 +1,10 @@
+## 2026-11-18 — Owner location is the measurement gate
+
+- PR #484 merged as `a5b40e84e7b7c7e428338281201c0138fe5d7778`. PR #461 (reviewed plane pitch) is already on main.
+- Rule: owner allows location. GPS is written into the photo. That photo can be measured and becomes an estimate. No location permission, or no GPS in the file, means the photo is evidence only. No measurement starts from it.
+- Device location is never stamped in place of missing EXIF. A photo without embedded GPS is kept and marked manual-only.
+- Next: dispatch `ROOF OS Mobile APK` from this merged SHA and record the artifact.
+
 ## 2026-11-18 — Field APK Metro + Gradle repair, artifact recorded
 
 - GitHub `main` is `5ae0af605f54afa3657b1924675a46e08c2bef32` (docs PR #487). Field code SHA is `99792955cf69fb56c6473e3050b7d96dd9a31040` (PR #485). Metro repair landed as `7008e22f05bb566674ab38aa333c7c38c811c42b` (PR #483). Required CI on PRs #483, #485, #486, and #487: web, mobile, field-security, migration-safety, preview-build, Vercel all **success**.
