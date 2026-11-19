@@ -670,7 +670,9 @@ export default function App() {
       let resolvedAddress = address.trim()
       try {
         const locationPermission = await Location.requestForegroundPermissionsAsync()
-        if (locationPermission.granted) {
+        if (!locationPermission.granted) {
+          setNotice('Location is off. This photo is evidence only. No measurement starts without owner location permission.')
+        } else {
           const location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Highest })
           const latitude = location.coords.latitude, longitude = location.coords.longitude
           const accuracy = location.coords.accuracy

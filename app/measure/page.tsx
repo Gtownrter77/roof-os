@@ -589,7 +589,7 @@ export default function MeasurePage() {
             </button>
           </div>
           {file && photoGpsChecked && <p className="mt-2 text-xs text-slate-300" role="status">
-            {photoGps ? 'Embedded GPS found in the actual selected photo. Candidate address/roof must be verified; this does not authorize AI measurements.' : 'No embedded GPS found. This photo is manual-only and cannot trigger photo automations. Address-first manual skyview is still available.'}
+            {photoGps ? 'Location is in this photo. Measurement can start. The tech verifies the result.' : 'No location in this photo. Evidence only. No measurement.'}
           </p>}
           {manualMode && <ManualDrawingTool
             key={preview || (mapCenter ? String(mapCenter.latitude) + ':' + String(mapCenter.longitude) + ':' + (aerialTileUrl || 'street-map') : 'no-map')}
