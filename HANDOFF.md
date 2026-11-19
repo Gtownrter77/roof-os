@@ -8,6 +8,7 @@
 - On-device AI stays disabled by design. Physical-device install and live two-workspace isolation remain unverified.
 - Next: owner physical install verification of the new APK; continue remaining open issues (e.g. #468 picomatch advisory).
 
+
 ## 2026-11-18 — Owner location is the measurement gate
 
 - PR #484 merged as `a5b40e84e7b7c7e428338281201c0138fe5d7778`. PR #461 (reviewed plane pitch) is already on main.
@@ -15,4 +16,1454 @@
 - Device location is never stamped in place of missing EXIF. A photo without embedded GPS is kept and marked manual-only.
 - Next: dispatch `ROOF OS Mobile APK` from this merged SHA and record the artifact.
 
-[... rest of file preserved from main ...]
+## 2026-11-18 — Field APK Metro + Gradle repair, artifact recorded
+
+- GitHub `main` is `5ae0af605f54afa3657b1924675a46e08c2bef32` (docs PR #487). Field code SHA is `99792955cf69fb56c6473e3050b7d96dd9a31040` (PR #485). Metro repair landed as `7008e22f05bb566674ab38aa333c7c38c811c42b` (PR #483). Required CI on PRs #483, #485, #486, and #487: web, mobile, field-security, migration-safety, preview-build, Vercel all **success**.
+- Current GitHub Release for code SHA `9979295`: [field-apk-main-9979295](https://github.com/Gtownrter77/roof-os/releases/tag/field-apk-main-9979295) from [run 44406863550](https://github.com/Gtownrter77/roof-os/actions/runs/44406863550). Direct APK: https://github.com/Gtownrter77/roof-os/releases/download/field-apk-main-9979295/roof-os-field-preview.apk. Version `0.5.0`, package `com.roofos.field`, version code `43`. SHA-256 `6d31895824bf36b1c04245b314dedd7cfd2a1ae14122a79f5d672ff1fc782b61` (local file hash matched the provenance manifest). Signing certificate SHA-256 `7a1c64b0a0bdae5ac87aef821ee7d6a6a56a6ec21ef53c249149b8e90b74868f`. EAS CLI `27.2.0`.
+- Prior Metro APK for `7008e22`: [run 44404219619](https://github.com/Gtownrter77/roof-os/actions/runs/44404219619), version code `42`, SHA-256 `d94e7fe1657a3041dd155d42ff5c253938542389f8e2b0ac7b46b2be8c7c404f`.
+- Push APK on `7008e22` first failed at Gradle (`kotlin-stdlib:2.2.21`, run `44400175072`); retries reused a negative cache. PR #485 adds Maven HTTP 120s timeouts and wipes `$HOME/.gradle/caches` between EAS attempts.
+- Latest GitHub Release is [field-apk-main-9979295](https://github.com/Gtownrter77/roof-os/releases/tag/field-apk-main-9979295). Open PR #461 remains **CONFLICTING**. On-device AI stays disabled by design. Physical-device install and live two-workspace isolation remain unverified.
+
+## 2026-11-18 — Field APK Metro resolution repair
+
+- Forensic audit of GitHub `main` `e755a4c3e9d611e15f90e7cf7c4fda928a50d2d7` (PR #482). Required CI on that SHA: web, mobile, field-security, migration-safety, preview-build all **success**.
+- Latest published APK release remains [field-apk-main-6976341](https://github.com/Gtownrter77/roof-os/releases/tag/field-apk-main-6976341) (2026-11-09). Newest successful APK *artifact* is workflow [run 44197803638](https://github.com/Gtownrter77/roof-os/actions/runs/44197803638) from `8bb00b6` (2026-11-17). Three later main APK runs failed at EAS eager bundle: `44238193777`, `44239707819`, `44242517518`.
+- Observed failure (job `134593554133`): `Unable to resolve module ../../lib/photo-provenance.mjs from apps/field/App.tsx`. Metro's project root is `apps/field`; the shared GPS helper lives in repo `lib/`.
+- Repair: `apps/field/metro.config.cjs` watches the workspace root and includes `.mjs`; login copy no longer claims fallback credentials; `scripts/mobile-release-contract-test.mjs` now requires that Metro config; mobile CI runs the contract. Docs in `MOBILE-FIELD-RELEASE.md` and this handoff updated to current SHAs.
+- Open PR #461 remains **CONFLICTING** and was not merged. On-device AI stays disabled by design. Physical-device install and live two-workspace isolation remain unverified.
+- Next: merge this repair to `main`, dispatch `ROOF OS Mobile APK`, and record the new artifact SHA.
+
+## 2026-11-17 — Phase 0 merged and APK updated
+
+- PR #469 was merged into `main` as merge commit `8bb00b699f6d3d1fac4d1831995d97268284828` after all 8 required checks passed: web, mobile, migration-safety, field-security, preview-build, Vercel, preview comments, and driveway evidence.
+- The APK workflow was dispatched from that exact merged SHA: [run 44197803638](https://github.com/Gtownrter77/roof-os/actions/runs/44197803638). The build completed successfully through Expo validation, local EAS Android preview build, binary identity/signature verification, provenance generation, and artifact upload.
+- Published artifact: [roof-os-field-preview-8bb00b699f6d3d1fac4d1831995d97268284828e](https://github.com/Gtownrter77/roof-os/actions/runs/44197803638/artifacts/14380437500). APK version `0.5.0`, package `com.roofos.field`, version code `29`, size `73,545,980` bytes.
+- APK SHA-256: `14a63b5155f305a8b201ea025b1094c4c2b14224a27b8316fb283a6321f8bd1b`. Signing certificate SHA-256: `7a1c64b0a0bdae5ac87aef821ee7d6a6a56a6ec21ef53c249149b8e90b74868f`. Provenance manifest reports signature verification true and EAS CLI `27.2.0`.
+- This proves the merged-source APK artifact and signing provenance. Physical-device installation, authenticated offline/reconnect behavior, and live workspace-isolation testing remain separate external gates and are not claimed here.
+
+## 2026-11-17 — Field dependency gate remediation
+
+- The Phase 0 PR initially exposed an existing field dependency audit blocker: `GHSA-fc5q-39xc-vjpf` is carried through Expo/Metro/Jest build tooling, with no patched `picomatch` release available in the reviewed registry range.
+- The forced npm remediation was rejected because it attempted incompatible Expo 54/React Native 0.83 major changes. The shipped Expo 57/React Native 0.86 stack was restored unchanged.
+- `scripts/audit-field-deps.mjs` now explicitly classifies this upstream build-tool-only advisory and the two source-less Metro records, while retaining blocking behavior for unresolved runtime/package advisories and exact mitigation checks for node-forge/deepmerge.
+- Local validation passes: dependency gate, `test:mobile-release-contract`, `test:field-localdb-web`, and `git diff --check`. Full required GitHub checks must still pass before merge.
+
+## 2026-11-17 — ContractorOS Phase 0 register and delivery checkpoint
+
+- Phase 0 was implemented incrementally on the existing ROOF/OS repository; no rebuild, runtime rewrite, production schema change, deployment, or external provider write was performed.
+- The authoritative baseline for this work is `29f9e323fa4906a891baec201ced024f87d4101b`; the local `/home/ubuntu/roof-os` directory was incomplete after environment reset and was not used as the source of truth.
+- PR #469 contains the machine-readable dossier register and validation package: all 38 sections, 24 work packages, 9 releases, 20 AI functions, and 12 completion gates have stable IDs, source references, status vocabulary, and release mappings.
+- Added `docs/contractor-os/PHASE-0-REQUIREMENT-REGISTER.json`, `PHASE-0-COVERAGE-LEDGER.md`, `PHASE-0-CHECKPOINT-2026-11-17.md`, and `scripts/phase-0-register-test.mjs`; `npm run test:phase-0-register` passes.
+- PR #469 web and field-security checks currently fail in the pre-existing field dependency vulnerability audit (`expo`, React Native/Metro chain, and related advisories). Migration safety, mobile, preview build, deployment, and the Phase 0 register validation pass. This is recorded as a CI dependency gate, not relabeled as an application pass.
+- Dossier commitments remain mandatory. No ContractorOS release is accepted by this documentation tranche alone; Phase 1 still requires authority/action writers, reconciliation, restore evidence, and first-slice acceptance.
+
+## 2026-11-17 — Driveway/earthwork 3D slice and no-skipping Superpowers checkpoint
+
+- The user-directed Michigan driveway-grade estimation is integrated as a **required future construction-domain slice** in `docs/contractor-os/DRIVEWAY-3D-GRADING-ESTIMATOR-PLAN.md`. 3D Garden Designer is flat-ground concept only; Spline/Blendstra are visualizers; QGIS/GDAL/MapLibre, independently sourced field elevations and mandatory manual fallback form the proposed measurement core. No paid tools or field quantities were used.
+- This PR #466 adds a **pure measurement/quantity helper**, not a finished driveway estimator. `scripts/driveway-earthwork-test.mjs` and the GitHub web + dedicated job cover tapered area, thickness-based volume, grade on a stated vertical datum, cut/fill from surveyed cells, and evidence-verified supplier yield before computing tons.
+- **Observed TDD RED:** isolated CI `earthwork-precision` job `134173178277` failed on test-only SHA `ee709177b48ad237f806bfd75599dc11aa335d49` because the named module was absent. **Isolated GREEN:** same job passed after implementation SHA `d92c161eba1570187f079195380a41d54612490e`.
+- The complete latest-head PR checks, independent review and post-merge CI are distinct evidence gates. No customer photos/terrain, official driveway slope, Michigan road-entrance approvals, underlying soil/frost design, field-device/owner acceptance, or real quote has been verified.
+- All 15 Superpowers skills are given an honest disposition in the roadmap. All 20 AI domains and nine releases remain mandatory. Do not clone onto local Chromebook storage; the GitHub connector operates on a remote feature branch. No payment or production database changes.
+
+## 2026-11-17 — Mako check-in resume, verified merges and remediation
+
+- Current GitHub main is `1b8393a09bec55a87766eee3aa3d0903ed5e4b61`. PR #462 merged; five exact-head CI jobs and five post-merge CI jobs passed, along with Vercel success. Foundation PR #463 remains included in main.
+- Draft PR #461 is **not** merged: its 102 pitch-column migration collides with merged 102 ContractorOS schema and the active hosted project reportedly lacks the new columns. No production migration or paid service was authorized.
+- A source-only follow-up GitHub branch `docs/mako-checkin-r2-20261117` changes explicit review/quantity saving to fail closed, recompute from persisted workspace-scoped geometry and detect stale browser previews without new columns. This branch is not accepted until fresh CI and review.
+- Draft PR #455 (free-only Parallel research) still requires its own handshake, tests and deployment verification. Retain the no-fee/no-paid-fallback policy.
+- All 15 Superpowers dispositions are preserved, with unperformed steps acknowledged; no SD3 or local clone claimed. All 20 approved AI functions and nine releases remain required. See Living Build Checklist and `docs/contractor-os/RELEASE-1-TRACEABILITY.md`.
+- Outstanding production tasks: authenticated API/DB integration, cross-workspace isolation, staged backup and rollback, owner acceptance, physical roof/driveway validation, and role/revision workflow checks.
+
+## 2026-11-16 — BAILEY BOSS R2 roof-plane precision (PR #460, source-only)
+
+- **Approved dossier scope:** geometry/roof measurement R2: prevent double-counting, handle shared internal boundaries, require calibrated and reviewed evidence, and support per-plane pitch math without fabricating site data. Existing code preserved; no production system changed.
+- **Branch:** `fix/measurement-plane-overlap-20261116`. **Code-bearing checkpoint:** `e9e65a8304df860e8b22be91dffbee1ac5c4ed07`.
+- **TDD RED:** CI run `43967807554` failed `npm run test:roofing-precision` against new overlap/shared-edge/calibration tests before production changes. A later CI run `43968492471` exposed a real import failure in the existing CommonJS test harness; fixed by explicitly loading shared geometry and reversing old unsafe acceptance assertions.
+- **TDD GREEN:** CI run `43968942343` completed with five successful jobs: web (including measurement tests), mobile, preview-build, field-security, and migration-safety. This is source and CI evidence only; not production or device verification.
+- **Code:** `lib/measurements/trace-geometry.ts` rejects intersecting/contained/duplicate planes and removes legitimate shared boundaries from **plan-outline perimeter**, not gutter/eave measures. `lib/measurements/calibrated-roof-draft.ts` rejects unconfirmed top-down/geometry, pending plane reviews, mixed pitch without per-plane measurements, and overlapping planes; computes per-plane slope-weighted area when pitches are provided. `components/ManualDrawingTool.tsx` blocks adding overlapping planes and states the outer plan trace is not gutter length. Two tests extended.
+- **Known next work:** per-plane pitch **UI/persistence** still missing (helper-only support); true eave/hip/ridge edge classification remains separate from plan perimeter; address imagery rights/coverage and roof-geometry measurement need independent verification; live Supabase/Render/Vercel/browser/physical field tests not run. No external customer quote or material order is authorized by this checkpoint.
+- **Superpowers:** all 15 skills were read and accounted for; decisions and dispositions are in `docs/superpowers/plans/2026-11-16-roof-plane-precision.md`.
+- **Next:** connect reviewed plane pitch to UI/durable sketch records under a new TDD vertical slice; complete authorization, staging and owner quantity acceptance separately.
+
+## 2026-11-11 — Current handoff and commercial status
+
+- **Commercial status:** pre-sales. ROOF/OS has sold **zero copies** and has **zero paid customers**. One prospective evaluator is considering it for a proof of concept (POC); that is an evaluation prospect, not a sale or a confirmed production deployment. Do not invent sales, subscriptions, revenue, or additional customers.
+- **Repository:** `Gtownrter77/roof-os`, private. Current main baseline: `85ce0e9561517c63d3561fc84b99e28592bd8c64`.
+- **Open repair work:** PR #443 (onboarding profile/workspace error handling), PR #444 (APK certificate fingerprint parser), and PR #445 (CI duplicate-runner reduction). All remain unmerged; do not describe their changes as shipped.
+- **CI blocker:** GitHub-hosted jobs fail before the first step with `runner_id: 0`, no assigned runner, and an empty step list. The isolated one-job runner smoke test failed the same way, including on retry. This is not an application test failure and does not establish the exact account-level cause.
+- **CI efficiency:** at least 816 workflow runs occurred on 2026-11-09 (120 successful, 338 failed, 358 cancelled across workflows). The full CI workflow was triggered by both every branch push and the corresponding PR event. PR #445 removes the redundant full-suite push trigger for feature branches. The committed `apps/field/package-lock.json` is validated by `npm ci` in PR CI; automation does not write commits back to contributor branches. The `preview-build` job no longer installs `apps/field` dependencies because root `tsconfig.json` excludes `apps` and that job only builds/type-checks the web app.
+- **Actions cost note:** the repository is private. GitHub-hosted Actions minutes may use the account's included allowance or incur additional billing. No billing settings were inspected or changed. Earlier notes below describing the repository as public/free are stale and must not be treated as current configuration.
+- **Production boundary:** no production database, Supabase migration, deployment, Vercel configuration, repository visibility, secrets, billing, or branch-protection settings were changed during this repair pass.
+- **Verification boundary:** PR #443 and #444 still need their full CI suites to run on assigned runners. The APK parser's isolated local check previously passed 7 assertions; that is not a full repo test. No full test or device test is claimed here.
+
+## 2026-11-04 — Field AI assistance foundations (draft PR #386)
+
+- Branch: `feat/field-ai-assistance-foundation-20261104`, based on main `33ebc3ddc578c258d4076573af3f6d9f1574f1f6`.
+- Implementation checkpoint: `e8e8cd35b60648dd1dda640e1e5656f0aab6833c` (`feat(field): add offline local AI assistance foundation`). The remote branch SHA was independently checked and matches.
+- Began three Task 3 items: a deterministic photo-evidence guide; durable local request metadata with distinct `waiting_for_upload` and `pending_analysis` states; and default-off feature switches plus request-metadata retention controls. Disabling a feature deletes its queued request metadata. Browser storage has atomic transaction/rollback support for the photo/request capture path.
+- **Strict runtime boundary:** no model is loaded, called, or claimed. Requests remain visibly pending after upload; no AI result is fabricated. The evidence guide uses album labels only and explicitly is not image analysis or proof of coverage. Caption/completeness inference, source hashes, model/version provenance, and technician review remain undone.
+- Local checks passed: root `npm run typecheck`, `npm run release-check`, `npm run verify:security`, `npm run test:field-ai-assistance`, `npm run test:field-localdb-web`, `npm run test:field-coach`, `npm run test:mobile-offline-sync`, `npm run test:mobile-ai-observation-security`, `npm run test:mobile-local-db-migrations`, `npm run test:mobile-release-contract`, `npm run test:release-evidence`, and `git diff --check`; field `npx tsc --noEmit` and `npx expo config --json`; Android `npx expo export:embed --eager --platform android --dev false`; root production `npm run build`.
+- Pull request: [#386](https://github.com/Gtownrter77/roof-os/pull/386), open and draft, based on `33ebc3ddc578c258d4076573af3f6d9f1574f1f6`. Code-bearing head `2945c80bc9f0b5a266158b98f1b95353b61148c5` passed 13 checks (1 skipped, 0 failing/pending). The follow-up handoff-only push `65660ffe3b3527a62eac91b58060ff5ff04a33be` was SHA-verified and also passed all 13 checks with 1 skipped; Vercel preview succeeded. PR stays draft because this is a foundation, not finished AI execution.
+- No APK was built or device-tested for this checkpoint; no inference service was enabled. Do not treat this foundation as the completed AI automation feature set or as production release evidence.
+- Next: continue actual local inference/runtime, provenance, and technician review work; only then decide whether to mark the PR ready and ship an updated APK.
+
+## 2026-11-04 — Workspace agent switches and resilient daily dispatcher (PR D)
+
+- Branch: `feat/agent-toggles-daily-allsettled`, based on PR C. The checkpoint commit SHA is the PR head SHA.
+- Agent switches (item 4), with no migration:
+  - Settings now has a "Workspace agents" section (`components/AgentSwitches.tsx`) backed by `GET/PUT /api/settings/agents`.
+  - The route uses only the signed-in user's Supabase client, never the service role. It needs `is_workspace_admin` and flips only an existing `automation_rules` row for the current workspace.
+  - Migration 014 RLS limits writes to `is_system_owner()`. When RLS blocks a write, the update returns zero rows, and the route reports that as a 403 with an explanation instead of a false success.
+  - `GET` returns `canEdit` (system owner), so other users see the switches as read-only. Rows that were never seeded show as "Not set up in this workspace yet". Seeding stays with migration 005.
+- Daily dispatcher (item 10):
+  - `/api/cron/daily` runs the agent jobs with `Promise.allSettled`. Each job has its own deadline, `AGENT_CRON_JOB_TIMEOUT_MS` (default 45s, clamped from 1s to 290s), and the alert pass gets 10s. Defaults fit a 60s Hobby function.
+  - A job past its deadline is reported as `504`, and a thrown job as `500`; the other jobs and the alerts still run. The deadline stops waiting but does not cancel the job; jobs are idempotent per run key.
+- Optional schedule: `.github/workflows/agent-cron-schedule.yml` calls `/api/cron/daily` every 6 hours. This is a private repository; GitHub-hosted Actions usage may consume included minutes or incur charges depending on account allowance and billing.
+  - It exits 0 and does nothing unless the owner adds repository secrets `ROOF_OS_CRON_URL` (https base URL) and `ROOF_OS_CRON_SECRET`.
+  - Logs show only `{processed, failed}`; the workflow avoids exposing workspace or lead details.
+  - `vercel.json` still has two crons.
+- Tests: new `test:agent-toggles-daily` (in the CI web job).
+- Still unverified external gates: a switch flipped by a real system owner on a deployment, the scheduled workflow running with real secrets, and a deployed daily run hitting the deadline path.
+
+## 2026-11-04 — Free agent alerts and read-only live-gate verifier (PR C)
+
+- Branch: `feat/agent-alerts-live-gates`, based on GitHub `main` after #383. The checkpoint commit SHA is the PR head SHA.
+- Alerts (free, in-app only): `app/api/cron/agent-alerts/route.ts` runs from `/api/cron/daily` after the agent jobs. `vercel.json` still has two crons. For each workspace where an agent is enabled, it raises an alert when the latest heartbeat is `degraded` or older than `AGENT_ALERT_STALE_HOURS` (default 24). An agent counts as enabled when its `automation_rules` row is enabled; Inspection Quality and Scheduler also need their settings flag not set to `false`. Each alert becomes one open task for the workspace owner, with `automation_key = agent-alert:<agent>:<reason>:<UTC date>`. No new task is created while an open `agent-alert:<agent>:` task exists. Workspaces where an agent never wrote a heartbeat are not alerted; `/api/cron/heartbeat` reports them. There is no email or SMS. `?dryRun=1` lists the alerts without writing.
+- Quiet versus idle: an enabled workspace with no pending work now gets an idle `healthy` heartbeat (`capabilities.idle = true`) each run. A stale heartbeat therefore means the cron stopped reaching the workspace, not that there was no work. Disabled workspaces still get no heartbeat.
+- `scripts/verify-agent-live-gates.mjs` (`npm run verify:agent-live-gates`) is READ-ONLY. It sends GET requests only, in this order:
+  1. `/api/cron/agent-alerts?dryRun=1` is the capability gate. An older deployment returns 404 here and the script stops before calling any other route.
+  2. `/api/cron/intake-router?dryRun=1`
+  3. `/api/cron/office-copilot?dryRun=1`
+  4. `/api/cron/heartbeat`
+  Every dry-run response must echo `dryRun: true`, or the script stops. It checks that each planned action stays inside its own lead or inspection and workspace. It also checks that the heartbeat report has one result per agent per workspace across at least `ROOF_AGENT_GATES_MIN_WORKSPACES` (default 2) workspaces. It refuses `roof-os-lemon.vercel.app` and any host in `ROOF_PRODUCTION_HOSTS`. Usage, for staging or local only:
+  `ROOF_AGENT_GATES_NONPROD=true ROOF_AGENT_GATES_CONFIRM=I_UNDERSTAND_DRY_RUN_ONLY ROOF_AGENT_GATES_BASE_URL=https://<staging-host> CRON_SECRET=<staging secret> npm run verify:agent-live-gates`
+  The script was only exercised against a local mock server in `test:agent-alerts-live-gates`. It has NOT been run against staging or production.
+- Tests: new `test:agent-alerts-live-gates` (in the CI web job).
+- Still unverified external gates: deployed heartbeats, two-workspace isolation on live data (run the verifier against staging), an alert task created by a real daily run, and the live intake and office runs.
+
+## 2026-11-04 — First-response dedupe, backlog-safe selection, and enabled-only heartbeats (PR B)
+
+- Branch: `fix/agent-dedupe-backlog-heartbeats`, based on GitHub `main` `7ea4f78` (#382). The checkpoint commit SHA is the PR head SHA.
+- First-response dedupe: `planIntakeRouterForLead` now reads `tasks.automation_key = 'intake:<lead id>'` in the lead's workspace. That task comes from the `create_default_lead_followup` trigger in migration 057. When the task exists, the router does not propose its own `First response` task. Actions whose `idempotency_key` already exists in `agent_actions` for the workspace are also dropped, because the table has a unique (workspace_id, idempotency_key) constraint. When nothing remains, `runIntakeRouter` records a succeeded run with `action_batch_id: null` and does not persist an empty batch.
+- Backlog fix: `lib/agents/cron-backlog.ts` adds `selectUnprocessedCandidates`. Routes read `scanLimit` candidates (default 4x limit = 100, capped at 500). They drop candidates whose exact workspace and event key already has a `succeeded`, `needs_review`, or `running` `agent_runs` row, and only then apply `limit` (25). Inspection Quality and Office Copilot now default to newest-first. Override with `<AGENT>_CRON_ORDER=oldest`. Photo timestamps for event keys come from one workspace-scoped bulk read, with a per-inspection fallback when that read is truncated. Responses add `alreadyProcessed`.
+- Disabled agents: `agent_worker_heartbeats.status` has no `disabled` value, so routes now write no heartbeat for workspaces where the agent is off. This applies to intake-router and office-copilot (via `automation_rules`), inspection-quality (via `enable_inspection_quality_agent`), receptionist-followups/scheduler (via `enable_ai_receptionist`), and agent-actions. Agent-actions still executes approved batches but writes `office_copilot` heartbeats only for enabled workspaces. Scheduler queued attempts from disabled workspaces no longer consume the 25-attempt batch. A disabled agent therefore shows as `unknown`/stale in `/api/status` rather than `healthy`. `retailer-prices` is unchanged.
+- Tests: new `test:agent-backlog-dedupe` (in the CI web job). `agent-cron-routes`, `worker-heartbeat`, and `inspection-quality-agent` contracts were updated.
+- No migration, production database access, deployment, or secret was used. Live gates remain unverified.
+
+## 2026-11-04 — Shared agent cron wrapper, batch config, and dry-run (PR A)
+
+- Branch: `feat/agent-cron-wrapper-dryrun`, based on GitHub `main` `6cfe381`. The checkpoint commit SHA is the PR head SHA.
+- Shared cron wrapper: `lib/agents/cron-route.ts` (`createCronAgentRoute`) plus pure helpers in `lib/agents/cron-guard.ts`. It runs the `CRON_SECRET` bearer check (401), then the service-role config check (503, `Supabase worker configuration is incomplete.`), then an optional route config check, and only then creates the admin client. It also gives each route an agent-scoped heartbeat writer. `inspection-quality`, `receptionist-followups` (scheduler), `intake-router`, and `office-copilot` use it. Response bodies and status codes are unchanged (401/503/502/500, and 502 for scheduler failures). The scheduler still has no Supabase 503; its Twilio 503 moved into `checkConfig`. `release-check` accepts routes that use the wrapper as cron-guarded only when the wrapper source still contains the 401 guard.
+- Configurable limits and order: `lib/agents/cron-batch-config.ts` (`readCronBatchConfig`). The default limit is still 25 (clamped to 1..200). Env overrides: `<AGENT>_CRON_BATCH_LIMIT`, `AGENT_CRON_BATCH_LIMIT`, and `<AGENT>_CRON_ORDER=newest|oldest`. The defaults keep current behavior: intake newest-first, others oldest-first.
+- Dry-run: `?dryRun=1` (also `true/yes/on`, `dry_run`) or a JSON POST body `{ "dryRun": true }` on `/api/cron/intake-router` and `/api/cron/office-copilot` returns `{ dryRun: true, processed, skipped, failed, failures, planned }`. Dry-run uses read-only planners (`planIntakeRouterForLead`, `planOfficeCopilotForInspection`) and writes no `agent_runs`, action batches, tasks, or heartbeats. It also makes no model call. `/api/cron/daily?dryRun=1` dispatches only those two jobs and reports the others as `dry_run_unsupported`.
+- Tests: new `test:agent-cron-helpers` (runtime test of the guard, config, dry-run parsing, and the read-only planners with a write-rejecting fake client), added to the CI web job. The `agent-cron-routes` and `worker-heartbeat` contracts now assert the wrapper (401 -> 503 -> admin order, dry-run heartbeat no-op).
+- Local evidence: every CI web-job step passed, plus typecheck, lint, and `git diff --check`. A local standalone server with no Supabase env returned 401 without auth and 503 with auth for GET and POST on intake-router, office-copilot, and inspection-quality (including `?dryRun=1`). The receptionist route returned its Twilio 503.
+- No production database, migration, deployment, or real secret was used. Remaining external gates are unchanged: deployed heartbeats, two-workspace isolation with live data, and live runs remain unverified.
+
+## 2026-11-04 — Intake Router and Office Copilot cron entry points
+
+- Branch: `feat/cron-intake-router-office-copilot`, based on GitHub `main` `1be8af36520c9a601ee637eb8c49a0a39dcceb6a`. The checkpoint commit SHA is the PR head SHA.
+- Added `app/api/cron/intake-router/route.ts` and `app/api/cron/office-copilot/route.ts`, mirroring `app/api/cron/inspection-quality/route.ts`: `CRON_SECRET` bearer auth (401), service-role config check (503), bounded reads (25 records), `starting` heartbeat, per-record `runIntakeRouter` / `runOfficeCopilot` calls with deterministic event keys, then `healthy` or `degraded` heartbeats. Both export `POST` and `GET`.
+- Intake Router reads `leads` with `status = 'new'`, newest first. `owner_id` is the task creator, and the event key is `intake-router:<lead id>:<updated_at>`. Office Copilot reads completed `inspection_sessions`, uses the workspace-scoped latest photo for the event key, and passes `created_by` as the review-task creator.
+- Per-workspace enablement uses `automation_rules` (`agent_key`, `enabled`), the same gate as the database follow-up trigger. A missing rule or read error skips the record. Office Copilot is seeded disabled by migration 005, so it does nothing until a workspace enables it. The routes add no new `workspace_settings` flag and no migration.
+- `workers/agent-registry.ts` entry points now point to `/api/cron/intake-router` and `/api/cron/office-copilot`, with the route files as heartbeat sources.
+- Both jobs are dispatched by `/api/cron/daily`. `vercel.json` is unchanged because the Hobby plan allows two crons.
+- Tests: new `test:agent-cron-routes` contract (`scripts/agent-cron-routes-contract-test.mjs`). The cron-http, worker-heartbeat, and agent-registry contracts were extended. `test:agent-cron-routes` and `test:cron-http` are now required web CI steps.
+- Local evidence (Node 24, `npm ci --ignore-scripts`): `npm run typecheck` and `npm run lint` passed. Every `npm run` step in the CI web job passed, including release-check, verify:security, two-workspace contract, audit, and the production build with validation-only env (routes listed). After the build, runtime-smoke passed. `git diff --check` passed. A local standalone server returned 401 without auth and 503 with auth but no Supabase config for GET and POST on both routes.
+- No production database, migration, deployment, or real secret was used.
+- Remaining external gates (not done): (1) verify deployed `intake_router` and `office_copilot` heartbeats in `agent_worker_heartbeats` through `/api/cron/heartbeat`; (2) verify two-workspace isolation with live data; (3) verify live runs (idempotent `agent_runs`, action batches, failure-review tasks). Both agents stay pilot-only until these pass.
+- Next: wait for required PR CI, then merge only when green, then verify main.
+
+## 2026-11-03 — Android Field 0.5.0 integration checkpoint
+
+- Integrated the 0.5.0 Android Field release work into the production-reconciliation branch while preserving the PR #375 SQLite schema migration guard.
+- Photo and manual-measurement queue writes now calculate pending counts inside SQLite transactions; the sync indicator records a new last-synced time only after every queued write succeeds.
+- Pending counters now describe both photos and measurements as items. The preview profile increments the remote Android build number, and the location permission text matches the actual user-triggered GPS tagging use.
+- Repaired two CI defects: the disposable PostgreSQL baseline now revokes inherited PUBLIC/anon execution on authenticated workspace helpers before granting authenticated access; the search-path migration contract test now uses valid JavaScript quoting.
+- Automated source/CI checks are wired. A current APK has **not** yet been built: the protected-main EAS workflow still requires its GitHub Actions dispatch and a valid EXPO_TOKEN. Physical-device install/offline/reconnect/workspace-isolation evidence remains outstanding.
+- No production database mutation, Vercel setting change, or app deployment was made in this checkpoint.
+
+## 2026-11-02 — Production reconciliation and Android Field release hardening
+
+**Source baseline:** `main` `b74d23431aa4affcf512710635197bc0e1923256`
+
+**Working branch / PR:** `fix/roofos-autonomous-remediation-20261101`, PR [#375](https://github.com/Gtownrter77/roof-os/pull/375). Open, not merged. All source changes remain isolated from `main`.
+
+### Production Supabase work completed
+
+Project: `xksumagfbegdlapwysps`.
+
+- Applied and verified `057 workspace_feature_flags_reconcile_20261101`.
+- Did not replay `058`; the live ledger already records its effect as `atomic_estimate_line_item_replacement`.
+- Applied `059`–`072` in order.
+- Applied backward-compatible `073 warranty_passport_legacy_compatible` and `074 payment_warranty_lifecycle_guards_legacy_compatible`.
+- Applied `075 harden_security_definer_triggers`, `076 private_passport_rate_limit`, `077 harden_remaining_security_definers`, and `078 explicitly_deny_public_rate_limit_clients`.
+
+Migration 073–074 preserve the old warranty/passport field contracts and separate the new production-job lifecycle fields. Live authenticated rollback tests verified a legacy warranty insert/update, legacy Roof Passport insert/share update, and rejection of cross-workspace warranty/passport inserts. All test writes rolled back; live counts remain zero for warranties, Roof Passports, production jobs and production invoices.
+
+Migration 075 hardened all 33 SECURITY DEFINER trigger functions: empty search path and no direct EXECUTE for anon/authenticated. Migration 076 removed direct table grants on `public_access_rate_limits` from client roles, preserved service-role-only access, and set `consume_public_rate_limit()` to an empty search path; a rollback-only service-role call succeeded. Migration 077 set empty search paths on all remaining public SECURITY DEFINER functions without changing ACLs. Live query: 46/46 empty search paths, zero anon EXECUTE, eight authenticated helper/RPC grants preserved. Migration 078 added an explicit deny policy for anon/authenticated on `public_access_rate_limits`; the security advisor's RLS-enabled/no-policy info finding is gone, and a rollback-only service-role RPC call still succeeds. Rollback-only tests exercised the workspace helpers, estimate-admin helper, retailer reservation, agent approval rejection, lead-score refresh, automation-rule seeding, and service-role worker reservation. Security advisor now has zero anonymous SECURITY DEFINER warnings and eight authenticated helper/RPC warnings.
+
+### Repository fixes in PR #375
+
+- `apps/field/src/localMigrations.ts` checks `PRAGMA table_info` before adding SQLite columns. The previous blanket catch hid disk, locking and schema errors; those now surface instead of being silently ignored.
+- APK workflow pins EAS CLI 27.2.0, uses protected `main` for manual builds and exact `field-v*` tags for releases, binds the build to the source commit, emits SHA-256 and JSON provenance, verifies APK package/version and signature/certificate fingerprint, retains artifacts for 90 days, and marks internal APK releases as prereleases. The build job has read-only GitHub permission and only exposes `EXPO_TOKEN` to EAS commands; a separate release job receives write permission and only downloads/verifies the artifact.
+- CI contracts cover the APK release workflow, local SQLite migrations, 057 feature-flag trigger behavior, and 075 trigger privilege/search-path hardening.
+- PostgreSQL CI rehearsal now applies 075 and asserts that triggers still work after direct API grants are revoked.
+
+### APK and AI status — do not overstate
+
+No EAS APK build or physical-device install has been verified. The repository's `EXPO_TOKEN` secret presence is not confirmed through this connection, and the new workflow has not produced a binary. Do not call the APK release-ready until a real build is inspected and installed on a physical Android device.
+
+The field app's on-device inference adapter remains intentionally disabled (`runtimeAvailable=false`, `modelLoaded=false`, model version unavailable). `fieldCoach.ts` is deterministic guidance, not an AI model. The server photo-analysis route exists but is workspace-admin gated and depends on the configured Ollama vision service; the transcription route exists behind the workspace voice-copilot setting, but the mobile app has no recording/transcription integration. AI work still needed: guided evidence completeness, AI caption/album suggestions with review, voice-to-structured notes with read-back, and draft-only estimate prefill from human-verified measurements.
+
+### Remaining release and security gates
+
+- Final PR-head CI must pass, including the latest real-PostgreSQL 075 rehearsal.
+- Run the EAS APK workflow with a configured token; verify source SHA, package/version, APK signature, checksum and manifest.
+- Install on a physical Android device and test offline capture, process restart, reconnect, retries, auth expiry and workspace isolation.
+- Confirm the Vercel production deployment SHA and check runtime errors for the new schema-backed routes.
+- Review the eight remaining authenticated SECURITY DEFINER helpers/RPCs without disabling required workspace primitives.
+- Enable Supabase leaked-password protection in Auth settings; this cannot be changed through the available database migration tool.
+- Review 127 unindexed foreign-key notices and add indexes selectively after table-size/workload review. Do not bulk-index blindly.
+
+No Vercel production deployment, APK build, external payment, customer communication, insurer submission, or production test-row creation was performed.
+
+
+## 2026-11-03 — Intake Router and Office Copilot implementation batch
+
+- Branch: `feat/two-bounded-ai-agents-20261103`.
+- Added `workers/intake-router.ts` with deterministic contact normalization, duplicate detection, round-robin owner suggestion, first-response tasks, and review-task proposals through the action ledger.
+- Added `workers/office-copilot.ts` with deterministic inspection evidence summaries, missing-album/caption/upload/duplicate checks, optional advisory Ollama output, and human-review-gated report drafts.
+- Added focused contract tests and required CI commands: `test:intake-router` and `test:office-copilot`.
+- Local evidence: both focused tests, registry test, TypeScript, and `git diff --check` passed. Production readiness still requires deployed worker heartbeats, idempotent live runs, failure-review evidence, and two-workspace isolation.
+- Next: push this branch, open a protected PR, wait for required CI, merge, and verify main.
+
+## 2026-11-03 — Deployable automation runtime and heartbeat verification batch
+
+- Branch: `feat/deployable-automation-runtime-20261103`, based on GitHub `main` `f4043836cd207a24e3a0a92186211321bea3a387`.
+- Added `workers/agent-registry.ts`, a source-of-truth registry for the four bounded agents. Intake Router and Office Copilot were initially unimplemented in this checkpoint; the later implementation batch above adds their worker modules.
+- Replaced the heartbeat probe's scheduler self-attestation with a read-only, heartbeat-only readiness report. `/api/cron/heartbeat` now reads service-side heartbeats, evaluates five-minute freshness, reports workspace-level reasons, and performs no action execution.
+- Added `test:agent-registry` to package scripts and required CI, plus registry and heartbeat contract coverage.
+- Level 1 evidence: registry, heartbeat probe, runtime heartbeat, agent runtime, action policy, and inspection-quality contracts passed; TypeScript passed; `git diff --check` passed.
+- Level 2 evidence: `release-check` and `verify:security` passed. No production migration or database mutation was performed.
+- Level 3 evidence: production build passed and included `/api/cron/heartbeat`. Deployed heartbeat freshness, authenticated worker execution, two-workspace isolation, and physical-device evidence remain external gates.
+- Next: push this branch, open a protected PR, wait for required CI, then run the authorized staging heartbeat probe. Do not begin the Intake Router worker until this batch is merged and externally verified.
+
+## 2026-11-03 — Android APK parity checkpoint
+
+- Current source baseline: `main` at `cc0dca653236a93f23040a7c4f8a0f8b9857ae28`, merged from PR #377. The preceding successful APK workflow run #39739973454 was built from `9f65193e7d6d63764c71f222a055900f3bcabe5a` on 2026-10-22, before these field-app updates.
+- APK-only branch: `fix/field-apk-current-system-20261103`; latest source checkpoint `c3c8f2a66ed9cc6725bf1802a1e8f95237833806` (preceded by release commit `dbe09bebbfac38cfe777aed7e914ae59325c2cca`). The app is version 0.5.0. Preview EAS builds produce internal APKs and increment the remote Android build number. Photo/measurement queue inserts and their counts are transaction-scoped; sync time advances only after all queued writes succeed; counts are labeled as pending items. Location permission text describes the actual user-triggered GPS use.
+- The current system's removed legacy mobile AI screens were not restored. The source still exposes the field inspection companion rather than every browser-only CRM, finance, and administration route.
+- Local checks PASS on the release source: mobile offline-sync and release contracts, mobile AI-observation security, release evidence, mobile auth, field coach, root release-check, field TypeScript, Expo SDK 57 config/version/package, Android bundle smoke, and `git diff --check`. PR #377 passed 14 checks with 1 skipped, no failures or pending checks, and all review threads resolved. It was squash-merged as `cc0dca653236a93f23040a7c4f8a0f8b9857ae28`.
+- Main APK workflow [run 41597966309](https://github.com/Gtownrter77/roof-os/actions/runs/41597966309) completed successfully against that exact SHA. EAS build, APK download, and artifact upload passed. Artifact `roof-os-field-preview-apk` contains `roof-os-field-preview.apk` (78,651,680 bytes); SHA-256 `ab50192a84f4598999ff716619b3519aa3dcea7e528f0a29409858f5eef6b22c`. ZIP integrity passed and `file` identified it as an Android package.
+- The APK is available from the workflow artifact for 14 days and was also downloaded to `/home/ubuntu/roof-os-field-preview-0.5.0.apk` in the Manus workspace. Physical-device installation, authenticated offline reopen/upload, and two-workspace isolation remain unverified. No production database mutation or manual production deployment was performed.
+- Next: install the APK on a physical Android device and test authentication, offline reopen/upload, and two-workspace isolation before treating device-level behavior as verified.
+
+## 2026-11-02 — Local AI and field workflow repair checkpoint
+
+- Working branch: `fix/whisper-multipart-contract-20261102`. The first repair checkpoint commit is `6786b7131a52b4d1ae8995ef5388ee8adbdfe9b4`; its remote branch SHA was independently confirmed equal.
+- Fixed the app/Whisper multipart contract, aligned Ollama status reporting with the runtime host selector, and synchronized local-AI/Whisper operational notes. The AI path remains Ollama/Whisper local-only per the owner direction; live provider reachability was not tested.
+- Added `log_canvass_knock`, a workspace-authorized RPC that checks the workspace conversion flag and commits lead/dedupe/activity writes atomically. The browser now fails closed when settings cannot be verified. Added localStorage-backed field-web persistence and implemented the exact owner-scoped draft query and queued-count read used by the app.
+- Rebuilt Canvass as a responsive field-notes workflow with responsive entry controls, coaching on the side at wide widths, readable outcome badges, and a clear CRM list. Existing disclosure and do-not-knock behavior remain.
+- Local checks passed: production `npm run build`; root `npm run typecheck`; field `npx tsc --noEmit` and `npx expo config --json`; Whisper/status, Canvass transaction, field web persistence, mobile offline-sync, mobile AI-observation security, release, security, route-integrity, field dependency and brace mitigation checks; `git diff --check`.
+- Fresh read-only Supabase checks on 2026-11-02 found the configured active Roof OS project (`xksumagfbegdlapwysps`) at ledger version `20261102025551` (`payment_warranty_lifecycle_guards_legacy_compatible`), the 074 source boundary. They confirmed RLS-enabled leads, lead_activity, workspace_settings and required canvass helpers/settings. A bounded catalog query returned no `public.log_canvass_knock`; migration 075 is absent from that target and has not been applied. Only one active Supabase project was visible; no separate staging project was returned. No database mutation was made.
+- Pull request #376 is open: https://github.com/Gtownrter77/roof-os/pull/376. The first PR CI run (`41393009932`) passed preview-build, mobile, migration-safety, and field-security jobs but failed web at `npm run test:release-evidence`, because the refreshed migration note omitted the literal unverified-boundary term. The wording is restored locally; rerun after the docs checkpoint is pending. Vercel Preview succeeded; this is not a production deployment. No authenticated canvass save or physical-device persistence check has been done.
+- Still open: integrations catalog truthfulness, inventory/removal of non-exempt paid API vendors, full deployment/schema-doc reconciliation, provider execution, staging migration/RLS rehearsal, physical-device release evidence, and production deployment. Merge only after required CI/review is green. Migration 075 remains blocked on staging/backup and production release checks.
+- Next: push the migration-doc wording correction and refreshed database evidence, inspect the new PR checks and review, then address remaining audit items. Do not claim production Canvass atomic writes until the migration is validated and applied to the target.
+
+
+
+
+## 2026-10-29 — Verified theme release and saved-choice recovery
+
+- Theme implementation PR #370 merged: `4623a3e549504122144d8e61cc3afa800c41719e`. Required PR CI `40823969333` and post-merge main CI `40824724249`: PASS. Final Kilo review: no warnings/critical findings; one corrupted-preference suggestion.
+- The suggestion is repaired on `fix/theme-preference-recovery-20261029`: a validated saved-choice helper and prepaint recovery restore Atlanta Storm Tracker 11 after malformed/unknown saved preferences while preserving explicit Professional. Runtime/prepaint tests, the production build and full browser recovery checks passed. Follow-up GitHub CI is required before merge.
+- All theme media and the 36-second trailer are in GitHub. `/themes` is the theme gallery; the global layout carries the selected scene/palette across the app. Device-local preferences remain separate from authenticated data workflows.
+- Runway connection is authenticated but its Free workspace exposes no video models. No purchase or generation credits were used. Actual actor/lip-sync animation remains unavailable on that plan.
+
+## 2026-10-29 — Storm theme collection implementation
+
+- Branch: `feat/storm-theme-collection-20261029`; baseline/remote rollback `949594ba0d9d1d2574636a5dde34d16c1d4c2a53` at `backup/pre-storm-theme-collection-20261029`.
+- Six per-device themes now share a global scene/palette on app pages. `/themes` is a public visual preference gallery; authentication and business APIs retain their existing guards. First-time login uses the owner-selected Atlanta Storm Tracker 11 scene; explicit Professional choice wins.
+- CSS 3D camera depth, scene previews, saved controls, optional local sound, reduced-motion and low-power behavior; 36-second MP4 trailer and local sound design. Photographic plates are not a rigged/talking actor.
+- Local checks: build/typecheck; theme runtime, existing cinema/dashboard, auth, radar, weather/settings, route integrity, security/reliability/release and production-job-gate. Actual browser checks cover desktop/mobile, preferences, cross-tab, denied storage, audio and video controls.
+- Reviewer found hidden-tab video sound cleanup; browser test reproduced the issue and a visibility pause listener was added. Final browser rerun passed, including hidden-tab video pause. Full CI still required before merge.
+- Runway connection verified: the connected Free workspace exposes no video models. No purchase, generation, or credits used.
+- Next: green feature CI/review and merged-main CI; no production SQL or manual deployment. Evidence: `docs/evidence/storm-theme-collection.md`; authoritative task status: `ROOFOS-BUILD-CHECKLIST.md`.
+
+## 2026-10-29 production-job gate CI repair
+
+- Baseline / rollback: `11c5aace9629f9c58c8e004747acddc012b55e22`; preserved remotely as `backup/pre-production-job-gate-ci-20261029`.
+- Branch: `fix/production-job-gate-ci-20261029`.
+- Root cause: PR #367 registered a gate without a workflow invocation, failed CI, and closed unmerged. Replacement #366 passed CI but did not retain that named gate. Its 14-suite claim is not merged CI evidence.
+- Added an explicit `test:production-job-gate` web step and package command. The contract checks required web commands, PostgreSQL lifecycle/restore wiring, and rollback/evidence reporting. It reports source-contract PASS separately from the actual release decision; UNKNOWN evidence remains NO-GO.
+- Local source checks passed: gate plus four mutation/regression cases; all production-job package suites; owner Break Glass; SECURITY DEFINER migrations; release-gate-summary; reliability (14 checks); release-check; git diff --check.
+- Database-tested evidence for this patch must come from the GitHub-hosted disposable PostgreSQL job. No local database, Supabase Auth/Storage, physical device, provider, or production verification is claimed.
+- Next: verify the pushed commit and full PR CI, then merge only with green checks. The GitHub commit/PR/run links identify the final checkpoint SHA. Release approval remains NO-GO.
+
+
+## 2026-10-21 mobile AI top-ten remediation plan
+
+- The mobile AI audit identified ten ordered fixes. Batch 1 contains five security and contract fixes: authoritative AI-observation RLS, review-state invariants, workspace/inspection/photo consistency, truthful runtime/model availability, and executable inference/review validation.
+- Batch 2 will contain five integration fixes: wire inference into photo capture, persist and sync AI observations on native mobile, add technician review UI and transitions, replace source-marker tests with runtime/RLS coverage, and restore reproducible field TypeScript/offline-sync release gates.
+- Every batch uses three validation levels: Level 1 local static/type/contract checks; Level 2 security and migration checks; Level 3 full CI/PR checks on the merged-result candidate. No batch is merged until all required GitHub checks are green.
+- Current source baseline is remote `main` commit `1c047f8`; the prior source snapshot is not Git-backed and is not used as an overwrite. Expo SDK 57 requires a development build for native modules; the first batch remains TypeScript-only and does not add native dependencies.
+
+## 2026-10-21 mobile AI top-five batch 1 in progress
+
+- Working branch: `repair/mobile-ai-top-five-20261021`.
+- Migration `054_mobile_ai_observations.sql` adds review-state checks, immutable provenance, workspace consistency triggers, and creator/admin-scoped review updates.
+- `apps/field/src/ai/inference.ts` now validates inputs/results and reports requested/runtime/model state separately; it remains disabled until a reviewed native model is bundled.
+- `apps/field/src/ai/review.ts` now validates review transitions and corrected/rejected payloads.
+- The security contract is registered as `test:mobile-ai-observation-security`; no production database or device/provider action has been performed.
+- Audit against GitHub `main` commit `1c047f8` found that `main` does not yet contain the mobile AI modules or migration. The untracked source snapshot's `App.tsx` differs from current `main` by about 537 lines and removes newer field-coach, radar, alert, session-expiry, photo-queue, and verification-sync behavior; it must not replace current `main` wholesale.
+- The safe porting boundary is AI-only: retain current `main` `App.tsx` and add the inference, queue, sync, and review seams incrementally. The rejected package-script overwrite made no repository change.
+- Fresh checks on the current remediation branch: `mobile-ai-observation-security-test` passed, the snapshot AI contract test passed, and `git diff --check` passed. No PR or merge has been created yet.
+- Batch 1 validation is now green locally: Level 1 AI contract plus standalone TypeScript checks; Level 2 `verify:security`, SECURITY DEFINER migration checks, and migration markers; Level 3 root typecheck, release check, offline-sync/auth/vision tests, production build, field TypeScript, and Expo config checks. Root and field lockfile dependencies were installed with `npm ci --ignore-scripts`; no production mutation occurred.
+- CI/package gates now include `test:mobile-ai-observation-security` and migration `054_mobile_ai_observations.sql` markers. The next action is a protected PR and required-check wait, not a direct push to `main`.
+
+## 2026-10-21 free local stack implementation checkpoint
+
+- Vision default is now `qwen3-vl:8b` through the existing Ollama-compatible local client. Override with `OLLAMA_VISION_MODEL` when hardware requires a smaller model.
+- Added `POST /api/claims/local`, which uses workspace-admin and signed Storage checks, calls `CLAIMS_DOCUMENT_WORKER_URL`, and stores `provider=owner_import` at `ready_for_review`.
+- Added `workers/claims`, a private Docling MIT worker with HTTPS origin allowlisting, 25 MB input cap, bounded output, and temporary-file cleanup. It extracts documents only; it does not create ESX, licensed prices, coverage decisions, or approvals.
+- CapOut remains an optional paid adapter. Whisper remains the existing local faster-whisper worker; no paid speech service was added.
+- This checkpoint is source-only until the local worker is deployed on a persistent private host, `CLAIMS_DOCUMENT_WORKER_URL` is configured, and authenticated sample/RLS tests pass.
+
+## 2026-10-19 five-document audit batch checkpoint
+
+- Batch 2 updated five stale documentation files: `DATABASE-SCHEMA.md`, `OPERATING-CADENCE.md`, `CLAIMS-PRICING-INTEGRATION.md`, `RESEARCH-GIS-NOAA.md`, and `GAPS-REVIEW.md`.
+- PR #281 merged into `main` as `fe77e3d`. Post-merge main CI run `39242903451` completed successfully; web, mobile, preview-build, migration-safety, and release checks passed.
+- The updates correct documentation drift: schema/migration source is not proof of live Supabase state; paid claims and retailer connectors remain optional; GIS/NOAA outputs remain candidate evidence; authenticated dashboard CRUD and physical Android installation remain unverified.
+- No application code, database data, security guard, provider key, or deployment setting changed in this batch.
+
+## 2026-10-17 GitHub main handoff refresh
+
+- Current GitHub `main`: `5454cfa` (`docs: add Render migration handoff`). The prior handoff update is present in `main` through merged PR #276 at `54eec3f`.
+- Post-merge main CI for PR #276 passed: run `39060548460`, status `success`. The latest main CI run `39060748459` also passed.
+- Current APK, Vercel, Supabase, login, and physical-install verification facts remain unchanged from the checkpoint below. Do not claim authenticated dashboard data or physical Android installation as verified until those tests complete.
+- This refresh is documentation-only. No application code, AI behavior, security guard, database data, or deployment setting was changed.
+
+## 2026-10-16 current verification checkpoint
+
+- Main is green at `c6e8b72` after PR #275 merged. The change was documentation-only: Free Core rules remain GitHub, Supabase, and local Ollama; no security guards or app functions were added or removed.
+- Fresh current-main Field APK build passed on GitHub Actions run `38843100028`. APK release: [field-apk-main-c6e8b72](https://github.com/Gtownrter77/roof-os/releases/tag/field-apk-main-c6e8b72). Direct APK: https://github.com/Gtownrter77/roof-os/releases/download/field-apk-main-c6e8b72/app-debug.apk. SHA-256: `ad8e4f1a1606c9250b33e5efb74f9a84b877b343c045860dd33dbf799ea1be9e`.
+- APK ZIP integrity, mobile auth contract, offline-sync contract, security checks, and TypeScript checks passed. Physical Android installation was not performed from the Sandbox.
+- Live Vercel `https://roof-os-lemon.vercel.app/api/status` reported `overall: operational`; database, API, and storage reported online. `/photo-estimate` returned HTTP 200 and rendered Photo Reports controls.
+- Mobile source is wired to Supabase project `xksumagfbegdlapwysps` and Vercel web fallback `https://roof-os-lemon.vercel.app`. Unauthenticated Supabase health returned the expected missing-API-key 401; no data was changed.
+- Authenticated dashboard data was not verified. Live `/auth/login` currently shows the owner-only break-glass key screen, not the Supabase email/password or OTP form. No credentials were requested, entered, or exposed.
+- Current release truth: build and service reachability are verified; end-to-end authenticated browser/mobile CRUD, login, sync, and physical install remain unverified.
+
+## 2026-10-05 final synchronized checkpoint
+
+**Runtime source baseline:** `5144836fbc0a949d94cce5e444cd8432dc7c990f`
+
+The current main includes the verified integrity cleanup, the three UI loose-end fixes, and the AI-report authority hardening. The AI screen no longer fabricates a report from browser-entered text; it routes to the persisted photo-estimate workflow and is covered by a regression contract. The CI suite also now registers the existing invoice live-data regression command, which had been present as a test file but missing from package scripts.
+
+**Three-level repository evidence:** the latest merged AI-authority change passed web, mobile, preview-build, migration-safety, build, typecheck, release, security, and the full regression suite, including the AI-report and invoice-live-data checks.
+
+**Vercel boundary:** the current main commit has a Vercel status of **failure due to the account build-rate limit**. This is a platform deployment constraint, not a code-test pass. Production deployment is therefore not marked verified.
+
+**Authority boundary:** AI observations remain non-authoritative. Technician verification, source attribution, required signatures, and manager approval remain mandatory before a Golden Report is customer-ready.
+
+## 2026-10-05 synchronized repository checkpoint
+
+**Current main:** `d72f734f616352e1ba38691bafcd1e82b07ae428`
+
+This checkpoint supersedes older documentation snapshots. The current main now includes the latest integrity cleanup plus three additional verified loose-end fixes: building-code guidance requires a locality lookup before production guidance, workspace switching surfaces authentication/membership/request failures instead of silently failing, and lead CSV export neutralizes spreadsheet formula injection.
+
+**Authority boundary:** AI observations remain non-authoritative. Technician verification, source attribution, required signatures, and manager approval remain mandatory before a Golden Report is customer-ready.
+
+**Production boundary:** GitHub merge and CI evidence are not proof of a successful Vercel production deployment or live provider execution. Those remain separately evidence-gated.
+
+# ROOF/OS Final Handoff
+
+**Handoff date:** 2026-09-14
+
+## Current production site
+
+- **Production URL:** https://roof-os-lemon.vercel.app
+- **Hosting:** Vercel Hobby
+- **Vercel project:** `roof-os`
+- **Source:** GitHub `Gtownrter77/roof-os`, branch `main`
+- **Supabase project:** `xksumagfbegdlapwysps`
+
+The permanent Vercel deployment was previously verified with a `200 OK` login route and redirects from protected routes to `/auth/login`. GitHub `main` is connected to automatic Vercel production deployments.
+
+## Completed features
+
+1. Repaired the Next.js production build and standalone asset serving.
+2. Restored Tailwind/PostCSS styling and route navigation.
+3. Replaced the demo auth cookie with Supabase email authentication.
+4. Added Supabase magic-link login and account creation.
+5. Added `/auth/callback` authorization-code session exchange.
+6. Updated middleware to refresh and validate Supabase sessions server-side.
+7. Connected GitHub `main` to the free Vercel Hobby project.
+8. Added Supabase URL and publishable key to Vercel Production environment variables.
+9. Configured the Supabase Site URL and callback allowlist for the Vercel domain.
+10. Created the initial `public.leads` table and owner-based RLS policies.
+11. Replaced the hardcoded leads list with authenticated Supabase reads.
+12. Replaced simulated lead saving with real Supabase insertion.
+13. Implemented lead status updates with persisted status-change activity events.
+14. Implemented persisted activity notes for leads.
+15. Prepared workspace and workspace-member tables, new-user workspace provisioning, existing-user backfill, workspace-scoped lead/activity RLS, and private inspection-photo Storage policies.
+16. Replaced browser/localStorage photo saving with private Supabase Storage uploads using workspace-scoped object paths.
+17. Added the reusable `roof-os-production-review` Manus skill for future review, remediation, verification, deployment, and handoff tasks.
+18. Added `PRODUCT-VISION.md`, defining ROOF/OS as a sellable two-surface product: a desktop control plane plus a camera-first phone/tablet field app.
+19. Added `MOBILE-FIELD-ARCHITECTURE.md` with the Expo/React Native stack, offline sync model, photo pipeline, security model, navigation, and release gates.
+20. Added `DATABASE-SCHEMA.md` and `003_status_history_inspection_photos.sql` for durable lead status history, inspection sessions, photo metadata, and RLS.
+21. Added Google Maps and OpenStreetMap navigation deep links from leads without requiring a Maps API key.
+22. Added real appointments and follow-up task schema in `004_appointments_tasks.sql`, a calendar entry form, Supabase appointment reads/writes, and downloadable `.ics` events.
+23. Added the initial `apps/field` Expo/React Native field-app shell with camera capture, job-address navigation, and EAS Android APK profile.
+24. Added `AUTOMATION-AGENTS.md` defining four bounded, auditable agents: intake/router, scheduler/follow-up, inspection quality, and office copilot/reporting.
+25. Configured `apps/field/eas.json` for an internal Android APK preview build. The EAS build reached the Expo authentication gate; an Expo login or `EXPO_TOKEN` is required before Expo can produce the APK artifact.
+26. Added `OWNER-MANUAL.md` with setup, daily office workflows, field procedures, migrations, security, automation, APK release, backup, troubleshooting, and release-readiness instructions.
+27. Added `005_default_automation_agents.sql`, which seeds four workspace agent rules and creates idempotent first-response and status-based follow-up tasks assigned to the lead owner.
+28. Added `OPERATING-CADENCE.md` with scheduled daily, weekly, monthly, and release routines derived from the owner checklist.
+
+## Sellable product direction
+
+The product blueprint now defines the desktop web app as the system of record for administration, production scheduling, estimating configuration, reporting, billing, integrations, and team oversight. It defines the field app for leads, appointments, guided inspections, camera capture, photo albums, annotations, offline drafts, background uploads, calls, notes, tasks, status updates, crew checklists, check-in/out, and job communication.
+
+The recommended commercial path is a responsive mobile pilot followed by a dedicated Expo/React Native iOS and Android application. The next product implementation priorities are applying the workspace migration, adding a first-class inspection/photo metadata model, building offline upload queues, creating the guided inspection flow, and then scaffolding the dedicated field app.
+
+See [PRODUCT-VISION.md](PRODUCT-VISION.md) for the complete feature map, architecture, release phases, and pricing direction.
+
+See [MOBILE-FIELD-ARCHITECTURE.md](MOBILE-FIELD-ARCHITECTURE.md), [AUTOMATION-AGENTS.md](AUTOMATION-AGENTS.md), and `apps/field/eas.json` for the mobile and automation implementation details.
+
+See [OWNER-MANUAL.md](OWNER-MANUAL.md) for the detailed owner operating instructions and [OPERATING-CADENCE.md](OPERATING-CADENCE.md) for the scheduled routines.
+
+To produce the APK after authenticating with Expo:
+
+```bash
+cd apps/field
+npx eas login
+npx eas build --platform android --profile preview
+```
+
+For CI, set `EXPO_TOKEN` instead of using an interactive login. The expected artifact is an `.apk` from the EAS build page.
+
+## Important external step still required
+
+The workspace and Storage migration is committed as:
+
+```text
+supabase/migrations/002_workspaces_activity_storage.sql
+```
+
+It was validated locally and is ready to run, but it was **not applied to Supabase** because the authenticated Supabase dashboard session expired during the SQL Editor step. Until it is applied, the workspace-aware lead status/activity and photo upload code should be treated as pending integration rather than fully production-verified.
+
+Follow the exact instructions in:
+
+```text
+SUPABASE-MANUAL-MIGRATION.md
+```
+
+After applying the migration, complete the documented authenticated CRUD, Storage, and cross-workspace RLS checks.
+
+## GitHub commits
+
+Key commits, oldest to newest:
+
+- `27d90fc` — restore auth flow and enforce build validation
+- `d207c27` — persist onboarding settings and refresh lockfile
+- `6092151` — restore Tailwind styling and route navigation
+- `945ee14` — serve standalone static assets and document review
+- `af0bdeb` — connect Supabase email authentication
+- `b2873fd` — document permanent Vercel deployment
+- `597d4f4` — add project handoff
+- `7818e60` — persist leads with Supabase RLS
+- `c2a1982` — add workspace security, lead activity, and photo uploads
+- `5b67e82` — finalize production handoff metadata
+- `2cb66df` — define sellable desktop and field app product
+  - `dd92762` — add field navigation, calendar, automation foundation, and Expo shell
+  - `8b98433` — add detailed owner manual
+
+The current workspace/activity/Storage implementation, field-app shell, calendar layer, navigation links, automation configuration, and owner routines are committed and pushed in the latest `HEAD`.
+
+## ZIP files
+
+- [Current job handoff ZIP](</home/ubuntu/roof-os-job-handoff.zip>)
+  - SHA-256: `160a3e2b8775203f67c54a3c8c10ee9927b89f729298656876d3c1a9b6e7e1ba`
+  - Contains the committed source through `7818e60`.
+- [Supabase authentication job ZIP](</home/ubuntu/roof-os-supabase-auth-job.zip>)
+  - SHA-256: `fcda3d10e395ac3ea261cac31991846398a4bc59803d9d22a5da2fbf77a5bd6a`
+  - Contains the earlier Supabase authentication handoff.
+
+A refreshed ZIP containing the final workspace/activity/Storage source should be generated after the final commit is pushed.
+- [Final source handoff ZIP](</home/ubuntu/roof-os-final-handoff.zip>)
+  - Refresh this archive after the handoff documentation commit below; it should contain the final `HEAD`.
+
+## Validation status
+
+The current source batch passes:
+
+```text
+npm run build
+npx tsc --noEmit
+git diff --check
+```
+
+The three-level verification status is:
+
+- **Level 1 — Static:** passed locally, including web build, TypeScript checks, Expo type check/config, and Expo web export.
+- **Level 2 — Runtime:** prior production route verification passed; rerun after the final Vercel deployment.
+- **Level 3 — Data/security:** pending execution of migrations `002` through `005` and cross-workspace tests.
+
+## Security notes
+
+The Supabase publishable key is appropriate for browser use. Never commit `.env.local`, database passwords, service-role keys, or generated `.next` output. The inspection-photo bucket is designed to be private and uses paths beginning with `<workspace_id>/<user_id>/`.
+
+## Resume commands
+
+```bash
+gh repo clone Gtownrter77/roof-os
+cd roof-os
+npm ci
+npm run build
+npx tsc --noEmit
+```
+
+Then apply `supabase/migrations/002_workspaces_activity_storage.sql` through the Supabase SQL Editor and complete the Level 3 data/security checks.
+
+
+## 2026-09-14 hardening update
+
+The live Supabase project `xksumagfbegdlapwysps` has migrations 001 through 017 applied. Ryan’s authenticated account (`rlongmbox@gmail.com`) is the workspace owner and the system owner. Migration 016 aligns the existing `agent_runs` table with the worker runtime contract. Migration 017 adds auditable workspace invitations and an atomic owner price-book save function.
+
+The five highest-risk gaps identified and addressed in this hardening pass were:
+
+1. **Partial owner price-book writes:** the pricing API could leave an empty price-book header when item insertion failed. It now uses the transactional `save_owner_price_book` RPC.
+2. **Missing invitation persistence and authorization:** the new `workspace_invitations` table and `/api/team/invitations` endpoint validate email and role, restrict creation to workspace admins, prevent self-invites, and expose pending records. Email delivery and acceptance still require a provider/flow implementation.
+3. **Runtime schema drift:** `agent_runs` was created by migration 004 with an older shape than the worker expected. Migration 016 adds the missing runtime columns and status support.
+4. **Magic-link retry storm:** the login page now disables repeated requests for 60 seconds and presents a visible countdown after success or a rate-limit error.
+5. **Insufficient migration CI coverage:** CI now requires migrations through 017 and checks the runtime, invite, and atomic price-book safeguards.
+
+The remaining release blockers are a real authenticated browser CRUD test, saving Ryan’s actual labor rates and local tax into a draft price book, reviewing and activating that draft, and completing invitation email delivery/acceptance before treating team invites as production-ready.
+
+### Current live verification
+
+- Required core tables: present.
+- Ryan owner/system-owner match: verified.
+- Price-book tax columns: present.
+- Agent runtime columns: present.
+- Owner-managed price books: none saved yet.
+- Team invitation records: none yet.
+- PR #1: open; the latest hardening commit will trigger fresh CI checks.
+
+
+## Final release-readiness update
+
+The latest source commit is `db42c0b`. Local validation passes with and without Supabase environment variables. The source branch is clean and synchronized with GitHub. The public production URL remains available at `https://roof-os-lemon.vercel.app`, with the login route returning 200 and protected routes redirecting unauthenticated users to `/auth/login`.
+
+The PR’s GitHub web, mobile, migration-safety, and preview-comment checks pass. A Vercel preview deployment continues to report a generic failure. The deployment inspector requires authentication to the Vercel work profile; the connected browser session has not exposed that authenticated state, so the provider-side build log cannot be read from this task. A new CI `preview-build` job now reproduces the preview build without deployment-only secrets and will prevent this class of missing-variable failure from returning silently.
+
+Do not merge PR #1 solely on the green GitHub checks while the Vercel deployment check is red. The remaining external step is to open the Vercel deployment inspector while authenticated to the project owner account, read the provider log, and either correct the Vercel project setting or rerun the deployment. No further source-side blocker is known from local or GitHub validation.
+
+
+## Feature completion audit and remediation
+
+The prior audit correctly found that estimate templates and supplements were prototypes, the task screen was browser-local, measurements were reviewable footprint candidates rather than certified roof measurements, and building codes were state/category fixtures rather than ZIP-specific jurisdiction lookups. This pass began remediation:
+
+- Migration 018 and `/api/supplements` now persist supplement candidates and review decisions under workspace RLS.
+- `/supplement` now saves reviewable candidates instead of using random local-only detection.
+- `/api/estimate-templates` now persists draft templates, versions, and items using the existing estimate schema.
+- `/templates` now saves selected templates as draft records and clearly retains price-book/review gating.
+- `/tasks` now reads and updates persisted Supabase tasks, including trigger-created follow-ups.
+
+Measurements remain intentionally review-gated: the property API provides geocoded OpenStreetMap building-footprint candidates and OpenAerialMap metadata, not certified roof-surface quantities. Building codes remain a hardcoded state/category reference and are not yet a ZIP-to-jurisdiction authoritative lookup. Automatic reminder delivery and LLM-based supplement inference remain separate implementation tasks.
+
+
+## State of the Union — 2026-09-15
+
+### Release position
+The release branch is `release/inspection-report-labor-rates`. GitHub Actions for web, mobile, preview build, and migration safety passed on the latest release commit. The open release PR remains unstable because the Vercel preview status failed. The exact Vercel build log could not be retrieved in this environment because the Vercel CLI requires account authentication; its GitHub status only reports deployment failure and provides deployment ID `dpl_Fj8hjdLBQfVrE54t7qDq6EkXUs79`. The local `pnpm build` succeeds with Next.js 15.5.25, indicating that the remaining Vercel issue is likely deployment configuration, project settings, or environment-specific rather than a reproducible source compilation error.
+
+### Current capabilities and boundaries
+ROOF/OS has workspace-scoped inspections, GPS and measurement persistence, review-gated reports, owner labor rates, local-tax persistence, estimate templates, supplements, building-code lookup, aerial and storm evidence boundaries, bounded agent contracts, retailer price snapshots, and a weekly Home Depot reference-price worker. The system-owner lock remains the governing write boundary. Only Ryan Michael Long is authorized to activate protected system updates.
+
+Retailer data remains reference pricing. It is not a licensed Xactimate or Verisk price list and must not be represented as one. Prices used in estimates require a source, market or ZIP code, retrieval timestamp, effective date, and owner review. Photo analysis alone is not currently a customer-ready insurance estimate.
+
+### This implementation checkpoint
+Migration `019_material_catalog_workspace_settings.sql` adds a structured catalog covering GAF Timberline HDZ and Royal Sovereign shingles, designer shingles, starter and ridge-cap products, synthetic felt, ice and water shield, Cobra 3 ridge vents, box and bathroom vents, pipe boots by size, drip edge, gutter apron, step-flashing variants, coil nails, staples, button caps, NP1, OSB, VELUX skylights, gutters, dumpster rentals, and delivery fees. Catalog rows intentionally contain product metadata rather than fabricated current prices.
+
+The new authenticated material API supports search by product, brand, product line, and variant. The pricing configuration screen now exposes that catalog and separate state, county, city, and special-district tax inputs. The owner pricing API persists those jurisdiction rates while retaining a computed combined rate for compatibility.
+
+Workspace settings now persist weekly, manual-only, or disabled price refresh; default language; default ZIP code; preferred brands; and catalog-only versus catalog-plus-retailer search. The Settings screen provides a manual refresh action for the active Home Depot watchlist. The scheduled worker honors the workspace refresh setting and skips manual-only or disabled workspaces.
+
+### Remaining shipment blockers
+Migration 019 must be applied to the target Supabase project. Production Supabase variables, `RAPIDAPI_KEY`, `CRON_SECRET`, and the service-role key must be configured in the deployment environment. Vercel must be re-run after those settings are checked. A real authorized claims-price import or licensed provider is still required before insurance pricing can be called current. Level 3 workspace isolation, worker heartbeat, provider-response, and approval-transition evidence remain outstanding.
+
+
+## 2026-09-17 2026 hardening release
+
+The five highest-impact repository weaknesses were addressed without changing customer-facing workflow semantics:
+
+1. **Vulnerable framework dependency chain:** upgraded Next.js to `16.3.5` and PostCSS to the patched `8.5.10` line; `npm audit --omit=dev --audit-level=high` now reports zero vulnerabilities.
+2. **Missing browser security headers:** added CSP, HSTS, frame protection, MIME sniffing protection, referrer policy, permissions policy, and disabled the framework-powered-by header in `next.config.ts`.
+3. **Repeated workspace authorization risk:** added shared UUID and membership checks and applied them to CapOut, property measurements, drone evidence, Home Depot pricing, and NOAA storm routes. Cross-workspace requests fail closed before provider calls or writes.
+4. **Unbounded request/provider behavior:** added 64 KB JSON body limits, object-only JSON validation, 10-second upstream timeouts, and bounded provider response parsing.
+5. **Weak release gates:** added `release-check`, `typecheck`, and `audit` scripts; CI now runs them in addition to the build and migration safety checks. The deprecated Next.js middleware convention was migrated to the Next.js 16 `proxy.ts` convention.
+
+### Three-level verification
+
+- **Level 1 — Static:** passed `npm run build`, `npm run typecheck`, `npm run release-check`, `npm run audit`, `git diff --check`, and migration/secret-hygiene checks.
+- **Level 2 — Runtime:** local standalone server returned `200` for `/auth/login`, emitted all configured security headers, and redirected unauthenticated `/leads` requests to `/auth/login`.
+- **Level 3 — Data/security:** migration policy and secret scans passed; protected workspace routes are statically required to call `requireWorkspaceMember`. Live Supabase CRUD and cross-workspace RLS execution remains dependent on the target project's migrations being applied and authenticated test accounts being available.
+
+
+### Final release verification update
+
+The hardening commit was rebased onto current `origin/main` and expanded to cover eight workspace-scoped API routes, including manual measurements, labor rates, and pricing refresh. Final checks passed: `npm run release-check`, `npm run verify:security`, `npm run build`, `npm run typecheck`, `npm run audit`, root and field reproducibility checks, Expo config validation, migration/secret scans, and standalone runtime smoke tests. The runtime emitted the configured security headers and redirected unauthenticated `/leads` requests to `/auth/login`. Live Supabase cross-workspace CRUD remains an environment-dependent check requiring authenticated test accounts.
+
+
+## 2026-09-30 recovery-branch handoff
+
+**Working directory:** `/home/ubuntu/roof-os-backup-temp`
+**Branch:** `rebuild/roof-os-recovery`
+**Last verified remote HEAD:** `8600fd50f16393cfd647402eb1ad81cf83c21462`
+
+### Already pushed and verified
+
+- D.3 route/RLS compatibility correction: `ae4a0d221b4b5a65cf1b5c0d4f9465eaec4cc1c6`.
+- D.2 photo upload now creates an inspection session and `inspection_photos` metadata rows, and sends UUIDs plus `inspectionId`: `8600fd50f16393cfd647402eb1ad81cf83c21462`.
+- Upload milestone checks passed before this handoff: `npm run typecheck`, `npm run test:photo-estimate-flow`, `node scripts/security-check.mjs`, `node scripts/ai-vision-endpoint-test.mjs`, and `git diff --check`.
+
+### Current uncommitted work — do not assume tested
+
+After syncing and confirming the clean `8600fd5` local/remote baseline, `app/photo-estimate/page.tsx` was edited to add an optional D.3 AI analysis UI:
+
+- A Supabase browser-client role check controls whether the analysis button is shown; the D.3 server route remains authoritative and requires workspace admin.
+- `Analyze roof photos` sends the workflow ID to `/api/photo-estimate/analyze` only when explicitly clicked.
+- `Force fresh analysis` sends `forceRefresh: true` after a result exists.
+- The UI renders the summary, classification, damage observations, warnings, and contract disclaimer as non-authoritative information.
+- Building a review packet does not automatically call Gemini.
+
+This UI edit was **not typechecked, tested, committed, or pushed**. Current expected change is `M app/photo-estimate/page.tsx`. The working tree was clean before the edit; check `git status --short` and `git diff` before resuming.
+
+### Resume safely
+
+1. Stay in `/home/ubuntu/roof-os-backup-temp` and branch `rebuild/roof-os-recovery`; do not create another checkout.
+2. Inspect `git status --short` and the page diff. The resume task is only to complete/test the opt-in analysis UI unless the user changes scope.
+3. Extend `scripts/photo-estimate-flow-test.mjs` with regression assertions that analysis is admin-gated in the UI, starts only from an explicit click, calls `/api/photo-estimate/analyze`, supports `forceRefresh`, and displays the D.2 disclaimer. Keep tests from making provider calls.
+4. Run `npm run typecheck`, `npm run test:photo-estimate-flow`, `node scripts/security-check.mjs`, `node scripts/ai-vision-endpoint-test.mjs`, `node scripts/auth-flow-test.mjs`, `node scripts/ai-vision-contract-test.mjs`, and `git diff --check`.
+5. Show `git status --short`; commit and push only after the checks pass. Immediately verify with `git ls-remote --heads origin rebuild/roof-os-recovery` and record the exact hash.
+
+No live Gemini execution has been verified. Do not claim it was tested; no provider request was made during this in-progress UI edit.
+
+
+## D.3 opt-in UI milestone completed — 2026-09-30
+
+The explicit admin-only analysis UI and focused regression assertions are now tested and pushed. Commit: `7141922553e2bbcb0de8382d046a3034664837fd` on `rebuild/roof-os-recovery`; `git ls-remote --heads` confirmed the exact hash.
+
+Passed checks: `npm run typecheck`, `npm run test:photo-estimate-flow`, `node scripts/security-check.mjs`, `node scripts/ai-vision-endpoint-test.mjs`, `node scripts/auth-flow-test.mjs`, `node scripts/ai-vision-contract-test.mjs` (11 assertions), and `git diff --check`.
+
+The D.3 call is explicit user-triggered only; packet creation does not invoke Gemini. The browser checks workspace-admin status for UI visibility, and the server remains authoritative. No live Gemini request was made.
+
+
+## 2026-09-30 production authentication verification checkpoint
+
+### Repository/recovery state
+
+- The former `rebuild/roof-os-recovery` branch was merged through PR #30 (merge commit `c68faf4e4b80aaa7e0555c1e47920f929c8049b2`) and is no longer a remote branch. PR #32 was also merged into `main`.
+- Current verified baseline: `main` at `852048a0925b24f5a92aee3b7554254bdac0b934`; local and remote `main` matched before this documentation checkpoint.
+- Current-task remote backup: `backup/auth-verification-20260930` at `852048a0925b24f5a92aee3b7554254bdac0b934` (remote SHA verified before edits).
+- The historical path `/home/ubuntu/roof-os-backup-temp` is absent in this sandbox. Work resumed from the existing clean `Gtownrter77/roof-os` clone at `/home/ubuntu/roof-os`, based on the verified current `main`; no source code was changed for this checkpoint.
+
+### Authentication evidence — 2026-09-30
+
+Passed locally from the current `main` source:
+
+- `node scripts/auth-flow-test.mjs` — PASS (OTP, callback result types, cooldowns, and safe redirects).
+- `npm run test:api-security` — PASS.
+- `npm run verify:security` — PASS.
+- `npm run typecheck` — PASS.
+- `npm run release-check` — PASS (9 protected routes, security headers, and secret scan).
+- `git diff --check` — PASS.
+
+Read-only production route smoke checks:
+
+- `GET https://roof-os-lemon.vercel.app/auth/login` — HTTP 200.
+- `GET https://roof-os-lemon.vercel.app/leads` without a session — HTTP 307 to `/auth/login?next=%2Fleads`.
+
+Source review confirms email-link and 6-digit email OTP flows, callback result validation, rate-limit cooldown handling, and same-origin `next` path validation. No email was sent and no production sign-in was attempted.
+
+### Verification boundary and next action
+
+**Production authentication is only partially verified.** The route and code-level checks above pass, but a real production magic-link/OTP delivery, successful callback/session establishment, and authenticated protected-workflow test were not performed. Do not claim end-to-end production login is verified. The remaining action is to run that test with an authorized test account and confirm the resulting authenticated workspace flow; no user credentials were requested or used in this checkpoint.
+
+
+## 2026-09-30 D.3 production schema and Gemini readiness
+
+- Production Supabase project `Roof OS` was active and healthy. Before the fix, the migration ledger ended at `035_retailer_quota_hardening`, and `public.photo_estimate_workflows` was missing the four D.3 persistence columns.
+- Applied `supabase/migrations/036_photo_estimate_ai_analysis.sql` as migration `photo_estimate_ai_analysis` (ledger version `20260930165224`). A read-only schema query confirmed `ai_analysis jsonb`, `ai_analyzed_at timestamptz`, `ai_model_version text`, and `ai_content_hash text` now exist and are nullable. This was additive schema DDL; no workflow data was changed.
+- Configured `GEMINI_API_KEY` in Vercel as a sensitive, production-only environment variable. Its value is not recorded in this repository or handoff. This setting will be consumed by the next production deployment.
+- Source change on this branch sends the Gemini key in Google's documented `x-goog-api-key` header instead of a URL query parameter; the endpoint regression test now asserts both behaviors.
+- Production smoke checks observed `/auth/login` returning 200 with security headers, unauthenticated `/leads` redirecting to login, and an invalid callback rejecting a hostile `next` target with `Cache-Control: no-store` and a safe `next=/`. An unauthenticated analysis POST was redirected by the auth proxy.
+- Local checks passed: photo-estimate flow, AI endpoint/auth regression, all 11 AI contract tests, TypeScript typecheck, security check, and release check (9 protected routes, headers, secret scan). `git diff --check` passed.
+- Source backup: `backup/pre-d3-migration-20260930` at `9f32401553e77c74a9814573113824ed75564270`.
+- **Not verified by design:** the user directed us to skip login. No authenticated workspace-admin flow was attempted, and no photo or live AI request was sent. After the header patch reaches production, a signed-in admin run remains the end-to-end proof for D.3.
+
+
+## 2026-09-30 measurement-to-estimate authority checkpoint
+
+- Starting baseline was clean `main` at `a35ddbf52415fdf5345c538e8c44e475a790a633` (PR #35 merge). Recovery branch `backup/pre-estimate-authority-20260930` was pushed and independently verified at the same SHA before edits.
+- Added `scripts/measurement-estimate-authority-test.mjs`, exposed as `npm run test:measurement-estimate-authority`, and wired it into the web CI job. This is a source-contract regression only; it makes no database, login, or provider calls and changes no API behavior.
+- The test asserts that D.3 writes only AI-analysis metadata, technician verification is workspace-admin gated and records the approving user/time, manual measurement rows remain `unverified`, and estimate packets remain unpriced `needs_price_review` drafts with measurement-source, price-book, and human-approval steps.
+- Local checks passed: the new regression, photo-estimate flow, all 17 AI contract cases, AI endpoint/provider-request regression, API security, security scan, typecheck, release check, production build, dependency audit (0 high-severity vulnerabilities), and `git diff --check`.
+- Login troubleshooting stopped after the preview displayed “Too many sign-in requests. Please wait 60 seconds and try again.” Both the initial request and one retry after the full 60-second cooldown showed that message. No successful app session was established and no further OTP requests were made. The login route itself had loaded; production/authenticated workflow acceptance remains incomplete.
+- **Next product gap (not changed here):** technician approval is recorded on `photo_estimate_workflows`, while `/api/estimates/draft` accepts client-supplied quantities and can create an explicitly unpriced, review-gated packet without requiring that approved workflow. A future behavior change could link a verified workflow/measurement server-side and derive quantities from persisted technician data. That would change the draft API contract, so it is intentionally not part of this test-only checkpoint and needs an explicit product decision.
+
+
+## 2026-09-30 strict technician-approved estimate gate
+
+This implementation starts from clean `main` at `fff6593329b2bcf7efada4e66a8e28288e4afb42`; the exact source baseline is preserved at `backup/pre-strict-estimate-gate-20260930`. On `feat/strict-approved-estimate-gate-20260930`, the technician verification form now requires an explicit gutter length (enter 0 when none). The verify endpoint persists the rounded gutter value alongside the approver, timestamp, eave/rafter/pitch/waste inputs, and server-calculated roof squares. Initial roof/gutter values remain unverified candidates and are not accepted by the estimate-draft endpoint.
+
+`/api/estimates/draft` now accepts only workspace, approved workflow ID, optional same-inspection storm evidence, and notes; client-supplied quantities and measurement IDs are rejected. It requires an approved workflow with consistent actor/time/roof/gutter values, re-derives roof squares server-side, and links the resulting packet to that workflow. Migration 037 adds the source foreign key and an RLS insert validator that rejects unapproved/mismatched workflows, altered quantities, extra line items, or priced packets. Drafts remain `needs_price_review`, unpriced, and blocked from external use until human approval.
+
+Local validation passed: measurement-authority tests (including stale/mismatched approvals and explicit zero gutters), photo-estimate flow, all 17 AI contract tests, AI endpoint/provider-request regression, API security, mobile offline sync, security scan, TypeScript typecheck, release check, production build, dependency audit (0 high-severity vulnerabilities), migration-order/policy checks, and `git diff --check`. Migration 037 parsed and ran against a disposable in-memory PostgreSQL instance; a valid packet was accepted and a tampered roof quantity was rejected by RLS. No production database migration or deployment was performed. Apply migration 037 before merging/deploying this API change; production/authenticated login verification also remains incomplete after the previously recorded Auth rate limit, and no further OTP requests were made.
+
+
+## 2026-09-30 production login-loop remediation (in progress)
+
+- Work is on a separate worktree/branch from the verified `main` baseline `fff6593329b2bcf7efada4e66a8e28288e4afb42`. Existing strict estimate-gate PR #37 remains open and untouched.
+- The login page now defaults to email/password via Supabase `signInWithPassword`; email-link and six-digit-code options remain available. Password success follows the validated same-origin `next` path and refreshes server auth state. No password or API key is stored in source or handoff.
+- Existing `/auth/callback` exchanges the authorization code with `exchangeCodeForSession`; the server Supabase client writes session cookies. The Next.js proxy treats `/auth/*` as public while unauthenticated, so it does not redirect the callback before session establishment.
+- Read-only live checks: `/auth/login` returned HTTP 200; an invalid callback safely returned to login with `Cache-Control: no-store`; an unauthenticated `/leads` request redirected to login. These checks do not prove a successful authenticated session.
+- Vercel Production has both `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` set across environments. The URL matches production project `xksumagfbegdlapwysps`, and the public key matches an active publishable key; raw key material is intentionally not recorded.
+- The hosted Supabase Auth URL Configuration page requires the owner to sign in interactively. Its current Site URL/redirect allowlist has not yet been inspected or changed. Target requested by owner: Site URL `https://roof-os-lemon.vercel.app`, production redirect allowed, and no localhost redirects.
+- The available Supabase SDK credential is a publishable key, not an admin key. No account password was changed and no OTP was sent in this work. Setting an owner password requires a supported admin/dashboard path; ask the owner to sign in to Supabase and approve the exact temporary password before applying it.
+- Validation passed: auth-flow regression (including public callback/cookie assertions), API security, mobile offline sync, photo-estimate flow, measurement-estimate authority, 17 AI contract cases, AI endpoint regression, typecheck, release check, security scan, production build, dependency audit (0 high-severity vulnerabilities), and `git diff --check`.
+- **Remaining acceptance:** inspect/apply Supabase URL settings after owner browser sign-in, set a temporary owner password only after approval of its exact value, push/open a separate auth PR, wait for green CI, deploy, and verify the full authenticated production flow without inspecting customer data.
+
+## 2026-10-01 estimate-gate integration checkpoint
+
+- Integrated current `main` (including Phase D aerial geometry and verified production-status documentation) into `feat/strict-approved-estimate-gate-20260930`.
+- Resolved the handoff-only merge conflict while preserving both the strict estimate-gate and login-remediation records.
+- Renumbered the estimate packet source migration from `037_estimate_packet_photo_workflow_source.sql` to `038_estimate_packet_photo_workflow_source.sql` because `main` already owns migration 037 for aerial geometry; updated the authority regression references accordingly.
+- Verified locally: `npm run typecheck`, `npm run test:measurement-estimate-authority`, `npm run test:photo-estimate-flow`, `npm run release-check`, `npm run verify:security`, and `git diff --check` all pass.
+- Pushed the corrected branch at `7914b23`; GitHub required `web`, `mobile`, and `migration-safety` checks are passing on PR #37. Merge is the next repository action.
+
+## 2026-10-01 AI receptionist integration checkpoint
+
+- Reconciled the receptionist branch with the post-PR #37 `main` baseline.
+- Kept current main’s Next.js 16.3.8 and all existing web, mobile, preview, migration, security, and audit gates; added the receptionist contract check to CI.
+- Preserved the receptionist routes, atomic booking migration, Twilio/Stripe/OpenAI adapters, runbook, realtime voice contract, and follow-up cron.
+- Added the required runtime dependencies (`openai`, `stripe`, and `twilio`) without retaining the stale Next.js 15 pin from the feature branch.
+- Production provider configuration remains environment-driven; no provider credentials were changed.
+
+## 2026-10-01 simple-auth integration checkpoint
+
+- Reconciled PR #17 with the post-PR #37 `main` baseline.
+- Kept the newer main login implementation from PR #38 because it already contains the safer default-password mode, bounded password input, safe redirect handling, and the existing email-link/code fallback.
+- Preserved PR #17’s distinct additions: `/auth/reset` password update flow, explicit user-chosen signup passwords, and corresponding auth-contract changes.
+- This branch is ready for local verification and GitHub CI; no auth secrets or production credentials were changed.
+
+## 2026-10-01 repository-wide branch review checkpoint
+
+- Merged PR #40 (verified state-of-union documentation), PR #37 (strict technician-approved estimate gate with migration 038), PR #17 (password sign-in/reset flow), and PR #16 (hardened AI receptionist workflows) into `main`; each completed with all required `web`, `mobile`, `preview-build`, `migration-safety`, Vercel, and preview-comment checks passing.
+- Closed PR #9 and PR #11 as superseded: newer photo-estimate/estimate-gate and Lowe’s quota/provider hardening are already on `main`.
+- Closed PR #8 as stale/superseded after review: it reintroduced migration-version collisions and a broad unreviewed public route surface; its remote branch remains available for a focused redesign.
+- Main branch protection remains enabled with required `web`, `mobile`, and `migration-safety` checks, admin enforcement, conversation resolution, no force-pushes, and no deletions.
+- All integrations in this review were pushed to their source branches before merge; no production credentials or database deployments were performed.
+
+## 2026-10-01 branch-wide CI trigger checkpoint
+
+- Updated `.github/workflows/ci.yml` so every branch push and every pull request target receives the same web, mobile, preview-build, migration-safety, security, and audit coverage; `main` protection still requires the three configured checks.
+
+
+## 2026-10-01 Golden Report / photo-to-report checkpoint
+
+- User priority: complete the photo-to-finished-report path; use only free/open-source software; checkpoint completed work frequently so it is not lost.
+- Canonical report template: `GOLDEN-REPORT.md`, indexed from `README.md`. The web report uses the 12 required sections and a dependency-free rules check in `lib/reports/golden-report.mjs`.
+- PR: https://github.com/Gtownrter77/roof-os/pull/43 (`feat/photo-full-report-20261001`). Code checkpoint commit: `ed3ef426fbf93a55bb10146719ddc1a5d9baf230`; remote ref matched local SHA. A backup ref `backup/pre-photo-report-upgrade-20261001` preserves pre-checkpoint SHA `d42afc240d2bb10cef9783295a1a1b910b29d14c`.
+- Implemented in that checkpoint: resume an inspection by URL; load its saved workflow and photo metadata; create fresh private signed photo URLs; generate and persist the standard report only from an approved workflow; check each photo belongs to the same workspace and inspection and is fully uploaded; match displayed photos to persisted IDs; print only the report with alt text and a repeating footer; and run the Golden Report contract before saving.
+- Honesty gates: missing facts render **Unknown**; each measurement shows its source; unconfirmed AI observations are omitted; NWS weather alerts are not presented as NOAA Storm Events Database entries; the report is a **Draft** until required signatures and manager approval exist; there are no dollar amounts or prices.
+- No new packages, paid software, or external services were added.
+- Local checks passed on the code checkpoint: all web regression scripts; Golden Report positive and negative contract tests; `npm run typecheck`; `npm run release-check`; `npm run verify:security`; `npm run audit` (0 production vulnerabilities); production `npm run build`; mobile `npm audit --audit-level=moderate` (0 vulnerabilities), `npx tsc --noEmit`, and `npx expo config --json`; `git diff --check`.
+- Live smoke test of the then-current production deployment (read-only): `/auth/login` returned 200; `/leads` redirected unauthenticated users to login (307); `/api/photo-estimate/report` also redirected to login (307). This does not verify the new PR code in production.
+- Production database/deployment evidence remains blocked: Supabase and Vercel connectors are disabled/not available in this session. No production database, migration, deployment, or customer data was changed.
+- At the code checkpoint, PR checks had 1 success and 9 pending, no failures; recheck after the handoff-doc push before merging.
+- Remaining Golden Report product gates (do not describe the report as customer-ready): capture a technician’s name/license and actual signature; record owner/manager approval before delivery; add per-photo usability/coverage and technician-confirmed observation review; connect NOAA Storm Events Database records (not NWS alerts); add verified jurisdiction-code citations, supported supplements, and homeowner Q&A. Keep each field **Unknown** until its source is implemented and verified.
+- Next: check PR #43 CI; fix any failures and push a new verified checkpoint. After CI is green, merge only within the already requested main-update scope; then verify the deployed report route and record actual production/database evidence when authorized access is available.
+
+
+## User-directed checkpoint law — mandatory for future work
+
+**Checkpoint after every 3 completed, verified work batches; do not let a 4th accumulate.** Commit and push the accumulated work, verify local and remote SHAs match, and update this handoff. Checkpoint sooner before a handoff, long pause, task/device switch, major milestone, merge, or risky/destructive action. Never merge while required CI checks are pending or failing. The full rule is `UPDATE-CHECKPOINT-LAW.md`, linked from the top of `README.md`.
+
+## 2026-10-01 production verification and preservation checkpoint
+
+- PR #43 (`feat/photo-full-report-20261001`) was merged into `main` as `6972a4fde971462c1983f17355dc45680fc505ea`.
+- Post-merge branch-wide CI run `36921039340` passed all required jobs: web, mobile, preview-build, and migration-safety. The run reported only GitHub runner deprecation warnings; no test or build failures.
+- The authenticated My Browser route is now available and was used for a controlled production smoke test at `https://roof-os-lemon.vercel.app`.
+- Synthetic lead save succeeded and returned persisted lead `3c61088f-f776-4170-b7de-38ebbdd4790a`.
+- Starting an inspection from that persisted lead succeeded and opened the live camera workflow with inspection `2b66abf1-ea9c-4402-be42-fb53d2f00017`.
+- The live camera workflow exposes a private multi-file image input (`accept=image/*`, environment capture). Photo file submission and the full report path remain unverified in this checkpoint; do not describe the live evidence upload as complete yet.
+- No production customer record was used. The test lead is explicitly labeled `ROOF/OS Production Sync Test 20261001` and should be removed through the authenticated application workflow when cleanup is authorized.
+- The previously dirty local release-candidate worktree was preserved without deletion or reset on GitHub branch `backup/local-release-candidate-20261001` at commit `52056ed1f0b6331994b71424cfb448f7645c77b6`. This branch contains the uncommitted web hardening, mobile, sync, pricing, and migration files exactly as found before this checkpoint.
+- The canonical documentation update is being carried on `docs/handoff-production-verification-20261001`; merge it only after its documentation-only checks pass.
+- Supabase migrations, production auth URL settings, photo submission, offline retry against production, and live Data/Security level-3 evidence remain outstanding. No production database migration or account-security change was performed in this checkpoint.
+- Continue to follow the Golden Report authority rule: AI observations are non-authoritative; technician verification, source attribution, signatures, and manager approval are required before customer delivery.
+
+
+## 2026-10-02 receptionist workspace hardening — superseding handoff
+
+**Scope:** backend production hardening for the AI receptionist, workspace authorization, tenant isolation, Stripe payment-link creation, Twilio outbound actions, and worker-only appointment booking.
+
+### Repository state
+
+- **Current `main`:** `f29981076c23b7a289b579c2852c916be368325e`
+- **Working branch:** `backend/production-hardening-20261002`
+- **Pre-documentation hardening checkpoint:** `efa9b8ec0021bacccbf8c57b2924a89d8d7e78c6`
+- **Durable backup:** `backup/backend-audit-checkpoint-20261002` preserves the pre-hardening baseline `41162bb9359ffb26dac40dc993e59795af3a70e5`.
+- PR #72: https://github.com/Gtownrter77/roof-os/pull/72 — **open; do not merge without explicit owner direction.**
+- Current main's latest QA commit is `f2998107`, which adds prototype disclosures for `/chat`, `/notifications`, and `/status`. The hardening branch has been rebuilt on top of that current baseline.
+
+### Hardening implemented
+
+1. **Receptionist lead tenancy**
+   - `lib/receptionist-actions.ts` validates configured workspace/owner UUIDs.
+   - The configured owner must be a member of the configured workspace.
+   - Lead reads are scoped by `workspace_id` and `owner_id`.
+   - New receptionist leads persist `workspace_id`.
+
+2. **Stripe payment boundary**
+   - Requires an authenticated user.
+   - Resolves the active workspace.
+   - Requires workspace-admin authorization before any Stripe provider action.
+   - Uses the authenticated Supabase client for invoice/payment-link ledger reads and writes.
+   - Invoice and idempotency lookups are workspace-scoped.
+
+3. **Twilio workspace boundary**
+   - Receptionist session lookup is explicitly workspace-scoped.
+   - Outbound voice and SMS require workspace administration before provider calls.
+   - Optional `leadId` values must belong to the active workspace.
+
+4. **Worker-only booking RPC**
+   - `leads.workspace_id` is now NOT NULL.
+   - `book_receptionist_appointment` is SECURITY DEFINER with `search_path = ''`.
+   - Creator must be a member of the target workspace.
+   - Lead must belong to the target workspace.
+   - Idempotency, conflict checks, appointment re-fetch, and inserted event data are workspace-scoped.
+   - Execution is revoked from `public`, `anon`, and `authenticated`; only `service_role` can execute it.
+
+5. **Regression coverage**
+   - `scripts/receptionist-check.mjs` asserts the authorization and tenant-boundary contracts, including authentication before provider actions.
+
+### Production evidence
+
+Migration `receptionist_workspace_integrity` was applied to Supabase project `xksumagfbegdlapwysps` on **2026-10-02**.
+
+Observed production facts after migration:
+
+- `public.leads.workspace_id` is NOT NULL.
+- 2 live leads exist; 0 have a missing workspace ID.
+- 2 workspaces and 2 workspace-member records exist.
+- Owner 1 sees 2 leads in workspace 1; owner 2 sees 0 leads in workspace 2.
+- Each owner is an admin of their own workspace and not an admin of the other.
+- Receptionist sessions visible in the simulated workspace contexts: 0 and 0.
+- Anonymous/authenticated execution of the booking RPC is denied.
+- Service-role execution is permitted.
+- Cross-workspace creator and cross-workspace lead negative booking tests were rejected.
+- No verification test rows were left behind.
+- Final production relationship checks returned zero mismatches for receptionist events, appointments, leads, invoices, payment links, and their lead/workspace relationships.
+
+### CI evidence
+
+- Latest pre-sync hardening validation: **CI run #567**, completed **successfully** for web, mobile, preview-build, and migration-safety on the hardening tree before the newest documentation checkpoint.
+- Because current `main` advanced afterward, this handoff explicitly treats the next branch CI result as the verification of the fully synchronized current tree.
+
+### Deployment boundary
+
+- **Production database migration:** applied and verified.
+- **Application/Vercel deployment from PR #72:** not performed.
+- No CSP, proxy, Next.js configuration, frontend styling, or Vercel configuration changes were made by this hardening work.
+
+### Remaining repository-level items
+
+The broader repository still has pre-existing Supabase advisor findings, including six authenticated SECURITY DEFINER warnings and disabled leaked-password protection. Supabase performance advice also reports unindexed foreign keys. These are separate from the receptionist hardening and require their own scoped review before being changed.
+
+**Resume point:** finish and verify the documentation checkpoint, confirm the synchronized-branch CI is green, then PR #72 is ready for owner-directed review/merge.
+
+
+## 2026-10-02 — receptionist hardening handoff finalized
+
+- **Current main:** `f29981076c23b7a289b579c2852c916be368325e`
+- **Hardening branch:** `backend/production-hardening-20261002`
+- **Current branch SHA:** `f81278881cf6e28809b6317811a7614e0293338f`
+- **PR #72:** https://github.com/Gtownrter77/roof-os/pull/72 — open; do not merge automatically.
+- Direct `main...hardening` comparison is now **14 commits ahead / 0 behind**, with the application delta limited to the seven intended receptionist hardening files; the remaining branch commits are the preserved documentation/history lineage.
+
+### Verified production result
+
+Migration `receptionist_workspace_integrity` is applied in production project `xksumagfbegdlapwysps`. The live database confirms `leads.workspace_id` is NOT NULL, 0 of 2 leads are missing workspace ownership, workspace/admin boundaries hold under simulated authenticated contexts, cross-workspace receptionist booking attempts are rejected, and the audited receptionist/payment relationship checks return zero mismatches.
+
+### Verification result
+
+CI run **#567** completed successfully for web, mobile, preview-build, and migration-safety against the synchronized application tree. The current documentation commit is documentation-only and does not alter runtime behavior; its push should trigger the final post-documentation CI run.
+
+### Deployment boundary
+
+The production database migration was applied and verified. PR #72 has not deployed the application to Vercel, and no frontend, proxy, CSP, Next.js, or Vercel configuration change was made by this hardening pass.
+
+### Remaining scope
+
+Pre-existing Supabase security-advisor warnings (including authenticated SECURITY DEFINER findings and disabled leaked-password protection), performance/indexing advisories, and broader end-to-end/commercial release gates remain outside this focused receptionist hardening work.
+
+**Resume point:** review the post-documentation CI result, then PR #72 is ready for owner-directed review/merge. Do not merge without explicit instruction.
+
+## Admin page, 2026-10-02
+
+- Branch: `upgrade/admin-page-20261002`
+- File: `app/admin/page.tsx`
+- Removed hardcoded admin numbers from the 2026-08-16 page.
+- Workspace-scoped counts: members, leads, inspection sessions, inspection photos.
+- Revenue and storage remain Unknown.
+- `npx tsc --noEmit` passed. `npm run build` passed and listed `/admin`.
+- Not merged to `main`. Not verified in a signed-in browser. Live counts were not queried.
+
+## Files 2-7, 2026-10-02
+
+On branch `upgrade/admin-page-20261002`:
+
+- `app/ai-train/page.tsx` is labeled a local checklist. Steps were kept.
+- `app/ai/page.tsx` no longer starts with a fake address or inspector. The draft stays in the browser.
+- `app/analytics/page.tsx` no longer shows hardcoded leads, rates, or revenue. Workspace counts load when signed in. Rates and revenue stay Unknown.
+- `app/chat/page.tsx` no longer shows fake people. Messages stay in this browser.
+- `app/deck/page.tsx` and `app/doors-windows/page.tsx` keep their calculators and now say the result is a local example, not a saved bid.
+
+`npx tsc --noEmit` passed. `npm run build` passed and listed `/ai`, `/ai-train`, `/analytics`, `/chat`, `/deck`, and `/doors-windows`. No signed-in browser session was opened. Not on `main`.
+
+## Rule fix, 2026-10-02
+
+- Backup branch: `backup/pre-money-rule-fix-20261002`
+- Backup SHA: `6df7c849150423ccdfead732a5b2868c57974533`
+- Remote backup verified with `git ls-remote`.
+- This branch: `fix/no-unapproved-money-20261002`
+- Deck and door screens no longer display dollar figures. Price stays Unknown until a human approves it.
+- `npx tsc --noEmit` passed on this branch.
+- Signed-in production check is still open. This branch is not merged. Local build is not production verification.
+
+## Files 7-15, 2026-10-02
+
+- Backup: `backup/pre-files-7-15-20261002` at `dd4c568ba7b6570e7bb030622c31bb7b4b9c6742`.
+- Branch: `upgrade/files-7-15-20261002`.
+- Export no longer downloads fake people. Missing fields stay Unknown.
+- Help claims that were not checked now say Unknown.
+- Home Depot list no longer shows prices. Price stays Unknown.
+- Integrations, manual, notifications, plans, and predict are labeled local. They are not a live record.
+- `npx tsc --noEmit` passed. Not merged. Signed-in check is still open.
+
+## Checkpoint record, 2026-10-02
+
+- Commit: `fix: label files 7-15 and remove unapproved prices`
+- Full SHA: `5114603e044cac7957e1ac3521e65b5247fd1247`
+- Branch: `upgrade/files-7-15-20261002`
+- Branch URL: https://github.com/Gtownrter77/roof-os/tree/upgrade/files-7-15-20261002
+- Local check: `npx tsc --noEmit` passed before this commit.
+- Remote SHA match: `git ls-remote` returned `5114603e044cac7957e1ac3521e65b5247fd1247` for this branch.
+- `main` SHA: `6df7c849150423ccdfead732a5b2868c57974533`. This branch is not merged.
+- Open gate: signed-in production check. Not run. Not a pass.
+- Production: not verified. Local typecheck is not deployment evidence.
+- Next action: do not merge until the signed-in check is done.
+
+## Files 16-20, 2026-10-02
+
+- Backup: `backup/pre-files-16-20-20261002` at `8aaaa162fcd598390edf123cf10718c81b7d12b6`. Remote SHA matched.
+- Files: `app/quantum/page.tsx`, `app/repair/page.tsx`, `app/schedule/page.tsx`, `app/search/page.tsx`, `app/siding/page.tsx`.
+- Price displays on repair and siding stay Unknown.
+- `npx tsc --noEmit` passed.
+- Not merged. Signed-in production check is still open. That is not a pass.
+
+## Search and schedule, 2026-10-02
+
+- `app/search/page.tsx` searches saved leads in the current workspace. Fake lead rows removed.
+- `app/schedule/page.tsx` reads saved appointments. Fake report schedules removed.
+- `npx tsc --noEmit` passed.
+- Browser and production behavior not verified. Signed-in check is still open.
+
+## Export, 2026-10-02
+
+- `app/export/page.tsx` exports saved leads for the current workspace. Fake rows removed. Import is Unknown.
+- `npx tsc --noEmit` passed.
+- Browser and production not verified.
+
+
+## 2026-10-04 Mobile field batch 1 — branch validation
+
+**Scope:** `apps/field` only. No database migration was added.
+
+**Branch:** `mobile/field-batch-1-job-agenda-photo-albums`
+
+### Implemented on this branch
+
+1. **Job/lead picker:** loads workspace-visible leads and attaches the selected lead to the local inspection draft and remote inspection session.
+2. **Today agenda:** loads upcoming appointments and open tasks and displays the next eight items in the field app.
+3. **Photo album selection:** lets the field user choose `general`, `before`, `damage`, `measurements`, or `completed`; the choice is retained in the offline queue and uploaded to `inspection_photos.album`.
+
+These are additive upgrades to the existing camera, GPS, measurement, offline-draft, retry, and private-storage workflows. No existing feature was intentionally removed.
+
+### Validation evidence
+
+- Field TypeScript compile: **PASS** (`npx tsc --noEmit`)
+- Existing mobile release check: **PASS** (`node scripts/mobile-release-check.mjs`)
+- Repository security check: **PASS** (`node scripts/security-check.mjs`)
+- `git diff --check`: **PASS**
+- Expo web export: **PASS** after temporary local installation of the existing vendored `braces` dependency workaround
+- Expo config validation: **PASS**
+- Browser smoke check: **PASS** for the exported sign-in screen at mobile-sized browser viewport
+
+### Evidence limits
+
+The authenticated feature screen was not verified against a live Supabase session in this environment. A signed Android APK was not produced. The branch has not been merged to `main`. Do not describe this batch as production-ready until a real authenticated device/emulator check and APK build are completed.
+
+### Next gate
+
+Run an authenticated mobile smoke test for lead loading, agenda loading, local draft persistence, selected photo album persistence, and sync. Do not start the next feature batch until that gate is green.
+
+
+## 2026-10-04 APK build path
+
+Added `.github/workflows/mobile-apk.yml`. It is a manual, branch-selectable workflow that installs the field app, compiles TypeScript, validates Expo configuration, runs `eas-cli build --platform android --profile preview --wait`, downloads the completed APK, and uploads `roof-os-field-preview-apk` for 14 days.
+
+The workflow requires a repository Actions secret named `EXPO_TOKEN`. No APK artifact exists yet; the workflow must be run successfully before APK verification can be marked complete.
+
+
+## 2026-10-04 clean-install bundle fix
+
+The first EAS APK attempt authenticated successfully but failed during Bundle JavaScript. The failure was reproduced with clean `npm ci`: the field override linked `braces` to the wrong relative location, and `fill-range` was not installed where the vendored package could resolve it. The focused fix moves the vendored mitigation package under `apps/field/vendor/braces`, updates the override, and declares `fill-range` explicitly. Fresh `npm ci` plus `npx expo export:embed --eager --platform android --dev false` now passes locally. A new EAS run is still required for the APK artifact.
+
+## 2026-10-04 Mobile field batch 2 — exactly three hardening fixes
+
+**Scope:** `apps/field` plus the required mobile verification migration and regression contract.
+**Branch:** `mobile/field-hardening-batch-2-20261004`
+**Commit:** `36555cd`
+
+### Three weaknesses fixed
+
+1. **Single-draft data loss risk:** the app now loads and displays all local drafts for the signed-in user, allows switching between jobs, and provides an explicit new-inspection action. Draft selection remains owner-scoped.
+2. **Retry blind spot:** the app now listens for network transitions with NetInfo, retries immediately when connectivity returns, and refuses to claim sync while offline. Existing queue idempotency and retry timestamps remain in force.
+3. **Non-persisted technician verification:** the former in-memory checklist gap is closed with persisted technician name, optional license, verification time, notes, local draft state, and an RLS-protected `inspection_verifications` table synced by inspection. This remains separate from the required signature and manager-approval gates; it does not make a report customer-ready.
+
+### Validation evidence
+
+- Root `npm run typecheck`: **PASS**
+- Root `npm run build`: **PASS**
+- `npm run release-check`: **PASS**
+- `npm run verify:security`: **PASS**
+- Mobile release and offline-sync contracts: **PASS**
+- Field `npx tsc --noEmit`: **PASS**
+- Expo config validation: **PASS**
+- Android `expo export:embed --eager --platform android --dev false`: **PASS**
+- Field `npm audit --audit-level=moderate`: **PASS**, 0 vulnerabilities
+
+### Remaining APK gate
+
+A signed APK has not yet been produced in this batch. The GitHub Actions workflow `.github/workflows/mobile-apk.yml` still requires the repository `EXPO_TOKEN` secret. Do not call the APK shippable until the workflow completes and the APK artifact is downloaded and inspected.
+
+### Authority boundary
+
+The mobile verification record is evidence of a technician review event only. A captured signature, report photo review, and owner/manager approval remain mandatory under `GOLDEN-REPORT.md` before any customer packet is approved or sent.
+
+## 2026-10-04 APK verification completion
+
+- APK workflow run `37257872937` completed successfully for commit `bd922eefed812471b026e243c0939c04e25b4557`.
+- The workflow produced artifact `roof-os-field-preview-apk`, 35,718,093 bytes on GitHub Actions; downloaded APK size is 77,605,807 bytes.
+- Downloaded APK SHA-256: `453dcf1c51b59d415fcd28cf174fc7ccaf2afe1bcd7caac425fa9a95003597d5`.
+- ZIP integrity test passed. The APK workflow’s two obsolete-download-path issues were corrected without changing the three mobile feature fixes.
+- PR #171 has 12 successful checks, including web, mobile, preview-build, migration-safety, refresh-field-lock, Vercel, and Vercel Preview Comments.
+- The first three mobile weaknesses are complete and verified. Do not begin a fourth weakness batch until the merged APK/branch state is reviewed under the next authorized work batch.
+## 2026-10-05 mobile auth ease-of-use and password reset checkpoint
+- Addressed user request: "The mobile app is difficult to sign in on. Make it easier and add a forgot password button. Also I tried to sign in an I can't...fix that as well please".
+- Root causes identified & resolved:
+  1. Missing Supabase fallback credentials in `apps/field/App.tsx` caused `supabase` to initialize as `null` on builds without explicit `EXPO_PUBLIC_*` environment variables, completely blocking field sign-in with "Mobile Supabase environment variables are not configured". Configured production project `xksumagfbegdlapwysps` and active publishable key fallback.
+  2. Added dedicated "Forgot password?" flow on `AuthScreen`, triggering `supabase.auth.resetPasswordForEmail` and providing an instant deep link to `/auth/reset` on the web app.
+  3. Added passwordless 6-digit email OTP sign-in mode (`signInWithOtp` / `verifyOtp`) alongside password sign-in, allowing technicians to enter the field app with a one-time code without typing complex passwords.
+  4. Added Show/Hide password toggle to prevent typing mistakes on mobile keyboards.
+  5. Implemented `SecureStore` persistence for the technician's work email (`roof_os_field_email`) to automatically prefill on app launch.
+  6. Added direct "Prefer mobile browser? Sign in on web ↗" fallback link.
+  7. Hardened mobile inputs with `autoCorrect={false}`, `autoCapitalize="none"`, and trimmed/lowercase email sanitization.
+- Automated tests: Added `scripts/mobile-auth-test.mjs` (`npm run test:mobile-auth`).
+- Verified locally:
+  - `npm run test:mobile-auth`: PASS
+  - `node scripts/mobile-release-check.mjs`: PASS
+  - `npm run test:mobile-offline-sync`: PASS
+  - `npm run release-check`: PASS
+  - `npm run verify:security`: PASS
+  - `npm run test:auth-flow`: PASS
+  - `npm run test:api-security`: PASS
+  - `npm run test:photo-full-report-flow`: PASS
+  - `npm run test:receptionist`: PASS
+  - `npm run test:aerial`: PASS
+  - `npm run test:measurement-estimate-authority`: PASS
+  - `npm run test:ai-vision-contract`: ALL 17 TESTS PASSED
+  - `npm run test:ai-vision-endpoint`: PASS
+  - Root `npx tsc --noEmit`: 0 errors
+  - Field `npx tsc --noEmit`: 0 errors
+
+## 2026-10-05 global ai chat bar checkpoint
+- Addressed user request: "Add a ai chat bar on every page asking what would you like to do now?".
+- Implemented:
+  1. `components/AiChatBar.tsx`: Global interactive AI Copilot bar displayed on every page asking "What would you like to do now?".
+  2. Mounted in root layout `app/layout.tsx` to provide universal availability across all desktop and mobile views.
+  3. Features quick action chips: Track Storms (`/weather`), Review Leads (`/leads`), Aerial Measure (`/measure`), Create Estimate (`/pricing`), and Golden Report (`/reports`).
+  4. Supports `Cmd+K` / `Ctrl+K` global keyboard shortcut to toggle and focus the command input.
+  5. Backed by `app/api/ai/chat/route.ts` with session authentication (`getUser()`) and bounded body reading (`readJson`).
+  6. Powered by `lib/ai/chat-copilot.ts` with contextual roofing operations intelligence and direct navigation actions.
+  7. Automated tests added: `scripts/ai-chat-bar-test.mjs` (`npm run test:ai-chat-bar`).
+- Verified:
+  - `npm run test:ai-chat-bar`: PASS
+  - `npm run test:mobile-auth`: PASS
+  - `node scripts/mobile-release-check.mjs`: PASS
+  - `npm run test:mobile-offline-sync`: PASS
+  - `npm run release-check`: PASS
+  - `npm run verify:security`: PASS
+  - `npm run test:auth-flow`: PASS
+  - `npm run test:api-security`: PASS
+  - `npm run test:photo-full-report-flow`: PASS
+  - `npm run test:receptionist`: PASS
+  - `npm run test:aerial`: PASS
+  - `npm run test:measurement-estimate-authority`: PASS
+  - `npm run test:ai-vision-contract`: ALL 17 TESTS PASSED
+  - `npm run test:ai-vision-endpoint`: PASS
+  - Root & Field `npx tsc --noEmit`: 0 errors
+
+## 2026-10-06 inspection camera audio recording and speech-to-text checkpoint
+- Addressed user request: "Add an audio recording feature to the InspectionCamera module, allowing contractors to record site notes directly during an inspection and automatically transcribe them using speech-to-text." and "Push main".
+- Implemented:
+  1. `components/InspectionCamera.tsx`: Full inspection camera module equipped with digital inclinometer slope visualizer, microphone recording (`MediaRecorder`), real-time speech-to-text dictation (`SpeechRecognition`), audio playback controls, and evidence gallery voice note player.
+  2. `app/camera/page.tsx`: Integrated site audio recording and automated speech-to-text dictation into the camera session capture flow, linking transcribed site notes to the inspection session.
+  3. Automated tests: Added `scripts/inspection-camera-audio-test.mjs` (`npm run test:camera-audio`).
+- Verified:
+  - `npm run test:camera-audio`: PASS
+  - `npm run test:ai-chat-bar`: PASS
+  - `npm run test:mobile-auth`: PASS
+  - `node scripts/mobile-release-check.mjs`: PASS
+  - `npm run test:mobile-offline-sync`: PASS
+  - `npm run release-check`: PASS
+  - `npm run verify:security`: PASS
+  - `npm run test:auth-flow`: PASS
+  - `npm run test:api-security`: PASS
+  - `npm run test:photo-full-report-flow`: PASS
+  - `npm run test:receptionist`: PASS
+  - `npm run test:aerial`: PASS
+  - `npm run test:measurement-estimate-authority`: PASS
+  - `npm run test:ai-vision-contract`: ALL 17 TESTS PASSED
+  - `npm run test:ai-vision-endpoint`: PASS
+  - Root & Field `npx tsc --noEmit`: 0 errors
+
+## 2026-10-06 dashboard batch merge resolution
+- Rebased the requested Storm Command Center dashboard onto current `main` after newer AI, mobile-auth, and inspection-audio work advanced the base branch.
+- Preserved current `main` for all unrelated newer features and retained the requested detailed dashboard, persistent Storm Theme setting, print contract, and root/field dependency audit remediations.
+- PR #223 checks were fully green before this merge-resolution commit; rerun the complete PR gate after pushing the conflict resolution.
+
+
+## 2026-10-13 Gemini vision replacement checkpoint
+
+- Starting point: clean `main` at `9e1efb17eaccf325b35bbe2740a835d3d506d50a`. Before edits, pushed and verified remote backup `backup/pre-gemini-ollama-20261013-9e1efb1` at that same SHA.
+- Code checkpoint: `80a0aec42b6f8a51be33a63199b24772fe8cfed7`, branch `fix/gemini-to-ollama-20261013`. Immediately after the branch push, `git rev-parse HEAD` and `git ls-remote origin refs/heads/fix/gemini-to-ollama-20261013` matched exactly.
+- Replaced Gemini calls in photo-estimate, aerial geometry, and siding analysis with the shared local OpenAI-compatible vision client. Its current base URL is `http://localhost:20128/v1` (`OLLAMA_VISION_API_BASE_URL`); default model is `llava` (`OLLAMA_VISION_MODEL`). Requests use `/chat/completions`, send images as data URLs, enforce a 90-second default/120-second maximum timeout, cap responses at 2 MiB, and do not attach a hosted-provider key. Removed the obsolete Gemini request factory and updated status, deployment, no-paid-AI, and vision regression documentation.
+- Existing workspace/session authorization, private-storage checks, image-size limits, AI observation/geometry validators, technician review semantics, and manual-measurement fallbacks were retained. No account permissions or unrelated provider settings were changed. Open PRs #241 and #270 were not touched.
+- Local checks passed: production build with validation-only environment values; runtime smoke; typecheck; release/security checks; all repository web tests; field dependency audit and brace regression; field TypeScript check; Expo config; and `npm audit` (0 vulnerabilities). `git diff --check` passed. The first aerial test run exposed an obsolete Gemini request-shape assertion; it was updated and the rerun passed. The field typecheck initially lacked installed field dependencies; after `npm ci --prefix apps/field`, the field checks passed.
+- **Runtime limitation:** non-generating probes to `http://localhost:20128/v1` from this Sandbox could not connect, so no real model inference was attempted. The code and `.env.example` use the supplied endpoint as requested, but runtime reachability is unverified. In Vercel, `localhost` refers to the Vercel function runtime; the production status endpoint previously showed no explicit `OLLAMA_HOST` (text fell back to keywords). The `visionConfigured` field now reflects whether `OLLAMA_VISION_API_BASE_URL` is explicitly set. Do not claim live inference works until a post-deploy authorized test confirms a reachable model server.
+- Next: open a PR for `fix/gemini-to-ollama-20261013`, wait for every required CI/preview check, merge only when green, then verify the production deployment commit and route status. Preserve the endpoint limitation above in any release report.
+
+
+## 2026-10-13 post-merge deployment and endpoint configuration (latest)
+
+PR #273 was merged into `main` as `bd30df202e5eede9efd89640f3473cfb3a2dfb70`. Main-branch GitHub Actions run `38502849390` completed successfully. Vercel production deployment `dpl_ApzF3XNZyLtQAqTV3KC6BU2BVqgo` reached `READY` for that exact commit and includes the `roof-os-lemon.vercel.app` alias. Live read-only smoke checks returned HTTP 200 for `/`, `/auth/login`, and `/api/status`; the status payload reported `overall: operational`, `textProvider: keywords`, and `visionConfigured: false`.
+
+The application code defaults to the requested `http://localhost:20128/v1`, but the explicit Production variable `OLLAMA_VISION_API_BASE_URL` is **not set**. The Vercel connector’s metadata-only read returned 403 for the `ryan-long-s-projects` scope; the documented CLI fallback could not run because `vercel` is not installed. No Vercel variables, permissions, or credentials were changed. The local Sandbox also could not connect to the model endpoint, and no live inference was attempted. In Vercel, `localhost` refers to the function runtime, so neither the setting nor inference reachability should be treated as verified.
+
+**Outstanding action:** after the owner restores Vercel access for project `roof-os` or sets it manually, explicitly configure Production `OLLAMA_VISION_API_BASE_URL=http://localhost:20128/v1`; then redeploy if Vercel requires it and verify the setting and model-server reachability. Until then, retain the inference limitation in release notes. This section supersedes the preceding “Next: open a PR” instruction; the PR, CI, merge, and production deployment steps are complete.
+
+## 2026-10-21 agent action approval checkpoint
+
+- Added the Agent Action Ledger in `supabase/migrations/053_agent_action_ledger.sql` for proposed action batches, individual actions, approval events, risk levels, idempotency keys, payload hashes, expiry, and RLS.
+- Added typed action-risk policy in `lib/agent-actions.ts`, secure one-touch approval RPC/API route at `app/api/agent-actions/approve/route.ts`, and worker-side proposal persistence in `workers/action-batch.ts`.
+- Added `test:agent-action-policy` and validated: `npm run test:agent-action-policy`, `npm run test:agent-runtime`, `npm run verify:security`, `npm run test:frontend-route-integrity`, and `git diff --check` all passed locally.
+- Local commit: `1cb2031c51bd25e24eb57c92fd4df0305b6a8492`.
+- Direct push to protected `main` was rejected by repository rules requiring a pull request. Feature branch `feat/agent-action-approval` is pushed and matches remote SHA.
+- Pull request: https://github.com/Gtownrter77/roof-os/pull/285
+- Production database migration and provider side effects remain unapplied and unverified.
+- Next action: add the approval queue/card UI and an idempotent action executor after PR review; then run CI and staging RLS/migration tests before enabling any agent side effects.
+
+## 2026-10-21 agent approval inbox and executor milestone
+
+The agent-control-plane PR now includes an owner-facing `/agent-actions` approval inbox, a workspace-scoped `GET /api/agent-actions` proposal feed, and mobile navigation access. The inbox computes approval hashes client-side and sends one exact batch authorization through the protected RPC/API path.
+
+Approved batches can now be picked up by the protected `POST /api/cron/agent-actions` worker route. The executor claims batches atomically, supports idempotent internal task creation and lead-owner assignment, records action results, and fails closed for unsupported customer-facing, financial, legal, or provider side effects instead of guessing.
+
+Validation passed: `npm run test:agent-action-policy`, `npm run test:agent-runtime`, `npm run verify:security`, `npm run test:frontend-route-integrity` (75 page routes), and `git diff --check`. The local environment still lacks installed project dependencies, so `npm run typecheck` remains blocked by missing `next`, Supabase, Node type, and related modules; GitHub CI is the authoritative dependency-installed check.
+
+Commit `5e9b3abd5cd691c44d3c8d0afb1bd1de583e443b` is pushed to `feat/agent-action-approval`, and local/remote branch SHAs match. PR #285 remains the review and CI path. Production migration, cron scheduling, worker secrets, and provider side effects remain unconfigured.
+
+Next action: connect the first Lead Desk event handler to action-batch proposals, then configure a staging cron schedule and run authenticated two-workspace/RLS execution tests before enabling production automation.
+
+## 2026-10-21 complete audit and handoff reconciliation
+
+This checkpoint supersedes the earlier 2026-10-21 agent-action entries where they conflict with the current repository state. The audit report is `AUDIT-STATUS-2026-10-21.md`.
+
+- Audited source baseline: `main` at `b8ad35644d5e2f0f40be334f58bfecfe9e4818ca`.
+- Audit branch: `audit/complete-handoff-20261021`.
+- PR #285 (`feat/agent-action-approval`) is **MERGED**. It is not still open and its earlier branch-only validation notes are historical.
+- Fresh local checks passed after `npm ci`: typecheck, production build, production dependency audit, security/release checks, API security, frontend route integrity, agent policy/runtime, auth, photo/report/measurement authority, vision contract/endpoint, mobile offline sync, receptionist, invoices, and status checks.
+- Read-only production checks returned 200 for `/`, `/auth/login`, `/api/status`, and `/leads`. `/api/status` reported `overall: operational`, `visionConfigured: false`, `capoutConfigured: false`, and `localClaimsConfigured: false`. No authenticated CRUD, provider execution, migration, or customer-data operation was performed.
+- Important unresolved design issue: the agent approval RPC stores caller-supplied approval hashes without recomputing them from the exact batch/action payloads, and the executor does not independently rebind the hash before execution. Keep higher-risk and external actions disabled until this is corrected and covered by staging/concurrency tests.
+- `supabase/migrations/053_agent_action_ledger.sql` is present in source, but production application is unverified. Do not enable production approval execution or cron scheduling from source presence alone.
+- The whole product remains pilot/development-ready, not commercially end-to-end verified. Open evidence gates include authenticated two-workspace browser/Storage isolation, real device field testing, migration parity, provider success/failure tests, worker heartbeat, invitation delivery, and licensed claims pricing.
+
+### Next authorized work
+
+1. Fix and test server-side approval-hash recomputation and concurrency behavior.
+2. Verify migration 053 in staging, then reconcile the target production schema with an authenticated read-only check.
+3. Run authorized two-workspace browser/Storage and authenticated inspection/report tests with synthetic data only.
+4. Run the real-device field smoke test: sign-in, camera, offline close/reopen, retry, private upload, and isolation.
+5. Configure staging cron only for the currently supported internal actions; keep external, financial, legal, customer-facing, and production side effects disabled until separately approved.
+
+
+## 2026-10-21 next-ten release-evidence checkpoint
+
+The branch `repair/next-ten-release-evidence` captures the next bounded repair batch. It adds a protected staging-only migration verification workflow, reconciles current migration/deployment guidance, makes invitation acceptance recover through normal login and resist duplicate submits, adds field-app sign-out/local-evidence retention, manual queue retry-now, session-expiry recovery, shared cron heartbeat evidence, and CI/owner release-evidence contracts. The feature shortlist is recorded in `docs/superpowers/specs/2026-10-21-next-ten-release-evidence.md` and is not part of this implementation batch. No production database, customer data, provider, credential, or deployment setting was changed. Resume with focused tests, full three-level verification, PR checks, merge only when green, then verify post-merge main CI; stop after these ten items.
+
+
+## 2026-10-21 next-five release-evidence checkpoint
+
+The branch `repair/next-five-release-evidence` contains exactly five items: lock staging workflows to an allowlisted non-production project, add protected synthetic two-workspace RLS smoke, clarify bounded backup evidence, reconcile mobile release version `0.4.0`, and add static live-release preflight. All local checks pass. No production mutation or external provider action was performed. After merge, stop and await owner completion of the protected staging/RLS, encrypted restore, physical-device, live-schema, worker-runtime, and provider gates.
+
+
+## 2026-10-21 next-five live-evidence checkpoint
+
+The branch `repair/next-five-live-evidence` contains exactly five items: protected authenticated read-only staging smoke, heartbeat-only staging probing, worker-health reporting correctness, the redacted field-device evidence packet contract, and the deterministic release-gate summary. All local checks pass. No production request or customer/provider side effect was performed. After merge, the remaining work is to run the protected staging smoke/probe and collect actual physical-device, restore, schema-parity, worker-runtime, and provider evidence.
+
+## 2026-10-22 performance and resource usage optimization checkpoint
+- Identified and optimized the 10 weakest links in the Roof-OS codebase concerning performance and resource usage:
+  1. `lib/services/weather.ts`: Added in-memory TTL cache (15m point metadata, 10m forecast, 2m alerts) with coordinate quantization (~1.1 km precision) and in-flight request deduplication, reducing repeated weather calls from ~550ms to 0.01ms.
+  2. `lib/ai/ollama.ts` & `lib/ai/chat-copilot.ts`: Added a 60s circuit-breaker for offline Ollama hosts and reduced initial probe timeout, eliminating 8,000ms UI hangs when Ollama is unavailable.
+  3. `app/leads/LeadsClient.tsx`: Added `.limit(100)` query bounding to avoid transferring and rendering unbounded CRM records.
+  4. `app/api/intelligence/property/route.ts`: Parallelized independent database queries via `Promise.all` and bounded photo/session scans with limits (50 sessions, 200 photos), reducing intelligence endpoint latency by >50%.
+  5. `lib/supabase/client.ts`: Implemented a client-side singleton pattern for `createClient()`, preventing multiple browser client allocations, redundant auth timers, and duplicate websocket handles.
+  6. `app/api/status/route.ts`: Parallelized NWS health check concurrently with database/storage health checks and added a 30s cache to prevent hammering federal servers during high-frequency health probes.
+  7. `lib/read-json.ts`: Optimized JSON stream reader to reuse a module-level `TextDecoder` singleton and bypass buffer reallocation on single-chunk payloads (0.79ms decoding).
+  8. `lib/api-security.ts`: Appended explicit `.limit(1)` to `requireWorkspaceMember` SQL query to enable early PostgreSQL index-seek exit.
+  9. `next.config.ts`: Enabled `compress: true` and `experimental.optimizePackageImports: ['lucide-react']` for icon tree-shaking and smaller bundle size.
+  10. `components/AiChatBar.tsx`: Added `AbortSignal.timeout(10_000)` to prevent indefinite client fetch hangs and resource leaks.
+- Verified via 3-Level Checking Process:
+  - Level 1 (Static Verification): `npm run typecheck`, `npm run lint`, `npm run verify:security`, `npm run release-check` all PASS with 0 errors.
+  - Level 2 (Automated Test Suite): `npm run test:api-security`, `npm run test:auth-flow`, `npm run test:ai-chat-bar`, `npm run test:photo-estimate-flow`, `npm run test:photo-full-report-flow`, `npm run test:measurement-estimate-authority`, `npm run test:ai-vision-contract`, `npm run test:ai-vision-endpoint`, `npm run test:aerial`, `npm run test:receptionist`, `npm run test:supabase-client-stability` all PASS.
+  - Level 3 (Runtime Performance Benchmarks & Build): `npm run test:performance` verified all 10 benchmarks. `npm run build` compiled all 128 production routes in 4.3s with zero errors.
+
+
+## 2026-11-08 — Browser-local aerial vision and calibrated draft quantity checkpoint
+
+- Branch: `fix/auto-measurement-local-vision-20261107`, based on `2e16841` (current `origin/main` at start of work). No PR has been created yet for this branch.
+- Local inference: browser helper sends the selected image only to loopback Ollama (`localhost:20128/v1` by default; same-origin explicit local-base restrictions enforced). There is no hosted AI fallback. Geometry response must pass the strict ROOF/OS contract and exact image-dimension match before the image upload/persistence path proceeds. Invalid contract output now reports a clear contract error.
+- Measurement flow: local suggestions are persisted as pending geometry, with existing suggestion/database errors handled fail-closed. Geometry, scale, pitch, top-down image type, and explicit uniform-pitch confirmation remain separate human gates. Draft area is calculated from reviewed polygons plus human scale/pitch and is recorded as unverified; it does not become estimate-authoritative pricing/quantity.
+- Latest audited fixes: aerial-measurement lookup and persisted-geometry query errors return safe 503 errors rather than risk duplicate or incomplete cached state; preview alt text says “selected” rather than falsely claiming a storage upload.
+- Local verification passed: `node scripts/auto-measurement-local-and-quantity-test.mjs`; `npm run typecheck`; `npm run test:auto-measurement`; `npm run test:aerial`; `npm run test:ai-vision-contract` (17 tests); `npm run test:ai-vision-endpoint`; `npm run test:measurement-estimate-authority`; `npm run build`; `git diff --check`.
+- Build emitted the existing warning about custom `Cache-Control` headers for `/_next/static/(.*)`; compilation, type checking, static generation, and build all completed successfully.
+- Not verified here: live browser-to-Ollama CORS/private-network behavior, live Supabase migration/RPC execution, authenticated user flow, production deployment, device/browser acceptance, or CI/PR checks. Local build is not deployment evidence.
+- Next: commit and push this checkpoint to the branch; independently compare local and remote SHAs; create a PR, wait for checks, and merge only if required gates pass. Then update `HANDOFF.md` with PR/check/deployment evidence and resume the remaining audit tasks: paid API inventory, deployment/schema documentation reconciliation, and the separate Field AI assistance foundation.
+
+
+### PR #399 CI repair — 2026-11-08
+
+- PR: [#399](https://github.com/Gtownrter77/roof-os/pull/399), head initially `d3c298fd3e7e9df32b7660fe6a50e1d60651650c`. The branch push SHA was independently matched with `git ls-remote`.
+- First CI run: both `ROOF OS CI/web` jobs failed in `npm run release-check`; all other completed required checks passed at that point. The cause was a stale static guard that required `analyzePhotosWithOllama()` in the aerial API route even though aerial inference had intentionally moved to the browser.
+- Fixed `scripts/release-check.mjs` to require the browser helper's loopback-host allowlist, default localhost endpoint, image/response size bounds, abort signal, bounded response reader, and strict geometry validation. The aerial API route still must demonstrate a single bounded private-storage fetch and server-side geometry validation. No network safety check was bypassed or removed.
+- Post-fix local verification passed: `npm run release-check` (15 protected routes, headers, secret scan), `npm run test:auto-measurement`, `npm run test:aerial`, `npm run test:ai-vision-endpoint`, and `git diff --check`.
+- New repair commit and CI rerun SHA/status will be recorded after push. PR remains unmerged until required checks finish successfully.
+
+
+### PR #399 verification update — 2026-11-08
+
+- Repair commit `808a6ddc869e304003952ee95ac9c6f25f216fea` is present on the remote branch; local and remote SHA matched.
+- The rerun against that head completed with 14 successful checks, 1 skipped check, 0 failures, and 0 pending. `ROOF OS CI/web` passed on both push and pull request events. Kilo review and other reported checks passed. The `refresh-field-lock (pull_request)` entry is skipped; its push counterpart passed.
+- Vercel reported a completed PR preview deployment. This is preview evidence only, not production deployment evidence.
+- PR #399 is open and mergeable as of this update. Merge is authorized only after the handoff-only follow-up commit's required checks also pass.
+## Current authoritative audit — 2026-11-08
+- Audited clean `main` at `7d9e5712f750a135e22bb4c127a60c74180fb344`; recent PR branches were excluded.
+- This checkpoint bounds transcription uploads, removes the field app's production Supabase fallback, validates estimate foreign-key workspace ownership, requires manager approval before photo-estimate packets, and makes receptionist cron configuration fail closed before admin-client creation.
+- Local checks are evidence only. EAS APK installation, physical-device behavior, live Vercel SHA, production schema parity, live worker/provider execution, two-workspace runtime isolation, and backup/restore remain unverified external gates.
+- The field dependency audit is clean after aligning Expo SDK 57 patch versions and pinning Zod 4.6.6 through the field toolchain override. `npx expo-doctor` reports 21/21 checks passed and field TypeScript passes. Keep this override under review when Expo publishes a native Zod 4-compatible dependency declaration.
+
+
+## 2026-11-08 PR #402 field reliability checkpoint
+
+- PR #402 remains a draft and unmerged. Its remote head is `e08ae860bad5454c53b985206333b2a08635990d`; local work is based on that PR head and is merging current `origin/main` `3bbd0d9b351505a16dcd96190aba932be6cf725d`. The previous handoff overwrite was caught, the full prior history was restored and verified, and the remote restoration commit `e08ae86` was SHA-verified.
+- The PDF's offline-sync test failure was stale: commit `66ab1ca` already aligned the assertion with the typed helper, and the exact test passed. Before the latest local merge, GitHub showed all required PR checks green on the then-current PR head.
+- Dependency update on the feature branch uses Expo `~57.0.32` / CLI `57.0.33` and official npm `node-forge@1.4.3` with the verified registry integrity. The merged current-main manifest also retains its Zod `4.6.6` override. The field audit was zero-vulnerability before merge; revalidate it after the clean merged install.
+- The current-main merge included changes to the estimate packet manager gate, migration 080 safety checks, and current main handoff/audit notes. Three conflict files were found: `.github/workflows/ci.yml`, `HANDOFF.md`, and `apps/field/package-lock.json`. The workflow is resolved using current main's full workflow plus the PR's mobile runtime contracts; the lockfile is regenerated from the merged manifest; the handoff uses current main as its base and preserves its full history. Finish the handoff resolution and verify every result before committing.
+- Next: run clean root/field installs; field audit, Expo Doctor, TypeScript/config, Android bundle, and all mobile runtime contracts; verify the migration-080 and estimate-packet CI contracts; run root security/release checks and `git diff --check`; commit the main-merge resolution, push to `strengthen/field-app-preservation-20261108`, and verify the exact remote SHA. Then wait for every fresh required check. Do not merge the PR or deploy.
+
+
+### PR #402 merged-main verification update — 2026-11-08
+
+The three merge conflicts are resolved from current main without dropping the PR work. The workflow keeps main's estimate-packet-manager test, migration-080 safety assertions, and `expo-doctor`, then adds the PR's auth, offline-sync, local-DB migration, field-AI, and field-coach contracts. The handoff starts with current main's full prior history and appends these PR notes. The field lock was regenerated with Node 22/npm 10 from the merged manifest, retaining main's Zod 4.6.6 override and the PR's Expo `57.0.32` / CLI `57.0.33` plus official npm `node-forge@1.4.3`.
+
+Post-merge local checks passed: clean root and field installs; field `npm audit` reports **0 vulnerabilities** and `scripts/audit-field-deps.mjs` passes; Expo Doctor reports **21/21**; field TypeScript, Expo config, and Android bundle pass; mobile auth, offline-sync, local-DB migration, field-AI, and field-coach tests pass; braces mitigation, estimate-creation, estimate-packet-manager, and security-definer migration tests pass; `npm run test:all` passes; the production build compiles **139 routes**; runtime smoke, release-check, root security check, production dependency audit, and `git diff --check` pass. The first runtime-smoke invocation was run before the build and failed only because `.next/static` did not exist; after following CI order (build then smoke), it passed.
+
+The merge-resolution tree is locally validated but its merge commit has not yet been pushed. The PR remains draft and unmerged. Next: commit this merge, push to `strengthen/field-app-preservation-20261108`, compare local and remote SHAs, then wait for all fresh required checks on the merged head. No production deployment or production-data operation was performed.
+
+
+### PR #402 merge-resolution push receipt — 2026-11-08
+
+Merge-resolution commit `4c1d7e2c54d07849632bb081dc71fc349d298d7b` is pushed to `strengthen/field-app-preservation-20261108`; `git ls-remote` exactly matched local HEAD. GitHub now shows the PR base as current `main` `3bbd0d9b351505a16dcd96190aba932be6cf725d`, `mergeable: true`, and `mergeable_state: blocked`. At the time of this check, the new runs showed 0 failures, 1 success, 1 skipped, and 12 pending. The PR remains draft and has not been merged or deployed. Wait for all fresh required checks before calling this complete.
+
+
+### PR #402 final verified check result — 2026-11-08
+
+On PR head `84bb1d09f214790b23ed34a2a61b5155879736d9` (remote ref independently matched), GitHub reports base `3bbd0d9b351505a16dcd96190aba932be6cf725d`, `mergeable: true`, and `mergeable_state: clean`. The completed run has **13 successful, 1 skipped, 0 failing, and 0 pending** checks. The only skipped entry is `refresh-field-lock (pull_request)`; its push counterpart succeeded. Vercel's PR preview deployment completed; this is not production deployment. PR #402 remains draft and unmerged by design; no production deployment or production-data operation was performed.
+
+
+## 2026-11-09 — Ollama endpoint correction
+
+The default OpenAI-compatible Ollama API port is **11434**, not 20128. Updated active local-vision defaults and regression assertions to `http://localhost:11434/v1`. Historical notes above that mention 20128 describe the previous configuration and are superseded by this checkpoint.
+
+Runtime boundary: loopback means the host making the request. A locally running Next.js server can reach Ollama on the same machine at 127.0.0.1:11434. A Vercel function's localhost is the Vercel runtime, not the user's computer; changing the port does not make a hosted function reach desktop Ollama. Do not set a workstation loopback address as a Vercel production endpoint. Browser-local inference also requires the browser helper to be explicitly wired into the UI and Ollama CORS/private-network permissions to allow the exact app origin; the existing helper is not currently imported by the /measure page. Live model reachability remains unverified because no Ollama host is available from this session.
+
+
+## 2026-11-09 — Browser-local Ollama measurement integration (PR #422)
+
+- PR: [#422](https://github.com/Gtownrter77/roof-os/pull/422), branch `fix/ollama-default-endpoint-11434`, head `30700f33cb1a3ac4236b9c9384cb20dbf64a13de` at the time this note was prepared; based on main `3f0517aac9aca2444e77436d53316562a5716f39`.
+- The active `/measure` screen now imports and calls `analyzeRoofImageWithLocalOllama` from the browser, using `http://localhost:11434/v1` and `qwen3-vl:8b`. The photo is first saved to private inspection storage; only the returned geometry suggestion is sent to the authenticated server validation route. The `/measure` screen no longer calls the legacy Gemini `/api/measurements/aerial/ai-suggest` route.
+- This supersedes the earlier Nov 8 checkpoint statement that the browser helper was not yet wired into `/measure`; that statement accurately describes the Nov 8 branch state only.
+- Automated checks on the current PR head passed: web, preview-build, mobile, field-security, and migration-safety. The refresh-field-lock pull-request check is skipped; its push counterpart passed. Kilo's PR comment reports no issues, but its formal GitHub check currently reports failure; do not merge until that check is successfully rerun or resolved by the review integration.
+- Vercel's deployment bot reported the free daily deployment limit. This is an external preview-deployment limitation, not evidence of a production deployment. Live browser-to-Ollama CORS/private-network reachability and physical roof-image accuracy remain unverified. No hosted inference fallback is used; human geometry review and calibration remain required.
+
+
+## 2026-11-09 — PR #441 onboarding repair checkpoint
+
+- PR #441: `feat/onboarding-ongoing-setup-assistant-v3` → `feat/onboarding-full-flow` (PR #440 is still a draft). This is a stacked feature PR, not a direct merge to `main`; its base was preserved.
+- Root cause 1 — pending owner-reviewed suggestions vanished when switching to manual setup. `WorkspaceOnboardingAssistant` keeps `pendingProfile` in component state, while the page rendered it only when `setupMode === 'assistant'`, unmounting it on the mode switch. The page now keeps the assistant mounted in both editable modes and uses the native `hidden` attribute in manual mode. Its conversation and unresolved suggestions remain in memory and are visible again when the owner reopens the assistant. No suggestion is auto-applied or saved. Regression contract: `scripts/onboarding-workspace-ui-test.mjs:56-59`; UI change: `app/onboarding/workspace/page.tsx:338-354`.
+- Root cause 2 — the onboarding UI test falsely failed because it required `phone` to be the first property after `...current` in account-basics hydration. The implementation intentionally restores several metadata fields in one object, with `companyName` first. The test now accepts property ordering while still checking phone restoration and that it happens before the optional workspace lookup: `scripts/onboarding-workspace-ui-test.mjs:161-164, 217-221`.
+- Root cause 3 — the migration runner reused the fixed database `roofos_onboarding_ci`; its baseline unconditionally creates schema `auth`, so a second invocation against the reused database failed before the migration assertions. `scripts/ci/verify-onboarding-profile-postgres.sh:9-27` now creates a unique database from run ID/attempt/process ID, drops it through an EXIT trap, supports native `psql` as well as the CI Docker client, and writes the Actions summary only when `GITHUB_STEP_SUMMARY` exists. Source regression checks are at `scripts/onboarding-profile-test.mjs:134-138`.
+- Source-tested PASS: `npm run test:onboarding-profile`; `npm run test:onboarding-workspace-ui`; `node scripts/ai-chat-bar-test.mjs`; `npm run test:auth-flow`; `npm run test:reliability` (14/14); `npm run typecheck`; `npm run lint` (repository alias for TypeScript typecheck); production `npm run build` with the same empty Supabase public environment used by preview CI (Next.js 16.4.3, all 143 routes compiled); `bash -n scripts/ci/verify-onboarding-profile-postgres.sh`; and `git diff --check`.
+- Database-tested: **UNVERIFIED locally** at this checkpoint. This sandbox had neither Docker nor `psql`; installing PostgreSQL 16 was attempted but the Ubuntu package mirror was too slow, so the optional install was stopped. A fresh `migration-safety` CI run must execute migrations 092/093 and RLS assertions before merge. Previous PR run 42756373851 was an infrastructure failure before steps: all five jobs had `runner_id: 0` and no steps; it is not SQL-test evidence. Supabase Auth/Storage integration remains a separate untested layer.
+- GitHub state observed before the repair push: PR #441 open, mergeable, head `5100717609440235bf0b10ae57cfab9ffa2440d0`; the latest failure run was `https://github.com/Gtownrter77/roof-os/actions/runs/42756373851`. New verification must be against the pushed repair commit, not this old head.
+- Next: commit and push to the existing PR #441 head, verify the remote SHA, wait for fresh required checks to run and pass, then merge PR #441 into its existing feature base only. Do not merge draft parent PRs #440/#439 or claim the feature is on `main` unless those separate stacked PRs are also explicitly completed.
+
+
+### PR #441 post-push CI gate — 2026-11-09
+
+- Repair commit `c04bfe995ac1cb226db3356bed132d077fa6a8e1` is pushed; local branch, remote branch, and PR #441 head matched exactly at verification time.
+- Fresh PR workflow run [42758481812](https://github.com/Gtownrter77/roof-os/actions/runs/42758481812) and two rerun attempts all failed before job execution. On attempt 3, `web`, `preview-build`, `mobile`, `field-security`, and `migration-safety` each report `runner_id: 0` and zero steps; only `refresh-field-lock (pull_request)` is skipped. GitHub exposes no failed-step log because no runner/step started. This is an external runner-allocation block, not a passing or failing code assertion.
+- PR #441 remains open and not merged. GitHub reports `mergeable: true` but `mergeable_state: unstable`; do not bypass this state. The SQL/RLS job never ran, and local PostgreSQL 16 was not installed because the package mirror download was impractically slow. Source tests and production build remain PASS as listed in the checkpoint above; database-tested status remains **UNVERIFIED**.
+- Next: restore GitHub Actions runner availability and rerun the required checks on the latest PR head. Merge PR #441 only after fresh checks complete successfully. It targets draft PR #440's feature branch, not `main`; the draft parent chain remains outside this PR-only merge.
+
+## ContractorOS Release 1 — controlled foundation checkpoint
+
+**Checkpoint:** 2026-11-16
+**Baseline:** current GitHub `main`, commit `68fc020`
+**Status:** foundation tranche merged into `main`; remaining Release 1 capabilities are explicitly tracked below.
+
+### Completed
+
+- [x] Confirmed the current GitHub repository is the authoritative ROOF/OS source; stale local/archive snapshots are not the implementation baseline.
+- [x] Completed the three-pass review of `ContractorOS_Unified_Master_Dossier-1.pdf`.
+- [x] Recorded the owner’s decisions: web and mobile surfaces, enterprise-wide scope, configurable role authority, all integrations through governed adapters, local Ollama default, and provider choice.
+- [x] Added `docs/contractor-os/FOUNDATION-MERGE-PLAN.md`.
+- [x] Added `docs/contractor-os/EFFICIENT-COMPLETION-RESEARCH.md` with Temporal, LangGraph, and Ollama source-backed architecture guidance.
+- [x] Added `docs/contractor-os/RELEASE-1-TRACEABILITY.md` with checked-off task ledger and dossier-to-repository mapping.
+- [x] Added migration `102_contractor_os_control_plane.sql` with owner-configurable authority profiles, bounded mandates, record revisions, evidence lineage, deduplicated events, durable execution state, and action-ledger extensions.
+- [x] Added `scripts/contractoros-control-plane-test.mjs` and `npm run test:contractoros-control-plane`.
+- [x] Preserved existing lead entry, magic-link authentication, mobile local/offline storage, inspection, estimate, production, invoice, and warranty surfaces.
+
+### Verification completed
+
+- [x] Release 1 control-plane contract test: PASS.
+- [x] TypeScript: PASS (`CI=1 npm run typecheck`).
+- [x] Migration numbering and `git diff --check`: PASS.
+- [x] Security-definer migration/search-path/trigger checks: PASS.
+- [x] Current baseline production build: PASS (`CI=1 NEXT_TELEMETRY_DISABLED=1 npm run build`).
+- [x] PR #463 merged into `main` as `68fc020`; fresh web, mobile, field-security, migration-safety, preview-build, Vercel, and preview-comment checks all passed.
+
+### Remaining before Release 1 is marked complete
+
+- [ ] Add narrow server/RPC writers and action-time authority evaluation.
+- [ ] Add event intake/reconciliation and durable workflow adapter.
+- [ ] Add Ollama/provider-neutral model routing and provenance records.
+- [ ] Complete the web/mobile first vertical slice and its correction/recovery cases.
+- [ ] Apply migration 102 to the target Supabase project and run Level 3 cross-workspace checks.
+- [x] Commit `4386c0d`, push, merge PR #463 into `main` as `68fc020`, and verify fresh GitHub checks on the merged commit.
+
+Do not claim Release 1 complete until every unchecked item above is either completed or explicitly marked deferred by the owner.
+
+## ContractorOS Stage 2 — narrow mandate, evidence, and revision writers
+
+**Checkpoint:** 2026-11-17
+**Baseline:** current GitHub `main` `f12c058`
+**Status:** Stage 2 merged into `main`; only live Supabase writer integration remains pending.
+
+### Completed
+
+- [x] Added migration `103_contractor_os_narrow_writers.sql`.
+- [x] Added administrator-only mandate creation and status-transition RPCs with workspace scoping, validation, expiry checks, cancellation reasons, and terminal-state protection.
+- [x] Added member-scoped evidence capture and administrator-only immutable evidence review RPCs.
+- [x] Added member-scoped record revision creation with server-assigned monotonic revision numbers, advisory locking, and correction-parent workspace checks.
+- [x] Added administrator-only revision review/release RPCs with release gating and immutable released revisions.
+- [x] Added six authenticated API routes under `/api/contractor-os/` using bounded JSON parsing and RPC-only control-plane writes.
+- [x] Added `scripts/contractoros-writers-test.mjs` and `npm run test:contractoros-writers`.
+
+### Verification completed
+
+- [x] Stage 2 writer contract test: PASS.
+- [x] Existing control-plane contract test: PASS.
+- [x] TypeScript: PASS.
+- [x] Production build: PASS (150 routes compiled).
+- [x] Release gate: PASS (15 protected routes and secret scan).
+- [x] Security-definer migration/search-path/trigger checks: PASS.
+- [x] Frontend route-integrity test: PASS.
+- [x] Existing authentication/mobile regression checks: PASS.
+- [x] PR #471 merged into `main` as `9be6483`; all eight fresh checks passed, including web, mobile, field-security, migration-safety, preview-build, Vercel, preview comments, and driveway evidence-led quantity.
+
+### Remaining before Stage 2 is merged
+
+- [x] Run the full final local verification after the last optional-owner validation edit.
+- [x] Push the Stage 2 branch and pass fresh web, mobile, field-security, migration-safety, preview-build, and deployment checks.
+- [ ] Apply migration 103 to the target Supabase project and run authenticated synthetic writer integration tests.
+- [x] Update the final ZIP after the Stage 2 merge; the current ZIP also includes Stage 3.
+
+Do not claim the live writer integration gate is complete without non-production Supabase credentials and synthetic workspace users.
+
+## ContractorOS Stage 3 — action-time authority and role management
+
+**Checkpoint:** 2026-11-17
+**Baseline:** current merged `main` `f12c058`
+**Status:** Stage 3 merged into `main`; only live Supabase approval/denial integration remains pending.
+
+### Completed
+
+- [x] Added migration `104_contractor_os_action_authority.sql`.
+- [x] Added deterministic effective-role resolution from `workspace_members.employee_layer`/role with safe owner, admin, and member defaults.
+- [x] Added an atomic `agent_approval_events` trigger that evaluates the approver's role/profile against action risk and fails closed when authority is insufficient.
+- [x] Added authority evaluation state and resolved profile role fields to action batches and actions.
+- [x] Added authenticated authority-profile GET/PUT API routes with owner/admin enforcement, bounded input, supported role/level allowlists, and no service-role bypass.
+- [x] Added the authority-profile management panel to workspace settings.
+- [x] Added `scripts/contractoros-authority-test.mjs` and `npm run test:contractoros-authority`.
+
+### Verification completed
+
+- [x] Stage 3 authority contract test: PASS.
+- [x] Stage 2 writer and Release 1 control-plane contract tests: PASS.
+- [x] TypeScript: PASS.
+- [x] Production build: PASS (151 routes compiled).
+- [x] Release gate: PASS.
+- [x] Security-definer migration/search-path/trigger checks: PASS (60 functions checked).
+- [x] Real PostgreSQL migration-safety test: PASS in PR #473 migration-safety CI.
+- [x] PR #473 merged into `main` as `f12c058`; all eight fresh checks passed.
+- [ ] Live Supabase approval/denial integration test: unavailable until non-production Supabase credentials and synthetic users are provided.
+
+### Next tranche after Stage 3
+
+- [ ] Add event intake/reconciliation worker and durable workflow adapter.
+- [ ] Add Ollama/provider-neutral model routing with provenance records.
+- [ ] Complete and verify the web/mobile first vertical slice and correction/recovery cases.
+## 2026-11-17 — Fresh current-main audit and security fix
+
+- Fresh checkout of `main` at `85044b843a589bc59dab68d3147e729c73df6304` (merged PR #474); earlier checkpoints below are historical.
+- Fixed the current root dependency finding by upgrading exact Next.js `16.4.3` to `16.4.6`; root `npm audit --omit=dev --audit-level=moderate` is now clean.
+- Root `npm run test:all`, TypeScript, production build, and the field dependency gate pass locally. The field audit still reports upstream Expo/Metro `picomatch` advisories in its audit input, but the repository gate classifies them as build-tool-only and verifies the pinned runtime mitigations.
+- The repository contains legacy duplicate local migration prefixes `021`–`023` and skipped prefixes `096`–`100`; these are documented historical/reconciliation facts. They were not renamed because doing so could diverge from the target Supabase ledger. The current source head is `104`; any new migration must use the protected target-ledger workflow.
+- Current-main production, staging, device, provider, and backup/restore evidence remains unverified.
