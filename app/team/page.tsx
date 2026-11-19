@@ -15,6 +15,46 @@ type Invitation = {
   created_at: string
 }
 
+function SequenceEditor() {
+  const [members, setMembers] = useState<Array<{ id: string; employee_layer?: string | null; role: string; approval_sequence?: string[] }>>([])
+  const [memberId, setMemberId] = useState('')
+  const [steps, setSteps] = useState('self')
+  const [note, setNote] = useState('')
+
+  useEffect(() => {
+    void fetch('/api/team/sequence', { cache: 'no-store' })
+      .then((response) => response.json())
+      .then((payload) => setMembers(Array.isArray(payload.members) ? payload.members : []))
+      .catch(() => setMembers([]))
+  }, [])
+
+  async function saveSequence() {
+    setNote('')
+    const sequence = steps.split(',').map((step) => step.trim()).filter(Boolean)
+    const response = await fetch('/api/team/sequence', {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ memberId, sequence }),
+    })
+    const payload = await response.json().catch(() => ({}))
+    setNote(response.ok ? `Sequence saved: ${payload.sequence.join(' → ')}` : payload.error || 'Could not save the sequence.')
+  }
+
+  return (
+    <div className="space-y-2">
+      <select value={memberId} onChange={(event) => setMemberId(event.target.value)} className="ops-input w-full">
+        <option value="">Choose the tech</option>
+        {members.map((member) => (
+          <option key={member.id} value={member.id}>{member.employee_layer || member.role}</option>
+        ))}
+      </select>
+      <input value={steps} onChange={(event) => setSteps(event.target.value)} className="ops-input w-full" placeholder="self, inspector, owner" />
+      <button type="button" onClick={() => void saveSequence()} className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-black">Save owner sequence</button>
+      {note && <p className="text-sm text-slate-200">{note}</p>}
+    </div>
+  )
+}
+
 export default function TeamPage() {
   const router = useRouter()
   const [invitations, setInvitations] = useState<Invitation[]>([])
@@ -101,6 +141,12 @@ export default function TeamPage() {
         </form>
         {error && <p role="alert" className="rounded-lg border border-red-400/40 bg-red-500/10 p-3 text-sm text-red-200">{error}</p>}
         {message && <p role="status" className="rounded-lg border border-emerald-400/40 bg-emerald-500/10 p-3 text-sm text-emerald-200">{message}</p>}
+      </section>
+
+      <section className="glass space-y-3 rounded-xl p-4">
+        <h2 className="font-semibold">Owner lockout sequence</h2>
+        <p className="text-sm text-slate-300">The owner decides the business model. A new field tech can need self, then inspector, then owner before an estimate can be sent. A trusted tech can be self only.</p>
+        <SequenceEditor />
       </section>
 
       <section className="glass space-y-3 rounded-xl p-4">
