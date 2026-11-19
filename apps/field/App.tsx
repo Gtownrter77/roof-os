@@ -670,7 +670,9 @@ export default function App() {
       let resolvedAddress = address.trim()
       try {
         const locationPermission = await Location.requestForegroundPermissionsAsync()
-        if (locationPermission.granted) {
+        if (!locationPermission.granted) {
+          setNotice('Location is off. This photo is evidence only. No measurement starts without owner location permission.')
+        } else {
           const location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Highest })
           const latitude = location.coords.latitude, longitude = location.coords.longitude
           const accuracy = location.coords.accuracy
@@ -768,7 +770,11 @@ export default function App() {
       setPendingUploads(pendingCount)
       setPhotoCaption('')
       refreshPhotoQueue(draftId)
-      setNotice(`${preparedAssets.length} photo${preparedAssets.length === 1 ? '' : 's'} saved. ${stampedCount} GPS+address embedded; ${preparedAssets.length - stampedCount} manual-only (no automations).`)
+      if (stampedCount !== preparedAssets.length) {
+        setNotice(`${preparedAssets.length} photo${preparedAssets.length === 1 ? '' : 's'} saved. ${stampedCount} with embedded location. ${preparedAssets.length - stampedCount} manual-only and cannot trigger photo automations.`)
+      } else {
+        setNotice(`${preparedAssets.length} photo${preparedAssets.length === 1 ? '' : 's'} saved with embedded location.`)
+      }
       if (session) void syncNow()
     } catch {
       setError('Camera capture failed. Your existing inspection and queued evidence have not been changed.')

@@ -15,6 +15,7 @@ import RoofSlopeCard from '../../components/RoofSlopeCard'
 import AutoMeasurementTool from '../../components/AutoMeasurementTool'
 import RoofingWorkflowSettings from '../../components/RoofingWorkflowSettings'
 import RoofingWizardNavigator from '../../components/RoofingWizardNavigator'
+import { readEmbeddedLocation, stampLocation, UNABLE_TO_UPLOAD } from '../../lib/photos/location'
 import { canAutoLookupAddress, loadRoofingWorkflowPreferences, type RoofingWorkflowPreferences, DEFAULT_ROOFING_WORKFLOW_PREFS } from '../../lib/roofing-workflow-preferences'
 
 const ManualDrawingTool = dynamic(() => import('../../components/ManualDrawingTool'), { ssr: false })
@@ -101,11 +102,11 @@ export default function MeasurePage() {
     window.localStorage.setItem('roofos.allowSixSquareRepairThreshold', enabled ? 'true' : 'false')
   }
 
-  function chooseFile(event: React.ChangeEvent<HTMLInputElement>) {
+  async function chooseFile(event: React.ChangeEvent<HTMLInputElement>) {
     const next = event.target.files?.[0] ?? null
     event.target.value = ''
-    if (!next || !MIME_EXTENSIONS[next.type]) {
-      setError('Choose a JPEG, PNG, or WebP inspection image.')
+    if (!next || next.type !== 'image/jpeg') {
+      setError('Choose a JPEG inspection image.')
       return
     }
     if (preview) URL.revokeObjectURL(preview)
@@ -113,17 +114,15 @@ export default function MeasurePage() {
     const gpsSeq = ++selectedPhotoSeqRef.current
     setPhotoGps(null)
     setPhotoGpsChecked(false)
-    if (next.size <= 30 * 1024 * 1024) {
-      void next.arrayBuffer().then((bytes) => {
-        const embedded = readEmbeddedGps(new Uint8Array(bytes))
-        if (gpsSeq !== selectedPhotoSeqRef.current) return
-        setPhotoGps(embedded ? {
-          latitude: embedded.latitude, longitude: embedded.longitude,
-          embeddedAddress: embedded.address || null,
-        } : null)
-      }).catch(() => { if (gpsSeq === selectedPhotoSeqRef.current) setPhotoGps(null) })
-        .finally(() => { if (gpsSeq === selectedPhotoSeqRef.current) setPhotoGpsChecked(true) })
-    } else setPhotoGpsChecked(true)
+    void next.arrayBuffer().then((bytes) => {
+      const embedded = readEmbeddedGps(new Uint8Array(bytes))
+      if (gpsSeq !== selectedPhotoSeqRef.current) return
+      setPhotoGps(embedded ? {
+        latitude: embedded.latitude, longitude: embedded.longitude,
+        embeddedAddress: embedded.address || null,
+      } : null)
+    }).catch(() => { if (gpsSeq === selectedPhotoSeqRef.current) setPhotoGps(null) })
+      .finally(() => { if (gpsSeq === selectedPhotoSeqRef.current) setPhotoGpsChecked(true) })
     setImageSize({ width: 0, height: 0 })
     const imageUrl = URL.createObjectURL(next)
     setPreview(imageUrl)
@@ -139,7 +138,7 @@ export default function MeasurePage() {
     setScalePixels('')
     setScaleFeet('')
     setError('')
-    setStatus('')
+    setStatus('Photo accepted. Automation starts only if location is embedded in the file.')
     const image = new Image()
     image.onload = () => setImageSize({ width: image.naturalWidth, height: image.naturalHeight })
     image.onerror = () => setError('The selected image could not be decoded.')
@@ -286,6 +285,8 @@ export default function MeasurePage() {
         .single()
       if (inspectionError || !inspection) throw new Error('Could not create an inspection session.')
 
+      const photoBytes = new Uint8Array(await file.arrayBuffer())
+      if (!readEmbeddedLocation(photoBytes)) setStatus('No embedded location. This photo is manual-only and cannot trigger photo automations.')
       const objectId = crypto.randomUUID()
       const extension = MIME_EXTENSIONS[file.type]
       const path = `${workspaceId}/${user.id}/${inspection.id}/${objectId}.${extension}`
@@ -579,7 +580,7 @@ export default function MeasurePage() {
             <p className="mt-2 text-xs">Automatic footprint is sourced from map geometry, not independently measured roof edges. Use the manual multi-plane tracer below to compare its result.</p>
           </div>}
 
-          <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={chooseFile} />
+          <input ref={inputRef} type="file" accept="image/jpeg" className="hidden" onChange={chooseFile} />
           <div className="mt-4 flex flex-wrap gap-2">
             <button onClick={() => inputRef.current?.click()} className="rounded-lg bg-slate-700 px-4 py-2 text-sm font-semibold text-white">{file ? 'Replace actual image' : 'Load actual aerial / inspection image'}</button>
             <button onClick={() => setManualMode(!manualMode)} className="rounded-lg bg-slate-700 px-4 py-2 text-sm font-semibold text-white">{manualMode ? 'Exit Manual Mode' : 'Manual Measurement'}</button>
@@ -588,7 +589,7 @@ export default function MeasurePage() {
             </button>
           </div>
           {file && photoGpsChecked && <p className="mt-2 text-xs text-slate-300" role="status">
-            {photoGps ? 'Embedded GPS found in the actual selected photo. Candidate address/roof must be verified; this does not authorize AI measurements.' : 'No embedded GPS found. This photo is manual-only and cannot trigger photo automations. Address-first manual skyview is still available.'}
+            {photoGps ? 'Location is in this photo. Measurement can start. The tech verifies the result.' : 'No location in this photo. Evidence only. No measurement.'}
           </p>}
           {manualMode && <ManualDrawingTool
             key={preview || (mapCenter ? String(mapCenter.latitude) + ':' + String(mapCenter.longitude) + ':' + (aerialTileUrl || 'street-map') : 'no-map')}
