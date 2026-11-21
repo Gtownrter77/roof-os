@@ -1,5 +1,15 @@
 # ROOF/OS Living Build Checklist
 
+## 2026-11-21 — Hover-style guided photo photogrammetry path (locked)
+
+- [~] Primary measurement path is man-to-machine: tech takes guided photos (4 sides + 4 corners minimum with overlap).
+- [~] Machine builds 3D model using open-source COLMAP (structure-from-motion) + OpenMVS (dense reconstruction / mesh).
+- [~] Tech reviews the model on-site with the homeowner and verifies one easy real-world measurement (e.g. eave length) for scale.
+- [~] If reconstruction confidence is low, mark “not auto quality” and fall back to manual. No bad auto jobs.
+- [~] Reference implementation: yeicor/colmap-openmvs-app (MIT) and equivalent COLMAP + OpenMVS Docker pipelines. Open source only.
+- [~] Roofr-style aerial / skyview remains the fallback when the tech does not take the guided photo set.
+- [!] Guided photo grid UI, backend COLMAP/OpenMVS job runner, and model review UI are not yet implemented. This entry locks the architecture only.
+
 ## 2026-11-18 — Technician-first measurement review, PR #476 replacement
 
 - [~] Show the AI-produced roof-geometry packet immediately in a simple technician review panel: suggested planes, edges, objects, pending review and human-reviewed pitches.
