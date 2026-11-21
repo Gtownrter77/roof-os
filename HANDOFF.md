@@ -1,3 +1,23 @@
+## 2026-11-21 — Aerial auto + manual measurement methods locked (fallback paths)
+
+- **Aerial auto (Roofr-style / skyview fallback):**
+  - Photo with embedded GPS → reverse geocode to candidate address → skyview / aerial imagery fetch.
+  - System generates geometry packet (planes, edges, suggested pitch).
+  - Tech verifies the geometry and confirms pitch / scale before any quantity is usable.
+  - No automatic approval. Quantities stay locked until human review.
+  - Existing GPS gate still applies: no embedded GPS = evidence only, no measurement starts.
+
+- **Manual measurement:**
+  - Tech traces planes on the aerial or on a photo.
+  - Overlaps and double-counting are rejected.
+  - Shared internal edges are excluded from plan-outline perimeter.
+  - Per-plane pitch must be reviewed before slope area or squares are calculated.
+  - Outer plan trace is not treated as gutter / eave length.
+
+- Both paths remain available when the tech does not take the guided Hover-style photo set.
+- Primary path is still the guided-photo COLMAP + OpenMVS flow locked above.
+- None of these paths invent missing data. Unreviewed quantities never become estimate line items.
+
 ## 2026-11-21 — Hover-style guided photo photogrammetry path locked (open source only)
 
 - Decision locked with owner: primary measurement path is **man to machine**.
