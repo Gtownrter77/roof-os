@@ -80,4 +80,14 @@ for (const gate of previouslyUnwired) {
   assert.ok(pkg.scripts[gate], 'gate must be registered in package.json: ' + gate)
 }
 
+// The legacy inline-secret grep must exclude the maintained scanner's fake
+// fixtures; otherwise a required CI job fails on values that are not secrets.
+const inlineSecretLines = lines.filter((line) => line.includes("grep -RInE 'CAPOUT_API_KEY=|RAPIDAPI_KEY=|SUPABASE_SERVICE_ROLE_KEY='"))
+assert.ok(inlineSecretLines.length > 0, 'CI must keep the inline-secret grep')
+for (const line of inlineSecretLines) {
+  for (const exclusion of ["--exclude='*-test.*'", "--exclude='test-*'", "--exclude='secret-scan.mjs'"]) {
+    assert.ok(line.includes(exclusion), `inline-secret grep must exclude test fixtures: ${exclusion}`)
+  }
+}
+
 console.log('release-foreman-check: PASS (nonduplicated steps, security gate, worker behavior gate, migration baseline, wired gates)')

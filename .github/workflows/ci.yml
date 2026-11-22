@@ -448,7 +448,7 @@ jobs:
           test -f app/api/team/invitations/accept/route.ts
           test -f app/team/invitations/accept/page.tsx
           grep -q "accept_workspace_invitation" app/api/team/invitations/accept/route.ts
-          if grep -RInE 'CAPOUT_API_KEY=|RAPIDAPI_KEY=|SUPABASE_SERVICE_ROLE_KEY=' --exclude=.env.example --exclude-dir=.git --exclude-dir=.github .; then exit 1; fi
+          if grep -RInE 'CAPOUT_API_KEY=|RAPIDAPI_KEY=|SUPABASE_SERVICE_ROLE_KEY=' --exclude=.env.example --exclude='*-test.*' --exclude='test-*' --exclude='secret-scan.mjs' --exclude-dir=.git --exclude-dir=.github --exclude-dir=node_modules .; then exit 1; fi
       - name: Run real PostgreSQL estimate authority SQL/RLS tests
         shell: bash
         env:
