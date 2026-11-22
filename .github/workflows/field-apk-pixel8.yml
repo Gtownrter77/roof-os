@@ -1,14 +1,9 @@
 name: Field APK Pixel 8
 
 on:
+  # Pixel 8 runs are explicitly dispatched from main; the former one-off
+  # feature-branch triggers referenced deleted refs and could never fire.
   workflow_dispatch:
-  push:
-    branches:
-      - feat/pixel8-field-apk-20261002
-      - fix/roofos-autonomous-remediation-20261101
-    paths:
-      - .github/workflows/field-apk-pixel8.yml
-      - apps/field/**
 
 jobs:
   apk:

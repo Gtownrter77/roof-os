@@ -7,6 +7,7 @@ import RoofingWizardNavigator from '../../components/RoofingWizardNavigator'
 import { createClient } from '../../lib/supabase/client'
 import { createWorker } from 'tesseract.js'
 import { GoldenReport } from '../../components/GoldenReport'
+import { assertSameWorkspace } from '../../lib/scoping/workspace'
 
 type Photo = { file: File; preview: string; id: string }
 type SourcePhoto = { id: string; url: string }
@@ -81,12 +82,17 @@ export default function PhotoEstimatePage() {
     const requestedInspectionId = typeof window === 'undefined' ? null : new URLSearchParams(window.location.search).get('inspection')
     if (!requestedInspectionId || inspectionId) return
     async function loadInspectionContext() {
+      // Resolve the caller's workspace first. An attacker-supplied inspection
+      // id must never load another tenant's evidence or signed photo URLs.
+      const { data: workspaceId, error: workspaceError } = await supabase.rpc('current_workspace_id')
+      if (workspaceError || !workspaceId) return
       const { data, error: queryError } = await supabase
         .from('inspection_sessions')
-        .select('id,leads(address)')
+        .select('id,workspace_id,leads(address)')
         .eq('id', requestedInspectionId)
+        .eq('workspace_id', workspaceId)
         .maybeSingle()
-      if (queryError || !data) return
+      if (queryError || !assertSameWorkspace(data, workspaceId)) return
       setInspectionId(data.id)
       const lead = Array.isArray(data.leads) ? data.leads[0] : data.leads
       if (lead?.address) setAddress(lead.address)
@@ -94,6 +100,7 @@ export default function PhotoEstimatePage() {
         .from('inspection_photos')
         .select('id,object_path')
         .eq('inspection_id', data.id)
+        .eq('workspace_id', workspaceId)
       const savedPhotoRows = photoRows ?? []
       setPhotoIds(savedPhotoRows.map((photo) => photo.id))
       if (savedPhotoRows.length) {
@@ -108,6 +115,7 @@ export default function PhotoEstimatePage() {
         .from('photo_estimate_workflows')
         .select('id,status,report,estimate,storm_candidates,source_photo_ids,ai_analysis,inspection_id,address,latitude,longitude,footprint_sqft,lead_id,approved_by,approved_at,technician_name,technician_license,technician_signature,photo_reviews,manager_approved_by,manager_approved_at,manager_approval_name,manager_approval_signature')
         .eq('inspection_id', data.id)
+        .eq('workspace_id', workspaceId)
         .order('updated_at', { ascending: false })
         .limit(1)
         .maybeSingle()

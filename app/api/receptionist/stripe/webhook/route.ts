@@ -1,6 +1,12 @@
 import { NextRequest } from 'next/server'
 import Stripe from 'stripe'
 import { createAdminClient } from '../../../../../lib/supabase/admin'
+import {
+  resolvePaymentLinkIdentity,
+  canAdvancePaymentLinkStatus,
+  invoiceStatusForEvent,
+  type StripeEventObjectLike,
+} from '../../../../../lib/receptionist/stripe-webhook'
 
 function statusForEvent(type: string): string | null {
   if (type === 'checkout.session.completed') return 'paid'
@@ -64,22 +70,61 @@ export async function POST(request: NextRequest) {
   const status = statusForEvent(event.type)
   if (!status) return new Response('ok')
 
-  const object = event.data.object as Stripe.Checkout.Session & { payment_intent?: string | Stripe.PaymentIntent }
-  const providerLinkId = typeof object.id === 'string' ? object.id : typeof object.payment_intent === 'string' ? object.payment_intent : null
-  if (!providerLinkId) return new Response('ok')
-  const { data: paymentLink } = await admin.from('receptionist_payment_links').select('id,workspace_id').eq('provider', 'stripe').eq('provider_link_id', providerLinkId).maybeSingle()
+  const identity = resolvePaymentLinkIdentity(event.type, event.data.object as unknown as StripeEventObjectLike)
+
+  // Session events carry the stored provider_link_id. Payment-intent and charge
+  // events do not, so correlate through the invoice/workspace metadata that was
+  // stamped on the checkout session when the link was created.
+  let paymentLink: { id: string; workspace_id: string; status: string } | null = null
+  if (identity.providerLinkId) {
+    const { data } = await admin.from('receptionist_payment_links')
+      .select('id,workspace_id,status')
+      .eq('provider', 'stripe')
+      .eq('provider_link_id', identity.providerLinkId)
+      .maybeSingle()
+    paymentLink = data
+  }
+  if (!paymentLink && identity.invoiceId) {
+    let query = admin.from('receptionist_payment_links')
+      .select('id,workspace_id,status')
+      .eq('provider', 'stripe')
+      .eq('invoice_id', identity.invoiceId)
+    if (identity.workspaceId) query = query.eq('workspace_id', identity.workspaceId)
+    const { data } = await query.order('created_at', { ascending: false }).limit(1).maybeSingle()
+    paymentLink = data
+  }
   if (!paymentLink) return new Response('ok')
+
+  // Idempotency: a duplicate delivery must not replay a state move.
+  const eventKey = `stripe:${event.id}`
+  const { data: priorEvent } = await admin.from('receptionist_events')
+    .select('id')
+    .eq('workspace_id', paymentLink.workspace_id)
+    .eq('event_key', eventKey)
+    .maybeSingle()
+  if (priorEvent) return new Response('ok')
+
   const { error: eventError } = await admin.from('receptionist_events').upsert({
     workspace_id: paymentLink.workspace_id,
-    event_key: `stripe:${event.id}`,
+    event_key: eventKey,
     event_type: event.type,
     provider: 'stripe',
     payload: event,
   }, { onConflict: 'workspace_id,event_key' })
   if (eventError) return new Response('Could not persist webhook event', { status: 502 })
-  await admin.from('receptionist_payment_links').update({ status, updated_at: new Date().toISOString() }).eq('id', paymentLink.id)
-  if (status === 'paid' && object.metadata?.invoice_id) {
-    await admin.from('invoices').update({ status: 'paid', updated_at: new Date().toISOString() }).eq('id', object.metadata.invoice_id).eq('workspace_id', paymentLink.workspace_id)
+
+  // Never let an out-of-order or replayed event move a link backwards.
+  if (!canAdvancePaymentLinkStatus(paymentLink.status, status)) return new Response('ok')
+  await admin.from('receptionist_payment_links')
+    .update({ status, updated_at: new Date().toISOString() })
+    .eq('id', paymentLink.id)
+
+  const invoiceStatus = invoiceStatusForEvent(status)
+  if (invoiceStatus && identity.invoiceId) {
+    await admin.from('invoices')
+      .update({ status: invoiceStatus, updated_at: new Date().toISOString() })
+      .eq('id', identity.invoiceId)
+      .eq('workspace_id', paymentLink.workspace_id)
   }
   return new Response('ok')
 }

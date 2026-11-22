@@ -4,6 +4,7 @@ import { Suspense, useEffect, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { smartBack } from '../../lib/smart-back'
 import { createClient } from '../../lib/supabase/client'
+import { resolveInspectionForUpload } from '../../lib/scoping/workspace'
 import {
   Camera,
   Mic,
@@ -177,7 +178,19 @@ function CameraInner() {
   }
 
   const ensureInspection = async (userId: string, workspaceId: string) => {
-    if (inspectionId) return inspectionId
+    if (inspectionId) {
+      // A caller-supplied ?inspection= id is only a foreign key if a scoped
+      // lookup proves it belongs to this workspace. Otherwise start a new
+      // session instead of attaching evidence to another tenant's session.
+      const { data: sessions } = await supabase
+        .from('inspection_sessions')
+        .select('id,workspace_id')
+        .eq('id', inspectionId)
+        .eq('workspace_id', workspaceId)
+      const verified = resolveInspectionForUpload(inspectionId, sessions, workspaceId)
+      if (verified) return verified
+      setInspectionId('')
+    }
     const { data, error: insertError } = await supabase
       .from('inspection_sessions')
       .insert({

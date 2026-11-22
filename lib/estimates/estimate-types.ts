@@ -70,13 +70,14 @@ export function computeEstimateTotals(lineItems: { quantity: number; unit_cost: 
   return { subtotal, tax, total: subtotal + tax }
 }
 
-export function generateEstimateNumber(workspaceId: string, createdAt: string): string {
+export function generateEstimateNumber(workspaceId: string, createdAt: string, estimateId: string): string {
   const date = new Date(createdAt)
   const yyyy = date.getFullYear()
   const mm = String(date.getMonth() + 1).padStart(2, '0')
   const dd = String(date.getDate()).padStart(2, '0')
   const shortWs = workspaceId.slice(0, 8).toUpperCase()
-  return `EST-${yyyy}${mm}${dd}-${shortWs}`
+  const shortId = estimateId.replace(/-/g, '').slice(0, 8).toUpperCase()
+  return `EST-${yyyy}${mm}${dd}-${shortWs}-${shortId}`
 }
 
 export const ESTIMATE_CATEGORIES: { value: 'material' | 'labor' | 'allowance' | 'fee' | 'tax'; label: string; defaultUnit: string }[] = [

@@ -111,8 +111,8 @@ console.log('✓ Check 8: Status route concurrent probe and 30s cache verified')
 
 // 9. Verify Workspace Member Query Optimization
 const securitySource = readFileSync(join(root, 'lib', 'api-security.ts'), 'utf8')
-assert.ok(securitySource.includes('.limit(1)'), 'requireWorkspaceMember must specify .limit(1)')
-console.log('✓ Check 9: requireWorkspaceMember index seek limit(1) verified')
+assert.ok(securitySource.includes("supabase.rpc('is_workspace_member'"), 'requireWorkspaceMember must use the canonical membership RPC')
+console.log('✓ Check 9: requireWorkspaceMember canonical membership RPC verified')
 
 // 10. Verify AiChatBar Client Abort Signal
 const chatBarSource = readFileSync(join(root, 'components', 'AiChatBar.tsx'), 'utf8')

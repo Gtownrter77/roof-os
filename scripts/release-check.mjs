@@ -1,5 +1,6 @@
-import { readFileSync, readdirSync } from 'node:fs'
+import { globSync, readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
+import { scanForSecrets, SECRET_PATTERNS } from './secret-scan.mjs'
 
 const root = new URL('..', import.meta.url).pathname
 const config = readFileSync(join(root, 'next.config.ts'), 'utf8')
@@ -199,10 +200,29 @@ for (const route of protectedWorkspaceRoutes) {
   }
 }
 
-const forbidden = /(?:SUPABASE_SERVICE_ROLE_KEY|CAPOUT_API_KEY|RAPIDAPI_KEY)\s*=\s*(?!your_|server_only_|validation-only-)[A-Za-z0-9_\-./]+/g
-for (const path of routes) {
-  const source = readFileSync(path, 'utf8')
-  if (forbidden.test(source)) throw new Error(`Possible hard-coded secret in ${path}`)
+// 54: scan every source/config surface, not just route.ts, with a state-free
+// scanner. Test fixtures intentionally contain fake credentials and are
+// excluded so they cannot mask a real finding or create a false positive.
+const secretScanFiles = globSync([
+  'app/**/*.{ts,tsx,js,jsx,mjs,cjs}',
+  'apps/**/*.{ts,tsx,js,jsx,mjs,cjs}',
+  'components/**/*.{ts,tsx,js,jsx,mjs,cjs}',
+  'lib/**/*.{ts,tsx,mjs,cjs}',
+  'workers/**/*.{ts,py,mjs,cjs}',
+  'scripts/**/*.{mjs,cjs,js}',
+  '.github/**/*.{yml,yaml}',
+  'proxy.ts',
+  'next.config.ts',
+  'vercel.json',
+], {
+  exclude: (path) => path.includes('/node_modules/')
+    || path.includes('-test.')
+    || path.includes('/test-')
+    || path.endsWith('secret-scan.mjs'),
+})
+const secretFindings = scanForSecrets(secretScanFiles.map((path) => ({ path, source: readFileSync(path, 'utf8') })))
+if (secretFindings.length) {
+  throw new Error(`Possible hard-coded secret: ${secretFindings.map((f) => `${f.path} (${f.name})`).join(', ')}`)
 }
 
 const migrationDir = join(root, 'supabase', 'migrations')
@@ -223,4 +243,4 @@ const canonical = (value) => Object.fromEntries(Object.entries(value).sort(([lef
 if (JSON.stringify(canonical(collisions)) !== JSON.stringify(canonical(knownLegacyCollisions))) {
   throw new Error(`Migration version collisions changed unexpectedly: ${JSON.stringify(collisions)}`)
 }
-console.log(`release-check passed: ${protectedWorkspaceRoutes.length} protected routes, security headers, and secret scan verified`)
+console.log(`release-check passed: ${protectedWorkspaceRoutes.length} protected routes, security headers, and secret scan verified (${secretScanFiles.length} source/config files, ${SECRET_PATTERNS.length} patterns)`)

@@ -100,7 +100,7 @@ export default function LeadDetailPage() {
       payload.lost_reason_detail = null
       payload.lost_at = null
     }
-    const { error: updateError } = await supabase.from('leads').update(payload).eq('id', lead.id)
+    const { error: updateError } = await supabase.from('leads').update(payload).eq('id', lead.id).eq('workspace_id', workspaceId)
     if (updateError) { setError(updateError.message); setSaving(false); return }
     await supabase.from('lead_activity').insert({ lead_id: lead.id, workspace_id: workspaceId, user_id: user.id, kind: 'status_change', body: `Status changed from ${lead.status} to ${status}` })
     await load()
@@ -118,7 +118,7 @@ export default function LeadDetailPage() {
       next_action_due: due,
       next_action_owner_id: nextAction.trim() ? user.id : null,
       updated_at: new Date().toISOString(),
-    }).eq('id', lead.id)
+    }).eq('id', lead.id).eq('workspace_id', workspaceId)
     if (updateError) setError(updateError.message)
     else await supabase.from('lead_activity').insert({ lead_id: lead.id, workspace_id: workspaceId, user_id: user.id, kind: 'note', body: nextAction.trim() ? `Next action set: ${nextAction.trim()}${due ? ` due ${new Date(due).toLocaleString()}` : ''}` : 'Next action cleared.' })
     await load()
@@ -135,7 +135,7 @@ export default function LeadDetailPage() {
       lost_reason_detail: lostDetail.trim() || null,
       lost_at: lead.lost_at ?? new Date().toISOString(),
       updated_at: new Date().toISOString(),
-    }).eq('id', lead.id)
+    }).eq('id', lead.id).eq('workspace_id', workspaceId)
     if (updateError) setError(updateError.message)
     else await supabase.from('lead_activity').insert({ lead_id: lead.id, workspace_id: workspaceId, user_id: user.id, kind: 'note', body: `Lost reason recorded: ${lostReason || 'unspecified'}${lostDetail.trim() ? ` — ${lostDetail.trim()}` : ''}` })
     await load()

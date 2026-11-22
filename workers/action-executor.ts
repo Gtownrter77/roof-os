@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { principalsInWorkspace } from '../lib/api-contract-safety'
 
 export type ExecutorResult = { batchId: string; executed: number; failed: number; skipped: number }
 type ActionRow = {
@@ -43,9 +44,22 @@ function nullableString(payload: Record<string, unknown>, key: string): string |
 }
 
 async function executeAction(supabase: SupabaseClient, action: ActionRow) {
+  // Membership is re-checked at execution time: approval can happen long after
+  // an offboarding, and any writer of an approved action row is untrusted.
+  const { data: memberRows, error: memberError } = await supabase
+    .from('workspace_members')
+    .select('user_id')
+    .eq('workspace_id', action.workspace_id)
+  if (memberError) throw memberError
+  const memberIds = new Set(
+    (memberRows ?? []).map((row) => row.user_id).filter((id): id is string => typeof id === 'string')
+  )
+
   if (action.kind === 'create_task' || action.kind === 'create_review_task') {
     const createdBy = stringValue(action.payload, 'createdByUserId')
     const assignedTo = nullableString(action.payload, 'assignedToUserId') ?? createdBy
+    const principals = principalsInWorkspace([createdBy, assignedTo], memberIds)
+    if (!principals.ok) throw new Error(`Action principals are no longer members of this workspace: ${principals.missing.join(', ')}`)
     const title = stringValue(action.payload, 'title')
     const notes = nullableString(action.payload, 'notes')
     const dueAt = nullableString(action.payload, 'dueAt')
@@ -74,6 +88,8 @@ async function executeAction(supabase: SupabaseClient, action: ActionRow) {
   if (action.kind === 'assign_owner') {
     if (action.subject_type !== 'lead' || !action.subject_id) throw new Error('assign_owner requires a lead subject')
     const ownerId = stringValue(action.payload, 'ownerId')
+    const principals = principalsInWorkspace([ownerId], memberIds)
+    if (!principals.ok) throw new Error(`The assigned owner is no longer a member of this workspace: ${principals.missing.join(', ')}`)
     const { data, error } = await supabase.from('leads').update({ owner_id: ownerId, updated_at: new Date().toISOString() }).eq('id', action.subject_id).eq('workspace_id', action.workspace_id).select('id,owner_id').single()
     if (error) throw error
     return { kind: action.kind, lead: data }

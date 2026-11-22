@@ -25,7 +25,7 @@ export default function ExportPage() {
         return '"' + safeValue.replace(/"/g, '""') + '"'
       }
       const rows = [['id', 'name', 'address', 'status', 'created_at'], ...(data ?? []).map((lead) => [lead.id, lead.name ?? 'Unknown', lead.address ?? 'Unknown', lead.status ?? 'Unknown', lead.created_at ?? 'Unknown'])]
-      const csv = rows.map((row) => row.map(csvCell).join(',')).join('\\n')
+      const csv = rows.map((row) => row.map(csvCell).join(',')).join('\n')
       const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }))
       const link = document.createElement('a')
       link.href = url

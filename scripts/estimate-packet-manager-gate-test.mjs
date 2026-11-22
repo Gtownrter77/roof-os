@@ -3,7 +3,8 @@ import { readFileSync } from 'node:fs'
 
 const route = readFileSync('app/api/estimates/draft/route.ts', 'utf8')
 const migration = readFileSync('supabase/migrations/080_estimate_packet_manager_gate.sql', 'utf8')
-assert.ok(route.includes('Manager approval is required before creating an estimate review packet.'))
+assert.ok(route.includes('A current owner or manager approval is required before creating an estimate review packet.'))
+assert.ok(route.includes('hasValidManagerApproval(workflow, isTechnicianSignature)'), 'draft route must validate the manager approval, not just check presence')
 assert.ok(route.includes('manager_approval_signature'))
 assert.ok(migration.includes('enforce_photo_estimate_packet_manager_gate'))
 assert.ok(migration.includes('manager_approved_by'))

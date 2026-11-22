@@ -22,8 +22,13 @@ function isAuthUtilityPath(pathname: string) {
   )
 }
 
-function isSupplementReviewPath(pathname: string) {
-  return pathname === '/api/supplements/review' || pathname.startsWith('/api/supplements/review/')
+function isFieldCorsPath(pathname: string) {
+  return (
+    pathname === '/api/supplements/review'
+    || pathname.startsWith('/api/supplements/review/')
+    || pathname === '/api/photo-provenance/verify'
+    || pathname === '/api/photo-to-report'
+  )
 }
 
 function wantsHtml(request: NextRequest) {
@@ -57,7 +62,7 @@ export async function proxy(request: NextRequest) {
   if (isCronPath(pathname)) return NextResponse.next({ request })
 
   const nonce = createCspNonce()
-  if (isSupplementReviewPath(pathname) && request.method === 'OPTIONS') {
+  if (isFieldCorsPath(pathname) && request.method === 'OPTIONS') {
     const preflight = new NextResponse(null, { status: 204 })
     applyFieldCorsHeaders(preflight.headers, request.headers.get('origin'))
     return applySecurityPolicy(preflight, nonce)
@@ -104,7 +109,7 @@ export async function proxy(request: NextRequest) {
     finalResponse.headers.set('Referrer-Policy', 'no-referrer')
     finalResponse.headers.set('X-Robots-Tag', 'noindex, nofollow')
   }
-  if (isSupplementReviewPath(pathname)) {
+  if (isFieldCorsPath(pathname)) {
     applyFieldCorsHeaders(finalResponse.headers, request.headers.get('origin'))
   }
   return finalResponse

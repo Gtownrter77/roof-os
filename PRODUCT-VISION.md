@@ -7,7 +7,7 @@
 - The desktop Next.js control plane and the Expo/React Native field app both exist in this repository.
 - The field app currently supports Supabase Auth, SecureStore session/email handling, local drafts, offline queue/retry behavior, inspection verification, manual measurements, camera/photo capture, private Storage upload paths, leads, appointments, tasks, and workspace-scoped sync contracts.
 - A fresh arm64 Android debug APK was built from current `main` on GitHub Actions run `38843100028` and published as [field-apk-main-c6e8b72](https://github.com/Gtownrter77/roof-os/releases/tag/field-apk-main-c6e8b72).
-- The live web status endpoint reports Vercel/API/database/storage operational. Authenticated dashboard CRUD and physical Android installation remain release-gated and are not claimed as verified.
+- Historical 2026-10-18 checkpoint claim: the live web status endpoint reported Vercel/API/database/storage operational. No endpoint URL, run ID or timestamp is attached, so this is **unverified external evidence**, not current state. Authenticated dashboard CRUD and physical Android installation remain release-gated and are not claimed as verified.
 - This document remains a product roadmap. Implemented behavior and release evidence belong in `HANDOFF.md`, `MOBILE-FIELD-RELEASE.md`, and `MIGRATION-ORDER.md`.
 
 ## Executive conclusion

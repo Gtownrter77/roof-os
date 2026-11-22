@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
 import { describeAcceptanceMethod, type DepositState } from '../../../lib/estimates/acceptance'
+import { safeMailtoRecipient, safeSmsRecipient } from '../../../lib/estimates/contact-links'
 import { describeProductionJobStatus, describeScopeLineCount } from '../../../lib/jobs/production'
 
 type LineItem = {
@@ -288,11 +289,16 @@ export default function EstimateDetailPage() {
                   onClick={async () => {
                     setSaving(true)
                     setRecordError('')
-                    const response = await fetch('/api/estimates/' + encodeURIComponent(estimate.id) + '/lockout', { method: 'POST' })
-                    const payload = await response.json().catch(() => ({}))
-                    if (!response.ok) setRecordError(payload.error || 'Could not tag this lock.')
-                    else window.location.reload()
-                    setSaving(false)
+                    try {
+                      const response = await fetch('/api/estimates/' + encodeURIComponent(estimate.id) + '/lockout', { method: 'POST' })
+                      const payload = await response.json().catch(() => ({}))
+                      if (!response.ok) setRecordError(payload.error || 'Could not tag this lock.')
+                      else window.location.reload()
+                    } catch {
+                      setRecordError('Could not tag this lock. Check your connection and try again.')
+                    } finally {
+                      setSaving(false)
+                    }
                   }}
                   className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-black disabled:opacity-50"
                 >
@@ -306,13 +312,13 @@ export default function EstimateDetailPage() {
                 <p className="text-sm text-slate-300">The AI built this estimate. You approved it. One click opens the email or the text to the homeowner.</p>
                 <div className="flex flex-wrap gap-2">
                   <a
-                    href={`mailto:${encodeURIComponent(estimate.estimate_snapshot?.customer?.email || '')}?subject=${encodeURIComponent('Your roof estimate')}&body=${encodeURIComponent(`Your roof estimate is ready.\nAddress: ${estimate.estimate_snapshot?.property?.address || ''}\nTotal: ${money(estimate.total)}\nThis estimate was reviewed and approved by the technician.`)}`}
+                    href={`mailto:${safeMailtoRecipient(estimate.estimate_snapshot?.customer?.email)}?subject=${encodeURIComponent('Your roof estimate')}&body=${encodeURIComponent(`Your roof estimate is ready.\nAddress: ${estimate.estimate_snapshot?.property?.address || ''}\nTotal: ${money(estimate.total)}\nThis estimate was reviewed and approved by the technician.`)}`}
                     className="rounded-lg bg-cyan-700 px-4 py-2 text-sm font-semibold text-white"
                   >
                     Email the homeowner
                   </a>
                   <a
-                    href={`sms:${encodeURIComponent(estimate.estimate_snapshot?.customer?.phone || '')}?&body=${encodeURIComponent(`Your roof estimate is ready. Address: ${estimate.estimate_snapshot?.property?.address || ''}. Total: ${money(estimate.total)}. Reviewed and approved by the technician.`)}`}
+                    href={`sms:${safeSmsRecipient(estimate.estimate_snapshot?.customer?.phone)}?&body=${encodeURIComponent(`Your roof estimate is ready. Address: ${estimate.estimate_snapshot?.property?.address || ''}. Total: ${money(estimate.total)}. Reviewed and approved by the technician.`)}`}
                     className="rounded-lg border border-cyan-400/60 px-4 py-2 text-sm font-semibold text-cyan-100"
                   >
                     Text the homeowner

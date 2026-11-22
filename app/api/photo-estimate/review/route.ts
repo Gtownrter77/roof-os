@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { isUuid, readJson } from '../../../../lib/api-security'
 import { createClient } from '../../../../lib/supabase/server'
 import { isTechnicianSignature } from '../../../../lib/reports/golden-report.mjs'
+import { clearStaleManagerApproval } from '../../../../lib/estimates/photo-approval'
 
 type PhotoReview = { photoId: string; usability: 'usable' | 'not_usable'; coverage: 'complete' | 'partial' | 'not_visible'; notes: string | null; reviewedBy: string; reviewedAt: string }
 type ReviewBody = {
@@ -53,10 +54,12 @@ export async function PATCH(request: NextRequest) {
     if ((body.notes?.length ?? 0) > 1000) return error('Photo review notes are too long.', 400)
     const nextReview: PhotoReview = { photoId: body.photoId, usability: body.usability, coverage: body.coverage, notes: body.notes?.trim() || null, reviewedBy: user.id, reviewedAt: now }
     const nextReviews = [...reviews.filter((review) => review.photoId !== body.photoId), nextReview]
-    const report = isRecord(workflow.report) ? workflow.report : {}
+    // A changed usability/coverage decision changes the evidence set the
+    // manager signed off on, so that approval must be captured again.
+    const report = clearStaleManagerApproval(workflow.report)
     const reviewControls = isRecord(report.reviewControls) ? report.reviewControls : {}
     const { data: updated, error: updateError } = await supabase.from('photo_estimate_workflows')
-      .update({ photo_reviews: nextReviews, report: { ...report, reviewControls: { ...reviewControls, photoReviews: nextReviews } }, updated_at: now })
+      .update({ photo_reviews: nextReviews, report: { ...report, reviewControls: { ...reviewControls, photoReviews: nextReviews } }, manager_approved_by: null, manager_approved_at: null, manager_approval_name: null, manager_approval_signature: null, updated_at: now })
       .eq('id', body.workflowId).eq('workspace_id', workspaceId)
       .select('id,status,photo_reviews,report,updated_at').single()
     if (updateError) return error('Could not save the photo review.', 502)
