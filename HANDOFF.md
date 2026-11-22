@@ -1,3 +1,26 @@
+## 2026-11-22 — Technician review completion, evidence sweep and superpowers ledger
+
+- Technician review panel work item is complete at source/test/CI level. Panel merged as `e755a4c` (#482); gates and review-queue action verified at `app/measure/page.tsx:455-470` and `:637-654`. Local 2026-11-22 checks all exited 0: `test:roofing-precision`, `test:auto-measurement`, `test:measurement-estimate-authority`, `test:photo-gps-automation`, `test:photo-skyview-handoff`, `test:photo-location`, `test:photo-estimate-flow`, `test:photo-full-report-flow`, `test:driveway-earthwork`, `test:aerial`, `test:roof-slope`, `test:roofing-workflows`, `test:roofing-automations`, `test:mobile-offline-sync`, `test:mobile-ai-observation-security`, `release-check`, `npm run typecheck`. `parallel-anonymous-test.mjs` also passed.
+- Exact-head CI on main `764976f`: [run `44984769341`](https://github.com/Gtownrter77/roof-os/actions/runs/44984769341) passed web, mobile, field-security, migration-safety and preview-build; APK workflow `44984769363` passed. Dedicated free-only research [run `44124068318`](https://github.com/Gtownrter77/roof-os/actions/runs/44124068318) passed on PR #455 head `2209a852a`. All PRs relevant to the checklist are merged (#374 `b74d234`, #455 `29f9e32`, #461 `9708aff`, #462 `1b8393a`, #466 `9b97ffe`, #478 `f948f0d`, #479 `d4c25a8`, #480 `c65afc7`, #481 `eb9ad85`, #482 `e755a4c`, #484 `a5b40e8`).
+- Historical entries below that say PR #461/#455 remain open or unmerged are superseded by the merge commits above. Production Supabase migration/RLS, hosted deployment, BAILEY source-quality pilot, APK device install and physical field acceptance are still unverified; no claims were added for them.
+- Upstream superpowers catalog reviewed in full at `github.com/obra/superpowers` commit `22f0b46` (15/15 SKILL.md files). Ledger:
+  - `using-superpowers` — PERFORMED: read catalog entry and applied skill-selection gates before acting.
+  - `brainstorming` — NOT TRIGGERED: feature and acceptance criteria were already specified in the build checklist; no new design decisions.
+  - `writing-plans` — PERFORMED: spec-derived verification plan stated in conversation before edits (install Node → run tests → check CI → fix gaps → record evidence).
+  - `using-git-worktrees` — NOT TRIGGERED: no implementation branch or isolated feature work; changes are documentation and verification on clean `main`.
+  - `test-driven-development` — PERFORMED: existing regression suites run first; no new production code was needed, so no RED phase was manufactured.
+  - `systematic-debugging` — PERFORMED: diagnosed missing `typescript` dependency for `test:auto-measurement` (`ERR_MODULE_NOT_FOUND`) and fixed the environment with `npm ci`; re-ran to exit 0.
+  - `executing-plans` — PERFORMED: executed the stated plan sequentially, recording exit codes and CI run IDs.
+  - `subagent-driven-development` — NOT TRIGGERED: no independent implementation tasks; no subagents dispatched.
+  - `dispatching-parallel-agents` — NOT TRIGGERED: no independent failure domains; parallel tool calls were used instead of agents.
+  - `requesting-code-review` — NOT TRIGGERED: no production code diff or merge in this session; exact-head CI is the recorded review evidence.
+  - `receiving-code-review` — NOT TRIGGERED: no review feedback was received in this session.
+  - `verification-before-completion` — PERFORMED: fresh test/typecheck exit codes and GitHub Actions API results gathered before any completion claim.
+  - `finishing-a-development-branch` — NOT TRIGGERED: no feature branch to integrate and no PR requested; work remained on `main` as documentation.
+  - `writing-skills` — NOT TRIGGERED: no skills authored, edited or deployed.
+  - `diagnosing-superpowers` — NOT TRIGGERED: no superpowers session failure to report; the harness server restart was unrelated.
+- Boundaries preserved: no subagent implementation, no independent human/second-model code review, no SD3 worktree, no hosted schema/RLS verification, no field-device or production signoff claimed.
+
 ## 2026-11-18 — Owner location is the measurement gate
 
 - PR #484 merged as `a5b40e84e7b7c7e428338281201c0138fe5d7778`. PR #461 (reviewed plane pitch) is already on main.
