@@ -60,7 +60,9 @@ export async function PUT(request: NextRequest) {
     if (!lead) return NextResponse.json({ error: 'leadId must belong to the active workspace.' }, { status: 400 })
   }
   const admin = createAdminClient()
-  const { data: optOut } = await admin.from('receptionist_consents').select('id').eq('workspace_id', workspaceId).eq('phone', phone).eq('channel', 'sms').eq('state', 'revoked').order('captured_at', { ascending: false }).limit(1).maybeSingle()
+  const { data: optOut, error: consentError } = await admin.from('receptionist_consents').select('id').eq('workspace_id', workspaceId).eq('phone', phone).eq('channel', 'sms').eq('state', 'revoked').order('captured_at', { ascending: false }).limit(1).maybeSingle()
+  // Fail closed: a failed revocation lookup must never look like "no opt-out".
+  if (consentError) return NextResponse.json({ error: 'Opt-out status could not be verified.' }, { status: 503 })
   if (optOut) return NextResponse.json({ error: 'This phone number has opted out of SMS follow-up.' }, { status: 409 })
   if (settings.enforce_tcpa_quiet_hours_outbound && !isWithinQuietHours()) return NextResponse.json({ error: quietHoursMessage('text') }, { status: 409 })
   const sms = await twilio(accountSid, authToken).messages.create({ to: phone, from, body: message })

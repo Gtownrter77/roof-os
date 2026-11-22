@@ -53,6 +53,21 @@ export function canAdvancePaymentLinkStatus(current: string | null | undefined, 
   return nextRank > currentRank
 }
 
+/**
+ * The invoice repair may repeat at the same rank: a Stripe retry must be able
+ * to finish a write that failed after the link was already advanced. It must
+ * still reject a stale lower-rank event, otherwise a redelivered
+ * `checkout.session.completed` would un-void an already-refunded invoice.
+ */
+export function canRepairInvoiceStatus(currentLinkStatus: string | null | undefined, nextStatus: string): boolean {
+  const currentRank = currentLinkStatus ? (PAYMENT_LINK_STATUS_RANK[currentLinkStatus] ?? -1) : -1
+  const nextRank = PAYMENT_LINK_STATUS_RANK[nextStatus] ?? -1
+  // Same status is a retry repairing a partial write. A different status must
+  // strictly advance: `paid` and `expired` share rank 2, so `>=` would let a
+  // stale completed event alter an expired link.
+  return nextRank >= 0 && (nextStatus === currentLinkStatus || nextRank > currentRank)
+}
+
 /** The legacy invoices table permits draft/issued/paid/void, not refunded. */
 export function invoiceStatusForEvent(status: string): 'paid' | 'void' | null {
   if (status === 'paid') return 'paid'

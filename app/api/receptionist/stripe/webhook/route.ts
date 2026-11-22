@@ -4,6 +4,7 @@ import { createAdminClient } from '../../../../../lib/supabase/admin'
 import {
   resolvePaymentLinkIdentity,
   canAdvancePaymentLinkStatus,
+  canRepairInvoiceStatus,
   invoiceStatusForEvent,
   type StripeEventObjectLike,
 } from '../../../../../lib/receptionist/stripe-webhook'
@@ -95,8 +96,34 @@ export async function POST(request: NextRequest) {
   }
   if (!paymentLink) return new Response('ok')
 
-  // Idempotency: a duplicate delivery must not replay a state move.
   const eventKey = `stripe:${event.id}`
+
+  // Never let an out-of-order or replayed event move a link backwards. This
+  // guard applies only to the link write: a retry after a failed invoice write
+  // must still repair the invoice even though the link was already advanced.
+  if (canAdvancePaymentLinkStatus(paymentLink.status, status)) {
+    // A failed status write must not be reported as a successful delivery:
+    // Stripe treats 2xx as final and will never retry.
+    const { error: linkUpdateError } = await admin.from('receptionist_payment_links')
+      .update({ status, updated_at: new Date().toISOString() })
+      .eq('id', paymentLink.id)
+    if (linkUpdateError) return new Response('Could not update payment link status', { status: 502 })
+  }
+
+  // Equal rank is allowed so a retry can repair a failed partial write, but a
+  // stale lower-rank event must not revert a terminal invoice state.
+  const invoiceStatus = invoiceStatusForEvent(status)
+  if (invoiceStatus && identity.invoiceId && canRepairInvoiceStatus(paymentLink.status, status)) {
+    const { error: invoiceUpdateError } = await admin.from('invoices')
+      .update({ status: invoiceStatus, updated_at: new Date().toISOString() })
+      .eq('id', identity.invoiceId)
+      .eq('workspace_id', paymentLink.workspace_id)
+    if (invoiceUpdateError) return new Response('Could not update invoice status', { status: 502 })
+  }
+
+  // Record the dedupe marker only after every state write succeeded. Writing
+  // it first made a Stripe retry short-circuit at `priorEvent` and leave the
+  // partially applied state permanently stale.
   const { data: priorEvent } = await admin.from('receptionist_events')
     .select('id')
     .eq('workspace_id', paymentLink.workspace_id)
@@ -112,19 +139,5 @@ export async function POST(request: NextRequest) {
     payload: event,
   }, { onConflict: 'workspace_id,event_key' })
   if (eventError) return new Response('Could not persist webhook event', { status: 502 })
-
-  // Never let an out-of-order or replayed event move a link backwards.
-  if (!canAdvancePaymentLinkStatus(paymentLink.status, status)) return new Response('ok')
-  await admin.from('receptionist_payment_links')
-    .update({ status, updated_at: new Date().toISOString() })
-    .eq('id', paymentLink.id)
-
-  const invoiceStatus = invoiceStatusForEvent(status)
-  if (invoiceStatus && identity.invoiceId) {
-    await admin.from('invoices')
-      .update({ status: invoiceStatus, updated_at: new Date().toISOString() })
-      .eq('id', identity.invoiceId)
-      .eq('workspace_id', paymentLink.workspace_id)
-  }
   return new Response('ok')
 }

@@ -128,4 +128,16 @@ function section(source, startMarker, endMarker) {
   assert.ok(/loadFieldData\(\)[\s\S]*\.catch\(/.test(boot), 'the boot IIFE must attach a rejection handler')
 }
 
-console.log('web-error-recovery-test: PASS (mic, passport, upload, leads, packet, lead mutations, MFA, and field failure paths recover)')
+// Batch 10 / 96: Tesseract worker creation can reject before `try` is entered.
+// If it sits outside the try, the finally never clears ocrWorking and the OCR
+// button is disabled permanently with no error shown.
+{
+  const estimate = read('../app/photo-estimate/page.tsx')
+  const ocr = section(estimate, 'async function findAddressInPhotos()', 'async function uploadPhotos')
+  const tryAt = ocr.indexOf('try {')
+  const workerAt = ocr.indexOf("createWorker('eng')")
+  assert.ok(tryAt !== -1 && workerAt > tryAt, 'Tesseract worker creation must be inside try so a rejection still clears ocrWorking')
+  assert.match(ocr, /finally \{[\s\S]*setOcrWorking\(false\)/, 'the OCR working flag must be cleared on every path')
+}
+
+console.log('web-error-recovery-test: PASS (mic, passport, upload, leads, packet, lead mutations, MFA, OCR, and field failure paths recover)')
