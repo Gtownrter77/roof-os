@@ -77,4 +77,59 @@ reloaded.db.runSync('DELETE FROM inspection_ai_request_queue WHERE feature_key =
 assert.equal(reloaded.db.getAllSync(aiQueueQuery, draftId)[0].caption_ai_status, null, 'opt-out must remove pending request metadata')
 assert.equal(reloaded.db.getFirstSync('SELECT ((SELECT COUNT(*) ...)) AS n', draftId, draftId).n, 2)
 
-console.log('field-localdb-web-test: PASS')
+// 46a: due-row counts must honour the next_retry_at cutoff passed by
+// duePendingRowCount(). Native SQLite does; the web adapter must match.
+const DUE_SQL = 'SELECT ((SELECT COUNT(*) FROM inspection_measurements_local WHERE draft_id = ? AND sync_status IN (\'queued\', \'retrying\') AND (next_retry_at IS NULL OR next_retry_at <= ?)) + (SELECT COUNT(*) FROM inspection_photo_queue WHERE draft_id = ? AND sync_status IN (\'queued\', \'retrying\') AND (next_retry_at IS NULL OR next_retry_at <= ?))) AS n'
+const PAST = '2026-11-02T13:00:00.000Z'
+const FUTURE = '2099-01-01T00:00:00.000Z'
+reloaded.db.runSync(
+  'UPDATE inspection_measurements_local SET sync_status = ?, retry_count = retry_count + 1, next_retry_at = ?, last_error = ? WHERE draft_id = ? AND sync_status IN (?, ?)',
+  'retrying', FUTURE, 'temporary failure', draftId, 'queued', 'retrying',
+)
+reloaded.db.runSync(
+  'UPDATE inspection_photo_queue SET sync_status = ?, retry_count = retry_count + 1, next_retry_at = ?, last_error = ?, error = ? WHERE draft_id = ? AND sync_status IN (?, ?)',
+  'retrying', FUTURE, 'temporary failure', 'temporary failure', draftId, 'queued', 'retrying',
+)
+assert.equal(reloaded.db.getFirstSync(DUE_SQL, draftId, PAST, draftId, PAST).n, 0, 'backed-off rows must not be counted as due')
+assert.equal(reloaded.db.getFirstSync(DUE_SQL, draftId, FUTURE, draftId, FUTURE).n, 2, 'rows become due once their cutoff passes')
+
+// REVIEWER BLOCKER 46: pendingRowCount() uses a 2-arg SQL form with NO
+// next_retry_at predicate and must keep counting backed-off rows as pending.
+// The first fix gated on arg count and misread args[1] (a draft id) as a
+// timestamp cutoff, returning 0 — which makes retryNow() early-return and
+// never reach the retry-reset handlers. Native SQLite counts these rows.
+const PENDING_SQL = `SELECT (
+  (SELECT COUNT(*) FROM inspection_measurements_local WHERE draft_id = ? AND sync_status IN ('queued', 'retrying'))
+  + (SELECT COUNT(*) FROM inspection_photo_queue WHERE draft_id = ? AND sync_status IN ('queued', 'retrying'))
+) AS n`
+assert.equal(reloaded.db.getFirstSync(PENDING_SQL, draftId, draftId).n, 2, 'pendingRowCount (2-arg form) must still count backed-off rows')
+
+// 46b: manual retry must actually reset backed-off rows on web.
+reloaded.db.runSync(
+  'UPDATE inspection_measurements_local SET sync_status = ?, next_retry_at = NULL WHERE draft_id = ? AND sync_status IN (?, ?)',
+  'queued', draftId, 'queued', 'retrying',
+)
+reloaded.db.runSync(
+  'UPDATE inspection_photo_queue SET sync_status = ?, next_retry_at = NULL WHERE draft_id = ? AND sync_status IN (?, ?)',
+  'queued', draftId, 'queued', 'retrying',
+)
+assert.equal(reloaded.db.getFirstSync(DUE_SQL, draftId, PAST, draftId, PAST).n, 2, 'retryNow must restore rows to the due queue')
+
+// 46c: draft photo_count and AI-request cleanup by photo_queue_id must mutate web state.
+reloaded.db.runSync('UPDATE inspection_drafts SET photo_count = ?, updated_at = ? WHERE id = ?', 7, PAST, draftId)
+const draftRows = reloaded.db.getAllSync(
+  'SELECT id, remote_id as remoteId, owner_user_id as ownerUserId, workspace_id as workspaceId, client_id as clientId, lead_id as leadId, address, photo_count as photoCount, status, updated_at as updatedAt, latitude, longitude, technician_name as technicianName, technician_license as technicianLicense, verified_at as verifiedAt, verification_notes as verificationNotes, verification_synced as verificationSynced FROM inspection_drafts WHERE owner_user_id = ? ORDER BY updated_at DESC',
+  'user-a',
+)
+assert.equal(draftRows[0].photoCount, 7, 'photo_count update must mutate web draft state')
+reloaded.db.runSync(
+  'INSERT OR IGNORE INTO inspection_ai_request_queue (request_key, draft_id, photo_queue_id, feature_key, status, source_photo_id, expires_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+  'cleanup-request', draftId, photo.lastInsertRowId, 'photo_completeness', 'pending_analysis', null, FUTURE, PAST, PAST,
+)
+reloaded.db.runSync('DELETE FROM inspection_ai_request_queue WHERE photo_queue_id = ?', photo.lastInsertRowId)
+assert.equal(reloaded.db.getAllSync('SELECT id FROM inspection_ai_request_queue WHERE photo_queue_id = ?', photo.lastInsertRowId).length, 0, 'orphan AI requests must be deletable by photo id')
+
+// 46d: an unrecognized statement must throw rather than return a fake id.
+assert.throws(() => reloaded.db.runSync('UPDATE inspection_sessions SET status = ?', 'bogus'), /unsupported|unknown/i)
+
+console.log('field-localdb-web-test: PASS (retry reset, backoff-aware due count, photo count, AI cleanup, strict SQL)')

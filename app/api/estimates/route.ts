@@ -3,6 +3,7 @@ import { createClient } from '../../../lib/supabase/server'
 import { isUuid, readJson, requireWorkspaceMember } from '../../../lib/api-security'
 import { generateEstimateNumber, getDefaultEstimateTemplate } from '../../../lib/estimates/estimate-types'
 import { validateEstimateLineItems } from '../../../lib/estimates/line-items'
+import { creationApprovalFields, rollbackFailure } from '../../../lib/estimates/creation-safety'
 
 const ESTIMATE_STATUSES = ['draft', 'pending_approval', 'approved', 'rejected', 'superseded'] as const
 
@@ -162,6 +163,9 @@ export async function POST(request: NextRequest) {
   if (![subtotal, tax, total].every(Number.isFinite)) {
     return NextResponse.json({ error: 'Estimate totals must be finite numbers.' }, { status: 400 })
   }
+  const nowIso = new Date().toISOString()
+  const approvalFields = creationApprovalFields(status, user.id, nowIso)
+  if (!approvalFields) return NextResponse.json({ error: 'The approval clock is invalid.' }, { status: 500 })
 
   const { data: estimate, error } = await supabase
     .from('estimates')
@@ -176,6 +180,7 @@ export async function POST(request: NextRequest) {
       tax,
       total,
       created_by: user.id,
+      ...approvalFields,
       estimate_snapshot: {
         customer: {
           name: body.customer_name,
@@ -227,8 +232,9 @@ export async function POST(request: NextRequest) {
     }))
     const { error: lineError } = await supabase.from('estimate_line_items').insert(lineItemRows)
     if (lineError) {
-      await supabase.from('estimates').delete().eq('id', estimate.id)
-      return NextResponse.json({ error: 'Could not create estimate line items.', detail: lineError.message }, { status: 502 })
+      const { error: rollbackError } = await supabase.from('estimates').delete().eq('id', estimate.id)
+      const failure = rollbackFailure(estimate.id, rollbackError, lineError.message)
+      return NextResponse.json(failure, { status: 502 })
     }
   }
 

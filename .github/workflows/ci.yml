@@ -75,6 +75,16 @@ jobs:
       - run: npm run test:estimate-put-contract
       - run: npm run test:stripe-webhook
       - run: npm run test:lockout-status-guard
+      - run: npm run test:photo-approval
+      - run: npm run test:warranty-expiry
+      - run: npm run test:lockout-concurrency
+      - run: npm run test:estimate-creation-safety
+      - run: npm run test:field-device-evidence-manifest
+      - run: npm run test:workspace-scoping
+      - run: npm run test:api-contract-safety
+      - run: npm run test:field-webapp-url
+      - run: npm run test:web-workspace-scoping
+      - run: npm run test:payment-link-idempotency
       - run: npm run test:auth-flow
       - run: npm run test:invitation-flow
       - run: npm run test:two-workspace-contract
@@ -160,6 +170,22 @@ jobs:
       - run: npm run test:onboarding-workspace-ui
       - run: npm run test:bailey-onboarding
       - run: npm run test:bailey-readiness
+      - run: npm run test:field-cors
+      - run: npm run test:performance
+      - run: npm run test:phase-0-register
+      - run: npm run test:frontend-route-integrity
+      - run: npm run test:supabase-client-stability
+      - run: npm run test:llama-agent
+      - run: npm run test:camera-audio
+      - run: npm run test:passport-public-share
+      - run: npm run test:passport-public-link
+      - run: npm run test:contractoros-control-plane
+      - run: npm run test:contractoros-writers
+      - run: npm run test:contractoros-authority
+      - run: npm run test:claims-provenance
+      - run: npm run test:secret-scan
+      - run: npm run test:drone-url-validation
+      - run: npm run test:literal-newline
       - run: npm run audit
 
   mobile:
@@ -246,6 +272,7 @@ jobs:
         run: |
           set -euo pipefail
           test "$(find supabase/migrations -maxdepth 1 -name '*.sql' | wc -l)" -ge 24
+          test -f supabase/migrations/110_release_job_safety_hold.sql
           grep -q "enable row level security" supabase/migrations/008_claims_line_items_agent_readiness.sql
           grep -q "enable row level security" supabase/migrations/009_agent_runtime_claims_imports.sql
           grep -q "monthly_limit" supabase/migrations/010_retailer_price_cache.sql

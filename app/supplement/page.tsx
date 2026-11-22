@@ -70,7 +70,7 @@ export default function SupplementPage() {
     'Labor: ' + laborDescription.trim(),
     'Owner-entered amount: ' + (readiness[4].ready ? '$' + Number(amount).toFixed(2) : 'NOT ENTERED'),
     'Approval required before external submission.',
-  ].join('\\n')
+  ].join('\n')
   async function copyReviewSummary() {
     if (readyCount !== readiness.length) {
       setMessage('Complete the checklist before copying the draft.')

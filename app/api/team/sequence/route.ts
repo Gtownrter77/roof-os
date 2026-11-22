@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '../../../../lib/supabase/server'
 import { readJson } from '../../../../lib/api-security'
+import { teamSequencePayload } from '../../../../lib/api-contract-safety'
 
 const STEPS = ['self', 'inspector', 'closer', 'operations', 'owner'] as const
 
@@ -31,9 +32,9 @@ export async function PUT(request: NextRequest) {
 
   const parsedBody = await readJson(request)
   if ('error' in parsedBody) return NextResponse.json({ error: parsedBody.error }, { status: parsedBody.status })
-  const body = parsedBody as { memberId?: string; sequence?: string[] }
-  const sequence = Array.isArray(body.sequence) ? body.sequence.filter((step) => STEPS.includes(step as typeof STEPS[number])) : []
-  if (!body.memberId || sequence.length < 1 || sequence.length > 4) {
+  const body = teamSequencePayload(parsedBody)
+  const sequence = body ? body.sequence.filter((step) => STEPS.includes(step as typeof STEPS[number])) : []
+  if (!body || !body.memberId || sequence.length < 1 || sequence.length > 4) {
     return NextResponse.json({ error: 'The owner sequence must be 1 to 4 steps: self, inspector, closer, operations, owner.' }, { status: 400 })
   }
   const { error } = await supabase

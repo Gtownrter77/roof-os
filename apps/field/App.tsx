@@ -24,6 +24,7 @@ import {
   TextInput,
   View,
 } from 'react-native'
+import { resolveFieldWebAppUrl } from './src/config/webAppUrl'
 
 const FIELD_WORKSPACE_CACHE_KEY = 'roof_os_field_workspace_v1'
 
@@ -87,7 +88,13 @@ const supabaseUrl =
 const supabaseAnonKey =
   process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ||
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-const webAppUrl = process.env.EXPO_PUBLIC_WEB_APP_URL ?? 'https://roof-os.onrender.com'
+// Expo inlines only static process.env.EXPO_PUBLIC_* member expressions. Build
+// the explicit object below so Metro can substitute the value; passing the
+// whole process.env object is never inlined and would throw at bundle time.
+const webAppUrl = resolveFieldWebAppUrl({
+  EXPO_PUBLIC_WEB_APP_URL: process.env.EXPO_PUBLIC_WEB_APP_URL,
+  NEXT_PUBLIC_WEB_APP_URL: process.env.NEXT_PUBLIC_WEB_APP_URL,
+}, 'release')
 
 import { db, initLocalDb } from './src/localDb'
 import { ensureLocalColumns } from './src/localMigrations'

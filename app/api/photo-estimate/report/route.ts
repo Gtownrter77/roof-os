@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getApprovedPhotoWorkflowQuantities } from '../../../../lib/estimates/verified-photo-workflow.mjs'
 import { getGoldenReportContractErrors, isTechnicianSignature } from '../../../../lib/reports/golden-report.mjs'
 import { isUuid, readJson, requireWorkspaceMember } from '../../../../lib/api-security'
+import { hasValidManagerApproval } from '../../../../lib/estimates/photo-approval'
 import { createClient } from '../../../../lib/supabase/server'
 import { loadWorkspaceSettings } from '../../../../lib/workspace-settings'
 
@@ -22,6 +23,7 @@ type Workflow = {
   photo_reviews?: unknown
   manager_approval_name?: string | null
   manager_approval_signature?: string | null
+  manager_approved_by?: string | null
   manager_approved_at?: string | null
   roof_squares: number | string | null
   gutter_lf: number | string | null
@@ -62,7 +64,7 @@ export async function POST(request: NextRequest) {
 
   const { data: workflow, error: workflowError } = await supabase
     .from('photo_estimate_workflows')
-    .select('id,workspace_id,lead_id,inspection_id,status,address,report,source_photo_ids,approved_by,approved_at,roof_squares,gutter_lf,technician_name,technician_license,technician_signature,photo_reviews,manager_approval_name,manager_approval_signature,manager_approved_at')
+    .select('id,workspace_id,lead_id,inspection_id,status,address,report,source_photo_ids,approved_by,approved_at,roof_squares,gutter_lf,technician_name,technician_license,technician_signature,photo_reviews,manager_approval_name,manager_approval_signature,manager_approved_by,manager_approved_at')
     .eq('id', workflowId)
     .eq('workspace_id', workspaceId)
     .maybeSingle()
@@ -71,7 +73,7 @@ export async function POST(request: NextRequest) {
 
   const row = workflow as Workflow
   if (row.status !== 'approved' || !row.approved_by || !row.approved_at) return jsonError('Technician approval is required before a report can be generated.', 409)
-  if (!row.manager_approval_name || !row.manager_approval_signature || !row.manager_approved_at) return jsonError('Owner or manager approval is required before a Golden Report can be generated.', 409)
+  if (!hasValidManagerApproval(row, isTechnicianSignature)) return jsonError('A current owner or manager approval is required before a Golden Report can be generated.', 409)
   const settings = await loadWorkspaceSettings(supabase, workspaceId)
   if (settings.require_technician_signature_signoff && (!row.technician_name?.trim() || !isTechnicianSignature(row.technician_signature))) {
     return jsonError('A captured technician signature is required before a Golden Report can be generated.', 409)
@@ -259,7 +261,10 @@ export async function POST(request: NextRequest) {
     return jsonError('The report did not pass the Golden Report rules and was not saved.', 500)
   }
 
-  const nextReport = { ...existingReport, fullReport, status: 'full_report_generated' }
+  // Keep the canonical packet-gate status: getApprovedPhotoWorkflowQuantities
+  // (used by /api/estimates/draft) rejects any other report status. Record
+  // generation with a separate marker instead of replacing the gate status.
+  const nextReport = { ...existingReport, fullReport, fullReportGeneratedAt: generatedAt, status: 'approved_for_customer_packet' }
   const { data: updated, error: updateError } = await supabase
     .from('photo_estimate_workflows')
     .update({ report: nextReport, updated_at: generatedAt })

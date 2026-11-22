@@ -24,9 +24,24 @@ export default function ActivityPage() {
 
     const load = async () => {
       const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (cancelled) return
+      if (!user) {
+        setError('Sign in required.')
+        setLoading(false)
+        return
+      }
+      const { data: workspaceId } = await supabase.rpc('current_workspace_id')
+      if (cancelled) return
+      if (!workspaceId) {
+        setError('No workspace is configured.')
+        setLoading(false)
+        return
+      }
       const { data, error: queryError } = await supabase
         .from('lead_activity')
         .select('id,lead_id,kind,body,created_at')
+        .eq('workspace_id', workspaceId)
         .order('created_at', { ascending: false })
         .limit(50)
 

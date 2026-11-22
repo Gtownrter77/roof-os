@@ -175,9 +175,24 @@ export const db = {
   getFirstSync<T>(sql: string, ...args: unknown[]): T | null {
     if (sql.trimStart().startsWith('SELECT (')) {
       const draftId = Number(args[0])
+      // Two callers use this shape:
+      //   pendingRowCount()     -> 2 args, SQL has NO next_retry_at predicate;
+      //                            it counts ALL queued/retrying rows.
+      //   duePendingRowCount()  -> 4 args, SQL filters next_retry_at <= now.
+      // Gate on the SQL SHAPE, not arg count: pendingRowCount's args[1] is a
+      // draft id, not a timestamp cutoff. Treating it as one hid backed-off
+      // rows from pendingRowCount(), which made retryNow() early-return and
+      // never reach the retry-reset handlers.
+      const backoffAware = sql.includes('next_retry_at')
+      const measurementCutoff = backoffAware && args.length > 1 ? String(args[1]) : null
+      const photoCutoff = backoffAware && args.length > 3 ? String(args[3]) : null
+      const isDue = (nextRetryAt: string | null, cutoff: string | null) => {
+        if (cutoff === null) return true // pendingRowCount: no due-date filter
+        return nextRetryAt == null || nextRetryAt <= cutoff
+      }
       const queued = new Set(['queued', 'retrying'])
-      const count = measurements.filter((row) => row.draftId === draftId && queued.has(row.syncStatus)).length
-        + photos.filter((row) => row.draftId === draftId && queued.has(row.syncStatus)).length
+      const count = measurements.filter((row) => row.draftId === draftId && queued.has(row.syncStatus) && isDue(row.nextRetryAt, measurementCutoff)).length
+        + photos.filter((row) => row.draftId === draftId && queued.has(row.syncStatus) && isDue(row.nextRetryAt, photoCutoff)).length
       return { n: count } as T
     }
     const ownerUserId = typeof args[0] === 'string' ? args[0] : null
@@ -424,6 +439,47 @@ export const db = {
       return { lastInsertRowId: 0 }
     }
 
+    if (sql.startsWith('UPDATE inspection_measurements_local SET sync_status = ?, next_retry_at = NULL')) {
+      // retryNow(): clear the backoff so backed-off rows are eligible again.
+      const [syncStatus, draftId, firstStatus, secondStatus] = args
+      for (const row of measurements) {
+        if (row.draftId === Number(draftId) && (row.syncStatus === String(firstStatus) || row.syncStatus === String(secondStatus))) {
+          row.syncStatus = String(syncStatus)
+          row.nextRetryAt = null
+        }
+      }
+      return { lastInsertRowId: 0 }
+    }
+
+    if (sql.startsWith('UPDATE inspection_photo_queue SET sync_status = ?, next_retry_at = NULL')) {
+      const [syncStatus, draftId, firstStatus, secondStatus] = args
+      for (const row of photos) {
+        if (row.draftId === Number(draftId) && (row.syncStatus === String(firstStatus) || row.syncStatus === String(secondStatus))) {
+          row.syncStatus = String(syncStatus)
+          row.nextRetryAt = null
+        }
+      }
+      return { lastInsertRowId: 0 }
+    }
+
+    if (sql.startsWith('UPDATE inspection_drafts SET photo_count = ?')) {
+      const [count, updatedAt, id] = args
+      const row = drafts.find((draft) => draft.id === Number(id))
+      if (row) {
+        row.photoCount = Number(count)
+        row.updatedAt = String(updatedAt)
+      }
+      return { lastInsertRowId: Number(id) || 0 }
+    }
+
+    if (sql.startsWith('DELETE FROM inspection_ai_request_queue WHERE photo_queue_id')) {
+      const photoQueueId = Number(args[0])
+      for (let index = aiRequests.length - 1; index >= 0; index--) {
+        if (aiRequests[index].photoQueueId === photoQueueId) aiRequests.splice(index, 1)
+      }
+      return { lastInsertRowId: 0 }
+    }
+
     if (sql.startsWith('DELETE FROM inspection_ai_request_queue WHERE feature_key')) {
       const featureKey = String(args[0])
       for (let index = aiRequests.length - 1; index >= 0; index--) {
@@ -478,6 +534,8 @@ export const db = {
       return { lastInsertRowId: 0 }
     }
 
-    return { lastInsertRowId: nextRecordId() }
+    // A silent fallthrough makes SQL mistakes look like successful writes.
+    // Native SQLite would throw; the web adapter must fail closed too.
+    throw new Error(`unsupported SQL statement in web local database: ${sql.slice(0, 80)}`)
   },
 }

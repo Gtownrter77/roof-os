@@ -22,21 +22,33 @@ export default function InvoicesPage() {
   useEffect(() => {
     let cancelled = false
     const supabase = createClient()
-    supabase
-      .from('invoices')
-      .select('id,invoice_number,amount_cents,currency,status,due_at,created_at,lead_id')
-      .order('created_at', { ascending: false })
-      .limit(100)
-      .then(({ data, error: queryError }) => {
-        if (cancelled) return
-        if (queryError) {
-          setError('Invoices could not be loaded.')
-          setLoading(false)
-          return
-        }
-        setInvoices((data ?? []) as Invoice[])
+    async function load() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        if (!cancelled) { setError('Sign in required.'); setLoading(false) }
+        return
+      }
+      const { data: workspaceId } = await supabase.rpc('current_workspace_id')
+      if (!workspaceId) {
+        if (!cancelled) { setError('No workspace is configured.'); setLoading(false) }
+        return
+      }
+      const { data, error: queryError } = await supabase
+        .from('invoices')
+        .select('id,invoice_number,amount_cents,currency,status,due_at,created_at,lead_id')
+        .eq('workspace_id', workspaceId)
+        .order('created_at', { ascending: false })
+        .limit(100)
+      if (cancelled) return
+      if (queryError) {
+        setError('Invoices could not be loaded.')
         setLoading(false)
-      })
+        return
+      }
+      setInvoices((data ?? []) as Invoice[])
+      setLoading(false)
+    }
+    void load()
     return () => { cancelled = true }
   }, [])
 

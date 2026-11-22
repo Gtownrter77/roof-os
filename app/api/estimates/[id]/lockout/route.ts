@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '../../../../../lib/supabase/server'
 import { canTagEstimateLocks } from '../../../../../lib/estimates/status'
+import { nextLockEntry } from '../../../../../lib/estimates/lockout'
 
 const STEPS = ['self', 'inspector', 'closer', 'operations', 'owner'] as const
 
@@ -51,23 +52,34 @@ export async function POST(
     ? author.approval_sequence.filter((step: unknown) => STEPS.includes(step as typeof STEPS[number]))
     : ['self']
   const tags = Array.isArray(estimate.approval_tags) ? estimate.approval_tags : []
-  const next = sequence[tags.length]
-  if (!next) return NextResponse.json({ error: 'Every lock in the owner sequence is already tagged.' }, { status: 409 })
+  const entry = nextLockEntry(tags, sequence, layer, user.id, new Date().toISOString())
+  if (!entry) return NextResponse.json({ error: 'Every lock in the owner sequence is already tagged, or the recorded sequence is inconsistent.' }, { status: 409 })
+  const next = entry.step
   const allowed = next === 'self' ? layer : next === layer || layer === 'owner' || layer === 'admin'
   if (!allowed) return NextResponse.json({ error: `The next lock requires ${next}. The owner set this sequence.` }, { status: 403 })
 
-  const tagged = [...tags, { step: next, layer, user_id: user.id, tagged_at: new Date().toISOString() }]
+  const tagged = [...tags, entry]
   const complete = tagged.length >= sequence.length
-  const { error: updateError } = await supabase
+  const updatePayload = {
+    approval_tags: tagged,
+    status: complete ? 'approved' : 'pending_approval',
+    approved_by: complete ? user.id : null,
+    approved_at: complete ? entry.tagged_at : null,
+  }
+  // Optimistic concurrency: two technicians reading the same tag set must not
+  // both append the same step. Condition the write on both values that were
+  // read; if either changed, tell the caller to reload instead of reporting a
+  // successful tag that was never persisted.
+  const base = supabase
     .from('estimates')
-    .update({
-      approval_tags: tagged,
-      status: complete ? 'approved' : 'pending_approval',
-      approved_by: complete ? user.id : null,
-      approved_at: complete ? new Date().toISOString() : null,
-    })
+    .update(updatePayload)
     .eq('id', id)
     .eq('workspace_id', workspaceId)
+    .eq('status', estimate.status)
+  const { data: updated, error: updateError } = Array.isArray(estimate.approval_tags)
+    ? await base.eq('approval_tags', tags).select('id')
+    : await base.is('approval_tags', null).select('id')
   if (updateError) return NextResponse.json({ error: 'Could not tag this lock.', detail: updateError.message }, { status: 502 })
+  if (!updated?.length) return NextResponse.json({ error: 'The lock sequence changed while you were reviewing it. Reload and try again.' }, { status: 409 })
   return NextResponse.json({ sequence, tags: tagged, complete })
 }

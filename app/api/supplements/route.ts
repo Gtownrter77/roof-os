@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '../../../lib/supabase/server'
-import { readJson } from '../../../lib/api-security'
+import { isUuid, readJson } from '../../../lib/api-security'
 
 export async function GET() {
   const supabase = await createClient()
@@ -29,6 +29,19 @@ export async function POST(request: NextRequest) {
   if (!Number.isFinite(cost) || cost < 0) return NextResponse.json({ error: 'Additional cost must be a non-negative number.' }, { status: 400 })
   const urgency = body.urgency ?? 'medium'
   if (!['low','medium','high','critical'].includes(urgency)) return NextResponse.json({ error: 'Invalid urgency.' }, { status: 400 })
+  if (body.leadId !== undefined && body.leadId !== null && !isUuid(body.leadId)) {
+    return NextResponse.json({ error: 'leadId must be a valid UUID.' }, { status: 400 })
+  }
+  if (body.leadId) {
+    const { data: lead, error: leadError } = await supabase
+      .from('leads')
+      .select('id')
+      .eq('id', body.leadId)
+      .eq('workspace_id', workspaceId)
+      .maybeSingle()
+    if (leadError) return NextResponse.json({ error: 'Could not validate lead access.' }, { status: 503 })
+    if (!lead) return NextResponse.json({ error: 'leadId must belong to the active workspace.' }, { status: 400 })
+  }
   const { data, error } = await supabase.from('supplements').insert({ workspace_id: workspaceId, lead_id: body.leadId ?? null, job_address: jobAddress, title, description: body.description?.trim() ?? '', additional_cost: cost, materials: body.materials ?? [], labor_description: body.laborDescription?.trim() ?? null, urgency, evidence: body.evidence ?? {}, created_by: user.id }).select('id,title,status,additional_cost,created_at').single()
   if (error) return NextResponse.json({ error: 'Could not create supplement.', detail: error.message }, { status: 502 })
   return NextResponse.json({ supplement: data, warning: 'Supplement remains needs_review until an authorized user approves it.' }, { status: 201 })

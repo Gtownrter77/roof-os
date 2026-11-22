@@ -150,7 +150,22 @@
     "test:estimate-number-uniqueness": "node --experimental-strip-types --no-warnings scripts/estimate-number-uniqueness-test.mjs",
     "test:estimate-put-contract": "node --experimental-strip-types --no-warnings scripts/estimate-put-contract-test.mjs",
     "test:stripe-webhook": "node --experimental-strip-types --no-warnings scripts/stripe-webhook-contract-test.mjs",
-    "test:lockout-status-guard": "node --experimental-strip-types --no-warnings scripts/lockout-status-guard-test.mjs"
+    "test:lockout-status-guard": "node --experimental-strip-types --no-warnings scripts/lockout-status-guard-test.mjs",
+    "test:photo-approval": "node --experimental-strip-types --no-warnings scripts/photo-approval-contract-test.mjs",
+    "test:warranty-expiry": "node --experimental-strip-types --no-warnings scripts/warranty-expiry-contract-test.mjs",
+    "test:lockout-concurrency": "node --experimental-strip-types --no-warnings scripts/lockout-concurrency-test.mjs",
+    "test:estimate-creation-safety": "node --experimental-strip-types --no-warnings scripts/estimate-creation-safety-test.mjs",
+    "test:field-device-evidence-manifest": "node --experimental-strip-types --no-warnings scripts/field-device-evidence-manifest-test.mjs",
+    "test:workspace-scoping": "node --experimental-strip-types --no-warnings scripts/workspace-scoping-test.mjs",
+    "test:api-contract-safety": "node --experimental-strip-types --no-warnings scripts/api-contract-safety-test.mjs",
+    "test:field-webapp-url": "node --experimental-strip-types --no-warnings scripts/field-webapp-url-test.mjs",
+    "test:web-workspace-scoping": "node --experimental-strip-types --no-warnings scripts/web-workspace-scoping-test.mjs",
+    "test:payment-link-idempotency": "node --experimental-strip-types --no-warnings scripts/payment-link-idempotency-test.mjs",
+    "test:claims-provenance": "node --experimental-strip-types --no-warnings scripts/claims-provenance-test.mjs",
+    "test:secret-scan": "node scripts/secret-scan-test.mjs",
+    "test:drone-url-validation": "node --experimental-strip-types --no-warnings scripts/drone-url-validation-test.mjs",
+    "test:literal-newline": "node scripts/literal-newline-test.mjs",
+    "test:live-release-preflight": "node scripts/live-release-preflight-test.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.2",

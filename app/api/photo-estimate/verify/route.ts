@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '../../../../lib/supabase/server'
 import { isUuid, readJson } from '../../../../lib/api-security'
 import { calculateRoofSquares } from '../../../../lib/estimates/verified-photo-workflow.mjs'
+import { clearStaleManagerApproval } from '../../../../lib/estimates/photo-approval'
 
 type VerifyBody = {
   action?: 'verify' | 'refresh'
@@ -52,14 +53,14 @@ export async function PATCH(request: NextRequest) {
   const now = new Date().toISOString()
   if (action === 'refresh') {
     const reason = body.notes?.trim() || null
-    const report = {
+    const report = clearStaleManagerApproval({
       ...(workflow.report ?? {}),
       photoRefreshRequest: { requestedBy: user.id, requestedAt: now, reason },
-      status: 'photo_refresh_requested',
-    }
+    })
+    report.status = 'photo_refresh_requested'
     const { data: updated, error: updateError } = await supabase
       .from('photo_estimate_workflows')
-      .update({ status: 'photo_refresh_requested', refresh_requested_by: user.id, refresh_requested_at: now, refresh_reason: reason, report, updated_at: now })
+      .update({ status: 'photo_refresh_requested', refresh_requested_by: user.id, refresh_requested_at: now, refresh_reason: reason, report, manager_approved_by: null, manager_approved_at: null, manager_approval_name: null, manager_approval_signature: null, updated_at: now })
       .eq('id', workflowId)
       .eq('workspace_id', workspaceId)
       .select('id,status,report,refresh_requested_by,refresh_requested_at,refresh_reason,updated_at')
@@ -118,10 +119,12 @@ export async function PATCH(request: NextRequest) {
     notes: body.notes?.trim() || null,
     decision: 'verified_by_technician',
   }
-  const report = { ...(workflow.report ?? {}), technicianVerification: verification, status: 'approved_for_customer_packet' }
+  // New measurements invalidate any manager approval (and any report) captured
+  // against the previous verification. The manager must sign again.
+  const report = clearStaleManagerApproval({ ...(workflow.report ?? {}), technicianVerification: verification })
   const { data: updated, error: updateError } = await supabase
     .from('photo_estimate_workflows')
-    .update({ status: 'approved', roof_squares: fieldSquares, gutter_lf: verifiedGutterLf, soffit_width_ft: soffitWidthFt, soffit_lf: eaveLf, fascia_width_ft: fasciaWidthFt, fascia_lf: eaveLf, report, approved_by: user.id, approved_at: now, ...(technicianName ? { technician_name: technicianName } : {}), ...(technicianLicense ? { technician_license: technicianLicense } : {}), ...(technicianSignature ? { technician_signature: technicianSignature } : {}), updated_at: now })
+    .update({ status: 'approved', roof_squares: fieldSquares, gutter_lf: verifiedGutterLf, soffit_width_ft: soffitWidthFt, soffit_lf: eaveLf, fascia_width_ft: fasciaWidthFt, fascia_lf: eaveLf, report, approved_by: user.id, approved_at: now, manager_approved_by: null, manager_approved_at: null, manager_approval_name: null, manager_approval_signature: null, ...(technicianName ? { technician_name: technicianName } : {}), ...(technicianLicense ? { technician_license: technicianLicense } : {}), ...(technicianSignature ? { technician_signature: technicianSignature } : {}), updated_at: now })
     .eq('id', workflowId)
     .eq('workspace_id', workspaceId)
     .select('id,status,roof_squares,gutter_lf,soffit_width_ft,soffit_lf,fascia_width_ft,fascia_lf,report,approved_by,approved_at,updated_at')

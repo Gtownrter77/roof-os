@@ -24,8 +24,8 @@ for (const marker of ['runLlamaAgentJson', 'model_assistance', 'deterministic: t
 }
 assert.ok(!inspection.includes('XAI_API_KEY'), 'Inspection worker must not read a hosted chat key')
 assert.ok(receptionist.includes('askOllamaJson'), 'Receptionist must use the local Ollama adapter')
-assert.ok(copilot.includes("import { askOllama } from './ollama.ts'"), 'Copilot must use the local Ollama adapter')
-assert.ok(!copilot.includes('api.x.ai'), 'Copilot must not call a hosted chat API')
+assert.ok(copilot.includes('ROOF_OS_NAVIGATION_MAP'), 'Copilot must use the deterministic local navigation map')
+assert.ok(!/askOllama|api\.x\.ai|XAI_API_KEY/.test(copilot), 'Copilot must not depend on any model client or hosted chat key')
 assert.ok(env.includes('LLAMA_AGENT_ENABLED=false'), 'Llama agent feature flag must default to disabled')
 assert.ok(!env.includes('XAI_API_KEY'), '.env.example must not document a hosted chat key')
 assert.ok(policy.includes('does not call a hosted chat API'), 'Policy must keep text AI on the open stack')

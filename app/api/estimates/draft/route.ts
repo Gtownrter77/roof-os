@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getApprovedPhotoWorkflowQuantities } from '../../../../lib/estimates/verified-photo-workflow.mjs'
 import { isUuid, readJson, requireWorkspaceMember } from '../../../../lib/api-security'
 import { createClient } from '../../../../lib/supabase/server'
+import { isTechnicianSignature } from '../../../../lib/reports/golden-report.mjs'
+import { hasValidManagerApproval } from '../../../../lib/estimates/photo-approval'
 
 type DraftBody = {
   workspaceId?: string
@@ -48,8 +50,8 @@ export async function POST(request: NextRequest) {
     .maybeSingle()
   if (workflowError) return NextResponse.json({ error: 'Could not load the photo-estimate workflow.' }, { status: 503 })
   if (!workflow) return NextResponse.json({ error: 'Photo-estimate workflow not found in this workspace.' }, { status: 404 })
-  if (!workflow.manager_approved_by || !workflow.manager_approved_at || !workflow.manager_approval_name?.trim() || !workflow.manager_approval_signature?.trim()) {
-    return NextResponse.json({ error: 'Manager approval is required before creating an estimate review packet.' }, { status: 409 })
+  if (!hasValidManagerApproval(workflow, isTechnicianSignature)) {
+    return NextResponse.json({ error: 'A current owner or manager approval is required before creating an estimate review packet.' }, { status: 409 })
   }
 
   const approved = getApprovedPhotoWorkflowQuantities(workflow)

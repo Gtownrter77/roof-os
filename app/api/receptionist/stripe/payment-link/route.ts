@@ -3,6 +3,8 @@ import Stripe from 'stripe'
 import { createClient } from '../../../../../lib/supabase/server'
 import { readJson } from '../../../../../lib/read-json'
 import { loadWorkspaceSettings } from '../../../../../lib/workspace-settings'
+import { isUuid } from '../../../../../lib/api-security'
+import { paymentLinkReuse, stripeIdempotencyKey } from '../../../../../lib/billing/payment-link-safety'
 
 const STRIPE_MAX_LINK_WINDOW_SECONDS = 24 * 60 * 60
 
@@ -23,21 +25,24 @@ export async function POST(request: NextRequest) {
   const parsed = await readJson(request)
   if ('error' in parsed) return NextResponse.json({ error: parsed.error }, { status: parsed.status })
   const body = parsed.body as { invoiceId?: string; idempotencyKey?: string }
-  if (!body.invoiceId || !body.idempotencyKey) return NextResponse.json({ error: 'invoiceId and idempotencyKey are required.' }, { status: 400 })
+  if (!isUuid(body.invoiceId) || !body.idempotencyKey) return NextResponse.json({ error: 'invoiceId and idempotencyKey are required.' }, { status: 400 })
 
   const { data: existing, error: existingError } = await supabase
     .from('receptionist_payment_links')
-    .select('id,url,status,provider_link_id,amount_cents,currency,expires_at')
+    .select('id,invoice_id,url,status,provider_link_id,amount_cents,currency,expires_at')
     .eq('workspace_id', workspaceId)
     .eq('idempotency_key', body.idempotencyKey)
     .maybeSingle()
   if (existingError) return NextResponse.json({ error: 'Could not check the payment-link ledger.' }, { status: 503 })
-  if (existing) {
-    const settings = await loadWorkspaceSettings(supabase, workspaceId)
-    if (settings.enforce_stripe_24hr_link_expiration && existing.expires_at && new Date(existing.expires_at).getTime() <= Date.now()) {
-      await supabase.from('receptionist_payment_links').update({ status: 'expired', updated_at: new Date().toISOString() }).eq('id', existing.id).eq('workspace_id', workspaceId)
-      return NextResponse.json({ error: 'That payment link expired. Create a new link for this invoice.' }, { status: 409 })
-    }
+  const reuse = paymentLinkReuse(existing, body.invoiceId, new Date().toISOString())
+  if (reuse === 'mismatch') {
+    return NextResponse.json({ error: 'That idempotency key belongs to a different invoice.' }, { status: 409 })
+  }
+  if (reuse === 'expired') {
+    if (existing) await supabase.from('receptionist_payment_links').update({ status: 'expired', updated_at: new Date().toISOString() }).eq('id', existing.id).eq('workspace_id', workspaceId)
+    return NextResponse.json({ error: 'That payment link expired. Create a new link for this invoice.' }, { status: 409 })
+  }
+  if (reuse === 'reuse') {
     return NextResponse.json({ paymentLink: existing, reused: true })
   }
 
@@ -63,7 +68,7 @@ export async function POST(request: NextRequest) {
     cancel_url: `${appUrl}/payment?status=cancelled`,
     customer_creation: 'always',
     metadata: { workspace_id: workspaceId, invoice_id: invoice.id, lead_id: invoice.lead_id || '' },
-  }, { idempotencyKey: body.idempotencyKey })
+  }, { idempotencyKey: stripeIdempotencyKey(workspaceId, invoice.id, body.idempotencyKey) })
   if (!session.url) return NextResponse.json({ error: 'Stripe did not return a hosted payment URL.' }, { status: 502 })
 
   const { data: paymentLink, error: saveError } = await supabase
@@ -84,6 +89,22 @@ export async function POST(request: NextRequest) {
     })
     .select('id,url,status,provider_link_id,amount_cents,currency,expires_at')
     .single()
-  if (saveError) return NextResponse.json({ error: 'Could not persist the Stripe payment link.', detail: saveError.message }, { status: 502 })
+  if (saveError) {
+    // The unique key is the real idempotency authority. A concurrent request
+    // may have inserted first; replay from the ledger instead of failing.
+    if ((saveError as { code?: string }).code === '23505') {
+      const { data: winner } = await supabase
+        .from('receptionist_payment_links')
+        .select('id,invoice_id,url,status,provider_link_id,amount_cents,currency,expires_at')
+        .eq('workspace_id', workspaceId)
+        .eq('idempotency_key', body.idempotencyKey)
+        .maybeSingle()
+      if (winner && winner.invoice_id === body.invoiceId) {
+        return NextResponse.json({ paymentLink: winner, reused: true })
+      }
+      return NextResponse.json({ error: 'That idempotency key belongs to a different invoice.' }, { status: 409 })
+    }
+    return NextResponse.json({ error: 'Could not persist the Stripe payment link.', detail: saveError.message }, { status: 502 })
+  }
   return NextResponse.json({ paymentLink })
 }
