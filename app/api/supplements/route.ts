@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '../../../lib/supabase/server'
 import { isUuid, readJson } from '../../../lib/api-security'
+import { allowedSupplementTransition } from '../../../lib/supplement-workflow'
 
 export async function GET() {
   const supabase = await createClient()
@@ -25,8 +26,14 @@ export async function POST(request: NextRequest) {
   const title = body.title?.trim() ?? ''
   const jobAddress = body.jobAddress?.trim() ?? ''
   if (!title || !jobAddress) return NextResponse.json({ error: 'Job address and supplement title are required.' }, { status: 400 })
+  const MAX_SUPPLEMENT_COST = 1_000_000
   const cost = Number(body.additionalCost ?? 0)
-  if (!Number.isFinite(cost) || cost < 0) return NextResponse.json({ error: 'Additional cost must be a non-negative number.' }, { status: 400 })
+  // Reject coerced non-numbers (Number(true)===1, Number('')===0) and cap the
+  // magnitude so a wrong client cannot overflow the numeric column.
+  if (body.additionalCost !== undefined && typeof body.additionalCost !== 'number') {
+    return NextResponse.json({ error: 'Additional cost must be a number.' }, { status: 400 })
+  }
+  if (!Number.isFinite(cost) || cost < 0 || cost > MAX_SUPPLEMENT_COST) return NextResponse.json({ error: 'Additional cost must be a non-negative number within the allowed limit.' }, { status: 400 })
   const urgency = body.urgency ?? 'medium'
   if (!['low','medium','high','critical'].includes(urgency)) return NextResponse.json({ error: 'Invalid urgency.' }, { status: 400 })
   if (body.leadId !== undefined && body.leadId !== null && !isUuid(body.leadId)) {
@@ -58,8 +65,19 @@ export async function PATCH(request: NextRequest) {
   const parsedBody = await readJson(request)
   if ('error' in parsedBody) return NextResponse.json({ error: parsedBody.error }, { status: parsedBody.status })
   const body = parsedBody.body as { id?: string; status?: string }
-  if (!body.id || !['approved','rejected','needs_review'].includes(body.status ?? '')) return NextResponse.json({ error: 'A valid supplement id and status are required.' }, { status: 400 })
-  const { data, error } = await supabase.from('supplements').update({ status: body.status, reviewed_by: body.status === 'needs_review' ? null : user.id, reviewed_at: body.status === 'needs_review' ? null : new Date().toISOString(), updated_at: new Date().toISOString() }).eq('id', body.id).eq('workspace_id', workspaceId).select('id,status,reviewed_at').single()
+  const target = body.status ?? ''
+  if (!body.id || !isUuid(body.id) || !['approved', 'rejected', 'needs_review'].includes(target)) return NextResponse.json({ error: 'A valid supplement id and status are required.' }, { status: 400 })
+  const { data: existing, error: existingError } = await supabase.from('supplements').select('id,status').eq('id', body.id).eq('workspace_id', workspaceId).maybeSingle()
+  if (existingError) return NextResponse.json({ error: 'Could not load the supplement.', detail: existingError.message }, { status: 502 })
+  if (!existing) return NextResponse.json({ error: 'Supplement not found.' }, { status: 404 })
+  if (!allowedSupplementTransition(existing.status, target)) {
+    return NextResponse.json({ error: `A supplement in ${existing.status} cannot be moved to ${target}.` }, { status: 409 })
+  }
+  // maybeSingle(): a 0-row CAS miss is a lost review race, not a DB error —
+  // it must reach the 409 branch below instead of surfacing as a 502 via
+  // PostgREST's PGRST116 for .single(). A genuine error still returns 502.
+  const { data, error } = await supabase.from('supplements').update({ status: target, reviewed_by: target === 'needs_review' ? null : user.id, reviewed_at: target === 'needs_review' ? null : new Date().toISOString(), updated_at: new Date().toISOString() }).eq('id', body.id).eq('workspace_id', workspaceId).eq('status', existing.status).select('id,status,reviewed_at').maybeSingle()
   if (error) return NextResponse.json({ error: 'Could not update supplement.', detail: error.message }, { status: 502 })
+  if (!data) return NextResponse.json({ error: 'The supplement status changed while this review was in progress.' }, { status: 409 })
   return NextResponse.json({ supplement: data })
 }

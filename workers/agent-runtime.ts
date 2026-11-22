@@ -1,4 +1,5 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js'
+import { isStaleRunning } from '../lib/agent-runtime-recovery'
 
 type AgentKey = 'intake_router' | 'scheduler' | 'inspection_quality' | 'office_copilot'
 type AgentStatus = 'queued' | 'running' | 'succeeded' | 'failed' | 'needs_review' | 'skipped'
@@ -26,20 +27,45 @@ export function createAgentRuntime(config: RuntimeConfig) {
     if (workspaceError) throw workspaceError
     if (!workspace) throw new Error(`Unknown workspace: ${event.workspaceId}`)
     const base = { workspace_id: event.workspaceId, agent_key: event.agentKey, event_key: event.eventKey, trigger: event.trigger, input_reference: event.inputReference }
-    const { data: existing } = await supabase.from('agent_runs').select('id,status,output,attempt').match({ workspace_id: event.workspaceId, agent_key: event.agentKey, event_key: event.eventKey }).maybeSingle()
+    const { data: existing, error: existingError } = await supabase.from('agent_runs').select('id,status,output,attempt,started_at').match({ workspace_id: event.workspaceId, agent_key: event.agentKey, event_key: event.eventKey }).maybeSingle()
+    if (existingError) throw existingError
     if (existing?.status === 'succeeded' || existing?.status === 'needs_review') return existing
-    if (existing?.status === 'running') return existing
+    // A live run is an idempotency guard; an orphaned run must not wedge the
+    // event key forever. Re-claim only inside the bounded staleness window.
+    if (existing?.status === 'running' && !isStaleRunning(existing.started_at, Date.now())) return existing
+    const now = new Date().toISOString()
 
     let started: { id: string } | null = null
     if (existing) {
-      const { data, error } = await supabase.from('agent_runs').update({ status: 'running', started_at: new Date().toISOString(), attempt: (existing.attempt ?? 1) + 1 }).eq('id', existing.id).eq('status', existing.status).select('id').maybeSingle()
+      let claim = supabase
+        .from('agent_runs')
+        .update({ status: 'running', started_at: now, attempt: (existing.attempt ?? 1) + 1 })
+        .eq('id', existing.id)
+      if (existing.status === 'running') {
+        // Optimistic re-claim: if a competing reclaimer changed the start
+        // token between our SELECT and UPDATE, its claim wins and our UPDATE
+        // affects no rows (line 63 returns the existing row). Never steal a
+        // run we did not observe.
+        claim = claim.eq('status', 'running')
+        claim = existing.started_at ? claim.eq('started_at', existing.started_at) : claim.is('started_at', null)
+      } else {
+        claim = claim.eq('status', existing.status)
+      }
+      const { data, error } = await claim.select('id').maybeSingle()
       if (error) throw error
       started = data
     } else {
-      const { data, error } = await supabase.from('agent_runs').insert({ ...base, status: 'running', started_at: new Date().toISOString(), attempt: 1 }).select('id').maybeSingle()
+      const { data, error } = await supabase.from('agent_runs').insert({ ...base, status: 'running', started_at: now, attempt: 1 }).select('id').maybeSingle()
       if (error && error.code !== '23505') throw error
       if (!data) {
-        const { data: claimed } = await supabase.from('agent_runs').select('id,status,output,attempt').match({ workspace_id: event.workspaceId, agent_key: event.agentKey, event_key: event.eventKey }).maybeSingle()
+        const { data: claimed, error: claimError } = await supabase.from('agent_runs').select('id,status,output,attempt,started_at').match({ workspace_id: event.workspaceId, agent_key: event.agentKey, event_key: event.eventKey }).maybeSingle()
+        if (claimError) throw claimError
+        // A 23505 means another worker owns this event key. Only hand back a
+        // terminal-success row; a running/failed row must surface as an error
+        // so callers never mistake lost or unfinished work for a finished run.
+        if (!claimed || !['succeeded', 'needs_review'].includes(claimed.status)) {
+          throw new Error(`Event key claimed by an incomplete run: ${event.eventKey}`)
+        }
         return claimed
       }
       started = data
@@ -53,10 +79,18 @@ export function createAgentRuntime(config: RuntimeConfig) {
       return data
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown worker error'
-      await supabase.from('agent_runs').update({ status: 'failed', error_message: errorMessage, finished_at: new Date().toISOString() }).eq('id', started.id)
+      const { data: failedRows, error: failureWriteError } = await supabase
+        .from('agent_runs')
+        .update({ status: 'failed', error_message: errorMessage, finished_at: new Date().toISOString() })
+        .eq('id', started.id)
+        .select('id')
+      if (failureWriteError || !failedRows?.length) {
+        throw new Error(`Agent run ${started.id} could not be recorded as failed after ${errorMessage}: ${failureWriteError?.message ?? 'no rows affected'}`)
+      }
       if (config.reviewTaskCreatorId) {
         const leadId = typeof event.inputReference.lead_id === 'string' ? event.inputReference.lead_id : null
-        await supabase.from('tasks').insert({ workspace_id: event.workspaceId, lead_id: leadId, title: `Review failed ${event.agentKey} run`, notes: `${errorMessage} (event ${event.eventKey})`, assigned_to: config.reviewTaskCreatorId, created_by: config.reviewTaskCreatorId, status: 'open' })
+        const { error: taskError } = await supabase.from('tasks').insert({ workspace_id: event.workspaceId, lead_id: leadId, title: `Review failed ${event.agentKey} run`, notes: `${errorMessage} (event ${event.eventKey})`, assigned_to: config.reviewTaskCreatorId, created_by: config.reviewTaskCreatorId, status: 'open' })
+        if (taskError) throw new Error(`Review task for failed ${event.agentKey} run could not be created: ${taskError.message}`)
       }
       throw error
     }

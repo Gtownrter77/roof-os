@@ -58,26 +58,75 @@ for (const doc of ['README.md', 'DEPLOYMENT.md']) {
 }
 assert.match(ci, /test -f supabase\/migrations\/110_release_job_safety_hold\.sql/, 'CI must assert the head migration exists')
 
-// 60: registered security gates that were never run anywhere must now be
-// present in at least one workflow, and new batch-6 gates must be registered.
+// 60/82: derive the complete registered test:* gate set from package.json —
+// no hand-maintained per-batch arrays that silently rot. The derivation is:
+//   * a gate is normally wired by an EXACT `npm run <gate>` step (boundary-aware
+//     name matching, so a longer sibling name cannot satisfy it);
+//   * a small documented waiver set covers gates invoked by an exact direct
+//     command (`node scripts/...`) or by an exact command inside a composite
+//     script (`npm run release-check`). Matching the EXACT command body, never
+//     merely "the same script file appears somewhere", prevents an unwired new
+//     gate from riding on another gate's file reference.
 const allWorkflows = readdirSync('.github/workflows')
   .filter((name) => name.endsWith('.yml') || name.endsWith('.yaml'))
   .map((name) => readFileSync('.github/workflows/' + name, 'utf8'))
   .join('\n')
-const previouslyUnwired = [
+const pkg = JSON.parse(readFileSync('package.json', 'utf8'))
+// Both step forms occur in this repository: `- run: cmd` and `- name: ...`
+// followed by an indented `run: cmd`. Capture both, ignoring block scalars.
+const workflowCommands = [...allWorkflows.matchAll(/^\s*(?:-\s*)?run:\s*(.+)$/gm)]
+  .map((match) => match[1].trim())
+  .filter((command) => command && !command.startsWith('|') && !command.startsWith('>'))
+const splitCommands = (command) => String(command).split(/\s*&&\s*/).map((part) => part.trim()).filter(Boolean)
+const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
+// Every command that CI actually executes, including commands expanded from
+// composite scripts invoked by name (one level is enough for this repository).
+const executedCommands = new Set()
+for (const command of workflowCommands) {
+  for (const part of splitCommands(command)) executedCommands.add(part)
+  const npmRun = command.match(/npm run ([\w:-]+)/)
+  if (npmRun && pkg.scripts[npmRun[1]]) {
+    for (const part of splitCommands(pkg.scripts[npmRun[1]])) executedCommands.add(part)
+  }
+}
+const wiredByName = (gate) => workflowCommands.some((command) => new RegExp('npm run\\s+' + escapeRegExp(gate) + '(?![\\w:-])').test(command))
+const wiredByExactCommand = (gate) => executedCommands.has(pkg.scripts[gate])
+
+// The aggregator is a documented recursion waiver (finding 79) — it runs the
+// whole registry rather than being a standalone gate invoked by a workflow.
+const gateWaivers = new Set(['test:all'])
+// Gates wired by an exact direct/composite command rather than `npm run <name>`.
+const directInvocationWaivers = new Set([
+  'test:mobile-apk-provenance', 'test:security-definer-triggers', 'test:mobile-local-db-migrations',
+  'test:passport-rate-limit-privacy', 'test:security-definer-search-path', 'test:passport-rate-limit-rls',
+  'test:parallel-anonymous', 'test:release-foreman', 'test:worker-heartbeat-runtime',
+])
+for (const gate of [...gateWaivers, ...directInvocationWaivers]) {
+  assert.ok(pkg.scripts[gate], 'waived gate must still be registered: ' + gate)
+}
+// Established-gate floor (findings 1–80): the derivation above covers the CURRENT
+// registry but cannot notice a gate deleted from every manifest at once. Keep
+// the previously-required set as a floor, always registered and wired.
+const establishedGates = [
   'test:field-cors', 'test:performance', 'test:phase-0-register', 'test:frontend-route-integrity',
   'test:supabase-client-stability', 'test:llama-agent', 'test:camera-audio',
-  'test:passport-public-share', 'test:passport-public-link',
-  'test:contractoros-control-plane', 'test:contractoros-writers', 'test:contractoros-authority',
-  'test:claims-provenance', 'test:secret-scan', 'test:drone-url-validation',
-  'test:literal-newline', 'test:live-release-preflight',
+  'test:passport-public-share', 'test:passport-public-link', 'test:contractoros-control-plane',
+  'test:contractoros-writers', 'test:contractoros-authority', 'test:claims-provenance',
+  'test:secret-scan', 'test:drone-url-validation', 'test:literal-newline', 'test:live-release-preflight',
+  'test:agent-action-recovery', 'test:release-check-auth-marker', 'test:provider-error-sanitization',
+  'test:web-error-recovery', 'test:agent-runtime-recovery', 'test:action-batch-binding',
+  'test:supplement-workflow-safety', 'test:test-all-coverage',
 ]
-for (const gate of previouslyUnwired) {
-  assert.ok(allWorkflows.includes('npm run ' + gate), 'registered gate must be wired into CI: ' + gate)
+const registeredTestGates = Object.keys(pkg.scripts).filter((name) => name.startsWith('test:'))
+for (const gate of establishedGates) {
+  assert.ok(pkg.scripts[gate], 'established gate must remain registered: ' + gate)
 }
-const pkg = JSON.parse(readFileSync('package.json', 'utf8'))
-for (const gate of previouslyUnwired) {
-  assert.ok(pkg.scripts[gate], 'gate must be registered in package.json: ' + gate)
+for (const gate of registeredTestGates) {
+  assert.ok(typeof pkg.scripts[gate] === 'string' && pkg.scripts[gate].trim(), 'gate must have a command: ' + gate)
+  if (gateWaivers.has(gate)) continue
+  const wired = wiredByName(gate) || (directInvocationWaivers.has(gate) && wiredByExactCommand(gate))
+  assert.ok(wired, 'registered gate must be wired into CI (exact name or documented direct command): ' + gate)
 }
 
 // The legacy inline-secret grep must exclude the maintained scanner's fake

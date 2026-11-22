@@ -35,7 +35,16 @@ export default function VoiceAI() {
     }
     setIsListening(true)
     setResponse('Recording. Local Whisper transcribes when you stop.')
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+    let stream: MediaStream
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+    } catch {
+      // A denied permission or missing device must not disable the mic button
+      // forever on "Recording…".
+      setIsListening(false)
+      setResponse('Microphone access was denied or unavailable. Check browser permissions and try again.')
+      return
+    }
     const recorder = new MediaRecorder(stream)
     const chunks: Blob[] = []
     recorder.ondataavailable = (event) => {

@@ -276,11 +276,16 @@ export async function POST(request: NextRequest) {
   if (updateError || !updated) return jsonError('The report could not be saved.', 502)
 
   if (row.lead_id) {
-    await supabase
+    // Only leads still in the pre-report stages move to report_pending. A
+    // failed write must surface: the report is already committed, so a silent
+    // failure here leaves the lead workflow stuck with no retry signal.
+    const { error: leadError } = await supabase
       .from('leads')
       .update({ status: 'report_pending', updated_at: generatedAt })
       .eq('id', row.lead_id)
       .eq('workspace_id', workspaceId)
+      .in('status', ['new', 'assigned', 'qualified', 'inspection_scheduled', 'inspected'])
+    if (leadError) return jsonError('The report was saved but the linked lead could not be updated.', 502)
   }
 
   return NextResponse.json({ workflow: updated, report: fullReport, warning: 'This report is a draft. It is not ready for homeowner delivery until unknown facts are resolved, a technician signs it, and an owner or manager approves it.' })

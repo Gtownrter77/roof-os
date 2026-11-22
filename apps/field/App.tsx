@@ -331,7 +331,7 @@ export default function App() {
         const cached = await readCachedFieldWorkspace()
         if (cached?.userId === session.user.id && cached.workspaceId) workspaceRef.current = cached.workspaceId
         await loadFieldData()
-      })()
+      })().catch((loadError) => setError(loadError instanceof Error ? loadError.message : 'Could not load field data.'))
     }
   }, [session])
 
@@ -486,19 +486,29 @@ export default function App() {
 
   async function loadFieldData() {
     if (!supabase || !session) return
-    const { data: workspaceId, error: workspaceError } = await supabase.rpc('current_workspace_id')
-    if (workspaceError || !workspaceId) return
-    workspaceRef.current = workspaceId
-    void cacheFieldWorkspace(session.user.id, workspaceId)
-    const [leadResult, appointmentResult, taskResult] = await Promise.all([
-      supabase.from('leads').select('id,name,address,status').eq('workspace_id', workspaceId).order('updated_at', { ascending: false }).limit(50),
-      supabase.from('appointments').select('id,title,starts_at,location,status').eq('workspace_id', workspaceId).neq('status', 'cancelled').order('starts_at', { ascending: true }).limit(20),
-      supabase.from('tasks').select('id,title,due_at,status').eq('workspace_id', workspaceId).eq('status', 'open').order('due_at', { ascending: true }).limit(20),
-    ])
-    if (!leadResult.error) setLeads((leadResult.data ?? []) as Lead[])
-    const appointments: AgendaItem[] = (appointmentResult.data ?? []).map((item) => ({ id: item.id, kind: 'appointment', title: item.title, startsAt: item.starts_at, location: item.location, status: item.status }))
-    const tasks: AgendaItem[] = (taskResult.data ?? []).map((item) => ({ id: item.id, kind: 'task', title: item.title, startsAt: item.due_at, location: null, status: item.status }))
-    setAgenda([...appointments, ...tasks].sort((a, b) => (a.startsAt ?? '').localeCompare(b.startsAt ?? '')).slice(0, 8))
+    try {
+      const { data: workspaceId, error: workspaceError } = await supabase.rpc('current_workspace_id')
+      if (workspaceError || !workspaceId) return
+      workspaceRef.current = workspaceId
+      void cacheFieldWorkspace(session.user.id, workspaceId)
+      const [leadResult, appointmentResult, taskResult] = await Promise.all([
+        supabase.from('leads').select('id,name,address,status').eq('workspace_id', workspaceId).order('updated_at', { ascending: false }).limit(50),
+        supabase.from('appointments').select('id,title,starts_at,location,status').eq('workspace_id', workspaceId).neq('status', 'cancelled').order('starts_at', { ascending: true }).limit(20),
+        supabase.from('tasks').select('id,title,due_at,status').eq('workspace_id', workspaceId).eq('status', 'open').order('due_at', { ascending: true }).limit(20),
+      ])
+      if (!leadResult.error) setLeads((leadResult.data ?? []) as Lead[])
+      // A partial query failure returns null data. Never map that to an empty
+      // agenda and silently present stale work as complete.
+      if (leadResult.error || appointmentResult.error || taskResult.error) {
+        setError('Some field data could not be refreshed. Showing the last available agenda.')
+        return
+      }
+      const appointments: AgendaItem[] = (appointmentResult.data ?? []).map((item) => ({ id: item.id, kind: 'appointment', title: item.title, startsAt: item.starts_at, location: item.location, status: item.status }))
+      const tasks: AgendaItem[] = (taskResult.data ?? []).map((item) => ({ id: item.id, kind: 'task', title: item.title, startsAt: item.due_at, location: null, status: item.status }))
+      setAgenda([...appointments, ...tasks].sort((a, b) => (a.startsAt ?? '').localeCompare(b.startsAt ?? '')).slice(0, 8))
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : 'Could not refresh field data.')
+    }
   }
 
   function saveDraft(

@@ -60,8 +60,12 @@ export async function persistActionBatch(
     .select('id,batch_id,sequence,kind,status,risk_level,requires_approval,idempotency_key,payload_hash')
     .order('sequence', { ascending: true })
   if (actionError || !insertedActions) {
-    await supabase.from('agent_action_batches').delete().eq('id', batch.id)
-    throw actionError ?? new Error('Action batch actions were not created')
+    const { error: rollbackError } = await supabase.from('agent_action_batches').delete().eq('id', batch.id)
+    throw new Error(
+      rollbackError
+        ? `Orphan action batch ${batch.id} could not be deleted after the action insert failed: ${rollbackError.message}`
+        : actionError?.message ?? 'Action batch actions were not created'
+    )
   }
   return { batch, actions: insertedActions, requiresApproval: checked.requiresApproval, riskLevel: checked.riskLevel }
 }

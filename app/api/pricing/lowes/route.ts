@@ -3,6 +3,7 @@ import { createClient } from '../../../../lib/supabase/server'
 import { getLowesAccessToken, LOWES_PRODUCT_SEARCH_URL } from '../../../../lib/lowes'
 import { fetchWithTimeout, parseProviderBody, requireWorkspaceMember } from '../../../../lib/api-security'
 import { loadWorkspaceSettings } from '../../../../lib/workspace-settings'
+import { clientSafeProviderError } from '../../../../lib/provider-error-safety'
 
 const MONTHLY_LIMIT = 100
 
@@ -45,7 +46,7 @@ export async function GET(request: NextRequest) {
   if (!reserved) return NextResponse.json({ error: 'Monthly Lowe\'s inquiry limit reached.', limit: MONTHLY_LIMIT }, { status: 429 })
 
   const oauth = await getLowesAccessToken()
-  if (!oauth.token) return NextResponse.json({ error: oauth.error, provider: oauth.provider ?? null }, { status: oauth.status === 401 ? 502 : 503 })
+  if (!oauth.token) return NextResponse.json({ error: oauth.error }, { status: oauth.status === 401 ? 502 : 503 })
 
   const apiUrl = new URL(LOWES_PRODUCT_SEARCH_URL)
   apiUrl.searchParams.set('site', 'LOWES')
@@ -59,7 +60,7 @@ export async function GET(request: NextRequest) {
   const response = await fetchWithTimeout(apiUrl, { headers: { 'X-Client-Id': clientId, Authorization: `Bearer ${oauth.token}`, accept: 'application/json' }, cache: 'no-store' })
   const text = await response.text()
   const result = parseProviderBody(text)
-  if (!response.ok) return NextResponse.json({ error: 'Lowe\'s pricing provider failed.', provider: result }, { status: 502 })
+  if (!response.ok) return NextResponse.json({ error: clientSafeProviderError('lowes-search', response.status) }, { status: 502 })
 
   const { error: cacheError } = await supabase.from('retailer_price_snapshots').insert({ workspace_id: workspaceId, provider: 'lowes', query, zipcode: zipcode ?? null, store_id: storeId ?? null, source_url: apiUrl.toString(), response: result, expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), created_by: user.id })
   if (cacheError) return NextResponse.json({ error: 'Price was retrieved but could not be cached in the workspace ledger.', detail: cacheError.message }, { status: 502 })

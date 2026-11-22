@@ -214,17 +214,18 @@ function CameraInner() {
     setSaving(true)
     setError('')
     setMessage('')
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-    const { data: workspaceId } = await supabase.rpc('current_workspace_id')
-    if (!user || !workspaceId) {
-      setError('Sign in with a workspace before uploading photos.')
-      setSaving(false)
-      return
-    }
-
     try {
+      // Auth and workspace RPC failures must be caught too, otherwise the
+      // button stays disabled on "Uploading…" with no way to retry.
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      const { data: workspaceId } = await supabase.rpc('current_workspace_id')
+      if (!user || !workspaceId) {
+        setError('Sign in with a workspace before uploading photos.')
+        return
+      }
+
       let manualOnlyCount = 0
       const sessionId = await ensureInspection(user.id, workspaceId)
       for (const photo of photos) {
@@ -270,8 +271,9 @@ function CameraInner() {
       setPhotos([])
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Upload failed.')
+    } finally {
+      setSaving(false)
     }
-    setSaving(false)
   }
 
   return (

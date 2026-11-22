@@ -1,26 +1,32 @@
 import { spawnSync } from 'node:child_process'
+import { readFileSync } from 'node:fs'
 
-const commands = [
+const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'))
+
+// 79: this used to be a hand-maintained list of 16 gates while package.json
+// registered 155, yet printed PASS. Derive the list from the registry so a new
+// security gate cannot silently rot, and require every omission to be justified.
+const WAIVED = {
+  'test:all': 'Recursive entry point: this script is the gate being verified.',
+  'test:runtime-smoke': 'Needs a built .next/static and a running production server; required CI runs it after `npm run build`.',
+  'test:two-workspace-isolation': 'Needs ROOF_RLS_TEST_NONPROD=true and a real non-production Supabase project; never point it at production.',
+}
+
+const extraChecks = [
   ['typecheck', 'npm', ['run', 'typecheck']],
   ['dependency audit', 'npm', ['audit', '--omit=dev', '--audit-level=moderate']],
   ['release check', 'npm', ['run', 'release-check']],
   ['security check', 'npm', ['run', 'verify:security']],
-  ['API security', 'npm', ['run', 'test:api-security']],
-  ['auth flow', 'npm', ['run', 'test:auth-flow']],
-  ['two-workspace contract', 'npm', ['run', 'test:two-workspace-contract']],
-  ['mobile auth', 'npm', ['run', 'test:mobile-auth']],
-  ['mobile offline sync', 'npm', ['run', 'test:mobile-offline-sync']],
-  ['estimate creation', 'npm', ['run', 'test:estimate-creation-flow']],
-  ['estimate packet manager gate', 'npm', ['run', 'test:estimate-packet-manager-gate']],
-  ['AI chat and transcription', 'npm', ['run', 'test:ai-chat-bar']],
-  ['agent runtime', 'npm', ['run', 'test:agent-runtime']],
-  ['BAILEY onboarding', 'npm', ['run', 'test:bailey-onboarding']],
-  ['BAILEY readiness', 'npm', ['run', 'test:bailey-readiness']],
-  ['roofing workflows', 'npm', ['run', 'test:roofing-workflows']],
-  ['roofing automation and wizard sync', 'npm', ['run', 'test:roofing-automations']],
-  ['roofing precision and multiple planes', 'npm', ['run', 'test:roofing-precision']],
-  ['release evidence', 'npm', ['run', 'test:release-evidence']],
 ]
+const gates = Object.keys(pkg.scripts)
+  .filter((name) => name.startsWith('test:') && !(name in WAIVED))
+  .sort()
+const commands = [...extraChecks, ...gates.map((name) => [name, 'npm', ['run', name]])]
+
+if (process.argv.includes('--list')) {
+  console.log(JSON.stringify({ commands: gates, waived: WAIVED, extraChecks: extraChecks.length }))
+  process.exit(0)
+}
 
 for (const [label, command, args] of commands) {
   console.log(`\n[test-all] ${label}`)
@@ -30,4 +36,4 @@ for (const [label, command, args] of commands) {
     process.exit(result.status ?? 1)
   }
 }
-console.log('\n[test-all] PASS')
+console.log(`\n[test-all] PASS (${gates.length} registered gates + ${extraChecks.length} build/release checks)`)

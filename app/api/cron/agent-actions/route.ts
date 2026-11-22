@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '../../../../lib/supabase/admin'
-import { executeApprovedBatch } from '../../../../workers/action-executor'
+import { executeApprovedBatch, requeueStaleExecutingBatches } from '../../../../workers/action-executor'
 import { writeWorkerHeartbeats } from '../../../../workers/heartbeat'
 import { enabledAutomationWorkspaces } from '../../../../lib/agents/cron-backlog'
 
@@ -9,6 +9,16 @@ export async function POST(request: NextRequest) {
   const supplied = request.headers.get('authorization')?.replace(/^Bearer\s+/i, '')
   if (!secret || supplied !== secret) return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 })
   const admin = createAdminClient()
+  const failures: Array<{ batchId: string; error: string }> = []
+  // A crashed worker can leave a batch `executing` with no owner. Replay is safe
+  // (task creation is automation_key-keyed; owner assignment is value-idempotent),
+  // so reset only bounded, stale claims. Housekeeping is best-effort: a DB error
+  // here must not skip every approved batch.
+  try {
+    await requeueStaleExecutingBatches(admin)
+  } catch (reaperError) {
+    failures.push({ batchId: 'reaper', error: reaperError instanceof Error ? reaperError.message : 'Unknown stale-batch reaper error' })
+  }
   const { data: batches, error } = await admin
     .from('agent_action_batches')
     .select('id,workspace_id')
@@ -25,13 +35,13 @@ export async function POST(request: NextRequest) {
   let executed = 0
   let failed = 0
   let skipped = 0
-  const failures: Array<{ batchId: string; error: string }> = []
   for (const batch of batches ?? []) {
     try {
       const result = await executeApprovedBatch(admin, batch.id)
       executed += result.executed
       failed += result.failed
       skipped += result.skipped
+      failures.push(...result.failures.map((error) => ({ batchId: batch.id, error })))
     } catch (workerError) {
       failed += 1
       failures.push({ batchId: batch.id, error: workerError instanceof Error ? workerError.message : 'Unknown action executor error' })

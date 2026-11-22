@@ -28,6 +28,9 @@ export default function PassportPage() {
   const [photos, setPhotos] = useState(0)
   const [inspections, setInspections] = useState(0)
   const [error, setError] = useState('')
+  const [loaded, setLoaded] = useState(false)
+  const [loadFailed, setLoadFailed] = useState(false)
+  const [reloadKey, setReloadKey] = useState(0)
   const [saving, setSaving] = useState(false)
   const [shareBusy, setShareBusy] = useState(false)
   const [shareNote, setShareNote] = useState('')
@@ -38,25 +41,39 @@ export default function PassportPage() {
     let cancelled = false
 
     async function load() {
-      const supabase = createClient()
-      const [{ data: leadRow }, passRes, sessionRes] = await Promise.all([
-        supabase.from('leads').select('id,name,address').eq('id', leadId).maybeSingle(),
-        supabase.from('roof_passports').select(PASSPORT_FIELDS).eq('lead_id', leadId).order('created_at', { ascending: false }).limit(1).maybeSingle(),
-        supabase.from('inspection_sessions').select('id').eq('lead_id', leadId),
-      ])
-      if (cancelled) return
-      setLead(leadRow)
-      setPassport(passRes.data)
-      const sessionIds = (sessionRes.data ?? []).map((row: { id: string }) => row.id)
-      setInspections(sessionIds.length)
-      if (sessionIds.length) {
-        const photoRes = await supabase.from('inspection_photos').select('id', { count: 'exact', head: true }).in('inspection_id', sessionIds)
-        if (!cancelled) setPhotos(photoRes.count ?? 0)
+      setLoadFailed(false)
+      try {
+        const supabase = createClient()
+        const [leadRes, passRes, sessionRes] = await Promise.all([
+          supabase.from('leads').select('id,name,address').eq('id', leadId).maybeSingle(),
+          supabase.from('roof_passports').select(PASSPORT_FIELDS).eq('lead_id', leadId).order('created_at', { ascending: false }).limit(1).maybeSingle(),
+          supabase.from('inspection_sessions').select('id').eq('lead_id', leadId),
+        ])
+        if (leadRes.error) throw leadRes.error
+        if (passRes.error) throw passRes.error
+        if (sessionRes.error) throw sessionRes.error
+        if (cancelled) return
+        setLead(leadRes.data)
+        setPassport(passRes.data)
+        const sessionIds = (sessionRes.data ?? []).map((row: { id: string }) => row.id)
+        setInspections(sessionIds.length)
+        if (sessionIds.length) {
+          const photoRes = await supabase.from('inspection_photos').select('id', { count: 'exact', head: true }).in('inspection_id', sessionIds)
+          if (photoRes.error) throw photoRes.error
+          if (!cancelled) setPhotos(photoRes.count ?? 0)
+        }
+      } catch (loadError) {
+        if (!cancelled) {
+          setLoadFailed(true)
+          setError(loadError instanceof Error ? loadError.message : 'Could not load the property record.')
+        }
+      } finally {
+        if (!cancelled) setLoaded(true)
       }
     }
     void load()
     return () => { cancelled = true }
-  }, [leadId])
+  }, [leadId, reloadKey])
 
   useEffect(() => {
     setShareUrl(passport?.public_shared && passport.public_token
@@ -66,26 +83,34 @@ export default function PassportPage() {
 
   async function createPassport() {
     if (!lead) return
-    const supabase = createClient()
     setSaving(true); setError('')
-    const { data: { user } } = await supabase.auth.getUser()
-    const { data: workspaceId } = await supabase.rpc('current_workspace_id')
-    if (!user || !workspaceId) { setError('No workspace.'); setSaving(false); return }
-    const { data, error: insertError } = await supabase.from('roof_passports').insert({
-      workspace_id: workspaceId,
-      lead_id: lead.id,
-      property_address: lead.address,
-      homeowner_name: lead.name,
-      manufacturer: form.manufacturer,
-      material_system: form.material_system,
-      color: form.color || null,
-      install_date: form.install_date || null,
-      status: 'active',
-      created_by: user.id,
-    }).select(PASSPORT_FIELDS).single()
-    if (insertError) setError(insertError.message)
-    else setPassport(data)
-    setSaving(false)
+    try {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      const { data: workspaceId } = await supabase.rpc('current_workspace_id')
+      if (!user || !workspaceId) { setError('No workspace.'); return }
+      const { data, error: insertError } = await supabase.from('roof_passports').upsert({
+        workspace_id: workspaceId,
+        lead_id: lead.id,
+        property_address: lead.address,
+        homeowner_name: lead.name,
+        manufacturer: form.manufacturer,
+        material_system: form.material_system,
+        color: form.color || null,
+        install_date: form.install_date || null,
+        status: 'active',
+        created_by: user.id,
+      }, { onConflict: 'lead_id', ignoreDuplicates: true }).select(PASSPORT_FIELDS).maybeSingle()
+      if (insertError) setError(insertError.message)
+      else if (!data) {
+        setError('A Roof Passport already exists for this property. Refreshing the record.')
+        setReloadKey((key) => key + 1)
+      } else setPassport(data)
+    } catch (createError) {
+      setError(createError instanceof Error ? createError.message : 'Could not create the Roof Passport.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   async function setSharing(next: boolean) {
@@ -157,7 +182,12 @@ export default function PassportPage() {
             <p className="text-[11px] text-slate-500">Anyone with this link can view the property address and roof system. No pricing, photos, or customer data is exposed.</p>
           </div>
         </div>
-      ) : (
+      ) : loadFailed ? (
+        <div className="glass rounded-xl p-4">
+          <p className="text-sm text-red-300">Could not load the property record. {error}</p>
+          <button onClick={() => setReloadKey((key) => key + 1)} className="mt-3 text-cyan-300 text-sm">Retry</button>
+        </div>
+      ) : loaded ? (
         <div className="glass rounded-xl p-4 space-y-2">
           <input value={form.manufacturer} onChange={(e) => setForm({ ...form, manufacturer: e.target.value })} className="w-full border rounded p-2 text-sm" placeholder="Manufacturer" />
           <input value={form.material_system} onChange={(e) => setForm({ ...form, material_system: e.target.value })} className="w-full border rounded p-2 text-sm" placeholder="System / product line" />
@@ -165,6 +195,8 @@ export default function PassportPage() {
           <input type="date" value={form.install_date} onChange={(e) => setForm({ ...form, install_date: e.target.value })} className="w-full border rounded p-2 text-sm" />
           <button disabled={saving} onClick={() => void createPassport()} className="ops-btn-primary w-full disabled:opacity-60">{saving ? 'Saving…' : 'Create Roof Passport'}</button>
         </div>
+      ) : (
+        <div className="glass rounded-xl p-4 text-sm text-slate-400">Loading property record…</div>
       )}
     </div>
   )
