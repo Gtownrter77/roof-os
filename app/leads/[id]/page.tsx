@@ -56,6 +56,14 @@ export default function LeadDetailPage() {
   const [lostDetail, setLostDetail] = useState('')
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
+  const [notice, setNotice] = useState('')
+  useEffect(() => {
+    // Read after mount (no useSearchParams/Suspense requirement). Only a fixed
+    // code is mapped to a fixed message; raw query text is never rendered.
+    if (new URLSearchParams(window.location.search).get('notice') === 'activity-log-write-failed') {
+      setNotice('The lead was created, but its activity log entry could not be written.')
+    }
+  }, [])
 
   async function load() {
     try {
@@ -248,6 +256,7 @@ export default function LeadDetailPage() {
     <div className="space-y-4 p-1 pb-4">
       <button onClick={() => router.push('/leads')} className="mb-3 text-xs text-cyan-300">← All leads</button>
       {error && <p className="mb-3 rounded-lg border border-red-400/30 bg-red-400/10 p-3 text-sm text-red-300">{error}</p>}
+      {notice && <p className="mb-3 rounded-lg border border-amber-400/30 bg-amber-400/10 p-3 text-sm text-amber-200" role="status">{notice}</p>}
       {lead && (
         <>
           <div className="glass mb-4 rounded-xl p-4">

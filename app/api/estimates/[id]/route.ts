@@ -190,12 +190,13 @@ export async function PUT(
     if (updateError) return NextResponse.json({ error: 'Could not update estimate.' }, { status: 502 })
   }
 
-  const { data: updated } = await supabase
+  const { data: updated, error: readBackError } = await supabase
     .from('estimates')
     .select('id,lead_id,template_version_id,price_book_id,status,formula_version,subtotal,tax,total,created_by,approved_by,approved_at,created_at,updated_at,estimate_snapshot,estimate_line_items(*)')
     .eq('id', id)
     .eq('workspace_id', workspaceId)
     .maybeSingle()
+  if (readBackError) return NextResponse.json({ error: 'Could not reload the estimate.' }, { status: 502 })
 
   return NextResponse.json({ estimate: { ...updated!, line_items: updated?.estimate_line_items ?? [], _estimate_line_items: undefined } })
 }
@@ -209,12 +210,13 @@ export async function DELETE(
   if (!workspaceId) return NextResponse.json({ error: 'No workspace is configured.' }, { status: 400 })
 
   const { id } = await params
-  const { data: existing } = await supabase
+  const { data: existing, error: precheckError } = await supabase
     .from('estimates')
     .select('id,status,created_by')
     .eq('id', id)
     .eq('workspace_id', workspaceId)
     .maybeSingle()
+  if (precheckError) return NextResponse.json({ error: 'Could not verify the estimate.' }, { status: 502 })
 
   if (!existing) return NextResponse.json({ error: 'Estimate not found.' }, { status: 404 })
 

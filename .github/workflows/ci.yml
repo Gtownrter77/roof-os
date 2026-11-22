@@ -93,6 +93,8 @@ jobs:
       - run: npm run test:action-batch-binding
       - run: npm run test:supplement-workflow-safety
       - run: npm run test:test-all-coverage
+      - run: npm run test:gate-registry-integrity
+      - run: npm run test:async-write-safety
       - run: npm run test:auth-flow
       - run: npm run test:invitation-flow
       - run: npm run test:two-workspace-contract

@@ -27,7 +27,8 @@ export function createAgentRuntime(config: RuntimeConfig) {
     if (workspaceError) throw workspaceError
     if (!workspace) throw new Error(`Unknown workspace: ${event.workspaceId}`)
     const base = { workspace_id: event.workspaceId, agent_key: event.agentKey, event_key: event.eventKey, trigger: event.trigger, input_reference: event.inputReference }
-    const { data: existing } = await supabase.from('agent_runs').select('id,status,output,attempt,started_at').match({ workspace_id: event.workspaceId, agent_key: event.agentKey, event_key: event.eventKey }).maybeSingle()
+    const { data: existing, error: existingError } = await supabase.from('agent_runs').select('id,status,output,attempt,started_at').match({ workspace_id: event.workspaceId, agent_key: event.agentKey, event_key: event.eventKey }).maybeSingle()
+    if (existingError) throw existingError
     if (existing?.status === 'succeeded' || existing?.status === 'needs_review') return existing
     // A live run is an idempotency guard; an orphaned run must not wedge the
     // event key forever. Re-claim only inside the bounded staleness window.
@@ -57,7 +58,14 @@ export function createAgentRuntime(config: RuntimeConfig) {
       const { data, error } = await supabase.from('agent_runs').insert({ ...base, status: 'running', started_at: now, attempt: 1 }).select('id').maybeSingle()
       if (error && error.code !== '23505') throw error
       if (!data) {
-        const { data: claimed } = await supabase.from('agent_runs').select('id,status,output,attempt,started_at').match({ workspace_id: event.workspaceId, agent_key: event.agentKey, event_key: event.eventKey }).maybeSingle()
+        const { data: claimed, error: claimError } = await supabase.from('agent_runs').select('id,status,output,attempt,started_at').match({ workspace_id: event.workspaceId, agent_key: event.agentKey, event_key: event.eventKey }).maybeSingle()
+        if (claimError) throw claimError
+        // A 23505 means another worker owns this event key. Only hand back a
+        // terminal-success row; a running/failed row must surface as an error
+        // so callers never mistake lost or unfinished work for a finished run.
+        if (!claimed || !['succeeded', 'needs_review'].includes(claimed.status)) {
+          throw new Error(`Event key claimed by an incomplete run: ${event.eventKey}`)
+        }
         return claimed
       }
       started = data

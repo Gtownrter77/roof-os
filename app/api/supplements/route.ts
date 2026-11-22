@@ -26,8 +26,14 @@ export async function POST(request: NextRequest) {
   const title = body.title?.trim() ?? ''
   const jobAddress = body.jobAddress?.trim() ?? ''
   if (!title || !jobAddress) return NextResponse.json({ error: 'Job address and supplement title are required.' }, { status: 400 })
+  const MAX_SUPPLEMENT_COST = 1_000_000
   const cost = Number(body.additionalCost ?? 0)
-  if (!Number.isFinite(cost) || cost < 0) return NextResponse.json({ error: 'Additional cost must be a non-negative number.' }, { status: 400 })
+  // Reject coerced non-numbers (Number(true)===1, Number('')===0) and cap the
+  // magnitude so a wrong client cannot overflow the numeric column.
+  if (body.additionalCost !== undefined && typeof body.additionalCost !== 'number') {
+    return NextResponse.json({ error: 'Additional cost must be a number.' }, { status: 400 })
+  }
+  if (!Number.isFinite(cost) || cost < 0 || cost > MAX_SUPPLEMENT_COST) return NextResponse.json({ error: 'Additional cost must be a non-negative number within the allowed limit.' }, { status: 400 })
   const urgency = body.urgency ?? 'medium'
   if (!['low','medium','high','critical'].includes(urgency)) return NextResponse.json({ error: 'Invalid urgency.' }, { status: 400 })
   if (body.leadId !== undefined && body.leadId !== null && !isUuid(body.leadId)) {

@@ -15,37 +15,46 @@ export default function NewLeadPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setSaving(true); setError('')
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { router.replace('/auth/login'); return }
-    const { data: workspaceId, error: workspaceError } = await supabase.rpc('current_workspace_id')
-    if (workspaceError || !workspaceId) { setError(workspaceError?.message ?? 'No workspace is available.'); setSaving(false); return }
-    const nextDue = form.nextActionDue ? new Date(form.nextActionDue).toISOString() : null
-    const { data, error: insertError } = await supabase.from('leads').insert({
-      name: form.name.trim(),
-      address: form.address.trim(),
-      phone: form.phone || null,
-      email: form.email || null,
-      source: form.source || 'manual',
-      notes: form.notes || null,
-      owner_id: user.id,
-      workspace_id: workspaceId,
-      status: 'new',
-      next_action: form.nextAction.trim() || 'First contact',
-      next_action_due: nextDue,
-      next_action_owner_id: user.id,
-    }).select('id').single()
-    if (insertError || !data) {
-      const isDuplicate = /already exists/i.test(insertError?.message ?? '')
-      setDuplicate(isDuplicate)
-      setError(isDuplicate
-        ? 'A lead with this phone number already exists in this workspace. Open Leads to update the existing record instead of creating a second one.'
-        : insertError?.message ?? 'Lead was not created.')
+    if (saving) return
+    setSaving(true); setError(''); setDuplicate(false)
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { router.replace('/auth/login'); return }
+      const { data: workspaceId, error: workspaceError } = await supabase.rpc('current_workspace_id')
+      if (workspaceError || !workspaceId) { setError(workspaceError?.message ?? 'No workspace is available.'); return }
+      const nextDue = form.nextActionDue ? new Date(form.nextActionDue).toISOString() : null
+      const { data, error: insertError } = await supabase.from('leads').insert({
+        name: form.name.trim(),
+        address: form.address.trim(),
+        phone: form.phone || null,
+        email: form.email || null,
+        source: form.source || 'manual',
+        notes: form.notes || null,
+        owner_id: user.id,
+        workspace_id: workspaceId,
+        status: 'new',
+        next_action: form.nextAction.trim() || 'First contact',
+        next_action_due: nextDue,
+        next_action_owner_id: user.id,
+      }).select('id').single()
+      if (insertError || !data) {
+        const isDuplicate = /already exists/i.test(insertError?.message ?? '')
+        setDuplicate(isDuplicate)
+        setError(isDuplicate
+          ? 'A lead with this phone number already exists in this workspace. Open Leads to update the existing record instead of creating a second one.'
+          : insertError?.message ?? 'Lead was not created.')
+        return
+      }
+      const { error: activityError } = await supabase.from('lead_activity').insert({ lead_id: data.id, workspace_id: workspaceId, user_id: user.id, kind: 'created', body: form.notes || `Lead created from ${form.source || 'manual'}` })
+      // Carry a bounded warning code to the lead page — the raw DB message is
+      // deliberately not put in a URL. The lead itself is already created, so
+      // never hard-fail or strand the user on a form that could duplicate it.
+      router.push(`/leads/${data.id}${activityError ? '?notice=activity-log-write-failed' : ''}`)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not create the lead.')
+    } finally {
       setSaving(false)
-      return
     }
-    await supabase.from('lead_activity').insert({ lead_id: data.id, workspace_id: workspaceId, user_id: user.id, kind: 'created', body: form.notes || `Lead created from ${form.source || 'manual'}` })
-    router.push(`/leads/${data.id}`)
   }
 
   return (

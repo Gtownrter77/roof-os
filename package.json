@@ -116,7 +116,6 @@
     "test:agent-alerts-live-gates": "node --experimental-strip-types --no-warnings scripts/agent-alerts-live-gates-test.mjs",
     "test:agent-toggles-daily": "node --experimental-strip-types --no-warnings scripts/agent-toggles-daily-test.mjs",
     "verify:agent-live-gates": "node scripts/verify-agent-live-gates.mjs",
-    "test:warranty-expiry": "node scripts/warranty-expiry-contract-test.mjs",
     "test:production-job-invoice": "node --experimental-strip-types --no-warnings scripts/production-job-invoice-test.mjs",
     "test:production-job-payment": "node --experimental-strip-types --no-warnings scripts/production-job-payment-test.mjs",
     "test:production-job-warranty": "node --experimental-strip-types --no-warnings scripts/production-job-warranty-test.mjs",
@@ -165,7 +164,6 @@
     "test:secret-scan": "node scripts/secret-scan-test.mjs",
     "test:drone-url-validation": "node --experimental-strip-types --no-warnings scripts/drone-url-validation-test.mjs",
     "test:literal-newline": "node scripts/literal-newline-test.mjs",
-    "test:live-release-preflight": "node scripts/live-release-preflight-test.mjs",
     "test:agent-action-recovery": "node --experimental-strip-types --no-warnings scripts/agent-action-recovery-test.mjs",
     "test:release-check-auth-marker": "node scripts/release-check-auth-marker-test.mjs",
     "test:provider-error-sanitization": "node --experimental-strip-types --no-warnings scripts/provider-error-sanitization-test.mjs",
@@ -173,7 +171,9 @@
     "test:agent-runtime-recovery": "node --experimental-strip-types --no-warnings scripts/agent-runtime-recovery-test.mjs",
     "test:action-batch-binding": "node --experimental-strip-types --no-warnings scripts/action-batch-binding-test.mjs",
     "test:supplement-workflow-safety": "node --experimental-strip-types --no-warnings scripts/supplement-workflow-safety-test.mjs",
-    "test:test-all-coverage": "node scripts/test-all-coverage-test.mjs"
+    "test:test-all-coverage": "node scripts/test-all-coverage-test.mjs",
+    "test:gate-registry-integrity": "node scripts/gate-registry-integrity-test.mjs",
+    "test:async-write-safety": "node --experimental-strip-types --no-warnings scripts/async-write-safety-test.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.2",

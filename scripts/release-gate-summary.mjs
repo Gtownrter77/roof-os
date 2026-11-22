@@ -2,7 +2,7 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 
 const evidencePath = process.argv[2] || 'docs/evidence/release-gates.json'
 const outputPath = process.argv[3]
-const gateNames = [
+const canonicalGateNames = [
   'repositoryChecks',
   'stagingMigration',
   'authenticatedReadOnly',
@@ -17,6 +17,9 @@ const gateNames = [
 const statuses = new Set(['PASS', 'FAIL', 'UNKNOWN'])
 let evidence = {}
 if (existsSync(evidencePath)) evidence = JSON.parse(readFileSync(evidencePath, 'utf8'))
+// The release decision must consider every evidence key present: an unexpected
+// FAIL row added later can otherwise be silently dropped and yield a false GO.
+const gateNames = [...new Set([...canonicalGateNames, ...Object.keys(evidence)])]
 const gates = Object.fromEntries(gateNames.map((name) => [name, statuses.has(evidence[name]) ? evidence[name] : 'UNKNOWN']))
 const releaseDecision = Object.values(gates).every((status) => status === 'PASS') ? 'GO' : 'NO-GO'
 const lines = [
