@@ -1055,6 +1055,14 @@ export default function App() {
   return (
     <SafeAreaView style={styles.safe}>
       <StatusBar style="dark" />
+      <View style={{ flexDirection: 'row', padding: 8, gap: 12 }}>
+        <Pressable accessibilityRole="button" style={styles.secondary} onPress={() => void Linking.openURL('tel:911').catch(() => Alert.alert('Open your phone dialer and call 911'))}>
+          <Text style={styles.secondaryText}>SOS · Call 911</Text>
+        </Pressable>
+        <Pressable accessibilityRole="button" style={styles.secondary} onPress={() => void Linking.openURL(webAppUrl + '/foreman').catch(() => Alert.alert('Crew console unavailable', 'Contact your crew and office directly.'))}>
+          <Text style={styles.secondaryText}>Foreman · Stop job</Text>
+        </Pressable>
+      </View>
       <RadarCinema visible={showRadar} onClose={() => setShowRadar(false)} webAppUrl={webAppUrl} />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
