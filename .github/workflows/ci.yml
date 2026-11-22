@@ -89,6 +89,10 @@ jobs:
       - run: npm run test:release-check-auth-marker
       - run: npm run test:provider-error-sanitization
       - run: npm run test:web-error-recovery
+      - run: npm run test:agent-runtime-recovery
+      - run: npm run test:action-batch-binding
+      - run: npm run test:supplement-workflow-safety
+      - run: npm run test:test-all-coverage
       - run: npm run test:auth-flow
       - run: npm run test:invitation-flow
       - run: npm run test:two-workspace-contract

@@ -74,9 +74,12 @@ for (const marker of [
   "status: 'executing'",
   "status: 'executed'",
   'No safe executor is registered',
-  'Action payload hash mismatch',
-  'Approved action payload binding no longer matches the batch',
+  "rejectApprovedBatch(supabase, batchId, 'payload_hash_mismatch')",
+  "rejectApprovedBatch(supabase, batchId, 'binding_mismatch')",
 ]) assert.ok(executor.includes(marker), `executor missing: ${marker}`)
+// The human-readable rejection reasons now live in the shared recovery helper.
+const recovery = readFileSync(new URL('../lib/agent-action-recovery.ts', import.meta.url), 'utf8')
+assert.ok(recovery.includes('Approved batch no longer matches its signed payload'), 'recovery helper must carry the binding rejection reason')
 
 for (const marker of [
   "process.env.CRON_SECRET",

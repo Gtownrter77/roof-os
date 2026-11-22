@@ -32,4 +32,21 @@ const fixture = "// getUser()\n// CRON_SECRET\nexport async function GET() { ret
 const strippedFixture = stripCommentsAndStrings(fixture)
 assert.ok(!strippedFixture.includes('getUser()') && !strippedFixture.includes('CRON_SECRET'), 'comment-only route fixture must fail auth detection')
 
-console.log('release-check-auth-marker-test: PASS (comment/string auth markers rejected, real guards detected)')
+// 74: the workspace-authorization marker must have the same comment/string
+// resistance as the session and cron markers.
+const workspaceCommentOnly = stripCommentsAndStrings('// requireWorkspaceMember\nconst x = 1')
+assert.ok(!workspaceCommentOnly.includes('requireWorkspaceMember'), 'commented-out workspace guard must not count')
+const workspaceStringOnly = stripCommentsAndStrings("const s = 'requireWorkspaceMember'")
+assert.ok(!workspaceStringOnly.includes('requireWorkspaceMember'), 'string-literal workspace guard must not count')
+const workspaceReal = stripCommentsAndStrings('// requireWorkspaceMember\nawait requireWorkspaceMember(supabase, workspaceId)')
+assert.ok(workspaceReal.includes('requireWorkspaceMember'), 'a real workspace guard must still be detected')
+assert.ok(
+  /stripCommentsAndStrings\(source\)\.includes\('requireWorkspaceMember'\)/.test(releaseCheck),
+  'workspace authorization marker must be scanned in stripped source'
+)
+assert.ok(
+  !/if \(!source\.includes\('requireWorkspaceMember'\)\)/.test(releaseCheck),
+  'raw-source workspace marker check must be gone'
+)
+
+console.log('release-check-auth-marker-test: PASS (comment/string auth and workspace markers rejected, real guards detected)')

@@ -78,4 +78,54 @@ function section(source, startMarker, endMarker) {
   assert.ok(finallyAt !== -1 && load.indexOf('setLoading(false)', finallyAt) !== -1, 'spinner must be cleared in finally')
 }
 
-console.log('web-error-recovery-test: PASS (mic, passport, upload, leads, and packet failure paths recover)')
+// 73: every lead-detail mutation must release its saving flag, and partial
+// query failures must not silently blank the activity/appointment lists.
+{
+  const source = read('../app/leads/[id]/page.tsx')
+  for (const name of ['updateStatus', 'saveNextAction', 'saveLostReason', 'addNote', 'scheduleInspection', 'startInspection']) {
+    const start = source.indexOf(`async function ${name}(`)
+    assert.ok(start !== -1, `missing lead handler: ${name}`)
+    const next = source.indexOf('\n  async function ', start + 1)
+    const body = source.slice(start, next === -1 ? source.length : next)
+    const tryAt = body.indexOf('try {')
+    const ctxAt = body.indexOf('await ctx()')
+    const finallyAt = body.indexOf('finally')
+    assert.ok(tryAt !== -1 && finallyAt !== -1, `${name} must use try/finally`)
+    assert.ok(tryAt < ctxAt, `${name} must await ctx() inside the try block`)
+    assert.ok(body.indexOf('setSaving(false)', finallyAt) !== -1, `${name} must reset saving in finally`)
+  }
+  const load = section(source, 'async function load()', 'useEffect(')
+  assert.ok(load.includes('try {') && load.includes('catch'), 'lead load must catch thrown auth/network errors')
+  assert.ok(load.includes('activityRes.error') && load.includes('appointmentRes.error'), 'both partial query errors must be checked')
+  assert.ok(source.includes('load().catch('), 'the mount load must attach a rejection handler')
+}
+
+// 77: MFA enrollment/verification must not lock a user out on a network blip.
+{
+  const source = read('../app/auth/mfa/page.tsx')
+  const prepare = section(source, 'async function prepare()', 'void prepare()')
+  assert.ok(prepare.includes('try {') && prepare.includes('catch') && prepare.includes('finally'), 'prepare must use try/catch/finally')
+  assert.ok(prepare.indexOf('try {') < prepare.indexOf('auth.getUser()'), 'prepare auth call must be inside try')
+  assert.ok(prepare.indexOf('setLoading(false)', prepare.indexOf('finally')) !== -1, 'prepare must clear loading in finally')
+  const verify = section(source, 'async function verify()', 'async function restartEnrollment()')
+  assert.ok(verify.includes('try {') && verify.includes('catch') && verify.includes('finally'), 'verify must use try/catch/finally')
+  assert.ok(verify.indexOf('try {') < verify.indexOf('auth.mfa.verify('), 'verify RPC must be inside try')
+  assert.ok(verify.indexOf('setWorking(false)', verify.indexOf('finally')) !== -1, 'verify must clear working in finally')
+  const restart = section(source, 'async function restartEnrollment()', 'if (loading) return')
+  assert.ok(restart.includes('try {') && restart.includes('catch') && restart.includes('finally'), 'restartEnrollment must use try/catch/finally')
+  assert.ok(restart.indexOf('try {') < restart.indexOf('auth.mfa.unenroll('), 'unenroll RPC must be inside try')
+}
+
+// 80: a partial field query failure must not overwrite a loaded agenda with [].
+{
+  const source = read('../apps/field/App.tsx')
+  const load = section(source, 'async function loadFieldData()', 'function saveDraft(')
+  assert.ok(load.includes('appointmentResult.error'), 'appointment query errors must be checked')
+  assert.ok(load.includes('taskResult.error'), 'task query errors must be checked')
+  assert.ok(load.includes('try {') && load.includes('catch'), 'field data load must catch thrown errors')
+  assert.ok(!load.includes('setAgenda([])'), 'a failed load must not silently clear the agenda')
+  const boot = section(source, 'useEffect(() => {\n    if (session) {', '\n  }, [session])')
+  assert.ok(/loadFieldData\(\)[\s\S]*\.catch\(/.test(boot), 'the boot IIFE must attach a rejection handler')
+}
+
+console.log('web-error-recovery-test: PASS (mic, passport, upload, leads, packet, lead mutations, MFA, and field failure paths recover)')

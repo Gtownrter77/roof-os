@@ -169,7 +169,11 @@
     "test:agent-action-recovery": "node --experimental-strip-types --no-warnings scripts/agent-action-recovery-test.mjs",
     "test:release-check-auth-marker": "node scripts/release-check-auth-marker-test.mjs",
     "test:provider-error-sanitization": "node --experimental-strip-types --no-warnings scripts/provider-error-sanitization-test.mjs",
-    "test:web-error-recovery": "node scripts/web-error-recovery-test.mjs"
+    "test:web-error-recovery": "node scripts/web-error-recovery-test.mjs",
+    "test:agent-runtime-recovery": "node --experimental-strip-types --no-warnings scripts/agent-runtime-recovery-test.mjs",
+    "test:action-batch-binding": "node --experimental-strip-types --no-warnings scripts/action-batch-binding-test.mjs",
+    "test:supplement-workflow-safety": "node --experimental-strip-types --no-warnings scripts/supplement-workflow-safety-test.mjs",
+    "test:test-all-coverage": "node scripts/test-all-coverage-test.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.2",

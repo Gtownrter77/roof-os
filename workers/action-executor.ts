@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { principalsInWorkspace } from '../lib/api-contract-safety'
 import { approvedBatchRejection, isStaleExecuting, statusWriteSucceeded } from '../lib/agent-action-recovery'
+import { needsApprovalTokenHash } from '../lib/action-batch-binding'
 
 export type ExecutorResult = { batchId: string; executed: number; failed: number; skipped: number; failures: string[] }
 type ActionRow = {
@@ -192,7 +193,11 @@ export async function executeApprovedBatch(supabase: SupabaseClient, batchId: st
       return await rejectApprovedBatch(supabase, batchId, 'payload_hash_mismatch')
     }
   }
-  if (batch.status === 'approved') {
+  // Only approval-required actions carry a signed approval token. A batch made
+  // entirely of low-risk actions is legitimately inserted with a NULL hash and
+  // must still execute — otherwise every auto-approved batch is terminalized
+  // as a binding mismatch and no low-risk action ever runs.
+  if (batch.status === 'approved' && needsApprovalTokenHash(rows)) {
     const currentPayloadHash = await sha256Text(rows.map((action) => `${action.id}:${action.payload_hash}`).join('\n'))
     if (!batch.approval_token_hash || currentPayloadHash !== batch.approval_token_hash) {
       return await rejectApprovedBatch(supabase, batchId, 'binding_mismatch')

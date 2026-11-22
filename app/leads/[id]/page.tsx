@@ -58,28 +58,34 @@ export default function LeadDetailPage() {
   const [saving, setSaving] = useState(false)
 
   async function load() {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { router.replace('/auth/login'); return }
-    setCurrentUserId(user.id)
-    const [{ data: leadRow, error: leadError }, activityRes, appointmentRes] = await Promise.all([
-      supabase.from('leads').select('id,name,address,status,phone,email,source,next_action,next_action_due,next_action_owner_id,lead_score,lead_score_reasons,lost_reason,lost_reason_detail,lost_at,last_activity_at').eq('id', leadId).maybeSingle(),
-      supabase.from('lead_activity').select('id,kind,body,created_at').eq('lead_id', leadId).order('created_at', { ascending: false }).limit(50),
-      supabase.from('appointments').select('id,title,appointment_type,starts_at,ends_at,location,status,assigned_to').eq('lead_id', leadId).order('starts_at', { ascending: true }),
-    ])
-    if (leadError) setError(leadError.message)
-    if (!leadRow) setError('Lead not found in this workspace.')
-    setLead(leadRow)
-    setActivity(activityRes.data ?? [])
-    setAppointments(appointmentRes.data ?? [])
-    if (leadRow) {
-      setNextAction(leadRow.next_action ?? '')
-      setNextActionDue(leadRow.next_action_due ? new Date(leadRow.next_action_due).toISOString().slice(0, 16) : '')
-      setLostReason(leadRow.lost_reason ?? '')
-      setLostDetail(leadRow.lost_reason_detail ?? '')
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { router.replace('/auth/login'); return }
+      setCurrentUserId(user.id)
+      const [{ data: leadRow, error: leadError }, activityRes, appointmentRes] = await Promise.all([
+        supabase.from('leads').select('id,name,address,status,phone,email,source,next_action,next_action_due,next_action_owner_id,lead_score,lead_score_reasons,lost_reason,lost_reason_detail,lost_at,last_activity_at').eq('id', leadId).maybeSingle(),
+        supabase.from('lead_activity').select('id,kind,body,created_at').eq('lead_id', leadId).order('created_at', { ascending: false }).limit(50),
+        supabase.from('appointments').select('id,title,appointment_type,starts_at,ends_at,location,status,assigned_to').eq('lead_id', leadId).order('starts_at', { ascending: true }),
+      ])
+      if (leadError) setError(leadError.message)
+      if (activityRes.error) setError(activityRes.error.message)
+      if (appointmentRes.error) setError(appointmentRes.error.message)
+      if (!leadRow) setError('Lead not found in this workspace.')
+      setLead(leadRow)
+      setActivity(activityRes.data ?? [])
+      setAppointments(appointmentRes.data ?? [])
+      if (leadRow) {
+        setNextAction(leadRow.next_action ?? '')
+        setNextActionDue(leadRow.next_action_due ? new Date(leadRow.next_action_due).toISOString().slice(0, 16) : '')
+        setLostReason(leadRow.lost_reason ?? '')
+        setLostDetail(leadRow.lost_reason_detail ?? '')
+      }
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : 'Could not load the lead.')
     }
   }
 
-  useEffect(() => { void load() }, [leadId])
+  useEffect(() => { void load().catch(() => setError('Could not load the lead.')) }, [leadId])
 
   async function ctx() {
     const { data: { user } } = await supabase.auth.getUser()
@@ -90,68 +96,88 @@ export default function LeadDetailPage() {
   async function updateStatus(status: string) {
     if (!lead) return
     setSaving(true); setError('')
-    const { user, workspaceId } = await ctx()
-    if (!user || !workspaceId) { setError('No workspace available.'); setSaving(false); return }
-    const payload: Record<string, unknown> = { status, updated_at: new Date().toISOString() }
-    if (status === 'qualified' && lead.status !== 'qualified') payload.qualified_at = new Date().toISOString()
-    if (status === 'lost') payload.lost_at = new Date().toISOString()
-    if (status !== 'lost') {
-      payload.lost_reason = null
-      payload.lost_reason_detail = null
-      payload.lost_at = null
+    try {
+      const { user, workspaceId } = await ctx()
+      if (!user || !workspaceId) { setError('No workspace available.'); return }
+      const payload: Record<string, unknown> = { status, updated_at: new Date().toISOString() }
+      if (status === 'qualified' && lead.status !== 'qualified') payload.qualified_at = new Date().toISOString()
+      if (status === 'lost') payload.lost_at = new Date().toISOString()
+      if (status !== 'lost') {
+        payload.lost_reason = null
+        payload.lost_reason_detail = null
+        payload.lost_at = null
+      }
+      const { error: updateError } = await supabase.from('leads').update(payload).eq('id', lead.id).eq('workspace_id', workspaceId)
+      if (updateError) { setError(updateError.message); return }
+      await supabase.from('lead_activity').insert({ lead_id: lead.id, workspace_id: workspaceId, user_id: user.id, kind: 'status_change', body: `Status changed from ${lead.status} to ${status}` })
+      await load()
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : 'Could not update the lead.')
+    } finally {
+      setSaving(false)
     }
-    const { error: updateError } = await supabase.from('leads').update(payload).eq('id', lead.id).eq('workspace_id', workspaceId)
-    if (updateError) { setError(updateError.message); setSaving(false); return }
-    await supabase.from('lead_activity').insert({ lead_id: lead.id, workspace_id: workspaceId, user_id: user.id, kind: 'status_change', body: `Status changed from ${lead.status} to ${status}` })
-    await load()
-    setSaving(false)
   }
 
   async function saveNextAction() {
     if (!lead) return
     setSaving(true); setError('')
-    const { user, workspaceId } = await ctx()
-    if (!user || !workspaceId) { setError('No workspace available.'); setSaving(false); return }
-    const due = nextActionDue ? new Date(nextActionDue).toISOString() : null
-    const { error: updateError } = await supabase.from('leads').update({
-      next_action: nextAction.trim() || null,
-      next_action_due: due,
-      next_action_owner_id: nextAction.trim() ? user.id : null,
-      updated_at: new Date().toISOString(),
-    }).eq('id', lead.id).eq('workspace_id', workspaceId)
-    if (updateError) setError(updateError.message)
-    else await supabase.from('lead_activity').insert({ lead_id: lead.id, workspace_id: workspaceId, user_id: user.id, kind: 'note', body: nextAction.trim() ? `Next action set: ${nextAction.trim()}${due ? ` due ${new Date(due).toLocaleString()}` : ''}` : 'Next action cleared.' })
-    await load()
-    setSaving(false)
+    try {
+      const { user, workspaceId } = await ctx()
+      if (!user || !workspaceId) { setError('No workspace available.'); return }
+      const due = nextActionDue ? new Date(nextActionDue).toISOString() : null
+      const { error: updateError } = await supabase.from('leads').update({
+        next_action: nextAction.trim() || null,
+        next_action_due: due,
+        next_action_owner_id: nextAction.trim() ? user.id : null,
+        updated_at: new Date().toISOString(),
+      }).eq('id', lead.id).eq('workspace_id', workspaceId)
+      if (updateError) setError(updateError.message)
+      else await supabase.from('lead_activity').insert({ lead_id: lead.id, workspace_id: workspaceId, user_id: user.id, kind: 'note', body: nextAction.trim() ? `Next action set: ${nextAction.trim()}${due ? ` due ${new Date(due).toLocaleString()}` : ''}` : 'Next action cleared.' })
+      await load()
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : 'Could not save the next action.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   async function saveLostReason() {
     if (!lead || lead.status !== 'lost') return
     setSaving(true); setError('')
-    const { user, workspaceId } = await ctx()
-    if (!user || !workspaceId) { setError('No workspace available.'); setSaving(false); return }
-    const { error: updateError } = await supabase.from('leads').update({
-      lost_reason: lostReason || null,
-      lost_reason_detail: lostDetail.trim() || null,
-      lost_at: lead.lost_at ?? new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    }).eq('id', lead.id).eq('workspace_id', workspaceId)
-    if (updateError) setError(updateError.message)
-    else await supabase.from('lead_activity').insert({ lead_id: lead.id, workspace_id: workspaceId, user_id: user.id, kind: 'note', body: `Lost reason recorded: ${lostReason || 'unspecified'}${lostDetail.trim() ? ` — ${lostDetail.trim()}` : ''}` })
-    await load()
-    setSaving(false)
+    try {
+      const { user, workspaceId } = await ctx()
+      if (!user || !workspaceId) { setError('No workspace available.'); return }
+      const { error: updateError } = await supabase.from('leads').update({
+        lost_reason: lostReason || null,
+        lost_reason_detail: lostDetail.trim() || null,
+        lost_at: lead.lost_at ?? new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }).eq('id', lead.id).eq('workspace_id', workspaceId)
+      if (updateError) setError(updateError.message)
+      else await supabase.from('lead_activity').insert({ lead_id: lead.id, workspace_id: workspaceId, user_id: user.id, kind: 'note', body: `Lost reason recorded: ${lostReason || 'unspecified'}${lostDetail.trim() ? ` — ${lostDetail.trim()}` : ''}` })
+      await load()
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : 'Could not save the lost reason.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   async function addNote() {
     if (!note.trim() || !lead) return
     setSaving(true)
-    const { user, workspaceId } = await ctx()
-    if (!user || !workspaceId) { setError('No workspace available.'); setSaving(false); return }
-    const { error: insertError } = await supabase.from('lead_activity').insert({ lead_id: lead.id, workspace_id: workspaceId, user_id: user.id, kind: 'note', body: note.trim() })
-    if (insertError) setError(insertError.message)
-    else setNote('')
-    await load()
-    setSaving(false)
+    try {
+      const { user, workspaceId } = await ctx()
+      if (!user || !workspaceId) { setError('No workspace available.'); return }
+      const { error: insertError } = await supabase.from('lead_activity').insert({ lead_id: lead.id, workspace_id: workspaceId, user_id: user.id, kind: 'note', body: note.trim() })
+      if (insertError) setError(insertError.message)
+      else setNote('')
+      await load()
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : 'Could not add the note.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   async function scheduleInspection() {
@@ -161,33 +187,43 @@ export default function LeadDetailPage() {
       return
     }
     setSaving(true); setError('')
-    const { user, workspaceId } = await ctx()
-    if (!user || !workspaceId) { setError('No workspace available.'); setSaving(false); return }
-    const start = new Date(apptAt)
-    const end = new Date(start.getTime() + 60 * 60 * 1000)
-    // The database assigns the appointment, moves the lead and sets the next action.
-    const { error: insertError } = await supabase.from('appointments').insert({ workspace_id: workspaceId, lead_id: lead.id, title: `Inspection: ${lead.name}`, appointment_type: 'inspection', starts_at: start.toISOString(), ends_at: end.toISOString(), location: lead.address, created_by: user.id, assigned_to: user.id })
-    if (insertError) {
-      setError(/already has a scheduled inspection/i.test(insertError.message)
-        ? 'This lead already has a scheduled inspection. Cancel or complete it before booking another.'
-        : insertError.message)
+    try {
+      const { user, workspaceId } = await ctx()
+      if (!user || !workspaceId) { setError('No workspace available.'); return }
+      const start = new Date(apptAt)
+      const end = new Date(start.getTime() + 60 * 60 * 1000)
+      // The database assigns the appointment, moves the lead and sets the next action.
+      const { error: insertError } = await supabase.from('appointments').insert({ workspace_id: workspaceId, lead_id: lead.id, title: `Inspection: ${lead.name}`, appointment_type: 'inspection', starts_at: start.toISOString(), ends_at: end.toISOString(), location: lead.address, created_by: user.id, assigned_to: user.id })
+      if (insertError) {
+        setError(/already has a scheduled inspection/i.test(insertError.message)
+          ? 'This lead already has a scheduled inspection. Cancel or complete it before booking another.'
+          : insertError.message)
+        return
+      }
+      await supabase.from('lead_activity').insert({ lead_id: lead.id, workspace_id: workspaceId, user_id: user.id, kind: 'status_change', body: `Inspection scheduled for ${start.toLocaleString()}, assigned to you.` })
+      setApptAt('')
+      await load()
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : 'Could not schedule the inspection.')
+    } finally {
       setSaving(false)
-      return
     }
-    await supabase.from('lead_activity').insert({ lead_id: lead.id, workspace_id: workspaceId, user_id: user.id, kind: 'status_change', body: `Inspection scheduled for ${start.toLocaleString()}, assigned to you.` })
-    setApptAt('')
-    await load()
-    setSaving(false)
   }
 
   async function startInspection() {
     if (!lead) return
     setSaving(true)
-    const { user, workspaceId } = await ctx()
-    if (!user || !workspaceId) { setError('No workspace available.'); setSaving(false); return }
-    const { data, error: insertError } = await supabase.from('inspection_sessions').insert({ workspace_id: workspaceId, lead_id: lead.id, created_by: user.id, status: 'in_progress' }).select('id').single()
-    if (insertError) { setError(insertError.message); setSaving(false); return }
-    router.push(`/camera?inspection=${data.id}&lead=${lead.id}`)
+    try {
+      const { user, workspaceId } = await ctx()
+      if (!user || !workspaceId) { setError('No workspace available.'); return }
+      const { data, error: insertError } = await supabase.from('inspection_sessions').insert({ workspace_id: workspaceId, lead_id: lead.id, created_by: user.id, status: 'in_progress' }).select('id').single()
+      if (insertError) { setError(insertError.message); return }
+      router.push(`/camera?inspection=${data.id}&lead=${lead.id}`)
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : 'Could not start the inspection.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   const activeInspection = useMemo(

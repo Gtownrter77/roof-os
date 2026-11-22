@@ -204,7 +204,7 @@ for (const route of routes) {
 const protectedWorkspaceRoutes = routes.filter((path) => /claims|measurements|pricing|storms/.test(path))
 for (const route of protectedWorkspaceRoutes) {
   const source = readFileSync(route, 'utf8')
-  if (!source.includes('requireWorkspaceMember')) {
+  if (!stripCommentsAndStrings(source).includes('requireWorkspaceMember')) {
     throw new Error(`Workspace authorization helper missing from ${route}`)
   }
 }

@@ -33,54 +33,57 @@ function MfaForm() {
     async function prepare() {
       setLoading(true)
       setError('')
-      const { data: userData, error: userError } = await supabase.auth.getUser()
-      if (userError || !userData.user) {
-        router.replace('/auth/login')
-        return
-      }
-
-      const { data: factors, error: factorsError } = await supabase.auth.mfa.listFactors()
-      if (factorsError) {
-        setError('Unable to load multi-factor authentication settings.')
-        setLoading(false)
-        return
-      }
-
-      const verified = factors.totp.find((item) => item.status === 'verified') as Factor | undefined
-      if (verified) {
-        if (!cancelled) {
-          setFactor(verified)
-          await createChallenge(verified.id)
+      try {
+        const { data: userData, error: userError } = await supabase.auth.getUser()
+        if (userError || !userData.user) {
+          router.replace('/auth/login')
+          return
         }
-        return
-      }
 
-      const pending = (factors.totp as unknown as Factor[]).find((item) => item.status === 'unverified')
-      if (pending) {
-        if (!cancelled) {
-          setFactor(pending)
-          setError('An authenticator enrollment is already in progress. Use the setup QR code from that enrollment, or restart it below.')
-          setLoading(false)
+        const { data: factors, error: factorsError } = await supabase.auth.mfa.listFactors()
+        if (factorsError) {
+          setError('Unable to load multi-factor authentication settings.')
+          return
         }
-        return
+
+        const verified = factors.totp.find((item) => item.status === 'verified') as Factor | undefined
+        if (verified) {
+          if (!cancelled) {
+            setFactor(verified)
+            await createChallenge(verified.id)
+          }
+          return
+        }
+
+        const pending = (factors.totp as unknown as Factor[]).find((item) => item.status === 'unverified')
+        if (pending) {
+          if (!cancelled) {
+            setFactor(pending)
+            setError('An authenticator enrollment is already in progress. Use the setup QR code from that enrollment, or restart it below.')
+          }
+          return
+        }
+
+        const { data: enrollment, error: enrollmentError } = await supabase.auth.mfa.enroll({
+          factorType: 'totp',
+          friendlyName: 'ROOF/OS Authenticator',
+        })
+
+        if (enrollmentError || !enrollment?.id) {
+          setError(enrollmentError?.message || 'Unable to start authenticator enrollment.')
+          return
+        }
+
+        if (cancelled) return
+        setFactor({ id: enrollment.id, friendly_name: enrollment.friendly_name, factor_type: enrollment.type, status: 'unverified' })
+        setQrCode(enrollment.totp.qr_code)
+        setSecret(enrollment.totp.secret)
+        await createChallenge(enrollment.id)
+      } catch (prepareError) {
+        if (!cancelled) setError(prepareError instanceof Error ? prepareError.message : 'Unable to prepare secure sign-in.')
+      } finally {
+        if (!cancelled) setLoading(false)
       }
-
-      const { data: enrollment, error: enrollmentError } = await supabase.auth.mfa.enroll({
-        factorType: 'totp',
-        friendlyName: 'ROOF/OS Authenticator',
-      })
-
-      if (enrollmentError || !enrollment?.id) {
-        setError(enrollmentError?.message || 'Unable to start authenticator enrollment.')
-        setLoading(false)
-        return
-      }
-
-      if (cancelled) return
-      setFactor({ id: enrollment.id, friendly_name: enrollment.friendly_name, factor_type: enrollment.type, status: 'unverified' })
-      setQrCode(enrollment.totp.qr_code)
-      setSecret(enrollment.totp.secret)
-      await createChallenge(enrollment.id)
     }
 
     async function createChallenge(factorId: string) {
@@ -109,21 +112,26 @@ function MfaForm() {
     setError('')
     setMessage('')
 
-    const { error: verifyError } = await supabase.auth.mfa.verify({
-      factorId: factor.id,
-      challengeId,
-      code,
-    })
+    try {
+      const { error: verifyError } = await supabase.auth.mfa.verify({
+        factorId: factor.id,
+        challengeId,
+        code,
+      })
 
-    if (verifyError) {
-      setError('That authenticator code was not accepted. Check the code and try again.')
+      if (verifyError) {
+        setError('That authenticator code was not accepted. Check the code and try again.')
+        return
+      }
+
+      setMessage('Multi-factor authentication verified.')
+      router.replace(next)
+      router.refresh()
+    } catch (verifyError) {
+      setError(verifyError instanceof Error ? verifyError.message : 'Unable to verify the authenticator code.')
+    } finally {
       setWorking(false)
-      return
     }
-
-    setMessage('Multi-factor authentication verified.')
-    router.replace(next)
-    router.refresh()
   }
 
   async function restartEnrollment() {
@@ -132,13 +140,18 @@ function MfaForm() {
 
     setWorking(true)
     setError('')
-    const { error: unenrollError } = await supabase.auth.mfa.unenroll({ factorId: factor.id })
-    if (unenrollError) {
-      setError(`Unable to restart authenticator enrollment: ${unenrollError.message}`)
+    try {
+      const { error: unenrollError } = await supabase.auth.mfa.unenroll({ factorId: factor.id })
+      if (unenrollError) {
+        setError(`Unable to restart authenticator enrollment: ${unenrollError.message}`)
+        return
+      }
+      window.location.reload()
+    } catch (restartError) {
+      setError(restartError instanceof Error ? restartError.message : 'Unable to restart authenticator enrollment.')
+    } finally {
       setWorking(false)
-      return
     }
-    window.location.reload()
   }
 
   if (loading) return <main className="min-h-screen flex items-center justify-center p-4"><p className="text-sm text-slate-300">Preparing secure sign-in…</p></main>
