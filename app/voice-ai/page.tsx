@@ -84,7 +84,8 @@ export default function VoiceAI() {
       const reply = data.reply || (res.ok ? 'Command processed.' : 'Could not route the command.')
       setResponse(reply)
       setHistory((prev) => [{ command: text, response: reply, time: new Date().toLocaleTimeString() }, ...prev])
-      if (data.action?.type === 'navigate' && data.action.url) router.push(data.action.url)
+      const target = data.navigate === true ? data.suggestedAction?.href : null
+      if (typeof target === 'string' && target.startsWith('/') && !target.startsWith('//')) router.push(target)
     } catch {
       setResponse('Network error routing the command.')
     }

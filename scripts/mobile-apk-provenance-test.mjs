@@ -53,6 +53,14 @@ assert.throws(
 
 const eas = JSON.parse(read('apps/field/eas.json'))
 
+// A signed APK re-signed by an unexpected key previously passed the release
+// gate because provenance recorded but never compared the certificate.
+const trustedFingerprint = '7a1c64b0a0bdae5ac87aef821ee7d6a6a56a6ec21ef53c249149b8e90b74868f'
+assert.ok(workflow.includes(trustedFingerprint), 'release gate must pin the trusted signing certificate')
+assert.ok(workflow.includes('m.signingCertificateSha256'), 'release gate must compare the manifest signing certificate')
+assert.ok(provenance.includes(trustedFingerprint), 'provenance generator must reject an untrusted signer')
+assert.ok(provenance.includes('Unexpected APK signing certificate'), 'provenance generator must fail closed on signer mismatch')
+
 assert.ok(workflow.includes('workflow_dispatch:'), 'manual preview build remains available')
 assert.ok(workflow.includes("github.event_name == 'workflow_dispatch' && 'main' || github.ref"), 'manual builds must be pinned to protected main rather than arbitrary user refs')
 const buildJob = workflow.slice(workflow.indexOf('build-preview-apk:'), workflow.indexOf('publish-preview-release:'))

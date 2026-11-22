@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '../../../../lib/supabase/server'
 import { readJson, requireWorkspaceMember } from '../../../../lib/api-security'
+import { validateEstimateLineItems } from '../../../../lib/estimates/line-items'
 
 const ESTIMATE_STATUSES = ['draft', 'pending_approval', 'approved', 'rejected', 'superseded'] as const
 
@@ -110,9 +111,21 @@ export async function PUT(
     approved_at = null
   }
 
+  const snapshotFieldKeys = [
+    'customer_name', 'customer_email', 'customer_phone',
+    'property_address', 'property_city', 'property_state', 'property_zip',
+    'insurance_company', 'claim_number', 'adjuster_name', 'adjuster_phone', 'adjuster_email',
+    'notes_internal', 'notes_customer',
+  ] as const
+  const updateSnapshot = snapshotFieldKeys.some(key => body[key] !== undefined)
+  const updateStatus = body.status !== undefined || body.formula_version !== undefined
+
   const lineItems = body.line_items
   if (lineItems !== undefined) {
+    const lineItemError = validateEstimateLineItems(lineItems)
+    if (lineItemError) return NextResponse.json({ error: lineItemError }, { status: 400 })
     // One database transaction: an insert failure rolls back deletions and totals.
+    // This RPC owns status/formula_version/approval metadata and totals.
     const { error: replacementError } = await supabase.rpc('replace_estimate_line_items', {
       p_estimate_id: id,
       p_workspace_id: workspaceId,
@@ -123,46 +136,54 @@ export async function PUT(
     if (replacementError) {
       return NextResponse.json({ error: 'Could not replace estimate line items.', detail: replacementError.message }, { status: 502 })
     }
+  }
 
-  } else if (body.status !== undefined || body.formula_version !== undefined || body.customer_name !== undefined || body.customer_email !== undefined || body.customer_phone !== undefined || body.property_address !== undefined || body.property_city !== undefined || body.property_state !== undefined || body.property_zip !== undefined || body.insurance_company !== undefined || body.claim_number !== undefined || body.adjuster_name !== undefined || body.adjuster_phone !== undefined || body.adjuster_email !== undefined || body.notes_internal !== undefined || body.notes_customer !== undefined) {
-    // partial update of non-line-item fields
+  // Snapshot edits must persist even when line items are replaced in the same
+  // request. Previously this was an `else if`, silently dropping address and
+  // customer changes whenever `line_items` was present. The RPC above does not
+  // touch estimate_snapshot, so apply it separately. Status/formula/approval are
+  // only set here when no RPC ran (otherwise the RPC already owns them).
+  if (updateSnapshot || (lineItems === undefined && updateStatus)) {
     const snapshot = existing.estimate_snapshot ?? {}
-    const { error: updateError } = await supabase
-      .from('estimates')
-      .update({
-        status,
-        formula_version: body.formula_version ?? existing.formula_version,
-        approved_by,
-        approved_at,
-        estimate_snapshot: {
-          ...snapshot,
-          customer: {
-            name: body.customer_name ?? snapshot.customer?.name,
-            email: body.customer_email ?? snapshot.customer?.email,
-            phone: body.customer_phone ?? snapshot.customer?.phone,
-          },
-          property: {
-            address: body.property_address ?? snapshot.property?.address,
-            city: body.property_city ?? snapshot.property?.city,
-            state: body.property_state ?? snapshot.property?.state,
-            zip: body.property_zip ?? snapshot.property?.zip,
-          },
-          insurance: {
-            company: body.insurance_company ?? snapshot.insurance?.company,
-            claim_number: body.claim_number ?? snapshot.insurance?.claim_number,
-            adjuster: {
-              name: body.adjuster_name ?? snapshot.insurance?.adjuster?.name,
-              phone: body.adjuster_phone ?? snapshot.insurance?.adjuster?.phone,
-              email: body.adjuster_email ?? snapshot.insurance?.adjuster?.email,
-            },
-          },
-          notes: {
-            internal: body.notes_internal ?? snapshot.notes?.internal,
-            customer: body.notes_customer ?? snapshot.notes?.customer,
+    const patch: Record<string, unknown> = { updated_at: new Date().toISOString() }
+    if (lineItems === undefined) {
+      patch.status = status
+      patch.formula_version = body.formula_version ?? existing.formula_version
+      patch.approved_by = approved_by
+      patch.approved_at = approved_at
+    }
+    if (updateSnapshot) {
+      patch.estimate_snapshot = {
+        ...snapshot,
+        customer: {
+          name: body.customer_name ?? snapshot.customer?.name,
+          email: body.customer_email ?? snapshot.customer?.email,
+          phone: body.customer_phone ?? snapshot.customer?.phone,
+        },
+        property: {
+          address: body.property_address ?? snapshot.property?.address,
+          city: body.property_city ?? snapshot.property?.city,
+          state: body.property_state ?? snapshot.property?.state,
+          zip: body.property_zip ?? snapshot.property?.zip,
+        },
+        insurance: {
+          company: body.insurance_company ?? snapshot.insurance?.company,
+          claim_number: body.claim_number ?? snapshot.insurance?.claim_number,
+          adjuster: {
+            name: body.adjuster_name ?? snapshot.insurance?.adjuster?.name,
+            phone: body.adjuster_phone ?? snapshot.insurance?.adjuster?.phone,
+            email: body.adjuster_email ?? snapshot.insurance?.adjuster?.email,
           },
         },
-        updated_at: new Date().toISOString(),
-      })
+        notes: {
+          internal: body.notes_internal ?? snapshot.notes?.internal,
+          customer: body.notes_customer ?? snapshot.notes?.customer,
+        },
+      }
+    }
+    const { error: updateError } = await supabase
+      .from('estimates')
+      .update(patch)
       .eq('id', id)
       .eq('workspace_id', workspaceId)
 

@@ -62,6 +62,19 @@ jobs:
       - run: npm run test:estimate-packet-manager-gate
       - run: npm run test:crm-missing-spokes
       - run: npm run test:api-security
+      - run: npm run test:ai-chat-auth-contract
+      - run: npm run test:estimate-creation-runtime
+      - run: npm run test:estimate-navigation-contract
+      - run: npm run test:mobile-release
+      - run: npm run test:job-safety-hold-release
+      - run: npm run test:field-workspace-scoping
+      - run: npm run test:field-preflight-contract
+      - run: npm run test:voice-ai-navigation
+      - run: npm run test:estimate-owner-actions
+      - run: npm run test:estimate-number-uniqueness
+      - run: npm run test:estimate-put-contract
+      - run: npm run test:stripe-webhook
+      - run: npm run test:lockout-status-guard
       - run: npm run test:auth-flow
       - run: npm run test:invitation-flow
       - run: npm run test:two-workspace-contract

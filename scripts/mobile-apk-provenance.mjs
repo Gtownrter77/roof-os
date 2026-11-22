@@ -66,6 +66,13 @@ if (certificate.source === 'fallback') {
 }
 const signingCertificateSha256 = certificate.fingerprint
 
+// Fail closed on an unexpected signing identity. A re-signed APK carrying
+// otherwise matching build metadata must never be published as the field build.
+const TRUSTED_SIGNING_CERTIFICATE_SHA256 = '7a1c64b0a0bdae5ac87aef821ee7d6a6a56a6ec21ef53c249149b8e90b74868f'
+if (signingCertificateSha256.toLowerCase() !== TRUSTED_SIGNING_CERTIFICATE_SHA256) {
+  throw new Error(`Unexpected APK signing certificate: ${signingCertificateSha256}`)
+}
+
 const workflowUrl = process.env.GITHUB_SERVER_URL && process.env.GITHUB_REPOSITORY && process.env.GITHUB_RUN_ID
   ? `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`
   : null

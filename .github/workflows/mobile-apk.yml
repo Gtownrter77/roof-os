@@ -207,13 +207,14 @@ jobs:
         shell: bash
         env:
           SOURCE_SHA: ${{ github.sha }}
+          TRUSTED_SIGNING_CERTIFICATE_SHA256: 7a1c64b0a0bdae5ac87aef821ee7d6a6a56a6ec21ef53c249149b8e90b74868f
         run: |
           set -euo pipefail
           test -s artifacts/roof-os-field-preview.apk
           test -s artifacts/roof-os-field-preview.apk.sha256
           test -s artifacts/roof-os-field-preview.manifest.json
           (cd artifacts && sha256sum -c roof-os-field-preview.apk.sha256)
-          node -e "const m=require('./artifacts/roof-os-field-preview.manifest.json'); if (m.source.commit !== process.env.SOURCE_SHA) throw new Error('Release artifact source commit mismatch'); if (m.artifactType !== 'internal-preview-apk') throw new Error('Unexpected artifact type')"
+          node -e "const m=require('./artifacts/roof-os-field-preview.manifest.json'); if (m.source.commit !== process.env.SOURCE_SHA) throw new Error('Release artifact source commit mismatch'); if (m.artifactType !== 'internal-preview-apk') throw new Error('Unexpected artifact type'); if (m.signingCertificateSha256 !== process.env.TRUSTED_SIGNING_CERTIFICATE_SHA256) throw new Error('Unexpected APK signing certificate')"
 
       - name: Publish verified prerelease
         shell: bash

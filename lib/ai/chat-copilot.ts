@@ -8,6 +8,8 @@ export type ChatAction = {
 export type ChatResponse = {
   reply: string
   suggestedAction?: ChatAction
+  /** True only when the message explicitly asked to open a screen. */
+  navigate?: boolean
   quickReplies?: string[]
 }
 
@@ -137,6 +139,7 @@ export async function processChatCopilot(input: {
     return {
       reply: `${matchedNav.defaultReply} Local Ollama could not be reached from this browser, so this is rule-based navigation. Check that Ollama is running, the chat model is installed, and OLLAMA_ORIGINS allows this exact app origin. Would you like to open that screen?`,
       suggestedAction: matchedNav.action,
+      navigate: true,
       quickReplies: getSuggestedQuickReplies(matchedNav.action.href),
     }
   }
@@ -145,6 +148,7 @@ export async function processChatCopilot(input: {
     reply:
       'Local Ollama could not be reached from this browser. Check that it is running and OLLAMA_ORIGINS allows this exact app origin. I can still open storms, leads, measurements, estimates, reports, or invoices.',
     suggestedAction: { label: 'Go to Command Center', href: '/' },
+    navigate: false,
     quickReplies: ['Track Active Storms', 'Aerial Measurement', 'New Estimate', 'Golden Report'],
   }
 }

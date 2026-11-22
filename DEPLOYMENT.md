@@ -1,6 +1,8 @@
 # Deployment
 
-**Current checkpoint — 2026-10-26:** `main` is `03d8cddd0047b2a2530301c8a3e136ad8eaf1481`; post-merge CI passed. Production migrations `053`–`056` are applied and recorded. Authenticated two-workspace checks, physical-device behavior, passport positive-path, provider execution, backup/restore, and staging parity remain unverified. Run `.github/workflows/staging-migration-verify.yml` only against an owner-designated protected staging environment; never use it as a production deploy mechanism.
+**Historical checkpoint — 2026-10-26:** `main` was `03d8cddd0047b2a2530301c8a3e136ad8eaf1481`; migrations `053`–`056` were recorded applied at that time.
+
+**Current source baseline — 2026-11-22:** GitHub `main` is `764976f209f9c4167b4df3a862712bd335a844a4`; source has 107 migration files through `109_foreman_sos.sql`. Hosted application of later migrations and runtime RLS/schema parity are **unverified**; the earlier `053`–`056` ledger must not be read as current parity. Authenticated two-workspace checks, physical-device behavior, passport positive-path, provider execution, backup/restore, and staging parity remain unverified. Run `.github/workflows/staging-migration-verify.yml` only against an owner-designated protected staging environment; never use it as a production deploy mechanism.
 
 ROOF/OS is connected to the free Vercel Hobby project `roof-os`.
 

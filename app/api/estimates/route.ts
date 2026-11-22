@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '../../../lib/supabase/server'
 import { isUuid, readJson, requireWorkspaceMember } from '../../../lib/api-security'
-import { getDefaultEstimateTemplate } from '../../../lib/estimates/estimate-types'
+import { generateEstimateNumber, getDefaultEstimateTemplate } from '../../../lib/estimates/estimate-types'
+import { validateEstimateLineItems } from '../../../lib/estimates/line-items'
 
 const ESTIMATE_STATUSES = ['draft', 'pending_approval', 'approved', 'rejected', 'superseded'] as const
 
@@ -23,15 +24,6 @@ function computeTotals(lineItems: { quantity: number; unit_cost: number; categor
   return { material, labor, allowance, fee, tax: taxItems, subtotal, total: subtotal + taxItems }
 }
 
-function generateEstimateNumber(workspaceId: string, createdAt: string) {
-  const date = new Date(createdAt)
-  const yyyy = date.getFullYear()
-  const mm = String(date.getMonth() + 1).padStart(2, '0')
-  const dd = String(date.getDate()).padStart(2, '0')
-  const shortWs = workspaceId.slice(0, 8).toUpperCase()
-  return `EST-${yyyy}${mm}${dd}-${shortWs}`
-}
-
 export async function GET() {
   const { supabase, user, workspaceId } = await getWorkspaceContext()
   if (!user) return NextResponse.json({ error: 'Authentication required.' }, { status: 401 })
@@ -48,7 +40,7 @@ export async function GET() {
 
   const estimates = (data ?? []).map(e => ({
     ...e,
-    estimate_number: generateEstimateNumber(workspaceId, e.created_at),
+    estimate_number: generateEstimateNumber(workspaceId, e.created_at, e.id),
     line_items: e.estimate_line_items ?? [],
     _estimate_line_items: undefined,
   }))
@@ -112,9 +104,8 @@ export async function POST(request: NextRequest) {
   }
 
   const lineItems = body.line_items ?? []
-  if (!Array.isArray(lineItems) || lineItems.length > 200) {
-    return NextResponse.json({ error: 'An estimate may contain at most 200 line items.' }, { status: 400 })
-  }
+  const lineItemError = validateEstimateLineItems(lineItems)
+  if (lineItemError) return NextResponse.json({ error: lineItemError }, { status: 400 })
   if (body.lead_id !== undefined && body.lead_id !== null && !isUuid(body.lead_id)) {
     return NextResponse.json({ error: 'lead_id must be a valid UUID.' }, { status: 400 })
   }
@@ -165,12 +156,6 @@ export async function POST(request: NextRequest) {
       confidence: sourceMeasurement.confidence,
       roof_squares: sourceMeasurement.roof_squares,
       roof_area_sqft: sourceMeasurement.roof_area_sqft,
-    }
-  }
-  const allowedCategories = new Set(['material', 'labor', 'allowance', 'fee', 'tax'])
-  for (const [index, item] of lineItems.entries()) {
-    if (!item || typeof item !== 'object' || typeof item.description !== 'string' || typeof item.category !== 'string' || typeof item.unit !== 'string' || item.description.trim().length === 0 || item.description.length > 500 || item.unit.trim().length === 0 || item.unit.length > 20 || !allowedCategories.has(item.category) || !Number.isFinite(item.quantity) || item.quantity < 0 || !Number.isFinite(item.unit_cost) || item.unit_cost < 0 || !Number.isFinite(item.quantity * item.unit_cost) || (item.item_code != null && typeof item.item_code !== 'string')) {
-      return NextResponse.json({ error: `Line item ${index + 1} must have a description, valid category, unit, and nonnegative numeric quantity and cost.` }, { status: 400 })
     }
   }
   const { subtotal, tax, total } = computeTotals(lineItems)
@@ -247,6 +232,6 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  const estimateNumber = generateEstimateNumber(workspaceId, estimate.created_at)
+  const estimateNumber = generateEstimateNumber(workspaceId, estimate.created_at, estimate.id)
   return NextResponse.json({ estimate: { ...estimate, estimate_number: estimateNumber, line_items: lineItems } }, { status: 201 })
 }

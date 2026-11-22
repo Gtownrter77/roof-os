@@ -25,6 +25,51 @@ import {
   View,
 } from 'react-native'
 
+const FIELD_WORKSPACE_CACHE_KEY = 'roof_os_field_workspace_v1'
+
+// The active workspace is learned from an online RPC. Persist it per user so a
+// cold offline start can still stamp drafts with the correct tenant instead of
+// writing a null workspace that would bypass the cross-workspace sync guard.
+async function readCachedFieldWorkspace(): Promise<{ userId: string; workspaceId: string } | null> {
+  try {
+    const raw = Platform.OS === 'web'
+      ? (typeof window !== 'undefined' ? window.localStorage.getItem(FIELD_WORKSPACE_CACHE_KEY) : null)
+      : await SecureStore.getItemAsync(FIELD_WORKSPACE_CACHE_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as { userId?: unknown; workspaceId?: unknown }
+    return typeof parsed.userId === 'string' && typeof parsed.workspaceId === 'string'
+      ? { userId: parsed.userId, workspaceId: parsed.workspaceId }
+      : null
+  } catch {
+    return null
+  }
+}
+
+async function cacheFieldWorkspace(userId: string, workspaceId: string): Promise<void> {
+  try {
+    const raw = JSON.stringify({ userId, workspaceId })
+    if (Platform.OS === 'web') {
+      if (typeof window !== 'undefined') window.localStorage.setItem(FIELD_WORKSPACE_CACHE_KEY, raw)
+    } else {
+      await SecureStore.setItemAsync(FIELD_WORKSPACE_CACHE_KEY, raw)
+    }
+  } catch {
+    // Best effort: the next online load refreshes the in-memory value.
+  }
+}
+
+async function clearCachedFieldWorkspace(): Promise<void> {
+  try {
+    if (Platform.OS === 'web') {
+      if (typeof window !== 'undefined') window.localStorage.removeItem(FIELD_WORKSPACE_CACHE_KEY)
+    } else {
+      await SecureStore.deleteItemAsync(FIELD_WORKSPACE_CACHE_KEY)
+    }
+  } catch {
+    // Ignore storage failures during sign-out.
+  }
+}
+
 const colors = {
   ink: '#f7f9ff',
   blue: '#16b8ff',
@@ -206,6 +251,9 @@ export default function App() {
   const [fieldAiPreferencesLoaded, setFieldAiPreferencesLoaded] = useState(false)
   const draftRef = useRef<Draft | null>(null)
   const syncLock = useRef(false)
+  // Active workspace learned while online. Stamped onto offline drafts so a
+  // later workspace switch cannot silently file evidence into another tenant.
+  const workspaceRef = useRef<string | null>(null)
 
   useEffect(() => {
     ensureDatabase()
@@ -272,7 +320,11 @@ export default function App() {
   useEffect(() => {
     if (session) {
       loadDrafts()
-      void loadFieldData()
+      void (async () => {
+        const cached = await readCachedFieldWorkspace()
+        if (cached?.userId === session.user.id && cached.workspaceId) workspaceRef.current = cached.workspaceId
+        await loadFieldData()
+      })()
     }
   }, [session])
 
@@ -429,8 +481,10 @@ export default function App() {
     if (!supabase || !session) return
     const { data: workspaceId, error: workspaceError } = await supabase.rpc('current_workspace_id')
     if (workspaceError || !workspaceId) return
+    workspaceRef.current = workspaceId
+    void cacheFieldWorkspace(session.user.id, workspaceId)
     const [leadResult, appointmentResult, taskResult] = await Promise.all([
-      supabase.from('leads').select('id,name,address,status').order('updated_at', { ascending: false }).limit(50),
+      supabase.from('leads').select('id,name,address,status').eq('workspace_id', workspaceId).order('updated_at', { ascending: false }).limit(50),
       supabase.from('appointments').select('id,title,starts_at,location,status').eq('workspace_id', workspaceId).neq('status', 'cancelled').order('starts_at', { ascending: true }).limit(20),
       supabase.from('tasks').select('id,title,due_at,status').eq('workspace_id', workspaceId).eq('status', 'open').order('due_at', { ascending: true }).limit(20),
     ])
@@ -446,6 +500,12 @@ export default function App() {
     nextPoint = point,
     nextLeadId = selectedLeadId
   ): number | null {
+    // Never write a null workspace: that draft would bypass the sync guard and
+    // could be filed into whichever workspace happens to be active later.
+    if (!workspaceRef.current) {
+      setError('Connect once so ROOF/OS can identify your workspace before saving offline evidence.')
+      return null
+    }
     try {
       const now = timestamp()
       if (draft) {
@@ -478,7 +538,7 @@ export default function App() {
       const result = db.runSync(
         'INSERT INTO inspection_drafts (owner_user_id, workspace_id, client_id, lead_id, address, photo_count, status, latitude, longitude, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         session.user.id,
-        null,
+        workspaceRef.current,
         createdClientId,
         nextLeadId,
         nextAddress,
@@ -492,7 +552,7 @@ export default function App() {
         id: result.lastInsertRowId,
         remoteId: null,
         ownerUserId: session.user.id,
-        workspaceId: null,
+        workspaceId: workspaceRef.current,
         clientId: createdClientId,
         leadId: nextLeadId,
         address: nextAddress,
@@ -859,6 +919,8 @@ export default function App() {
     if (supabase) await supabase.auth.signOut().catch(() => {})
     await SecureStore.deleteItemAsync('roof_os_field_email').catch(() => {})
     await SecureStore.deleteItemAsync('roof_os_field_tech_name').catch(() => {})
+    await clearCachedFieldWorkspace()
+    workspaceRef.current = null
     draftRef.current = null
     setSession(null); setDraft(null); setDrafts([]); setPhotoQueue([]); setPendingUploads(0); setSelectedLeadId(null); setNotice('Signed out. Local inspection drafts remain safely stored for their original owner.'); setError('')
   }
@@ -883,7 +945,8 @@ export default function App() {
       const { data: workspaceId, error: workspaceError } = await supabase.rpc('current_workspace_id')
       if (workspaceError || !workspaceId) throw new Error('No workspace is available for this account.')
       if (draftToSync.ownerUserId !== session.user.id) throw new Error('This draft belongs to a different signed-in user.')
-      if (draftToSync.workspaceId && draftToSync.workspaceId !== workspaceId) throw new Error('This draft belongs to a different workspace. Switch workspace before syncing.')
+      if (!draftToSync.workspaceId) throw new Error('This draft has no recorded workspace. Recreate it after connecting once.')
+      if (draftToSync.workspaceId !== workspaceId) throw new Error('This draft belongs to a different workspace. Switch workspace before syncing.')
       let remoteId = draftToSync.remoteId
       if (!remoteId) {
         const { data, error: insertError } = await supabase.from('inspection_sessions').upsert({ workspace_id: workspaceId, lead_id: draftToSync.leadId, client_id: draftToSync.clientId, created_by: session.user.id, status: 'draft', client_version: 'field-0.5.0' }, { onConflict: 'workspace_id,client_id' }).select('id').single()

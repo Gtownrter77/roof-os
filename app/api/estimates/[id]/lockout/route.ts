@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '../../../../../lib/supabase/server'
+import { canTagEstimateLocks } from '../../../../../lib/estimates/status'
 
 const STEPS = ['self', 'inspector', 'closer', 'operations', 'owner'] as const
 
@@ -22,6 +23,11 @@ export async function POST(
     .maybeSingle()
   if (loadError) return NextResponse.json({ error: 'Could not load estimate.' }, { status: 502 })
   if (!estimate) return NextResponse.json({ error: 'Estimate not found.' }, { status: 404 })
+  // A terminal estimate must never be downgraded back to pending_approval by
+  // a stray lock tag (for example one approved directly through PUT).
+  if (!canTagEstimateLocks(estimate.status)) {
+    return NextResponse.json({ error: 'This estimate is already approved or closed; its lock sequence cannot be changed.' }, { status: 409 })
+  }
 
   const { data: membership, error: memberError } = await supabase
     .from('workspace_members')
