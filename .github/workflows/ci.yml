@@ -32,6 +32,7 @@ jobs:
       # Keep the security check in the required web job until main's ruleset requires field-security.
       - run: node scripts/test-field-deepmerge-mitigation.cjs
       - run: node scripts/audit-field-deps.mjs
+      - run: npm run test:field-deps-audit-contract
       - run: node scripts/release-foreman-check.mjs
       - run: node --experimental-strip-types scripts/worker-heartbeat-runtime-test.mjs
       - run: npm run test:braces-mitigation --prefix apps/field

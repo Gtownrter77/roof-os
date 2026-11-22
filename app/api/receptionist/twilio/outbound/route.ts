@@ -35,11 +35,16 @@ export async function POST(request: NextRequest) {
     if (!lead) return NextResponse.json({ error: 'leadId must belong to the active workspace.' }, { status: 400 })
   }
   const admin = createAdminClient()
-  const { data: optOut } = await admin.from('receptionist_consents').select('id').eq('workspace_id', workspaceId).eq('phone', phone).eq('channel', 'voice').eq('state', 'revoked').order('captured_at', { ascending: false }).limit(1).maybeSingle()
+  const { data: optOut, error: consentError } = await admin.from('receptionist_consents').select('id').eq('workspace_id', workspaceId).eq('phone', phone).eq('channel', 'voice').eq('state', 'revoked').order('captured_at', { ascending: false }).limit(1).maybeSingle()
+  // Fail closed: a failed revocation lookup must never look like "no opt-out".
+  if (consentError) return NextResponse.json({ error: 'Opt-out status could not be verified.' }, { status: 503 })
   if (optOut) return NextResponse.json({ error: 'This phone number has opted out of voice follow-up.' }, { status: 409 })
   if (settings.enforce_tcpa_quiet_hours_outbound && !isWithinQuietHours()) return NextResponse.json({ error: quietHoursMessage('call') }, { status: 409 })
   const client = twilio(accountSid, authToken)
   const call = await client.calls.create({ to: phone, from, url: `${publicUrl}/api/receptionist/twilio/outbound/twiml?message=${encodeURIComponent(body.message.trim())}`, statusCallback: `${publicUrl}/api/receptionist/twilio/status`, statusCallbackMethod: 'POST' })
-  await admin.from('receptionist_call_attempts').insert({ workspace_id: workspaceId, lead_id: body.leadId || null, phone, direction: 'outbound', attempt_number: 1, status: 'ringing', provider_call_id: call.sid })
+  const { error: attemptError } = await admin.from('receptionist_call_attempts').insert({ workspace_id: workspaceId, lead_id: body.leadId || null, phone, direction: 'outbound', attempt_number: 1, status: 'ringing', provider_call_id: call.sid })
+  // The call is already placed, so it cannot be rolled back — but a missing
+  // ledger row breaks the next-attempt scheduler and must be surfaced.
+  if (attemptError) return NextResponse.json({ callId: call.sid, provider: 'twilio', warning: 'The call attempt could not be recorded.' }, { status: 202 })
   return NextResponse.json({ callId: call.sid, provider: 'twilio' }, { status: 202 })
 }

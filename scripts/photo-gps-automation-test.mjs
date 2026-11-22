@@ -129,4 +129,12 @@ for (const route of [
 ]) {
   assert.match(source(route), /isCertifiedPhotoContent\(/, route + ' must check actual image bytes')
 }
+// Batch 10 / 95: the id sent to the provenance API must be the id persisted in
+// inspection_photos. A storage-filename UUID that is not the row id makes every
+// verification request 404 while the UI claims GPS verification succeeded.
+const cameraPage = readFileSync(new URL('../app/camera/page.tsx', import.meta.url), 'utf8')
+const cameraInsert = cameraPage.match(/from\('inspection_photos'\)\.insert\(\{([\s\S]*?)\n        \}\)/)
+assert.ok(cameraInsert, 'camera upload must insert into inspection_photos')
+assert.match(cameraInsert[1], /\bid: photoId,/, 'the inserted row id must be the same UUID sent to /api/photo-provenance/verify')
+assert.match(cameraPage, /body: JSON\.stringify\(\{ photoId \}\)/, 'verification must use the persisted row id')
 console.log('Photo GPS/owner automation gate tests passed.')

@@ -36,6 +36,7 @@ export default function PhotoEstimatePage() {
   const [inspectionId, setInspectionId] = useState('')
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
+  const [contextLoadError, setContextLoadError] = useState('')
   const [working, setWorking] = useState(false)
   const [ocrWorking, setOcrWorking] = useState(false)
   const [workflow, setWorkflow] = useState<any>(null)
@@ -82,36 +83,58 @@ export default function PhotoEstimatePage() {
     const requestedInspectionId = typeof window === 'undefined' ? null : new URLSearchParams(window.location.search).get('inspection')
     if (!requestedInspectionId || inspectionId) return
     async function loadInspectionContext() {
+      try {
       // Resolve the caller's workspace first. An attacker-supplied inspection
       // id must never load another tenant's evidence or signed photo URLs.
       const { data: workspaceId, error: workspaceError } = await supabase.rpc('current_workspace_id')
-      if (workspaceError || !workspaceId) return
+      if (workspaceError || !workspaceId) {
+        setContextLoadError('Workspace could not be resolved. Reload before continuing.')
+        setMessage('')
+        return
+      }
       const { data, error: queryError } = await supabase
         .from('inspection_sessions')
         .select('id,workspace_id,leads(address)')
         .eq('id', requestedInspectionId)
         .eq('workspace_id', workspaceId)
         .maybeSingle()
-      if (queryError || !assertSameWorkspace(data, workspaceId)) return
+      if (queryError) {
+        setContextLoadError('The saved inspection could not be read. Reload before continuing.')
+        setMessage('')
+        return
+      }
+      if (!assertSameWorkspace(data, workspaceId)) {
+        setContextLoadError('The saved inspection is unavailable in this workspace.')
+        setMessage('')
+        return
+      }
       setInspectionId(data.id)
       const lead = Array.isArray(data.leads) ? data.leads[0] : data.leads
       if (lead?.address) setAddress(lead.address)
-      const { data: photoRows } = await supabase
+      const { data: photoRows, error: photoRowsError } = await supabase
         .from('inspection_photos')
         .select('id,object_path')
         .eq('inspection_id', data.id)
         .eq('workspace_id', workspaceId)
+      if (photoRowsError) {
+        setContextLoadError('Saved photos could not be read. Reload before continuing.')
+        setMessage('')
+        return
+      }
       const savedPhotoRows = photoRows ?? []
       setPhotoIds(savedPhotoRows.map((photo) => photo.id))
       if (savedPhotoRows.length) {
         const { data: signedPhotos, error: signedPhotoError } = await supabase.storage
           .from('inspection-photos')
           .createSignedUrls(savedPhotoRows.map((photo) => photo.object_path), 3600)
-        if (!signedPhotoError && signedPhotos) {
-          setSourcePhotos(signedPhotos.flatMap((photo, index) => photo.signedUrl ? [{ id: savedPhotoRows[index].id, url: photo.signedUrl }] : []))
+        if (signedPhotoError) {
+          setContextLoadError('Signed photo URLs could not be created. Reload before continuing.')
+          setMessage('')
+          return
         }
+        setSourcePhotos((signedPhotos ?? []).flatMap((photo, index) => photo.signedUrl ? [{ id: savedPhotoRows[index].id, url: photo.signedUrl }] : []))
       }
-      const { data: savedWorkflow } = await supabase
+      const { data: savedWorkflow, error: workflowError } = await supabase
         .from('photo_estimate_workflows')
         .select('id,status,report,estimate,storm_candidates,source_photo_ids,ai_analysis,inspection_id,address,latitude,longitude,footprint_sqft,lead_id,approved_by,approved_at,technician_name,technician_license,technician_signature,photo_reviews,manager_approved_by,manager_approved_at,manager_approval_name,manager_approval_signature')
         .eq('inspection_id', data.id)
@@ -119,17 +142,33 @@ export default function PhotoEstimatePage() {
         .order('updated_at', { ascending: false })
         .limit(1)
         .maybeSingle()
+      if (workflowError) {
+        setContextLoadError('The saved workflow could not be read. Reload before continuing.')
+        setMessage('')
+        return
+      }
       if (savedWorkflow) {
         setWorkflow(savedWorkflow)
         if (savedWorkflow.address) setAddress(savedWorkflow.address)
         setFullReport(savedWorkflow.report?.fullReport ?? null)
         if (savedWorkflow.ai_analysis) setAiAnalysis(savedWorkflow.ai_analysis as AIObservation)
       }
+      // The reassuring "loaded" message is only valid when every scoped read
+      // succeeded — otherwise buildPacket would POST a fresh workflow over an
+      // empty context while the user believed a saved packet was present.
+      setContextLoadError('')
       setMessage(savedWorkflow?.report?.fullReport
         ? 'Saved inspection and full report loaded. Review the source evidence before printing or continuing.'
         : 'Inspection loaded. Saved photos are ready; add or confirm evidence, then build or continue the review packet.')
+      } catch {
+        setContextLoadError('The saved inspection could not be loaded. Reload before continuing.')
+        setMessage('')
+      }
     }
-    void loadInspectionContext()
+    void loadInspectionContext().catch(() => {
+      setContextLoadError('The saved inspection could not be loaded. Reload before continuing.')
+      setMessage('')
+    })
   }, [inspectionId, supabase])
 
   function chooseFiles(event: React.ChangeEvent<HTMLInputElement>) {
@@ -165,18 +204,25 @@ export default function PhotoEstimatePage() {
   async function findAddressInPhotos() {
     if (!photos.length) { setError('Add a photo containing a visible address first.'); return }
     setOcrWorking(true); setError(''); setMessage('Reading visible text from the photo…')
-    const worker = await createWorker('eng')
+    // Worker creation loads WASM and can reject (offline, CSP, missing asset).
+    // It must be inside the try, otherwise the flag-clearing finally is skipped
+    // and the OCR button stays disabled forever with no error shown.
     try {
-      const results: string[] = []
-      for (const photo of photos.slice(0, 3)) {
-        const result = await worker.recognize(photo.file)
-        if (result.data.text.trim()) results.push(result.data.text.trim())
+      const worker = await createWorker('eng')
+      try {
+        const results: string[] = []
+        for (const photo of photos.slice(0, 3)) {
+          const result = await worker.recognize(photo.file)
+          if (result.data.text.trim()) results.push(result.data.text.trim())
+        }
+        const candidate = results.join(' ').replace(/\s+/g, ' ').trim()
+        setAddress(candidate)
+        setMessage(candidate ? 'Address candidate found from visible photo text. Confirm or edit it before continuing.' : 'No readable address text was found. Enter or confirm the property address manually.')
+      } finally {
+        await worker.terminate()
       }
-      const candidate = results.join(' ').replace(/\s+/g, ' ').trim()
-      setAddress(candidate)
-      setMessage(candidate ? 'Address candidate found from visible photo text. Confirm or edit it before continuing.' : 'No readable address text was found. Enter or confirm the property address manually.')
     } catch (err) { setError(err instanceof Error ? err.message : 'Photo text recognition failed.') }
-    finally { await worker.terminate(); setOcrWorking(false) }
+    finally { setOcrWorking(false) }
   }
 
   async function uploadPhotos(): Promise<{ ids: string[]; inspectionId: string }> {
@@ -230,6 +276,7 @@ export default function PhotoEstimatePage() {
   }
 
   async function buildPacket() {
+    if (contextLoadError) { setError('The saved inspection context could not be loaded. Reload this page before building a packet.'); return }
     setWorking(true); setError(''); setMessage('')
     try {
       if (!address.trim()) throw new Error('Enter or confirm the property address before evidence lookup.')
@@ -360,6 +407,7 @@ export default function PhotoEstimatePage() {
       <button onClick={() => void buildPacket()} disabled={working} className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold disabled:opacity-60">{working ? 'Uploading and building review packet…' : 'Build review packet'}</button>
     </div>
     {error && <p className="text-red-700 bg-red-400/10 p-3 rounded mt-4 text-sm">{error}</p>}
+    {contextLoadError && <p role="alert" className="text-red-700 bg-red-400/10 p-3 rounded mt-4 text-sm">{contextLoadError}</p>}
     {message && <p className="text-emerald-300 bg-emerald-400/10 p-3 rounded mt-4 text-sm">{message}</p>}
     {workflow && <section className="bg-cyan-400/10 border border-cyan-400/30 rounded-lg p-4 mt-4" aria-labelledby="ai-observations-title">
       <h2 id="ai-observations-title" className="font-semibold">AI visual observations (non-authoritative)</h2>
