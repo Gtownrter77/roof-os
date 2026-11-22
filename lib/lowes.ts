@@ -1,3 +1,5 @@
+import { clientSafeProviderError } from './provider-error-safety'
+
 const LOWES_TOKEN_URL = 'https://apim.lowes.com/auth/token'
 
 export const LOWES_PRODUCT_SEARCH_URL = 'https://apis-b2b.lowes.com/lowesx-marketplace-gateway/api/v1/search/items'
@@ -32,7 +34,10 @@ export async function getLowesAccessToken() {
   let payload: unknown
   try { payload = JSON.parse(text) } catch { payload = { message: text.slice(0, 500) } }
   if (!response.ok || !payload || typeof payload !== 'object' || typeof (payload as { access_token?: unknown }).access_token !== 'string') {
-    return { token: null, error: 'Lowe\'s OAuth token request failed.', status: response.status, provider: payload }
+    // The provider body may echo credentials or hosts; keep it server-side and
+    // return only a fixed, bounded message to callers.
+    console.warn('[lowes] OAuth token request failed', { status: response.status })
+    return { token: null, error: clientSafeProviderError('lowes-token', response.status), status: response.status }
   }
   return { token: (payload as { access_token: string }).access_token, error: null }
 }

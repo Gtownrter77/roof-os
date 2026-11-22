@@ -28,18 +28,16 @@ export function paymentLinkReuse(
  * DIFFERENT invoice must not consume that cached session. Namespacing by
  * workspace + invoice makes the Stripe cache agrees with our ledger binding.
  * Output is bounded (<255 chars) and tagged for operator traceability. */
-export function stripeIdempotencyKey(
+export async function stripeIdempotencyKey(
   workspaceId: string,
   invoiceId: string,
   clientKey: string
-): string {
+): Promise<string> {
   const raw = `${workspaceId}:${invoiceId}:${clientKey}`
-  // Deterministic, dependency-free hash so the key stays bounded even for long
-  // client keys (Stripe caps idempotency keys at 255 characters).
-  let hash = 2166136261
-  for (let index = 0; index < raw.length; index += 1) {
-    hash ^= raw.charCodeAt(index)
-    hash = Math.imul(hash, 16777619)
-  }
-  return `roofos:${workspaceId}:${invoiceId}:${(hash >>> 0).toString(16).padStart(8, '0')}`
+  // A cryptographic digest so a collision cannot bind a different client key
+  // to a cached Stripe session. Stripe caps idempotency keys at 255 chars; the
+  // bounded ids plus a 64-hex SHA-256 suffix stay well inside that limit.
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(raw))
+  const suffix = Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('')
+  return `roofos:${workspaceId}:${invoiceId}:${suffix}`
 }

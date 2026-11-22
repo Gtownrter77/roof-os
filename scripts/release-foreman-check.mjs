@@ -80,6 +80,16 @@ for (const gate of previouslyUnwired) {
   assert.ok(pkg.scripts[gate], 'gate must be registered in package.json: ' + gate)
 }
 
+// 61-70: batch-7 gates must be registered and wired, not merely present on disk.
+const batch7Gates = [
+  'test:agent-action-recovery', 'test:release-check-auth-marker',
+  'test:provider-error-sanitization', 'test:web-error-recovery',
+]
+for (const gate of batch7Gates) {
+  assert.ok(allWorkflows.includes('npm run ' + gate), 'batch-7 gate must be wired into CI: ' + gate)
+  assert.ok(pkg.scripts[gate], 'batch-7 gate must be registered in package.json: ' + gate)
+}
+
 // The legacy inline-secret grep must exclude the maintained scanner's fake
 // fixtures; otherwise a required CI job fails on values that are not secrets.
 // Build the pattern instead of embedding it literally — the CI grep would

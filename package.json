@@ -165,7 +165,11 @@
     "test:secret-scan": "node scripts/secret-scan-test.mjs",
     "test:drone-url-validation": "node --experimental-strip-types --no-warnings scripts/drone-url-validation-test.mjs",
     "test:literal-newline": "node scripts/literal-newline-test.mjs",
-    "test:live-release-preflight": "node scripts/live-release-preflight-test.mjs"
+    "test:live-release-preflight": "node scripts/live-release-preflight-test.mjs",
+    "test:agent-action-recovery": "node --experimental-strip-types --no-warnings scripts/agent-action-recovery-test.mjs",
+    "test:release-check-auth-marker": "node scripts/release-check-auth-marker-test.mjs",
+    "test:provider-error-sanitization": "node --experimental-strip-types --no-warnings scripts/provider-error-sanitization-test.mjs",
+    "test:web-error-recovery": "node scripts/web-error-recovery-test.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.2",

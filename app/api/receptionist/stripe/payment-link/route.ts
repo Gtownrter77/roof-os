@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
     cancel_url: `${appUrl}/payment?status=cancelled`,
     customer_creation: 'always',
     metadata: { workspace_id: workspaceId, invoice_id: invoice.id, lead_id: invoice.lead_id || '' },
-  }, { idempotencyKey: stripeIdempotencyKey(workspaceId, invoice.id, body.idempotencyKey) })
+  }, { idempotencyKey: await stripeIdempotencyKey(workspaceId, invoice.id, body.idempotencyKey) })
   if (!session.url) return NextResponse.json({ error: 'Stripe did not return a hosted payment URL.' }, { status: 502 })
 
   const { data: paymentLink, error: saveError } = await supabase

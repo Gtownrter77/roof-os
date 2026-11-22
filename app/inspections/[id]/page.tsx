@@ -40,25 +40,29 @@ export default function InspectionPacketPage() {
 
   useEffect(() => {
     async function load() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { router.replace('/auth/login'); return }
-      const response = await fetch(`/api/inspections/${params.id}/packet`, { cache: 'no-store' })
-      const body = await response.json().catch(() => ({}))
-      if (!response.ok) {
-        setError(body.error || 'Could not load the inspection packet.')
-        setLoading(false)
-        return
-      }
-      const nextPacket: Packet = body.packet
-      setPacket(nextPacket)
-      setLoading(false)
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) { router.replace('/auth/login'); return }
+        const response = await fetch(`/api/inspections/${params.id}/packet`, { cache: 'no-store' })
+        const body = await response.json().catch(() => ({}))
+        if (!response.ok) {
+          setError(body.error || 'Could not load the inspection packet.')
+          return
+        }
+        const nextPacket: Packet = body.packet
+        setPacket(nextPacket)
 
-      // Short-lived, member-only URLs. Nothing public is stored or returned by the API.
-      const entries = await Promise.all(nextPacket.photos.map(async (photo) => {
-        const { data } = await supabase.storage.from(nextPacket.privacy.storageBucket).createSignedUrl(photo.objectPath, 300)
-        return [photo.id, data?.signedUrl ?? ''] as const
-      }))
-      setSignedUrls(Object.fromEntries(entries.filter(([, url]) => url)))
+        // Short-lived, member-only URLs. Nothing public is stored or returned by the API.
+        const entries = await Promise.all(nextPacket.photos.map(async (photo) => {
+          const { data } = await supabase.storage.from(nextPacket.privacy.storageBucket).createSignedUrl(photo.objectPath, 300)
+          return [photo.id, data?.signedUrl ?? ''] as const
+        }))
+        setSignedUrls(Object.fromEntries(entries.filter(([, url]) => url)))
+      } catch (loadError) {
+        setError(loadError instanceof Error ? loadError.message : 'Could not load the inspection packet.')
+      } finally {
+        setLoading(false)
+      }
     }
     void load()
   }, [params.id, router, supabase])

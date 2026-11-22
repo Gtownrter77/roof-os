@@ -43,20 +43,25 @@ export default function LeadsClient() {
   useEffect(() => {
     let active = true
     async function loadLeads() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        router.replace('/auth/login?next=/leads')
-        return
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) {
+          router.replace('/auth/login?next=/leads')
+          return
+        }
+        const { data, error: queryError } = await supabase
+          .from('leads')
+          .select('id,name,address,status,phone,email,source,next_action,next_action_due,lead_score')
+          .order('lead_score', { ascending: false })
+          .order('created_at', { ascending: false }).limit(100)
+        if (!active) return
+        if (queryError) setError(queryError.message)
+        else setLeads(data ?? [])
+      } catch (loadError) {
+        if (active) setError(loadError instanceof Error ? loadError.message : 'Could not load leads.')
+      } finally {
+        if (active) setLoading(false)
       }
-      const { data, error: queryError } = await supabase
-        .from('leads')
-        .select('id,name,address,status,phone,email,source,next_action,next_action_due,lead_score')
-        .order('lead_score', { ascending: false })
-        .order('created_at', { ascending: false }).limit(100)
-      if (!active) return
-      if (queryError) setError(queryError.message)
-      else setLeads(data ?? [])
-      setLoading(false)
     }
     void loadLeads()
     return () => { active = false }
