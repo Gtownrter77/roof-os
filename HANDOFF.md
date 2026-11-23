@@ -1525,3 +1525,79 @@ Do not claim the live writer integration gate is complete without non-production
 - Root `npm run test:all`, TypeScript, production build, and the field dependency gate pass locally. The field audit still reports upstream Expo/Metro `picomatch` advisories in its audit input, but the repository gate classifies them as build-tool-only and verifies the pinned runtime mitigations.
 - The repository contains legacy duplicate local migration prefixes `021`–`023` and skipped prefixes `096`–`100`; these are documented historical/reconciliation facts. They were not renamed because doing so could diverge from the target Supabase ledger. The current source head is `104`; any new migration must use the protected target-ledger workflow.
 - Current-main production, staging, device, provider, and backup/restore evidence remains unverified.
+
+## 2026-11-23 — Hover parity checkpoint 1 (Tasks 1–3, local only)
+
+- Branch `docs/hover-parity-roadmap`, baseline `be5c63c014a1efa88e69970869677dfbdc5c75bd`.
+- Local head `ecb564fdbddc263395642d34df98b3034f432766` after three verified batches:
+  - `ffde096` feat(hover): add scan schema migration and canonical types
+  - `164fd88` feat(hover): add guided capture validation
+  - `ecb564f` feat(hover): add immutable input manifest and ingest route
+- Local checks: `node scripts/hover-schema-test.mjs` PASS; `node scripts/hover-capture-test.mjs` PASS; `node scripts/hover-manifest-test.mjs` PASS.
+- **PUSH BLOCKED:** `git push --set-upstream origin docs/hover-parity-roadmap` failed with `could not read Username for 'https://github.com'`. No credential helper, `GH_TOKEN`, `GITHUB_TOKEN`, or `gh` CLI is available in this environment. Remote SHA match is therefore **not verified**; checkpoint-law item 3 is not satisfied.
+- Remote `refs/heads/main` is still `be5c63c014a1efa88e69970869677dfbdc5c75bd`; nothing has been merged.
+- Next action: continue Tasks 4–13 locally; obtain GitHub credentials or a PAT before the required push/SHA match and final merge.
+
+## 2026-11-23 — Hover parity checkpoint 2 (Tasks 4–6, local only)
+
+- Local head `281b3e3ddd529ce2670f793cad35cb19a6dc0205` after three more verified batches:
+  - `24eed23` feat(hover): add reconstruction adapter contract and pipeline runner
+  - `f408ad3` feat(hover): add constrained scale solver
+  - `281b3e3` feat(hover): add roof topology extraction
+- Local checks: `node scripts/hover-pipeline-test.mjs` PASS; `node scripts/hover-scale-test.mjs` PASS; `node scripts/hover-topology-test.mjs` PASS.
+- **PUSH STILL BLOCKED:** no GitHub credentials in this environment (same failure as checkpoint 1). Remote SHA match remains unverified; nothing merged.
+- Next action: continue Tasks 7–9 locally; obtain credentials before checkpoint 3 push and final merge.
+
+## 2026-11-23 — Hover parity checkpoint 3 (Tasks 7–9, local only)
+
+- Local head `72ac60a9acca4a7524ed913dc939d578242ffaec` after three more verified batches:
+  - `0e66d21` feat(hover): add versioned measurement engine
+  - `ec38d79` feat(hover): add QA lock sequence and publish gate
+  - `72ac60a` feat(hover): add report package generation
+- Local checks: `node scripts/hover-measurements-test.mjs` PASS; `node scripts/hover-qa-test.mjs` PASS; `node scripts/hover-report-test.mjs` PASS.
+- **PUSH STILL BLOCKED:** no GitHub credentials in this environment. Remote SHA match remains unverified; nothing merged.
+- Next action: finish Tasks 10–13 locally, then run full verification and obtain credentials before merge.
+
+## 2026-11-23 — Hover parity final gate (local)
+
+- All 13 tasks are implemented and committed. Local head after the final typing fix is `6df512d`;
+  `docs/superpowers/plans/2026-11-23-hover-build-plan.md` ledger records every task’s test result.
+- All 13 `scripts/hover-*-test.mjs` contracts pass. `npm run typecheck` passes.
+  `npm run release-check` passes (15 protected routes, security headers, secret scan over 433 files).
+  `npm run build` passes (`.next/BUILD_ID=i26mAXFP4vpnvi4Mv-g_M`).
+- Whole-branch review is documented in
+  `.superpowers/sdd/2026-11-23-hover-build-plan/final-review.md`: spec coverage, nine pinned
+  review-focus inputs, type consistency, and disclosed gaps. No independent reviewer ran — the
+  OpenRouter free-model daily limit blocked reviewer dispatch; this is disclosed, not claimed.
+- **PUSH/MERGE STILL BLOCKED:** no GitHub credential helper, no `GH_TOKEN`/`GITHUB_TOKEN`,
+  no `gh` CLI, no SSH key. Local `main` was not updated; remote `main` is unchanged at `be5c63c`.
+- Honest status: this is a tested local contract implementation, not production Hover parity.
+  No GPU worker services, field UI wiring, mounted viewer/design UI, hosted migration application,
+  device evidence, ground-truth accuracy benchmark, or SLA evidence exists.
+- Next action: provide a GitHub PAT or configured credential helper, then push the branch, verify
+  remote SHA match, open/merge PR to `main`, and run the hosted/device gates separately.
+
+## 2026-11-23 — GitHub checkpoint (credentials supplied by owner)
+
+- Full checkpoint SHA `793e5eb0f23dcad21ae8353d716c162f9a2f73ca`
+  (`fix(hover): align CI governance with migration 111 and hover gate`) pushed to
+  `origin/docs/hover-parity-roadmap`.
+- Local `git rev-parse HEAD` and `git ls-remote origin refs/heads/docs/hover-parity-roadmap`
+  both returned `793e5eb0f23dcad21ae8353d716c162f9a2f73ca`: **remote SHA match verified**.
+- Checks at this SHA: all 13 `hover-*-test.mjs` contracts PASS via `npm run test:hover`;
+  `npm run typecheck` PASS; `npm run build` PASS (BUILD_ID `i26mAXFP4vpnvi4Mv-g_M`);
+  `npm run release-check` PASS; `test:gate-registry-integrity` and `test:release-foreman` PASS
+  after updating the governed migration head/count and wiring `test:hover` into CI.
+  `npm run test:all` was rerun after that fix; outcome recorded below when complete.
+- Remote `main` remains `be5c63c014a1efa88e69970869677dfbdc5c75bd`; `main` is not protected
+  (no required status checks). PR/merge is the next action once the full-suite rerun is green.
+- Pending gates: hosted Supabase migration application, CI run on GitHub, device capture,
+  staging parity, ground-truth benchmark and SLA evidence — none claimed.
+
+## 2026-11-23 — Full-suite green before merge
+
+- `npm run test:all` rerun after the CI governance fix: **EXIT=0**,
+  `PASS (160 registered gates + 4 build/release checks)`. This is the tree pushed as
+  `34b524994b083278b4f643a671a0b37f95f5c849`.
+- No required check is pending or failing; merge to `main` is authorized by the owner's standing
+  instruction ("100% complete and landed in GitHub main"). `main` has no branch protection.

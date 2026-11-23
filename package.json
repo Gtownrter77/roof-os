@@ -174,7 +174,8 @@
     "test:test-all-coverage": "node scripts/test-all-coverage-test.mjs",
     "test:gate-registry-integrity": "node scripts/gate-registry-integrity-test.mjs",
     "test:async-write-safety": "node --experimental-strip-types --no-warnings scripts/async-write-safety-test.mjs",
-    "test:field-deps-audit-contract": "node scripts/field-deps-audit-contract-test.mjs"
+    "test:field-deps-audit-contract": "node scripts/field-deps-audit-contract-test.mjs",
+    "test:hover": "node scripts/hover-schema-test.mjs && node scripts/hover-capture-test.mjs && node scripts/hover-manifest-test.mjs && node scripts/hover-pipeline-test.mjs && node scripts/hover-scale-test.mjs && node scripts/hover-topology-test.mjs && node scripts/hover-measurements-test.mjs && node scripts/hover-qa-test.mjs && node scripts/hover-report-test.mjs && node scripts/hover-exports-test.mjs && node scripts/hover-viewer-test.mjs && node scripts/hover-design-test.mjs && node scripts/hover-estimate-test.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.2",
