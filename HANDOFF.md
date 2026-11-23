@@ -1655,3 +1655,45 @@ Do not claim the live writer integration gate is complete without non-production
 - Still UNVERIFIED (not production-readiness evidence): hosted Supabase application of migration 112,
   real-device capture and WebView threshold calibration, staging parity, ground-truth benchmark,
   SLA evidence, and independent reviewer run (free-model daily limit). No claim made for any of these.
+
+## 2026-11-23 — Roofr + RoofSnap mashup: full verification and merge
+
+- Branch `feat/roofr-roofsnap-mashup` off `main` `d86d325ae477caf0d05d2506945bda89ac97216f`;
+  seven-task plan `docs/superpowers/plans/2026-11-23-roofr-roofsnap-mashup.md` executed with
+  subagent-driven implementer + reviewer gates. Commits: `3b835e7`, `f579d96`, `448cfb9`,
+  `4fee766`, `1e57bd7`, `4636db4`, fixes `3513c0c` and `7903f44`.
+- `npm run test:all`: **EXIT=0, PASS (172 registered gates + 4 build/release checks)** —
+  up from 166 at baseline because six new manual-trace gates are registered.
+- `npm run test:hover`: EXIT 0 (13/13 gates). `npm run typecheck`: EXIT 0.
+  Field `cd apps/field && npx tsc --noEmit`: EXIT 0.
+  `npm run build`: EXIT 0, **BUILD_ID `qwIvJb3NVjFcPXqaj7C2E`** (158 static pages generated).
+  `npm run release-check`: PASS (16 protected routes, 441 source/config files, 5 patterns).
+- `node scripts/release-foreman-check.mjs`, `node scripts/gate-registry-integrity-test.mjs`,
+  `node scripts/test-all-coverage-test.mjs`: all PASS. Six gates registered in `package.json`
+  and wired into the `web` CI job: `test:manual-trace-doctrine`, `test:manual-trace-migration`,
+  `test:manual-trace-recompute`, `test:manual-trace-persistence`, `test:manual-trace-manual-route`,
+  `test:manual-trace-ui`.
+- Design: owner decision (b) — both Auto and Manual produce authoritative lockable quantities.
+  `docs/EXACT-WORKFLOW.md:31` amended verbatim with a dated subsection. Migration 113 is
+  forward-only, adds `manual_traced` to `inspection_measurements.source_type`; head 113 / 111 files.
+- Free-only checklist: no paid imagery/API/GPU/hosted inference, no new dependency, no
+  ESX/SKP/DWG binaries, `app/api/photo-estimate/report/route.ts` unchanged, no dollar amounts.
+  Server recomputes both quantities from persisted geometry/scale/pitch with a 0.05 sq ft stale
+  rejection; rejected planes are excluded for AI traces; attestations remain mandatory.
+- 15-skill audit (owner directive, full upstream catalog reviewed at controller level and per task):
+  1 `using-superpowers` performed; 2 `brainstorming` performed (design + builder check, owner-approved);
+  3 `writing-plans` performed; 4 `using-git-worktrees` performed (git worktree fallback disclosed);
+  5 `test-driven-development` performed (RED→GREEN each task); 6 `systematic-debugging` performed
+  (review-finding root causes); 7 `executing-plans` performed at controller level;
+  8 `subagent-driven-development` performed (implementer + reviewer per task, two Task 6 fix loops);
+  9 `dispatching-parallel-agents` not triggered (shared files → sequential dispatch);
+  10 `requesting-code-review` performed; 11 `receiving-code-review` performed;
+  12 `verification-before-completion` performed (full suite + build + release checks above);
+  13 `finishing-a-development-branch` performed (PR + required checks + SHA verification);
+  14 `writing-skills` not triggered (no upstream SKILL.md edited);
+  15 `diagnosing-superpowers` not triggered (no prior-session failure investigation requested).
+  Full ledger: `docs/superpowers/plans/2026-11-23-roofr-roofsnap-mashup-ledger.md`.
+- Still UNVERIFIED (not production-readiness evidence): hosted application of migration 113,
+  real-device capture/WebView threshold calibration, staging parity, ground-truth accuracy benchmark,
+  SLA evidence, and an independent reviewer run. No claim made for any of these.
+- Squash merge SHA and local/remote match: pending final Task 7 step.
