@@ -1,5 +1,5 @@
 import { purchasableRoofing, roofAreaRangeError } from '../../../../lib/measurements/purchasable-roofing'
-import { calculateCalibratedRoofDraft } from '../../../../lib/measurements/calibrated-roof-draft'
+import { recomputeAuthoritativeArea } from '../../../../lib/measurements/authoritative-recompute'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '../../../../lib/supabase/server'
 import { isUuid, readJson, requireWorkspaceMember } from '../../../../lib/api-security'
@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Pitch, notes, or source reference exceeds the supported text length.' }, { status: 400 })
   }
 
-  let sourceType: 'manual' | 'ai_formulated' = 'manual'
+  let sourceType: 'manual' | 'ai_formulated' | 'manual_traced' = 'manual'
   let confidence: 'unverified' | 'low' | 'medium' | 'high' = 'unverified'
   let roofAreaSqft = body.roofAreaSqft ?? null
   let roofSquares = body.roofSquares ?? null
@@ -110,10 +110,17 @@ export async function POST(request: NextRequest) {
   let valleyLf = body.valleyLf ?? null
   let pitch = body.pitch?.trim() || null
   let notes = body.notes?.trim() || null
-  if (body.sourceType === 'ai_formulated') {
-    const sourceMatch = typeof body.sourceReference === 'string' ? body.sourceReference.match(/^aerial-geometry:([0-9a-f-]{36})$/i) : null
+  const isManualTraced = body.sourceType === 'manual_traced'
+  const isFormulated = body.sourceType === 'ai_formulated'
+  if (isManualTraced || isFormulated) {
+    const referencePrefix = isManualTraced ? 'manual-trace' : 'aerial-geometry'
+    const requiredSource = isManualTraced ? 'manual_traced' : 'ai_formulated'
+    const sourceMatch = typeof body.sourceReference === 'string'
+      ? body.sourceReference.match(new RegExp(`^${referencePrefix}:([0-9a-f-]{36})$`, 'i')) : null
     if (!sourceMatch || !isUuid(sourceMatch[1])) {
-      return NextResponse.json({ error: 'AI-formulated measurements require a verified aerial measurement reference.' }, { status: 400 })
+      return NextResponse.json({ error: isManualTraced
+        ? 'Hand-traced measurements require a verified manual trace reference.'
+        : 'AI-formulated measurements require a verified aerial measurement reference.' }, { status: 400 })
     }
     const { data: aerialMeasurement, error: aerialError } = await supabase
       .from('aerial_measurements')
@@ -122,8 +129,10 @@ export async function POST(request: NextRequest) {
       .eq('workspace_id', workspaceId)
       .maybeSingle()
     if (aerialError) return NextResponse.json({ error: 'AI measurement provenance could not be verified.' }, { status: 503 })
-    if (!aerialMeasurement || aerialMeasurement.measurement_source !== 'ai_formulated' || aerialMeasurement.inspection_id !== (body.inspectionId ?? null)) {
-      return NextResponse.json({ error: 'The aerial measurement reference is not valid for this workspace and inspection.' }, { status: 400 })
+    if (!aerialMeasurement || aerialMeasurement.measurement_source !== requiredSource || aerialMeasurement.inspection_id !== (body.inspectionId ?? null)) {
+      return NextResponse.json({ error: isManualTraced
+        ? 'The manual trace reference is not valid for this workspace and inspection.'
+        : 'The aerial measurement reference is not valid for this workspace and inspection.' }, { status: 400 })
     }
     if (body.provisionalGeometryDraft) {
       const formulation = aerialMeasurement.ai_formulation as { human_geometry_review?: { orthographic_top_down_confirmed?: unknown } } | null
@@ -142,39 +151,51 @@ export async function POST(request: NextRequest) {
       .select('vertices,review_status,reviewed_pitch_rise_per_12')
       .eq('workspace_id', workspaceId).eq('aerial_measurement_id', aerialMeasurement.id)
     if (planeError) return NextResponse.json({ error: 'Reviewed roof planes could not be loaded.', }, { status: 503 })
+    // The aerial confirm path validates with rejected planes excluded, and the
+    // shared helper marks every plane it receives accepted. Filter here so a
+    // rejected AI plane cannot silently enlarge the recomputed area.
+    const reviewedPlanes = (persistedPlanes ?? [])
+      .filter(plane => plane.review_status !== 'rejected')
+      .map(plane => ({
+        vertices: plane.vertices,
+        pitchRisePer12: plane.reviewed_pitch_rise_per_12 == null ? null : Number(plane.reviewed_pitch_rise_per_12),
+      }))
     let derived
     try {
-      derived = calculateCalibratedRoofDraft({
-        planes: (persistedPlanes ?? []).map(plane => ({
-          vertices: plane.vertices, review_status: plane.review_status,
-          ...(plane.reviewed_pitch_rise_per_12 == null ? {} : { pitchRisePer12: Number(plane.reviewed_pitch_rise_per_12) }),
-        })),
+      derived = recomputeAuthoritativeArea({
+        planes: reviewedPlanes,
         scaleReferencePixels: Number(aerialMeasurement.scale_reference_pixels),
         scaleReferenceFeet: Number(aerialMeasurement.scale_reference_feet),
-        pitchRisePer12: aerialMeasurement.uniform_pitch_confirmed ? Number(aerialMeasurement.confirmed_uniform_pitch_rise_per_12) : 0,
-        orthographicTopDownConfirmed: true,
+        uniformPitchRisePer12: aerialMeasurement.uniform_pitch_confirmed ? Number(aerialMeasurement.confirmed_uniform_pitch_rise_per_12) : 0,
         uniformPitchConfirmed: aerialMeasurement.uniform_pitch_confirmed === true,
-        geometryConfirmed: true,
+        clientAreaSqft: body.roofAreaSqft ?? null,
       })
-    } catch {
-      return NextResponse.json({ error: 'Saved geometry or pitch is unreviewed, inconsistent or overlapping.' }, { status: 409 })
+    } catch (error) {
+      // Keep the route's observable error contract: only a stale-area RangeError
+      // gets the refresh message; every other rejection keeps the old message.
+      return NextResponse.json({
+        error: error instanceof RangeError && /stale/i.test(error.message)
+          ? 'The displayed measurement is stale. Refresh the reviewed roof geometry.'
+          : 'Saved geometry or pitch is unreviewed, inconsistent or overlapping.',
+      }, { status: 409 })
     }
-    // The client has only a preview. Reject changed/stale values rather than
-    // silently saving a different area, and NEVER use AI formulation area.
-    if (body.roofAreaSqft != null && Math.abs(body.roofAreaSqft - derived.roofAreaSqFt) > 0.05) {
-      return NextResponse.json({ error: 'The displayed measurement is stale. Refresh the reviewed roof geometry.' }, { status: 409 })
+    sourceType = isManualTraced ? 'manual_traced' : 'ai_formulated'
+    if (isManualTraced) {
+      confidence = 'high'
+    } else {
+      const formulation = aerialMeasurement.ai_formulation as { confidence?: unknown; assumptions?: unknown } | null
+      const formulatedConfidence = formulation?.confidence
+      confidence = formulatedConfidence === 'low' || formulatedConfidence === 'medium' || formulatedConfidence === 'high' ? formulatedConfidence : 'unverified'
     }
-    sourceType = 'ai_formulated'
-    const formulation = aerialMeasurement.ai_formulation as { confidence?: unknown; assumptions?: unknown } | null
-    const formulatedConfidence = formulation?.confidence
-    confidence = formulatedConfidence === 'low' || formulatedConfidence === 'medium' || formulatedConfidence === 'high' ? formulatedConfidence : 'unverified'
     roofAreaSqft = derived.roofAreaSqFt
     roofSquares = derived.roofSquares
     // Unreviewed model edge lengths do not become approved measurements.
     gutterLf = null; ridgeLf = null; eaveLf = null; rakeLf = null; valleyLf = null
     pitch = aerialMeasurement.uniform_pitch_confirmed
       ? `${aerialMeasurement.confirmed_uniform_pitch_rise_per_12}/12` : 'mixed'
-    notes = `Calculated from persisted reviewed polygons, scale and ${pitch} pitch; ${derived.planAreaSqFt} sq ft plan, ${derived.roofAreaSqFt} sq ft slope-adjusted. Unverified draft; review all classified edge quantities separately.`
+    notes = isManualTraced
+      ? `Calculated from persisted reviewed hand-traced polygons, scale and ${pitch} pitch; ${derived.planAreaSqFt} sq ft plan, ${derived.roofAreaSqFt} sq ft slope-adjusted. Unverified draft; review all classified edge quantities separately.`
+      : `Calculated from persisted reviewed polygons, scale and ${pitch} pitch; ${derived.planAreaSqFt} sq ft plan, ${derived.roofAreaSqFt} sq ft slope-adjusted. Unverified draft; review all classified edge quantities separately.`
   }
   const order = roofAreaSqft != null ? purchasableRoofing(roofAreaSqft, body.allowSixSquareRepairThreshold === true) : null
   const { data, error } = await supabase.from('inspection_measurements').insert({
@@ -183,7 +204,7 @@ export async function POST(request: NextRequest) {
     source_type: sourceType,
     confidence,
     roof_area_sqft: roofAreaSqft,
-    roof_squares: sourceType === 'ai_formulated' ? roofSquares : order?.squares ?? roofSquares,
+    roof_squares: sourceType === 'ai_formulated' || sourceType === 'manual_traced' ? roofSquares : order?.squares ?? roofSquares,
     gutter_lf: gutterLf,
     ridge_lf: ridgeLf,
     eave_lf: eaveLf,

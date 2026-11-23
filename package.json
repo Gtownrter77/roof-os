@@ -185,7 +185,8 @@
     "test:manual-trace-doctrine": "node scripts/manual-trace-doctrine-test.mjs",
     "test:manual-trace-migration": "node scripts/manual-trace-migration-test.mjs",
     "test:manual-trace-recompute": "node --experimental-strip-types scripts/manual-trace-recompute-test.mjs",
-    "test:manual-trace-persistence": "node scripts/manual-trace-persistence-test.mjs"
+    "test:manual-trace-persistence": "node scripts/manual-trace-persistence-test.mjs",
+    "test:manual-trace-manual-route": "node scripts/manual-trace-manual-route-test.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.2",

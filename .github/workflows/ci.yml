@@ -162,6 +162,7 @@ jobs:
       - run: npm run test:manual-trace-migration
       - run: npm run test:manual-trace-recompute
       - run: npm run test:manual-trace-persistence
+      - run: npm run test:manual-trace-manual-route
       - run: npm run test:estimate-approval-authority
       - run: npm run test:reliability
       - run: npm run test:agent5-supplement
