@@ -1702,4 +1702,6 @@ Do not claim the live writer integration gate is complete without non-production
   not touch field dependencies; the pins were corrected in-compatible with `npx expo install`,
   and `expo-doctor` now reports 21/21, field `tsc --noEmit` exits 0, and `npm run test:all`
   still passes 172 gates + 4 checks.
-- Squash merge SHA and local/remote match: pending final Task 7 step.
+- Squash merge: PR #500 merged into `main` at `46d54f2e28b78edf6e9aae3120a3b13f00e429ab`.
+  Required checks all `success`: `web`, `mobile`, `migration-safety`, `field-security`.
+  Local `main`, remote `main` and merge SHA verified equal.

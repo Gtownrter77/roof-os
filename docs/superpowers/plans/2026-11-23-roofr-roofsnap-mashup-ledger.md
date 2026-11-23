@@ -38,7 +38,7 @@ The per-task rows above record Task 1 status at the time of that task. Final sta
 10. `requesting-code-review` | performed | evidence-based reviewer briefs with explicit acceptance criteria.
 11. `receiving-code-review` | performed | all findings dispositioned; two Task 6 fix loops re-verified.
 12. `verification-before-completion` | performed | `test:all` 172+4, hover 13/13, both typechecks, build `qwIvJb3NVjFcPXqaj7C2E`, release-check, foreman/registry/coverage gates.
-13. `finishing-a-development-branch` | performed | PR, required checks, squash-merge and SHA match recorded in `HANDOFF.md`.
+13. `finishing-a-development-branch` | performed | PR #500, all four required checks green, squash-merge SHA `46d54f2e28b78edf6e9aae3120a3b13f00e429ab`; local/remote/merge SHA match recorded in `HANDOFF.md`.
 14. `writing-skills` | not triggered | no upstream `SKILL.md` authored or edited; only project docs/gates changed.
 15. `diagnosing-superpowers` | not triggered | no prior-session failure investigation requested.
 
