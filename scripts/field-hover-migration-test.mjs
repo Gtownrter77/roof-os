@@ -21,10 +21,10 @@ assert.ok(
 assert.ok(!/scan_jobs|scan_images|scale_anchors/gi.test(migration), 'migration 112 must not redefine Hover pipeline tables')
 
 const governed = [
-  ['README.md', /112_inspection_photos_hover_fields\.sql/, /110 migration files/],
-  ['DEPLOYMENT.md', /112_inspection_photos_hover_fields\.sql/, /110 migration files/],
-  ['.github/workflows/ci.yml', /test -f supabase\/migrations\/112_inspection_photos_hover_fields\.sql/, null],
-  ['scripts/release-foreman-check.mjs', /112_inspection_photos_hover_fields\.sql/, /110/],
+  ['README.md', /113_manual_traced_measurements\.sql/, /111 migration files/],
+  ['DEPLOYMENT.md', /113_manual_traced_measurements\.sql/, /111 migration files/],
+  ['.github/workflows/ci.yml', /test -f supabase\/migrations\/113_manual_traced_measurements\.sql/, null],
+  ['scripts/release-foreman-check.mjs', /113_manual_traced_measurements\.sql/, /111/],
 ]
 for (const [file, headPattern, countPattern] of governed) {
   const source = readFileSync(new URL(`../${file}`, import.meta.url), 'utf8')

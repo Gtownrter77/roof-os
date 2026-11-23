@@ -1,5 +1,5 @@
 'use client'
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import L from 'leaflet'
 import { MapContainer, ImageOverlay, Polygon, TileLayer, useMapEvents } from 'react-leaflet'
 import { analyzeTracedPolygon, aggregateTracePlanes, type TracePoint } from '../lib/measurements/trace-geometry'
@@ -15,7 +15,7 @@ function MapEvents({ isDrawing, addPoint }: { isDrawing: boolean; addPoint: (poi
 
 const ManualDrawingTool = ({
   imageUrl = '', imageWidth = 500, imageHeight = 500,
-  scalePixels = 0, scaleFeet = 0, onAreaCalculated,
+  scalePixels = 0, scaleFeet = 0, onAreaCalculated, onPlanesChange,
   mapCenter, aerialTileUrl, aerialAttribution,
 }: {
   imageUrl?: string
@@ -24,6 +24,7 @@ const ManualDrawingTool = ({
   scalePixels?: number
   scaleFeet?: number
   onAreaCalculated?: (result: ManualResult) => void
+  onPlanesChange?: (planes: Array<Array<{ x: number; y: number }>>) => void
   mapCenter?: { latitude: number; longitude: number } | null
   aerialTileUrl?: string
   aerialAttribution?: string
@@ -45,6 +46,32 @@ const ManualDrawingTool = ({
   const pxPerFoot = hasScale ? scalePixels / scaleFeet : 0
   const squareFeet = aggregate.valid ? (useGeoMap ? aggregate.area : hasScale ? aggregate.area / (pxPerFoot * pxPerFoot) : null) : null
   const perimeterFeet = aggregate.valid ? (useGeoMap ? aggregate.perimeter : hasScale ? aggregate.perimeter / pxPerFoot : null) : null
+
+  // TracePoint is [y,x] in ImageOverlay bounds [[0,0],[height,width]].
+  // Callers that persist a hand trace need image-pixel {x,y} vertices instead.
+  const toPixelPlanes = (source: TracePoint[][]) => source.map((plane) => plane.map((point) => ({ x: point[1], y: point[0] })))
+
+  // A new image invalidates every finished polygon. Reset and tell the parent
+  // immediately so it can never POST stale vertices against the wrong photo.
+  const imageKey = imageUrl || `${mapCenter?.latitude},${mapCenter?.longitude}:${aerialTileUrl || 'street-map'}`
+  const lastImageKey = useRef(imageKey)
+  useEffect(() => {
+    if (lastImageKey.current === imageKey) return
+    lastImageKey.current = imageKey
+    setPoints([])
+    setPlanes([])
+    setIsDrawing(false)
+    onPlanesChange?.([])
+    onAreaCalculated?.(CLEARED)
+  // React to a new drawing surface only, not to parent callback identity.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [imageKey])
+
+  // Emit only committed planes. State updaters run twice in StrictMode and must
+  // stay pure; callers receive the pixel vertices once the state has committed.
+  useEffect(() => {
+    onPlanesChange?.(planes.map((plane) => plane.map((point) => ({ x: point[1], y: point[0] }))))
+  }, [planes, onPlanesChange])
 
   // Completed plane edits and scale changes automatically recalculate plan area.
   // All values stay provisional and are never presented as certified roof quantities.
@@ -71,18 +98,25 @@ const ManualDrawingTool = ({
     if (planes.length >= 50) { setMessage('Maximum 50 roof planes per draft.'); return }
     const combined = aggregateTracePlanes([...planes, points], units)
     if (!combined.valid) { setMessage(combined.warning || 'Roof planes must not overlap.'); return }
-    setPlanes(current => [...current, [...points]])
+    setPlanes((current) => {
+      const next = [...current, [...points]]
+      return next
+    })
     setPoints([])
     setMessage('Roof plane added. Trace the next plane or review the provisional total.')
   }
 
   function removePlane(index: number) {
-    setPlanes(current => current.filter((_, i) => i !== index))
+    setPlanes((current) => {
+      const next = current.filter((_, i) => i !== index)
+      return next
+    })
     setMessage('Completed plane removed. Draft totals recalculated.')
   }
 
   function undoCorner() {
     setPoints(current => current.slice(0, -1))
+    onPlanesChange?.(toPixelPlanes(planes))
     setMessage('')
   }
 
@@ -90,6 +124,7 @@ const ManualDrawingTool = ({
     setPoints([])
     setPlanes([])
     setIsDrawing(false)
+    onPlanesChange?.([])
     setMessage('All draft geometry cleared.')
     onAreaCalculated?.(CLEARED)
   }
