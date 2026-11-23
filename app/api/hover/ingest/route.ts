@@ -56,7 +56,7 @@ function parseAnchor(value: unknown): IngestAnchorInput | null {
     kind: String(candidate.kind),
     observedValue,
     unit: candidate.unit as 'ft' | 'm',
-    sourceImageId: typeof candidate.sourceImageId === 'string' ? candidate.sourceImageId : null,
+    sourceImageId: isUuid(candidate.sourceImageId) ? candidate.sourceImageId as string : null,
   }
 }
 
