@@ -161,4 +161,102 @@ for (const prior of [
   assert.ok(ci.includes(`npm run ${prior}`), `CI must preserve ${prior}`)
 }
 
-console.log('manual-trace-ui-test: PASS (two distinct uses, query-param-only intake, provenance-gated auto, trace→confirm→save, additive polygon bridge, free-only)')
+// ---------------------------------------------------------------------------
+// 8. Auto handoff: /measure must consume the certified photo context and reuse
+//    the EXISTING local-Ollama -> aerial -> review path. No new row is created.
+// ---------------------------------------------------------------------------
+const MEASURE = '../app/measure/page.tsx'
+const measure = read(MEASURE)
+for (const fragment of [
+  "'use client'",
+  'useSearchParams',
+  '<Suspense',
+  'fallback=',
+  'function MeasurePageInner(',
+  '<MeasurePageInner initialPhotoId=',
+  "search.get('photoId')",
+  "search.get('inspection')",
+]) {
+  assert.ok(measure.includes(fragment), `measure handoff wrapper must contain ${fragment}`)
+}
+
+const handoffStart = measure.indexOf('// BEGIN certified-photo auto handoff')
+const handoffEnd = measure.indexOf('// END certified-photo auto handoff')
+assert.ok(handoffStart >= 0 && handoffEnd > handoffStart, 'measure must mark the certified-photo handoff block')
+const handoff = measure.slice(handoffStart, handoffEnd)
+for (const fragment of [
+  'initialPhotoId',
+  'initialInspectionId',
+  ".from('inspection_photos')",
+  ".eq('id', initialPhotoId)",
+  ".eq('inspection_id', initialInspectionId)",
+  ".eq('workspace_id', workspaceId)",
+  "createSignedUrl(photo.object_path",
+  'new File(',
+  'setFile(imageFile)',
+  'setPreview(signedUrl)',
+  'setImageSize({ width, height })',
+  'setPhotoId(initialPhotoId)',
+  'setInspectionId(initialInspectionId)',
+  'readEmbeddedGps(',
+  'setPhotoGpsChecked(true)',
+  "fetch('/api/photo-provenance/verify'",
+  'gpsVerified !== true',
+  'autoMeasurementsAllowed !== true',
+  'evidence only',
+  'await applyAutoAnalysis(imageFile, width, height, initialPhotoId, initialInspectionId)',
+]) {
+  assert.ok(handoff.includes(fragment), `certified photo handoff must contain ${fragment}`)
+}
+assert.ok(!/\.insert\(/.test(handoff), 'handoff must reuse the certified photo, not create a new inspection/photo row')
+
+const helperStart = measure.indexOf('async function applyAutoAnalysis(')
+const helperEnd = measure.indexOf('async function review(', helperStart)
+assert.ok(helperStart >= 0 && helperEnd > helperStart, 'the existing auto tail must be a shared helper')
+const helper = measure.slice(helperStart, helperEnd)
+for (const fragment of [
+  "fetch('/api/measurements/aerial'",
+  "method: 'POST'",
+  'photoId: targetPhotoId',
+  'inspectionId: targetInspectionId',
+  'imageWidth: width',
+  'imageHeight: height',
+  '`inspection-photo:${targetPhotoId}`',
+  'setMeasurementId(payload.measurement.id)',
+]) {
+  assert.ok(helper.includes(fragment), `shared auto helper must contain ${fragment}`)
+}
+assert.equal(measure.split('analyzeRoofImageWithLocalOllama(').length - 1, 1,
+  'local Ollama analysis must exist once and be shared by upload and handoff')
+
+// ---------------------------------------------------------------------------
+// 9. Context change resets every manual-attest input; no stale trace survives.
+// ---------------------------------------------------------------------------
+assert.ok(!form.includes("key={imageUrl || 'no-certified-photo'}"),
+  'the manual tracer must not be remounted on photo change; its reset effect must fire')
+const loadStart = form.indexOf('async function loadContext()')
+const loadHead = form.slice(loadStart, form.indexOf('const { data: workspaceId', loadStart))
+for (const fragment of [
+  'setPlanes([])',
+  'setPreviewAreaSqft(null)',
+  'setScalePixels(\'\')',
+  'setScaleFeet(\'\')',
+  'setPlanePitches([])',
+  'setUniformPitchConfirmed(false)',
+  "setPitchRisePer12('')",
+  'setTopDownConfirmed(false)',
+  "setSavedMeasurementId('')",
+  'setMessage(\'\')',
+  'setError(\'\')',
+]) {
+  assert.ok(loadHead.includes(fragment), `context change must synchronously reset ${fragment}`)
+}
+
+// ---------------------------------------------------------------------------
+// 10. Functional plane updates cannot be dropped by batched rapid edits.
+// ---------------------------------------------------------------------------
+assert.ok(tracer.includes('setPlanes((current) =>'), 'plane edits must use the functional setPlanes form')
+assert.ok(tracer.includes('const next = [...current, [...points]]'), 'finishPlane must append to current planes')
+assert.ok(tracer.includes('current.filter((_, i) => i !== index)'), 'removePlane must filter current planes')
+
+console.log('manual-trace-ui-test: PASS (two distinct uses, query-param-only intake, provenance-gated auto, certified-photo auto handoff reuses existing path, trace→confirm→save, stale-trace reset, additive polygon bridge, free-only)')

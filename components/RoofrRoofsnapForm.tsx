@@ -56,6 +56,20 @@ export default function RoofrRoofsnapForm({ photoId, inspectionId }: Props) {
     let active = true
     async function loadContext() {
       setContextError('')
+      // A different certified photo invalidates every prior trace, scale,
+      // preview and attestation. Reset synchronously before any await so no
+      // stale value can be POSTed against the new photo.
+      setPlanes([])
+      setPreviewAreaSqft(null)
+      setScalePixels('')
+      setScaleFeet('')
+      setPlanePitches([])
+      setUniformPitchConfirmed(false)
+      setPitchRisePer12('')
+      setTopDownConfirmed(false)
+      setSavedMeasurementId('')
+      setMessage('')
+      setError('')
       if (!photoId || !inspectionId) {
         setContextError('A certified photo id and inspection id are required. Open this page from a saved inspection photo.')
         return
@@ -263,7 +277,6 @@ export default function RoofrRoofsnapForm({ photoId, inspectionId }: Props) {
       {mode === 'manual' && (
         <section aria-label="Manual hand-trace use" className="glass space-y-3 rounded-xl p-4">
           <ManualDrawingTool
-            key={imageUrl || 'no-certified-photo'}
             imageUrl={imageUrl}
             imageWidth={imageSize.width || 500}
             imageHeight={imageSize.height || 500}

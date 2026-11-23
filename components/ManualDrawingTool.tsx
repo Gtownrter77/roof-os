@@ -92,17 +92,21 @@ const ManualDrawingTool = ({
     if (planes.length >= 50) { setMessage('Maximum 50 roof planes per draft.'); return }
     const combined = aggregateTracePlanes([...planes, points], units)
     if (!combined.valid) { setMessage(combined.warning || 'Roof planes must not overlap.'); return }
-    const next = [...planes, [...points]]
-    setPlanes(next)
-    onPlanesChange?.(toPixelPlanes(next))
+    setPlanes((current) => {
+      const next = [...current, [...points]]
+      onPlanesChange?.(toPixelPlanes(next))
+      return next
+    })
     setPoints([])
     setMessage('Roof plane added. Trace the next plane or review the provisional total.')
   }
 
   function removePlane(index: number) {
-    const next = planes.filter((_, i) => i !== index)
-    setPlanes(next)
-    onPlanesChange?.(toPixelPlanes(next))
+    setPlanes((current) => {
+      const next = current.filter((_, i) => i !== index)
+      onPlanesChange?.(toPixelPlanes(next))
+      return next
+    })
     setMessage('Completed plane removed. Draft totals recalculated.')
   }
 

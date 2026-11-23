@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import dynamic from 'next/dynamic'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { smartBack } from '../../lib/smart-back'
 import { createClient } from '../../lib/supabase/client'
 import type { GeometrySuggestion } from '../../lib/ai/geometry-contract'
@@ -42,7 +42,9 @@ function reviewedPlanePitch(value: string | null | undefined): number | null {
   return parsePitchRise(value.trim().slice('reviewed:'.length).replace(/\/12$/, ''))
 }
 
-export default function MeasurePage() {
+type MeasurePageProps = { initialPhotoId?: string; initialInspectionId?: string }
+
+function MeasurePageInner({ initialPhotoId = '', initialInspectionId = '' }: MeasurePageProps) {
   const router = useRouter()
   const supabase = createClient()
   const inputRef = useRef<HTMLInputElement>(null)
@@ -97,6 +99,94 @@ export default function MeasurePage() {
     const saved = window.localStorage.getItem('roofos.allowSixSquareRepairThreshold')
     if (saved === 'true') setAllowSixSquareRepairThreshold(true)
   }, [])
+
+  // BEGIN certified-photo auto handoff (reuses the existing auto path; no new rows)
+  const autoHandoffRef = useRef('')
+  useEffect(() => {
+    if (!initialPhotoId || !initialInspectionId) return
+    const key = `${initialPhotoId}|${initialInspectionId}`
+    if (autoHandoffRef.current === key) return
+    autoHandoffRef.current = key
+    let active = true
+    async function loadCertifiedPhotoForAuto() {
+      setWorking(true)
+      setError('')
+      setStatus('Loading the certified inspection photo for automatic analysis…')
+      try {
+        const { data: workspaceId, error: workspaceError } = await supabase.rpc('current_workspace_id')
+        if (workspaceError || !workspaceId) throw new Error('Sign in with an active workspace before loading this certified photo.')
+        const { data: photo, error: photoError } = await supabase
+          .from('inspection_photos')
+          .select('id,object_path,mime_type')
+          .eq('id', initialPhotoId)
+          .eq('inspection_id', initialInspectionId)
+          .eq('workspace_id', workspaceId)
+          .maybeSingle()
+        if (photoError || !photo) throw new Error('The certified photo is not available in this workspace.')
+        const signed = await supabase.storage.from('inspection-photos').createSignedUrl(photo.object_path, 300)
+        if (signed.error || !signed.data?.signedUrl) throw new Error('The certified photo could not be loaded from private storage.')
+        const signedUrl = signed.data.signedUrl
+        const response = await fetch(signedUrl, { cache: 'no-store' })
+        if (!response.ok) throw new Error('The certified photo bytes could not be read from private storage.')
+        const bytes = await response.arrayBuffer()
+        const mimeType = photo.mime_type || 'image/jpeg'
+        const imageFile = new File([bytes], `${initialPhotoId}.${MIME_EXTENSIONS[mimeType] || 'jpg'}`, { type: mimeType })
+        const decodeUrl = URL.createObjectURL(imageFile)
+        let width = 0
+        let height = 0
+        try {
+          ({ width, height } = await new Promise<{ width: number; height: number }>((resolve, reject) => {
+            const image = new Image()
+            image.onload = () => resolve({ width: image.naturalWidth, height: image.naturalHeight })
+            image.onerror = () => reject(new Error('The certified photo could not be decoded.'))
+            image.src = decodeUrl
+          }))
+        } finally {
+          URL.revokeObjectURL(decodeUrl)
+        }
+        const embedded = readEmbeddedGps(new Uint8Array(bytes))
+        if (!active) return
+        setFile(imageFile)
+        setPreview(signedUrl)
+        setImageSize({ width, height })
+        setPhotoId(initialPhotoId)
+        setInspectionId(initialInspectionId)
+        setPhotoGps(embedded ? {
+          latitude: embedded.latitude, longitude: embedded.longitude,
+          embeddedAddress: embedded.address || null,
+        } : null)
+        setPhotoGpsChecked(true)
+
+        const verificationResponse = await fetch('/api/photo-provenance/verify', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ photoId: initialPhotoId }),
+        })
+        const verification = await verificationResponse.json().catch(() => null)
+        if (!active) return
+        if (!verificationResponse.ok || verification?.gpsVerified !== true) {
+          setStatus('This photo is evidence only: no server-verified embedded GPS and address. No automatic analysis was started.')
+          return
+        }
+        if (verification.autoMeasurementsAllowed !== true) {
+          setStatus('This photo is evidence only: automatic measurements are off for this workspace. No automatic analysis was started.')
+          return
+        }
+        await applyAutoAnalysis(imageFile, width, height, initialPhotoId, initialInspectionId)
+      } catch (err) {
+        if (!active) return
+        setError(err instanceof Error ? err.message : 'The certified photo could not be prepared for automatic analysis.')
+        setStatus('No automatic analysis started. Manual tracing remains available.')
+      } finally {
+        if (active) setWorking(false)
+      }
+    }
+    void loadCertifiedPhotoForAuto()
+    return () => { active = false }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialPhotoId, initialInspectionId, supabase])
+  // END certified-photo auto handoff
+
   function setSixSquareSetting(enabled: boolean) {
     setAllowSixSquareRepairThreshold(enabled)
     window.localStorage.setItem('roofos.allowSixSquareRepairThreshold', enabled ? 'true' : 'false')
@@ -260,6 +350,66 @@ export default function MeasurePage() {
   // Triggered by address text and explicit owner preferences, never by a successful lookup state change.
   }, [address, automationPrefs.autoAddressLookup])
 
+  // The one existing auto path: local Ollama formulates, the aerial route
+  // validates and persists, and the existing review/attest UI stays authoritative.
+  async function applyAutoAnalysis(imageFile: File, width: number, height: number, targetPhotoId: string, targetInspectionId: string) {
+    setWorking(true)
+    setError('')
+    setStatus('Sending the selected image from this browser to local Ollama at localhost:11434…')
+    try {
+      const aiPayload = await analyzeRoofImageWithLocalOllama(imageFile, width, height, `inspection-photo:${targetPhotoId}`)
+      const response = await fetch('/api/measurements/aerial', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          photoId: targetPhotoId,
+          inspectionId: targetInspectionId,
+          imageWidth: width,
+          imageHeight: height,
+          suggestion: aiPayload.suggestion,
+        }),
+      })
+      const payload = await response.json().catch(() => null)
+      if (!response.ok) throw new Error(payload?.error || 'Validated AI geometry could not be saved.')
+      setMeasurementId(payload.measurement.id)
+      setSuggestion(payload.suggestion ? { ...payload.suggestion, planes: payload.suggestion.planes.map((plane: Plane) => ({ ...plane, pitchRisePer12: reviewedPlanePitch(plane.suggested_pitch) ?? undefined })) } : null)
+      const formulation = payload.suggestion?.formulation
+      const cachedMeasurement = payload.cached ? payload.measurement : null
+      const cachedCalibrated = cachedMeasurement?.calibration_status === 'calibrated' || cachedMeasurement?.calibration_status === 'confirmed'
+      const cachedConfirmed = cachedMeasurement?.status === 'confirmed'
+      setCalibrated(cachedCalibrated)
+      setGeometryConfirmed(cachedConfirmed)
+      const savedHumanReview = cachedMeasurement?.ai_formulation?.human_geometry_review
+      setOrthographicTopDown(savedHumanReview?.orthographic_top_down_confirmed === true)
+      setUniformPitchConfirmed(false)
+      if (savedHumanReview?.uniform_pitch_confirmed === true) setUniformPitchConfirmed(true)
+      setPerPlanePitchMode(savedHumanReview?.uniform_pitch_confirmed === false)
+      if (formulation) {
+        setScalePixels(formulation.scale_reference_pixels == null ? '' : String(formulation.scale_reference_pixels))
+        setScaleFeet(formulation.scale_reference_feet == null ? '' : String(formulation.scale_reference_feet))
+        setPitchRisePer12(formulation.pitch_rise_per_12 == null ? '' : String(formulation.pitch_rise_per_12))
+      }
+      if (cachedMeasurement) {
+        setScalePixels(cachedMeasurement.scale_reference_pixels == null ? '' : String(cachedMeasurement.scale_reference_pixels))
+        setScaleFeet(cachedMeasurement.scale_reference_feet == null ? '' : String(cachedMeasurement.scale_reference_feet))
+      }
+      if (savedHumanReview?.uniform_pitch_confirmed === true && typeof savedHumanReview.uniform_pitch_rise_per_12 === 'number') {
+        setPitchRisePer12(String(savedHumanReview.uniform_pitch_rise_per_12))
+      }
+      setSavedMeasurementId('')
+      setStatus(payload.cached
+        ? cachedConfirmed ? 'Confirmed AI geometry loaded from the workspace.' : cachedCalibrated ? 'Calibrated AI geometry loaded. Confirm geometry or continue review.' : 'Existing AI suggestions loaded. Review and calibration state preserved.'
+        : `Local Ollama (${aiPayload.model}) formulated the roof measurement packet. Review geometry and calibrate the image before deriving quantities.`)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Roof AI analysis failed.'
+      setError(message)
+      setStatus('AI did not complete. Your photo remains private; manual tracing is still available.')
+      throw err
+    } finally {
+      setWorking(false)
+    }
+  }
+
   async function uploadAndAnalyze() {
     if (!file || !imageSize.width || !imageSize.height) {
       setError('Select an actual inspection or aerial image first.')
@@ -311,50 +461,7 @@ export default function MeasurePage() {
 
       setInspectionId(inspection.id)
       setPhotoId(objectId)
-      setStatus('Sending the selected image from this browser to local Ollama at localhost:11434…')
-      const aiPayload = await analyzeRoofImageWithLocalOllama(file, imageSize.width, imageSize.height, `inspection-photo:${objectId}`)
-      const response = await fetch('/api/measurements/aerial', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          photoId: objectId,
-          inspectionId: inspection.id,
-          imageWidth: imageSize.width,
-          imageHeight: imageSize.height,
-          suggestion: aiPayload.suggestion,
-        }),
-      })
-      const payload = await response.json().catch(() => null)
-      if (!response.ok) throw new Error(payload?.error || 'Validated AI geometry could not be saved.')
-      setMeasurementId(payload.measurement.id)
-      setSuggestion(payload.suggestion ? { ...payload.suggestion, planes: payload.suggestion.planes.map((plane: Plane) => ({ ...plane, pitchRisePer12: reviewedPlanePitch(plane.suggested_pitch) ?? undefined })) } : null)
-      const formulation = payload.suggestion?.formulation
-      const cachedMeasurement = payload.cached ? payload.measurement : null
-      const cachedCalibrated = cachedMeasurement?.calibration_status === 'calibrated' || cachedMeasurement?.calibration_status === 'confirmed'
-      const cachedConfirmed = cachedMeasurement?.status === 'confirmed'
-      setCalibrated(cachedCalibrated)
-      setGeometryConfirmed(cachedConfirmed)
-      const savedHumanReview = cachedMeasurement?.ai_formulation?.human_geometry_review
-      setOrthographicTopDown(savedHumanReview?.orthographic_top_down_confirmed === true)
-      setUniformPitchConfirmed(false)
-      if (savedHumanReview?.uniform_pitch_confirmed === true) setUniformPitchConfirmed(true)
-      setPerPlanePitchMode(savedHumanReview?.uniform_pitch_confirmed === false)
-      if (formulation) {
-        setScalePixels(formulation.scale_reference_pixels == null ? '' : String(formulation.scale_reference_pixels))
-        setScaleFeet(formulation.scale_reference_feet == null ? '' : String(formulation.scale_reference_feet))
-        setPitchRisePer12(formulation.pitch_rise_per_12 == null ? '' : String(formulation.pitch_rise_per_12))
-      }
-      if (cachedMeasurement) {
-        setScalePixels(cachedMeasurement.scale_reference_pixels == null ? '' : String(cachedMeasurement.scale_reference_pixels))
-        setScaleFeet(cachedMeasurement.scale_reference_feet == null ? '' : String(cachedMeasurement.scale_reference_feet))
-      }
-      if (savedHumanReview?.uniform_pitch_confirmed === true && typeof savedHumanReview.uniform_pitch_rise_per_12 === 'number') {
-        setPitchRisePer12(String(savedHumanReview.uniform_pitch_rise_per_12))
-      }
-      setSavedMeasurementId('')
-      setStatus(payload.cached
-        ? cachedConfirmed ? 'Confirmed AI geometry loaded from the workspace.' : cachedCalibrated ? 'Calibrated AI geometry loaded. Confirm geometry or continue review.' : 'Existing AI suggestions loaded. Review and calibration state preserved.'
-        : `Local Ollama (${aiPayload.model}) formulated the roof measurement packet. Review geometry and calibrate the image before deriving quantities.`)
+      await applyAutoAnalysis(file, imageSize.width, imageSize.height, objectId, inspection.id)
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Roof AI analysis failed.'
       setError(message)
@@ -798,5 +905,14 @@ export default function MeasurePage() {
         {!suggestion && <section className="glass mt-4 rounded-xl border-dashed p-4 text-sm text-slate-400">Manual measurement remains available even when AI analysis is unavailable. No fabricated image, geometry, scale, or measurement is shown.</section>}
       </div>
     </main>
+  )
+}
+
+export default function MeasurePage() {
+  const search = useSearchParams()
+  return (
+    <Suspense fallback={<p className="p-4 text-sm text-slate-400">Loading measurement workspace…</p>}>
+      <MeasurePageInner initialPhotoId={search.get('photoId') || ''} initialInspectionId={search.get('inspection') || ''} />
+    </Suspense>
   )
 }
