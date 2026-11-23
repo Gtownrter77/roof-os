@@ -174,9 +174,11 @@ function buildXls(payload: ReportPayload): string {
     ].join('\t'))
   }
   for (const [material, factor] of Object.entries(payload.wasteFactors)) {
-    rows.push(['waste_factor_table', material, 'waste', String(factor), 'ratio', ''])
+    rows.push(['waste_factor_table', material, 'waste', String(factor), 'ratio', ''].join('\t'))
   }
-  for (const section of payload.sections) rows.push(['sections', section, section, 'present', '', ''])
+  for (const section of payload.sections) {
+    rows.push(['sections', section, section, 'present', '', ''].join('\t'))
+  }
   return rows.join('\n') + '\n'
 }
 
