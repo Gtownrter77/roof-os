@@ -173,12 +173,27 @@ for (const fragment of [
   '<Suspense',
   'fallback=',
   'function MeasurePageInner(',
-  '<MeasurePageInner initialPhotoId=',
+  '<MeasurePageInner />',
   "search.get('photoId')",
   "search.get('inspection')",
 ]) {
   assert.ok(measure.includes(fragment), `measure handoff wrapper must contain ${fragment}`)
 }
+
+// (a) useSearchParams must be read INSIDE the component Suspense wraps.
+const innerStart = measure.indexOf('function MeasurePageInner(')
+const wrapperStart = measure.indexOf('export default function MeasurePage()')
+assert.ok(innerStart >= 0 && wrapperStart > innerStart, 'measure must declare inner page before the default export')
+const innerSource = measure.slice(innerStart, wrapperStart)
+const wrapperSource = measure.slice(wrapperStart)
+assert.ok(innerSource.includes('useSearchParams()'), 'the Suspense-wrapped inner page must call useSearchParams')
+assert.ok(!wrapperSource.includes('useSearchParams'), 'the default export must not call useSearchParams outside Suspense')
+assert.ok(wrapperSource.indexOf('<Suspense') < wrapperSource.indexOf('<MeasurePageInner />')
+  && wrapperSource.indexOf('</Suspense>') > wrapperSource.indexOf('<MeasurePageInner />'),
+  'the default export must wrap the prop-free inner page in Suspense')
+assert.ok(innerSource.includes("const initialPhotoId = search.get('photoId') || ''")
+  && innerSource.includes("const initialInspectionId = search.get('inspection') || ''"),
+  'the inner page must derive the handoff params itself')
 
 const handoffStart = measure.indexOf('// BEGIN certified-photo auto handoff')
 const handoffEnd = measure.indexOf('// END certified-photo auto handoff')
@@ -209,6 +224,16 @@ for (const fragment of [
   assert.ok(handoff.includes(fragment), `certified photo handoff must contain ${fragment}`)
 }
 assert.ok(!/\.insert\(/.test(handoff), 'handoff must reuse the certified photo, not create a new inspection/photo row')
+
+// (b) StrictMode setup -> cleanup -> setup must not strand working=true.
+assert.ok(handoff.includes("if (autoHandoffRef.current === key) autoHandoffRef.current = ''"),
+  'handoff cleanup must clear the dedupe ref for its own key')
+assert.ok(handoff.includes('if (active) setWorking(false)'),
+  'a stale inactive setup must not clear working; setup 2 owns it')
+
+// (c) A no-GPS/no-authorization photo is evidence only and starts NO measurement path.
+assert.ok(!/Manual tracing remains available/i.test(handoff),
+  'the banned stale Manual-tracing promise must not appear in the handoff block')
 
 const helperStart = measure.indexOf('async function applyAutoAnalysis(')
 const helperEnd = measure.indexOf('async function review(', helperStart)
@@ -258,5 +283,9 @@ for (const fragment of [
 assert.ok(tracer.includes('setPlanes((current) =>'), 'plane edits must use the functional setPlanes form')
 assert.ok(tracer.includes('const next = [...current, [...points]]'), 'finishPlane must append to current planes')
 assert.ok(tracer.includes('current.filter((_, i) => i !== index)'), 'removePlane must filter current planes')
+assert.ok(tracer.includes('useEffect(() => {\n    onPlanesChange?.(planes.map(')
+  && tracer.includes('}, [planes, onPlanesChange])'),
+  'parent emission must come from a committed effect, never from a state updater')
+assert.ok(!/\bonPlanesChange\?\.\(next\)/.test(tracer), 'no side effect may remain inside a setPlanes updater')
 
 console.log('manual-trace-ui-test: PASS (two distinct uses, query-param-only intake, provenance-gated auto, certified-photo auto handoff reuses existing path, trace→confirm→save, stale-trace reset, additive polygon bridge, free-only)')

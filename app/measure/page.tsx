@@ -42,9 +42,11 @@ function reviewedPlanePitch(value: string | null | undefined): number | null {
   return parsePitchRise(value.trim().slice('reviewed:'.length).replace(/\/12$/, ''))
 }
 
-type MeasurePageProps = { initialPhotoId?: string; initialInspectionId?: string }
-
-function MeasurePageInner({ initialPhotoId = '', initialInspectionId = '' }: MeasurePageProps) {
+function MeasurePageInner() {
+  // The hook must live inside the component the Suspense boundary wraps.
+  const search = useSearchParams()
+  const initialPhotoId = search.get('photoId') || ''
+  const initialInspectionId = search.get('inspection') || ''
   const router = useRouter()
   const supabase = createClient()
   const inputRef = useRef<HTMLInputElement>(null)
@@ -176,13 +178,18 @@ function MeasurePageInner({ initialPhotoId = '', initialInspectionId = '' }: Mea
       } catch (err) {
         if (!active) return
         setError(err instanceof Error ? err.message : 'The certified photo could not be prepared for automatic analysis.')
-        setStatus('No automatic analysis started. Manual tracing remains available.')
+        setStatus('No automatic analysis was started. The photo remains evidence only until provenance is verified.')
       } finally {
         if (active) setWorking(false)
       }
     }
     void loadCertifiedPhotoForAuto()
-    return () => { active = false }
+    return () => {
+      active = false
+      // StrictMode runs setup -> cleanup -> setup. Release this key so setup 2
+      // can own the handoff and clear `working`; setup 1's stale async bails.
+      if (autoHandoffRef.current === key) autoHandoffRef.current = ''
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialPhotoId, initialInspectionId, supabase])
   // END certified-photo auto handoff
@@ -909,10 +916,9 @@ function MeasurePageInner({ initialPhotoId = '', initialInspectionId = '' }: Mea
 }
 
 export default function MeasurePage() {
-  const search = useSearchParams()
   return (
     <Suspense fallback={<p className="p-4 text-sm text-slate-400">Loading measurement workspace…</p>}>
-      <MeasurePageInner initialPhotoId={search.get('photoId') || ''} initialInspectionId={search.get('inspection') || ''} />
+      <MeasurePageInner />
     </Suspense>
   )
 }

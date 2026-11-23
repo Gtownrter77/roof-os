@@ -67,6 +67,12 @@ const ManualDrawingTool = ({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [imageKey])
 
+  // Emit only committed planes. State updaters run twice in StrictMode and must
+  // stay pure; callers receive the pixel vertices once the state has committed.
+  useEffect(() => {
+    onPlanesChange?.(planes.map((plane) => plane.map((point) => ({ x: point[1], y: point[0] }))))
+  }, [planes, onPlanesChange])
+
   // Completed plane edits and scale changes automatically recalculate plan area.
   // All values stay provisional and are never presented as certified roof quantities.
   useEffect(() => {
@@ -94,7 +100,6 @@ const ManualDrawingTool = ({
     if (!combined.valid) { setMessage(combined.warning || 'Roof planes must not overlap.'); return }
     setPlanes((current) => {
       const next = [...current, [...points]]
-      onPlanesChange?.(toPixelPlanes(next))
       return next
     })
     setPoints([])
@@ -104,7 +109,6 @@ const ManualDrawingTool = ({
   function removePlane(index: number) {
     setPlanes((current) => {
       const next = current.filter((_, i) => i !== index)
-      onPlanesChange?.(toPixelPlanes(next))
       return next
     })
     setMessage('Completed plane removed. Draft totals recalculated.')
