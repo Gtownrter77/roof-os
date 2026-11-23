@@ -159,6 +159,7 @@ jobs:
       - run: npm run test:photo-full-report-flow
       - run: npm run test:measurement-estimate-authority
       - run: npm run test:manual-trace-doctrine
+      - run: npm run test:manual-trace-migration
       - run: npm run test:estimate-approval-authority
       - run: npm run test:reliability
       - run: npm run test:agent5-supplement
@@ -292,6 +293,7 @@ jobs:
           set -euo pipefail
           test "$(find supabase/migrations -maxdepth 1 -name '*.sql' | wc -l)" -ge 24
           test -f supabase/migrations/112_inspection_photos_hover_fields.sql
+          test -f supabase/migrations/113_manual_traced_measurements.sql
           grep -q "enable row level security" supabase/migrations/008_claims_line_items_agent_readiness.sql
           grep -q "enable row level security" supabase/migrations/009_agent_runtime_claims_imports.sql
           grep -q "monthly_limit" supabase/migrations/010_retailer_price_cache.sql

@@ -182,7 +182,8 @@
     "test:field-hover-migration": "node scripts/field-hover-migration-test.mjs",
     "test:field-hover-ingest": "node --experimental-strip-types scripts/field-hover-ingest-test.mjs",
     "test:field-hover-upload": "node scripts/field-hover-upload-test.mjs",
-    "test:manual-trace-doctrine": "node scripts/manual-trace-doctrine-test.mjs"
+    "test:manual-trace-doctrine": "node scripts/manual-trace-doctrine-test.mjs",
+    "test:manual-trace-migration": "node scripts/manual-trace-migration-test.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.2",
