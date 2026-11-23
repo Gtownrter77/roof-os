@@ -158,6 +158,7 @@ jobs:
       - run: npm run test:owner-labor
       - run: npm run test:photo-full-report-flow
       - run: npm run test:measurement-estimate-authority
+      - run: npm run test:manual-trace-doctrine
       - run: npm run test:estimate-approval-authority
       - run: npm run test:reliability
       - run: npm run test:agent5-supplement

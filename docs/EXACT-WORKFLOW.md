@@ -28,7 +28,7 @@ The wizard measures the skyview with the established formulas.
 - 6 sq is owner-toggle only
 - Never a fractional bundle
 
-It returns a detailed drawing, the measurements, and an estimate. The AI does this work. The tech does not measure by hand on this path.
+It returns a detailed drawing, the measurements, and an estimate. The AI does this work for Auto. A technician MAY trace roof geometry by hand on this path **only** when the drawn polygons are persisted and the area is recomputed on the server from reviewed geometry, scale and pitch; a client-supplied area is never authoritative.
 
 ## 5. The tech judges
 
@@ -57,3 +57,8 @@ Nothing is sent before the owner sequence is complete.
 - Not a crew app. The field app is the owner and inspector console.
 - Not a guess from a phone location beside the photo.
 - Not an estimate that leaves the building before the owner's locks are tagged.
+
+## Amendment (2026-11-23)
+
+<!-- EXACT-WORKFLOW.md:31 amendment — owner decision (b), 2026-11-23 -->
+Owner decision (b), recorded in `docs/superpowers/specs/2026-11-23-roofr-roofsnap-mashup-design.md`, amends line 31 only: a reviewed, server-recomputed Manual trace may become an authoritative quantity alongside Auto. The conditions on line 31 still hold — persisted polygons, server recomputation from reviewed geometry, scale and pitch, and no client-supplied area. Every other step of the locked path is unchanged; no second workflow is created.
