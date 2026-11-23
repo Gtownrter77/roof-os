@@ -14,3 +14,4 @@ apps/field/dist
 coverage
 .superpowers/
 .claude/
+.worktrees/
