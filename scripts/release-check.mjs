@@ -196,8 +196,19 @@ for (const route of routes) {
     && source.includes('requireWorkspaceMember')
     && source.includes("consume_public_rate_limit")
     && source.includes('analyzeRoofGeometryWithGemini(')
+  // Manual tracing uses the same reviewed private-storage byte check as the
+  // aerial route: abort timeout, bounded body, certified-byte comparison.
+  const boundedManualTraceFetch = route === join(root, 'app', 'api', 'measurements', 'manual-trace', 'route.ts')
+    && fetchCallCount === 1
+    && (source.match(/new AbortController\(\)/g) ?? []).length === 1
+    && (source.match(/const timer = setTimeout\(\(\) => controller\.abort\(\),/g) ?? []).length === 1
+    && (source.match(/clearTimeout\(timer\)/g) ?? []).length === 1
+    && source.includes('async function boundedBytes(')
+    && source.includes('async function fetchBounded(')
+    && source.includes('size > maxBytes')
+    && source.includes('isCertifiedPhotoContent(photo, bytes)')
   // D.3 bounds private-storage reads and the shared local vision request/response.
-  if (fetchCallCount > 0 && !boundedPhotoAnalysisFetch && !boundedAerialGeometryFetch && !boundedAerialGeminiFetch && !boundedSidingAnalysisFetch && !boundedStatusHealthFetch && !boundedLocalClaimsFetch) {
+  if (fetchCallCount > 0 && !boundedPhotoAnalysisFetch && !boundedAerialGeometryFetch && !boundedAerialGeminiFetch && !boundedManualTraceFetch && !boundedSidingAnalysisFetch && !boundedStatusHealthFetch && !boundedLocalClaimsFetch) {
     throw new Error(`API route makes a network request without an approved bounded fetch helper: ${route}`)
   }
 }
