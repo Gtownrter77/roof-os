@@ -210,6 +210,7 @@ export async function POST(request: NextRequest) {
       if (imagesUpsertError) return fail('Scan images could not be written.', 503)
     }
     if (parsedAnchors.length) {
+      const ownedImageIds = new Set(imageInserts.map((row) => String(row.id)))
       const anchorInserts = parsedAnchors.map((anchor) => ({
         id: uuidFromKey(anchorIdempotencyKey(draftRow.workspace_id, draftRow.id, anchor)),
         workspace_id: draftRow.workspace_id,
@@ -217,7 +218,7 @@ export async function POST(request: NextRequest) {
         kind: anchor.kind,
         observed_value: anchor.observedValue,
         unit: anchor.unit,
-        source_image_id: anchor.sourceImageId,
+        source_image_id: anchor.sourceImageId && ownedImageIds.has(anchor.sourceImageId) ? anchor.sourceImageId : null,
         confidence: 1,
       }))
       const { error: anchorsUpsertError } = await admin
