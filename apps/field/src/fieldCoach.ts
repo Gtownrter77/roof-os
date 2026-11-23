@@ -1,4 +1,4 @@
-export type PhotoAlbum = 'general' | 'before' | 'damage' | 'measurements' | 'completed'
+export type PhotoAlbum = 'general' | 'model' | 'before' | 'damage' | 'measurements' | 'completed'
 
 export type GeocodedPlace = {
   streetNumber?: string | null
@@ -28,6 +28,7 @@ export type CoachItem = {
 
 const CAPTIONS: Record<PhotoAlbum, string> = {
   general: 'Street overview of the property',
+  model: 'Model elevation for 3D reconstruction',
   before: 'Existing roof before any work',
   damage: 'Visible storm damage on the roof',
   measurements: 'Reference photo for the measurements',

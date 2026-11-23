@@ -57,6 +57,22 @@ type PhotoRow = {
   retryCount: number
   nextRetryAt: string | null
   lastError: string | null
+  hoverSlot: string | null
+  gpsVerified: number
+  blurScore: number | null
+  lightScore: number | null
+  supersededAt: string | null
+  supersededReason: string | null
+}
+
+type HoverAnchorRow = {
+  id: number
+  draftId: number
+  clientId: string
+  kind: string
+  observedValue: number
+  unit: string
+  capturedAt: string
 }
 
 type AiRequestRow = {
@@ -78,6 +94,7 @@ type PersistedState = {
   drafts: DraftRow[]
   measurements: MeasurementRow[]
   photos: PhotoRow[]
+  hoverAnchors: HoverAnchorRow[]
   aiRequests: AiRequestRow[]
   nextId: number
 }
@@ -88,7 +105,7 @@ function getStorage(): Storage | null {
 }
 
 function restoreState(): PersistedState {
-  const empty = { drafts: [] as DraftRow[], measurements: [] as MeasurementRow[], photos: [] as PhotoRow[], aiRequests: [] as AiRequestRow[], nextId: 1 }
+  const empty = { drafts: [] as DraftRow[], measurements: [] as MeasurementRow[], photos: [] as PhotoRow[], hoverAnchors: [] as HoverAnchorRow[], aiRequests: [] as AiRequestRow[], nextId: 1 }
   try {
     const raw = getStorage()?.getItem(STORAGE_KEY)
     if (!raw) return empty
@@ -97,6 +114,7 @@ function restoreState(): PersistedState {
       drafts: Array.isArray(parsed.drafts) ? parsed.drafts : [],
       measurements: Array.isArray(parsed.measurements) ? parsed.measurements : [],
       photos: Array.isArray(parsed.photos) ? parsed.photos : [],
+      hoverAnchors: Array.isArray(parsed.hoverAnchors) ? parsed.hoverAnchors : [],
       aiRequests: Array.isArray(parsed.aiRequests) ? parsed.aiRequests : [],
       nextId: Number.isSafeInteger(parsed.nextId) && Number(parsed.nextId) > 0 ? Number(parsed.nextId) : 1,
     }
@@ -109,6 +127,7 @@ const restored = restoreState()
 const drafts: DraftRow[] = restored.drafts
 const measurements: MeasurementRow[] = restored.measurements
 const photos: PhotoRow[] = restored.photos
+const hoverAnchors: HoverAnchorRow[] = restored.hoverAnchors
 const aiRequests: AiRequestRow[] = restored.aiRequests
 let nextId = restored.nextId
 
@@ -116,7 +135,7 @@ function persistState() {
   const storage = getStorage()
   if (!storage) return
   try {
-    storage.setItem(STORAGE_KEY, JSON.stringify({ drafts, measurements, photos, aiRequests, nextId }))
+    storage.setItem(STORAGE_KEY, JSON.stringify({ drafts, measurements, photos, hoverAnchors, aiRequests, nextId }))
   } catch {
     throw new Error('Field data could not be saved in this browser. Free storage space and try again; this change may not survive a reload.')
   }
@@ -139,12 +158,13 @@ export const db = {
 
   withTransactionSync<T>(callback: () => T): T {
     const isOuterTransaction = transactionDepth === 0
-    const snapshot = JSON.stringify({ drafts, measurements, photos, aiRequests, nextId })
+    const snapshot = JSON.stringify({ drafts, measurements, photos, hoverAnchors, aiRequests, nextId })
     const restoreSnapshot = () => {
       const prior = JSON.parse(snapshot) as PersistedState
       drafts.splice(0, drafts.length, ...prior.drafts)
       measurements.splice(0, measurements.length, ...prior.measurements)
       photos.splice(0, photos.length, ...prior.photos)
+      hoverAnchors.splice(0, hoverAnchors.length, ...(prior.hoverAnchors ?? []))
       aiRequests.splice(0, aiRequests.length, ...prior.aiRequests)
       nextId = prior.nextId
     }
@@ -255,6 +275,33 @@ export const db = {
           client_id: row.clientId,
           local_uri: row.localUri,
           album: row.album, caption: row.caption, mime_type: row.mimeType, file_size_bytes: row.fileSizeBytes, width: row.width, height: row.height,
+          captured_at: row.capturedAt,
+        }) as T)
+    }
+
+    if (sql.startsWith('SELECT id, hover_slot') || sql.startsWith('SELECT id, gps_verified')) {
+      return photos
+        .filter((row) => row.draftId === draftId)
+        .map((row) => ({
+          id: row.id,
+          hover_slot: row.hoverSlot,
+          gps_verified: row.gpsVerified,
+          blur_score: row.blurScore,
+          light_score: row.lightScore,
+          superseded_at: row.supersededAt,
+          superseded_reason: row.supersededReason,
+        }) as T)
+    }
+
+    if (sql.startsWith('SELECT client_id, draft_id, kind, observed_value, unit FROM inspection_hover_anchors')) {
+      return hoverAnchors
+        .filter((row) => row.draftId === draftId)
+        .map((row) => ({
+          client_id: row.clientId,
+          draft_id: row.draftId,
+          kind: row.kind,
+          observed_value: row.observedValue,
+          unit: row.unit,
           captured_at: row.capturedAt,
         }) as T)
     }
@@ -414,6 +461,29 @@ export const db = {
         retryCount: 0,
         nextRetryAt: null,
         lastError: null,
+        hoverSlot: args[10] == null ? null : String(args[10]),
+        gpsVerified: args[11] == null ? 0 : Number(args[11]),
+        blurScore: args[12] == null ? null : Number(args[12]),
+        lightScore: args[13] == null ? null : Number(args[13]),
+        supersededAt: args[14] == null ? null : String(args[14]),
+        supersededReason: args[15] == null ? null : String(args[15]),
+      })
+      return { lastInsertRowId: id }
+    }
+
+    if (sql.startsWith('INSERT INTO inspection_hover_anchors') || sql.startsWith('INSERT OR IGNORE INTO inspection_hover_anchors')) {
+      const clientId = String(args[1])
+      const existing = hoverAnchors.find((row) => row.clientId === clientId)
+      if (existing) return { lastInsertRowId: existing.id }
+      const id = nextRecordId()
+      hoverAnchors.push({
+        id,
+        draftId: Number(args[0]),
+        clientId,
+        kind: String(args[2]),
+        observedValue: Number(args[3]),
+        unit: String(args[4]),
+        capturedAt: String(args[5]),
       })
       return { lastInsertRowId: id }
     }

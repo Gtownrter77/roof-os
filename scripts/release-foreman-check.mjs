@@ -50,14 +50,14 @@ assert.ok(preflight.includes('No network request, provider call, secret value re
 // 59: the documented migration baseline must be derived from the filesystem,
 // not left to rot while a new head lands.
 const migrations = readdirSync('supabase/migrations').filter((name) => name.endsWith('.sql')).sort()
-assert.equal(migrations.at(-1), '111_hover_scan_pipeline.sql', 'migration head must match the documented head')
-assert.equal(migrations.length, 109, 'migration count must match the documented count')
+assert.equal(migrations.at(-1), '112_inspection_photos_hover_fields.sql', 'migration head must match the documented head')
+assert.equal(migrations.length, 110, 'migration count must match the documented count')
 for (const doc of ['README.md', 'DEPLOYMENT.md']) {
   const source = readFileSync(doc, 'utf8')
-  assert.match(source, /111_hover_scan_pipeline\.sql/, `${doc} must name the current migration head`)
-  assert.match(source, /109 migration files/, `${doc} must state the current migration count`)
+  assert.match(source, /112_inspection_photos_hover_fields\.sql/, `${doc} must name the current migration head`)
+  assert.match(source, /110 migration files/, `${doc} must state the current migration count`)
 }
-assert.match(ci, /test -f supabase\/migrations\/111_hover_scan_pipeline\.sql/, 'CI must assert the head migration exists')
+assert.match(ci, /test -f supabase\/migrations\/112_inspection_photos_hover_fields\.sql/, 'CI must assert the head migration exists')
 
 // 60/82: derive the complete registered test:* gate set from package.json —
 // no hand-maintained per-batch arrays that silently rot. The derivation is:

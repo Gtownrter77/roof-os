@@ -1616,3 +1616,42 @@ Do not claim the live writer integration gate is complete without non-production
 - Remaining production-parity work is listed in
   `docs/superpowers/plans/2026-11-23-hover-followups.md`. Hosted migration application, device capture,
   ground-truth accuracy, SLA evidence and independent review remain UNVERIFIED.
+
+## 2026-11-23 — Field capture wiring: full verification and merge
+
+- Branch `feat/field-capture-wiring` off `main` `44e7305cecfe3ea05f810bf5f7b8c9a8a7837ef4`;
+  7-task plan `docs/superpowers/plans/2026-11-23-field-capture-wiring.md` executed inline.
+- `npm run test:all`: **EXIT=0, PASS (166 registered gates + 4 build/release checks)** —
+  up from 160 gates because the six new field-capture gates are now registered.
+- `npm run test:hover`: 13/13 gates PASS. `npm run typecheck`: PASS.
+  `npm run build`: EXIT=0, **BUILD_ID `tCgxZ5kIDL1aylbZXU6QS`**.
+  `npm run release-check`: PASS (15 protected routes, security headers, secret scan across 436 files).
+- Six new gates registered in `package.json` and wired into the `web` job of `.github/workflows/ci.yml`:
+  `test:field-hover-schema`, `test:field-hover-quality`, `test:field-hover-capture`,
+  `test:field-hover-migration`, `test:field-hover-ingest`, `test:field-hover-upload`.
+  `release-foreman-check`, `gate-registry-integrity-test` and `test-all-coverage-test` all PASS.
+- Ingest hardening: deterministic 1:1 scan-job UUID per draft, byte-verified `gps_in_file` only,
+  anchor `source_image_id` restricted to photos uploaded in the same draft, fixed anchor `confidence: 1`.
+  The original `jobId` ingest path is unchanged. Migration 112 adds exactly three columns to
+  `public.inspection_photos`; no new Hover table.
+- 15-skill audit (owner directive, full upstream catalog reviewed each task):
+  1 `using-superpowers` performed; 2 `brainstorming` performed (approach C, owner-approved);
+  3 `writing-plans` performed; 4 `using-git-worktrees` performed (GitHub branch fallback disclosed);
+  5 `test-driven-development` performed (RED→GREEN per task); 6 `systematic-debugging` not triggered;
+  7 `executing-plans` performed; 8 `subagent-driven-development` performed at design stage (builder-check)
+  then inline executor; 9 `dispatching-parallel-agents` not triggered (shared interfaces);
+  10 `requesting-code-review` performed at design stage; 11 `receiving-code-review` performed;
+  12 `verification-before-completion` performed (full suite + release checks above);
+  13 `finishing-a-development-branch` performed (PR + required checks + SHA verification);
+  14 `writing-skills` not triggered (no upstream SKILL.md edited); 15 `diagnosing-superpowers` not triggered.
+  Full ledger: `docs/superpowers/plans/2026-11-23-field-capture-wiring-ledger.md`.
+- CI `mobile` check failed post-PR: root-cause traced (systematic-debugging) to Task 3 introducing `.ts`-extension
+  imports into `apps/field/App.tsx` while the field tsconfig lacked `allowImportingTsExtensions` (root tsconfig
+  has it but excludes `apps/`), plus `'model'` added to the local album union without updating `fieldCoach.ts`.
+  Reproduced locally with the exact `npx tsc --noEmit` CI command (RED), then fixed by enabling the compiler flag
+  and adding `'model'` to `PhotoAlbum` + `CAPTIONS`. A regression guard was added to `mobile-release-contract-test.mjs`.
+  Re-verified GREEN: field `npx tsc --noEmit` exit 0, `field-coach-test` PASS, `npm run test:hover` 13/13,
+  `npm run typecheck` PASS, `npm run test:all` PASS (166 gates + 4 checks).
+- Still UNVERIFIED (not production-readiness evidence): hosted Supabase application of migration 112,
+  real-device capture and WebView threshold calibration, staging parity, ground-truth benchmark,
+  SLA evidence, and independent reviewer run (free-model daily limit). No claim made for any of these.
