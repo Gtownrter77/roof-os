@@ -35,6 +35,7 @@ for (const name of ['web', 'field-security']) {
 assert.ok(web.includes('node scripts/test-field-deepmerge-mitigation.cjs'), 'Required web job must test the mitigation')
 assert.ok(field.includes('node scripts/test-field-deepmerge-mitigation.cjs'), 'Independent field-security job must test the mitigation')
 assert.ok(web.includes('node --experimental-strip-types scripts/worker-heartbeat-runtime-test.mjs'), 'Run heartbeat behavior tests, not marker-only tests')
+assert.ok(web.includes('npm run test:field-deps-audit-contract'), 'Required web job must test the field dependency audit contract')
 assert.ok(web.includes('node scripts/release-foreman-check.mjs'), 'Required CI job must run foreman contract')
 assert.ok(job('mobile').includes('npx tsc --noEmit'), 'Mobile TS gate must remain')
 assert.ok(job('migration-safety').includes('Check migration order'), 'Migration gate must remain')
@@ -117,6 +118,7 @@ const establishedGates = [
   'test:agent-action-recovery', 'test:release-check-auth-marker', 'test:provider-error-sanitization',
   'test:web-error-recovery', 'test:agent-runtime-recovery', 'test:action-batch-binding',
   'test:supplement-workflow-safety', 'test:test-all-coverage',
+  'test:field-deps-audit-contract',
 ]
 const registeredTestGates = Object.keys(pkg.scripts).filter((name) => name.startsWith('test:'))
 for (const gate of establishedGates) {

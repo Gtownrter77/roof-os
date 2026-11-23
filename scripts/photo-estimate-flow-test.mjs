@@ -73,4 +73,19 @@ const verified = { ...initial, status: 'approved', verificationDecision: 'verifi
 assert.equal(verified.measurements.pitch, -4, 'verify must preserve technician-entered values')
 assert.equal(verified.gutterLf, 126.75, 'approved workflow carries the technician-verified gutter length')
 
+// Batch 10 / 99: four scoped reads in loadInspectionContext used to swallow
+// errors, then emit a reassuring "loaded" banner even when no saved packet was
+// available. buildPacket must also be blocked while the context is in error.
+assert.match(ui, /const \[contextLoadError, setContextLoadError\] = useState\(''\)/, 'context load failures must be tracked in state')
+const contextLoader = ui.match(/async function loadInspectionContext\(\)([\s\S]*?)\n    \}\n    void loadInspectionContext\(\)/)
+assert.ok(contextLoader, 'loadInspectionContext body must be isolatable for verification')
+assert.match(contextLoader[1], /const \{ data: photoRows, error: photoRowsError \} = await supabase/, 'photo query errors must be captured')
+assert.match(contextLoader[1], /const \{ data: savedWorkflow, error: workflowError \} = await supabase/, 'workflow query errors must be captured')
+assert.match(contextLoader[1], /if \(photoRowsError\)[\s\S]{0,140}setContextLoadError/, 'a photo load failure must be surfaced')
+assert.match(contextLoader[1], /if \(workflowError\)[\s\S]{0,140}setContextLoadError/, 'a workflow load failure must be surfaced')
+assert.match(contextLoader[1], /setContextLoadError\(''\)\s*\n\s*setMessage\(savedWorkflow/, 'the loaded banner must only appear after a clean load')
+assert.match(packetBuilder[1], /contextLoadError/, 'buildPacket must be blocked when the saved context failed to load')
+assert.match(ui, /role="alert"[^>]*>\{contextLoadError\}/, 'a scoped-read failure must be visible to the user')
+assert.match(ui, /void loadInspectionContext\(\)\.catch\(/, 'the loader must attach a rejection handler')
+assert.match(contextLoader[1], /^\s+try \{/m, 'the loader must catch thrown await failures')
 console.log('photo-estimate-flow-test: PASS')

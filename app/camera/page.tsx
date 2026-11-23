@@ -236,7 +236,11 @@ function CameraInner() {
           .from('inspection-photos')
           .upload(path, photo.file, { contentType: photo.file.type, upsert: false })
         if (uploadError) throw new Error(uploadError.message)
+        // The provenance API resolves by row id. Persist the same UUID used as
+        // the storage filename and sent to /api/photo-provenance/verify; letting
+        // the database generate a different id made every verification 404.
         const { error: metaError } = await supabase.from('inspection_photos').insert({
+          id: photoId,
           inspection_id: sessionId,
           workspace_id: workspaceId,
           uploaded_by: user.id,
