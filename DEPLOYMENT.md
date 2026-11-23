@@ -2,7 +2,7 @@
 
 **Historical checkpoint — 2026-10-26:** `main` was `03d8cddd0047b2a2530301c8a3e136ad8eaf1481`; migrations `053`–`056` were recorded applied at that time.
 
-**Current source baseline — 2026-11-22:** GitHub `main` is `764976f209f9c4167b4df3a862712bd335a844a4`; source has 109 migration files through `111_hover_scan_pipeline.sql`. Hosted application of later migrations and runtime RLS/schema parity are **unverified**; the earlier `053`–`056` ledger must not be read as current parity. Authenticated two-workspace checks, physical-device behavior, passport positive-path, provider execution, backup/restore, and staging parity remain unverified. Run `.github/workflows/staging-migration-verify.yml` only against an owner-designated protected staging environment; never use it as a production deploy mechanism.
+**Current source baseline — 2026-11-22:** GitHub `main` is `764976f209f9c4167b4df3a862712bd335a844a4`; source has 110 migration files through `112_inspection_photos_hover_fields.sql`. Hosted application of later migrations and runtime RLS/schema parity are **unverified**; the earlier `053`–`056` ledger must not be read as current parity. Authenticated two-workspace checks, physical-device behavior, passport positive-path, provider execution, backup/restore, and staging parity remain unverified. Run `.github/workflows/staging-migration-verify.yml` only against an owner-designated protected staging environment; never use it as a production deploy mechanism.
 
 ROOF/OS is connected to the free Vercel Hobby project `roof-os`.
 

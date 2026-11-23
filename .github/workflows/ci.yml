@@ -284,7 +284,7 @@ jobs:
         run: |
           set -euo pipefail
           test "$(find supabase/migrations -maxdepth 1 -name '*.sql' | wc -l)" -ge 24
-          test -f supabase/migrations/111_hover_scan_pipeline.sql
+          test -f supabase/migrations/112_inspection_photos_hover_fields.sql
           grep -q "enable row level security" supabase/migrations/008_claims_line_items_agent_readiness.sql
           grep -q "enable row level security" supabase/migrations/009_agent_runtime_claims_imports.sql
           grep -q "monthly_limit" supabase/migrations/010_retailer_price_cache.sql
