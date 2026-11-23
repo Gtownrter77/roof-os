@@ -196,6 +196,14 @@ export type MeasurementSet = {
   createdAt: string
 }
 
+export type QAState = {
+  set: MeasurementSet
+  events: QAEvent[]
+  locks: string[]
+  version: number
+  ownerLockSequence: string[]
+}
+
 export type QAEvent = {
   id: string
   setId: string
