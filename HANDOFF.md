@@ -1696,4 +1696,10 @@ Do not claim the live writer integration gate is complete without non-production
 - Still UNVERIFIED (not production-readiness evidence): hosted application of migration 113,
   real-device capture/WebView threshold calibration, staging parity, ground-truth accuracy benchmark,
   SLA evidence, and an independent reviewer run. No claim made for any of these.
+- Mobile CI initially failed on `npx --yes expo-doctor` because three pre-existing field
+  dependency patch pins lagged the installed Expo SDK 57 (`expo-image-picker` 57.0.21 → ~57.0.22,
+  `expo-location` 57.0.23 → ~57.0.24, `expo-sqlite` 57.0.5 → ~57.0.7). The mashup branch did
+  not touch field dependencies; the pins were corrected in-compatible with `npx expo install`,
+  and `expo-doctor` now reports 21/21, field `tsc --noEmit` exits 0, and `npm run test:all`
+  still passes 172 gates + 4 checks.
 - Squash merge SHA and local/remote match: pending final Task 7 step.
