@@ -270,11 +270,23 @@ export type ExportResult = {
   reason?: string
 }
 
+export type ViewerOverlay = {
+  measurementId: string
+  label: string
+  value: number | null
+  unit: string
+  evidenceImageId: string | null
+  evidenceImageIds: string[]
+  evidenceLinks: { href: string; label: string }[]
+}
+
 export type ViewerModel = {
   facets: Facet[]
   splatUrl: string | null
-  overlays: { measurementId: string; label: string; value: number | null; evidenceImageIds: string[] }[]
+  overlays: ViewerOverlay[]
   measurementSource: 'measurement-records'
+  manifestHash: string
+  sourceReconstructionId: string
 }
 
 export type MaterialSelection = { facetId: string; material: string; color: string | null; product: string | null }
