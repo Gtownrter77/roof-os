@@ -1,6 +1,7 @@
 # Whole-branch review — Hover parity build
 
-Scope: `be5c63c..6df512d` on `docs/hover-parity-roadmap`.
+Scope: `be5c63c..34b5249` on `docs/hover-parity-roadmap` — all 13 implementation commits,
+the final gate evidence commit, the registered `test:hover` gate, and the CI governance fix.
 Spec: `docs/HOVER-PARITY-ROADMAP.md` §§2.2, 2.4, 4, 5, 6, 7 and
 `docs/superpowers/plans/2026-11-23-hover-dossier.md`.
 Executor: inline. Review: self-review with independent reviewer dispatch blocked by the
@@ -61,10 +62,14 @@ estimate. `npm run typecheck` passes on the final branch (after fixing two XLS r
 - No hosted/Supabase migration application, device capture test, staging run, ground-truth
   accuracy benchmark, SLA measurement or production evidence was produced. Local tests do not
   prove any of those.
-- Push/merge to `main` requires GitHub credentials unavailable in this environment.
+- GitHub push was authorized by an owner-supplied PAT after the first draft of this review;
+  the credential statement above was true at review time but is no longer a blocker.
 
 ## Verification evidence
 
-Recorded in the SDD ledger (`progress.md`) and `HANDOFF.md`: all 13 hover contract tests pass;
-`npm run typecheck` passes; `npm run release-check` passes; `npm run build` and `npm run test:all`
-were started in the final gate and their outcomes are recorded in `HANDOFF.md` when completed.
+Recorded in the SDD ledger (`progress.md`) and `HANDOFF.md`: all 13 hover contract tests pass
+via `npm run test:hover`; `npm run typecheck` passes; `npm run release-check` passes;
+`npm run build` passes (BUILD_ID `i26mAXFP4vpnvi4Mv-g_M`); `test:gate-registry-integrity` and
+`test:release-foreman` pass after the migration-head/count and CI-gate wiring fix; and
+`npm run test:all` completed with exit 0 — `PASS (160 registered gates + 4 build/release checks)`.
+The final full-suite run followed the CI governance fix, so it covers the branch as pushed.

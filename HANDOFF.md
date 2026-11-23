@@ -1592,4 +1592,12 @@ Do not claim the live writer integration gate is complete without non-production
 - Remote `main` remains `be5c63c014a1efa88e69970869677dfbdc5c75bd`; `main` is not protected
   (no required status checks). PR/merge is the next action once the full-suite rerun is green.
 - Pending gates: hosted Supabase migration application, CI run on GitHub, device capture,
-  staging parity, ground-truth benchmark and SLA evidence — none claimed.""
+  staging parity, ground-truth benchmark and SLA evidence — none claimed.
+
+## 2026-11-23 — Full-suite green before merge
+
+- `npm run test:all` rerun after the CI governance fix: **EXIT=0**,
+  `PASS (160 registered gates + 4 build/release checks)`. This is the tree pushed as
+  `34b524994b083278b4f643a671a0b37f95f5c849`.
+- No required check is pending or failing; merge to `main` is authorized by the owner's standing
+  instruction ("100% complete and landed in GitHub main"). `main` has no branch protection.
