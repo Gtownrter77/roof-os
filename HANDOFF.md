@@ -1575,4 +1575,21 @@ Do not claim the live writer integration gate is complete without non-production
   No GPU worker services, field UI wiring, mounted viewer/design UI, hosted migration application,
   device evidence, ground-truth accuracy benchmark, or SLA evidence exists.
 - Next action: provide a GitHub PAT or configured credential helper, then push the branch, verify
-  remote SHA match, open/merge PR to `main`, and run the hosted/device gates separately.""
+  remote SHA match, open/merge PR to `main`, and run the hosted/device gates separately.
+
+## 2026-11-23 — GitHub checkpoint (credentials supplied by owner)
+
+- Full checkpoint SHA `793e5eb0f23dcad21ae8353d716c162f9a2f73ca`
+  (`fix(hover): align CI governance with migration 111 and hover gate`) pushed to
+  `origin/docs/hover-parity-roadmap`.
+- Local `git rev-parse HEAD` and `git ls-remote origin refs/heads/docs/hover-parity-roadmap`
+  both returned `793e5eb0f23dcad21ae8353d716c162f9a2f73ca`: **remote SHA match verified**.
+- Checks at this SHA: all 13 `hover-*-test.mjs` contracts PASS via `npm run test:hover`;
+  `npm run typecheck` PASS; `npm run build` PASS (BUILD_ID `i26mAXFP4vpnvi4Mv-g_M`);
+  `npm run release-check` PASS; `test:gate-registry-integrity` and `test:release-foreman` PASS
+  after updating the governed migration head/count and wiring `test:hover` into CI.
+  `npm run test:all` was rerun after that fix; outcome recorded below when complete.
+- Remote `main` remains `be5c63c014a1efa88e69970869677dfbdc5c75bd`; `main` is not protected
+  (no required status checks). PR/merge is the next action once the full-suite rerun is green.
+- Pending gates: hosted Supabase migration application, CI run on GitHub, device capture,
+  staging parity, ground-truth benchmark and SLA evidence — none claimed.""
