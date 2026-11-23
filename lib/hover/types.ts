@@ -290,12 +290,23 @@ export type ViewerModel = {
 }
 
 export type MaterialSelection = { facetId: string; material: string; color: string | null; product: string | null }
+export type DesignQuantity = {
+  facetId: string
+  material: string
+  areaSqFt: number
+  wasteFactor: number
+  quantitySqFt: number
+}
+
 export type DesignSelection = {
   jobId: string
   setId: string
   mode: '2d-photo' | '3d-twin'
   roofStyle: string | null
+  facetGraphRef: string
   selections: MaterialSelection[]
+  facets: { id: string; material: string | null }[]
+  quantities: DesignQuantity[]
   hash: string
 }
 
