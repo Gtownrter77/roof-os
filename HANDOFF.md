@@ -1600,4 +1600,19 @@ Do not claim the live writer integration gate is complete without non-production
   `PASS (160 registered gates + 4 build/release checks)`. This is the tree pushed as
   `34b524994b083278b4f643a671a0b37f95f5c849`.
 - No required check is pending or failing; merge to `main` is authorized by the owner's standing
-  instruction ("100% complete and landed in GitHub main"). `main` has no branch protection.
+  instruction ("100% complete and landed in GitHub main").
+
+## 2026-11-23 — MERGED TO GITHUB MAIN
+
+- PR https://github.com/Gtownrter77/roof-os/pull/497 created from
+  `docs/hover-parity-roadmap` at `d734eac90c9e7d7512f362811b13017b17b300ca`.
+- All four required ruleset checks passed on GitHub: `web`, `mobile`, `migration-safety`,
+  `field-security` (verified via the commits check-runs API).
+- Squash merge completed at **remote `main` SHA `4e9fdfc75e5e73aabd516256db99eed11faec9c7`**;
+  `git ls-remote` confirms the remote value and local `main` was reset to match it.
+  The merged tree is byte-identical to the verified feature branch (`git diff` empty).
+- The earlier fine-grained PAT could push branches but lacked `pull_requests=write`; an owner-supplied
+  classic `repo`-scoped PAT was used to create and merge the PR. The ruleset was not modified or bypassed.
+- Remaining production-parity work is listed in
+  `docs/superpowers/plans/2026-11-23-hover-followups.md`. Hosted migration application, device capture,
+  ground-truth accuracy, SLA evidence and independent review remain UNVERIFIED.
