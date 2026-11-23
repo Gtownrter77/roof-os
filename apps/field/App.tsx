@@ -7,7 +7,12 @@ import * as SecureStore from 'expo-secure-store'
 import { createClient, type Session } from '@supabase/supabase-js'
 import { useEffect, useRef, useState } from 'react'
 import { File, Paths } from 'expo-file-system'
+import { WebView, type WebViewMessageEvent } from 'react-native-webview'
 import { embedGpsIntoJpeg, readEmbeddedGps } from '../../lib/photo-provenance.mjs'
+import { validateCapture } from '../../lib/hover/capture.ts'
+import { CAPTURE_SLOTS, type CaptureValidation, type SlotId } from '../../lib/hover/types.ts'
+import { scorePixels, type QualityScore } from '../../lib/hover/field-quality.ts'
+import { toScanImages, toScaleAnchors, type FieldAnchorRow, type FieldPhotoRow } from '../../lib/hover/field-capture.ts'
 import {
   ActivityIndicator,
   Alert,
@@ -170,7 +175,7 @@ type AgendaItem = {
   location: string | null
   status: string
 }
-const photoAlbums = ['general', 'before', 'damage', 'measurements', 'completed'] as const
+const photoAlbums = ['general', 'model', 'before', 'damage', 'measurements', 'completed'] as const
 type PhotoAlbum = typeof photoAlbums[number]
 type Point = { latitude: number; longitude: number }
 type QueuedPhoto = {
@@ -186,6 +191,36 @@ type QueuedPhoto = {
 
 const timestamp = () => new Date().toISOString()
 const clientId = (prefix: string) => `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 12)}`
+
+const HOVER_SCORE_SAMPLE_SIZE = 64
+// The canvas runs inside a local WebView; no remote code or paid CV service is
+// involved. It returns grayscale bytes, and scorePixels() computes the scores.
+const HOVER_SCORE_HTML = `<!doctype html><html><body><script>
+document.addEventListener('message', function (event) {
+  try {
+    var image = new Image();
+    image.onload = function () {
+      try {
+        var canvas = document.createElement('canvas');
+        canvas.width = 64; canvas.height = 64;
+        var context = canvas.getContext('2d');
+        context.drawImage(image, 0, 0, 64, 64);
+        var data = context.getImageData(0, 0, 64, 64).data;
+        var gray = [];
+        for (var i = 0; i < 4096; i += 1) {
+          var p = i * 4;
+          gray.push(Math.round(0.299 * data[p] + 0.587 * data[p + 1] + 0.114 * data[p + 2]));
+        }
+        window.ReactNativeWebView.postMessage(JSON.stringify({ pixels: gray }));
+      } catch (error) { window.ReactNativeWebView.postMessage(JSON.stringify({ pixels: null })); }
+    };
+    image.onerror = function () { window.ReactNativeWebView.postMessage(JSON.stringify({ pixels: null })); };
+    image.src = String(event.data);
+  } catch (error) { window.ReactNativeWebView.postMessage(JSON.stringify({ pixels: null })); }
+});
+</script></body></html>`
+
+let resolveHoverScore: ((score: QualityScore | null) => void) | null = null
 
 function isSessionExpiryError(error: unknown) {
   const candidate = error as { status?: number; code?: string; message?: string } | null
@@ -252,6 +287,13 @@ export default function App() {
   const [stormHeadline, setStormHeadline] = useState('')
   const [pendingUploads, setPendingUploads] = useState(0)
   const [photoQueue, setPhotoQueue] = useState<QueuedPhoto[]>([])
+  const [hoverSlot, setHoverSlot] = useState<SlotId | null>(null)
+  const [hoverAnchorKind, setHoverAnchorKind] = useState<'bar' | 'door' | 'garage' | 'wall'>('door')
+  const [hoverAnchorValue, setHoverAnchorValue] = useState('')
+  const [hoverAnchorUnit, setHoverAnchorUnit] = useState<'ft' | 'm'>('ft')
+  const [hoverAnchors, setHoverAnchors] = useState<FieldAnchorRow[]>([])
+  const [captureValidation, setCaptureValidation] = useState<CaptureValidation | null>(null)
+  const scoreWebViewRef = useRef<WebView | null>(null)
   const [showTools, setShowTools] = useState(false)
   const [leadQuery, setLeadQuery] = useState('')
   const [fieldAiPreferences, setFieldAiPreferences] = useState<FieldAiPreferences>(parseFieldAiPreferences(null))
@@ -417,6 +459,73 @@ export default function App() {
       "SELECT id, local_uri, album, caption, sync_status, last_error, (SELECT status FROM inspection_ai_request_queue WHERE photo_queue_id = inspection_photo_queue.id AND feature_key = 'caption_album' LIMIT 1) AS caption_ai_status, (SELECT status FROM inspection_ai_request_queue WHERE photo_queue_id = inspection_photo_queue.id AND feature_key = 'photo_completeness' LIMIT 1) AS completeness_ai_status FROM inspection_photo_queue WHERE draft_id = ? ORDER BY captured_at DESC LIMIT 8",
       draftId,
     ))
+    refreshHoverCaptureState(draftId)
+  }
+
+  function refreshHoverCaptureState(draftId: number) {
+    const rows = db.getAllSync<FieldPhotoRow>(
+      'SELECT id, hover_slot, gps_verified, blur_score, light_score, superseded_at, draft_id, local_uri, album, captured_at FROM inspection_photo_queue WHERE draft_id = ?',
+      draftId,
+    )
+    const anchors = db.getAllSync<FieldAnchorRow>(
+      'SELECT client_id, draft_id, kind, observed_value, unit, captured_at FROM inspection_hover_anchors WHERE draft_id = ?',
+      draftId,
+    )
+    setHoverAnchors(anchors)
+    setCaptureValidation(validateCapture(toScanImages(rows), toScaleAnchors(anchors)))
+  }
+
+  function supersedeSlot(draftId: number, slot: SlotId) {
+    db.runSync('UPDATE inspection_photo_queue SET superseded_at = ?, superseded_reason = ? WHERE draft_id = ? AND hover_slot = ? AND superseded_at IS NULL', timestamp(), 'recaptured', draftId, slot)
+  }
+
+  function saveHoverAnchor() {
+    const draftId = draftRef.current?.id
+    const value = Number(hoverAnchorValue)
+    if (!draftId || !Number.isFinite(value) || value <= 0) {
+      setError('Enter a reference measurement greater than zero before saving it.')
+      return
+    }
+    db.runSync(
+      'INSERT OR IGNORE INTO inspection_hover_anchors (draft_id, client_id, kind, observed_value, unit, captured_at) VALUES (?, ?, ?, ?, ?, ?)',
+      draftId, clientId('anchor'), hoverAnchorKind, value, hoverAnchorUnit, timestamp(),
+    )
+    setHoverAnchorValue('')
+    setError('')
+    refreshHoverCaptureState(draftId)
+  }
+
+  function handleHoverScoreMessage(event: WebViewMessageEvent) {
+    const settle = resolveHoverScore
+    resolveHoverScore = null
+    if (!settle) return
+    try {
+      const payload = JSON.parse(String(event.nativeEvent.data)) as { pixels?: unknown }
+      if (!Array.isArray(payload.pixels) || payload.pixels.length !== HOVER_SCORE_SAMPLE_SIZE * HOVER_SCORE_SAMPLE_SIZE) {
+        settle(null)
+        return
+      }
+      const pixels = new Uint8ClampedArray(payload.pixels.map((value) => Number(value)))
+      settle(scorePixels(pixels, HOVER_SCORE_SAMPLE_SIZE, HOVER_SCORE_SAMPLE_SIZE))
+    } catch {
+      settle(null)
+    }
+  }
+
+  async function scoreJpeg(base64: string | null | undefined): Promise<QualityScore | null> {
+    if (!base64 || Platform.OS === 'web' || !scoreWebViewRef.current) return null
+    return new Promise((resolve) => {
+      const timer = setTimeout(() => {
+        if (resolveHoverScore) { resolveHoverScore(null); resolveHoverScore = null }
+      }, 4000)
+      resolveHoverScore = (score) => { clearTimeout(timer); resolve(score) }
+      try {
+        scoreWebViewRef.current?.postMessage(`data:image/jpeg;base64,${base64}`)
+      } catch {
+        resolveHoverScore(null)
+        resolveHoverScore = null
+      }
+    })
   }
 
   async function updateFieldAiFeature(feature: FieldAiFeature, enabled: boolean) {
@@ -731,12 +840,16 @@ export default function App() {
 
   async function capturePhoto() {
     try {
+      if (photoAlbum === 'model' && !hoverSlot) {
+        Alert.alert('Choose a side or corner first', 'Model photos need one of the eight Hover capture slots before the camera opens.')
+        return
+      }
       const permission = await ImagePicker.requestCameraPermissionsAsync()
       if (!permission.granted) {
         Alert.alert('Camera permission needed', 'Allow camera access to capture inspection evidence.')
         return
       }
-      const result = await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], quality: 0.8, exif: true })
+      const result = await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], quality: 0.8, exif: true, base64: true })
       if (result.canceled) return
       if (!result.assets.length) {
         setError('The camera returned no image. Try capturing the photo again.')
@@ -767,7 +880,7 @@ export default function App() {
         }
       } catch { /* A denied or failed GPS fix never fabricates location. */ }
       let stampedCount = 0
-      const preparedAssets: Array<{ clientId: string; uri: string; mimeType: string; fileSize: number | null; width: number | null; height: number | null; gpsEmbedded: boolean }> = []
+      const preparedAssets: Array<{ clientId: string; uri: string; mimeType: string; fileSize: number | null; width: number | null; height: number | null; gpsEmbedded: boolean; quality: QualityScore | null }> = []
       for (const asset of result.assets) {
         const mimeType = asset.mimeType ?? (/\.(jpe?g)$/i.test(asset.uri) ? 'image/jpeg' : 'application/octet-stream')
         const photoClientId = clientId('photo')
@@ -806,9 +919,10 @@ export default function App() {
             try { if (stampedFile.exists) stampedFile.delete() } catch {}
           }
         }
+        const quality = photoAlbum === 'model' ? await scoreJpeg(asset.base64) : null
         preparedAssets.push({
           clientId: photoClientId, uri: finalPhoto.uri, mimeType, fileSize: finalPhoto.size,
-          width: asset.width ?? null, height: asset.height ?? null, gpsEmbedded,
+          width: asset.width ?? null, height: asset.height ?? null, gpsEmbedded, quality,
         })
       }
       const count = photos + preparedAssets.length
@@ -817,8 +931,11 @@ export default function App() {
       let pendingCount = 0
       try {
         db.withTransactionSync(() => {
+          // A recapture retires the prior row for this slot; the old row is
+          // kept for audit and never silently overwrites the new one.
+          if (photoAlbum === 'model' && hoverSlot) supersedeSlot(draftId, hoverSlot)
           preparedAssets.forEach((asset) => {
-            const photoInsert = db.runSync('INSERT INTO inspection_photo_queue (draft_id, client_id, local_uri, album, caption, mime_type, file_size_bytes, width, height, captured_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', draftId, asset.clientId, asset.uri, photoAlbum, photoCaption.trim() || null, asset.mimeType ?? 'image/jpeg', asset.fileSize ?? null, asset.width ?? null, asset.height ?? null, capturedAt)
+            const photoInsert = db.runSync('INSERT INTO inspection_photo_queue (draft_id, client_id, local_uri, album, caption, mime_type, file_size_bytes, width, height, captured_at, hover_slot, gps_verified, blur_score, light_score) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', draftId, asset.clientId, asset.uri, photoAlbum, photoCaption.trim() || null, asset.mimeType ?? 'image/jpeg', asset.fileSize ?? null, asset.width ?? null, asset.height ?? null, capturedAt, photoAlbum === 'model' ? hoverSlot : null, asset.gpsEmbedded ? 1 : 0, asset.quality?.blurScore ?? null, asset.quality?.lightScore ?? null)
             const photoQueueId = Number(photoInsert.lastInsertRowId)
             const requestedFeatures: Array<[FieldAiFeature, boolean]> = [
               ['caption_album', fieldAiPreferences.photoCaptionAlbumEnabled],
@@ -1523,6 +1640,76 @@ export default function App() {
               <Text style={styles.secondaryText}>Caption fits the {captionAlbum} album. Use it.</Text>
             </Pressable>
           ) : null}
+        </View>
+
+        <Text style={styles.sectionTitle}>Measured exterior capture</Text>
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Eight-sided model capture</Text>
+          <Text style={styles.helper}>
+            Model photos need eight sides/corners with embedded GPS and one reference measurement. Blur and light scores are computed on this device; unscored photos stay unscored, never a pass.
+          </Text>
+          <View style={styles.albumRow}>
+            {CAPTURE_SLOTS.map((slot) => (
+              <Pressable
+                key={slot.id}
+                style={[styles.albumChip, hoverSlot === slot.id && styles.albumChipSelected]}
+                onPress={() => setHoverSlot(slot.id)}
+                accessibilityLabel={`Model slot ${slot.label}`}
+              >
+                <Text style={[styles.albumText, hoverSlot === slot.id && styles.albumTextSelected]}>{slot.label}</Text>
+              </Pressable>
+            ))}
+          </View>
+          <Text style={styles.helper}>{hoverSlot ? `Next model photo: ${CAPTURE_SLOTS.find((slot) => slot.id === hoverSlot)?.label ?? hoverSlot}` : 'Choose a side or corner before taking a model photo.'}</Text>
+
+          <Text style={styles.cardTitle}>Reference measurement · scale cue</Text>
+          <View style={styles.row}>
+            <TextInput
+              value={hoverAnchorValue}
+              onChangeText={setHoverAnchorValue}
+              keyboardType="decimal-pad"
+              placeholder="Observed length"
+              placeholderTextColor="#8b99aa"
+              style={styles.inputHalf}
+              accessibilityLabel="Reference measurement value"
+            />
+            <Pressable style={styles.secondary} onPress={() => setHoverAnchorUnit(hoverAnchorUnit === 'ft' ? 'm' : 'ft')}>
+              <Text style={styles.secondaryText}>{hoverAnchorUnit}</Text>
+            </Pressable>
+          </View>
+          <View style={styles.albumRow}>
+            {(['door', 'garage', 'wall', 'bar'] as const).map((kind) => (
+              <Pressable
+                key={kind}
+                style={[styles.albumChip, hoverAnchorKind === kind && styles.albumChipSelected]}
+                onPress={() => setHoverAnchorKind(kind)}
+                accessibilityLabel={`Reference kind ${kind}`}
+              >
+                <Text style={[styles.albumText, hoverAnchorKind === kind && styles.albumTextSelected]}>{kind}</Text>
+              </Pressable>
+            ))}
+          </View>
+          <Pressable style={styles.secondary} onPress={saveHoverAnchor}>
+            <Text style={styles.secondaryText}>Save reference measurement</Text>
+          </Pressable>
+          {hoverAnchors.map((anchor) => (
+            <Text key={anchor.clientId} style={styles.helper}>{anchor.kind}: {anchor.observedValue} {anchor.unit}</Text>
+          ))}
+
+          <Text style={styles.cardTitle}>Capture status · guidance only</Text>
+          <Text style={styles.helper}>
+            {captureValidation
+              ? (captureValidation.reason ?? (captureValidation.complete ? 'All eight model slots and a reference are present.' : 'Model capture is incomplete.'))
+              : 'No model photos captured yet.'}
+          </Text>
+          {Platform.OS === 'web' ? null : (
+            <WebView
+              ref={scoreWebViewRef}
+              source={{ html: HOVER_SCORE_HTML }}
+              onMessage={handleHoverScoreMessage}
+              style={{ position: 'absolute', width: 1, height: 1, opacity: 0 }}
+            />
+          )}
         </View>
 
         <Text style={styles.sectionTitle}>Manual measurement · inspector</Text>
