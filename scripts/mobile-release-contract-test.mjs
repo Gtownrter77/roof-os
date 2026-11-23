@@ -41,6 +41,27 @@ assert.ok(provenanceImport, 'Field App must import the shared photo-provenance m
 const importedPath = resolve(fieldDir, provenanceImport[1])
 assert.equal(existsSync(importedPath), true, `Imported photo-provenance file must exist at ${importedPath}`)
 
+// The field App imports shared Hover modules with explicit .ts extensions, so the
+// field tsconfig must allow them or the `mobile` CI job's `npx tsc --noEmit` fails
+// with TS5097 even though the root typecheck (which excludes apps/) passes.
+const fieldTsconfig = JSON.parse(readFileSync(join(fieldDir, 'tsconfig.json'), 'utf8'))
+assert.equal(
+  fieldTsconfig.compilerOptions?.allowImportingTsExtensions,
+  true,
+  'Field tsconfig must enable allowImportingTsExtensions for shared lib/hover .ts imports',
+)
+assert.match(
+  source,
+  /from ['"]\.\.\/\.\.\/lib\/hover\/field-quality\.ts['"]/,
+  'Field App must import the on-device quality scorer from the shared Hover module',
+)
+const fieldCoachSource = readFileSync(join(fieldDir, 'src/fieldCoach.ts'), 'utf8')
+assert.match(
+  fieldCoachSource,
+  /'general' \| 'model' \| 'before'/,
+  'PhotoAlbum union must include the model album used by App.tsx suggestCaption calls',
+)
+
 const metroCandidates = ['metro.config.cjs', 'metro.config.js']
 const metroFile = metroCandidates.find((name) => existsSync(join(fieldDir, name)))
 assert.ok(metroFile, 'Field Metro config must exist so EAS can resolve files outside apps/field')

@@ -1645,6 +1645,13 @@ Do not claim the live writer integration gate is complete without non-production
   13 `finishing-a-development-branch` performed (PR + required checks + SHA verification);
   14 `writing-skills` not triggered (no upstream SKILL.md edited); 15 `diagnosing-superpowers` not triggered.
   Full ledger: `docs/superpowers/plans/2026-11-23-field-capture-wiring-ledger.md`.
+- CI `mobile` check failed post-PR: root-cause traced (systematic-debugging) to Task 3 introducing `.ts`-extension
+  imports into `apps/field/App.tsx` while the field tsconfig lacked `allowImportingTsExtensions` (root tsconfig
+  has it but excludes `apps/`), plus `'model'` added to the local album union without updating `fieldCoach.ts`.
+  Reproduced locally with the exact `npx tsc --noEmit` CI command (RED), then fixed by enabling the compiler flag
+  and adding `'model'` to `PhotoAlbum` + `CAPTIONS`. A regression guard was added to `mobile-release-contract-test.mjs`.
+  Re-verified GREEN: field `npx tsc --noEmit` exit 0, `field-coach-test` PASS, `npm run test:hover` 13/13,
+  `npm run typecheck` PASS, `npm run test:all` PASS (166 gates + 4 checks).
 - Still UNVERIFIED (not production-readiness evidence): hosted Supabase application of migration 112,
   real-device capture and WebView threshold calibration, staging parity, ground-truth benchmark,
   SLA evidence, and independent reviewer run (free-model daily limit). No claim made for any of these.
