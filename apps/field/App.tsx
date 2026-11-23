@@ -1103,9 +1103,10 @@ export default function App() {
         if (error) throw error
         db.runSync('UPDATE inspection_measurements_local SET sync_status = ?, last_error = NULL, next_retry_at = NULL WHERE id = ?', 'synced', measurement.id)
       }
-      const queued = db.getAllSync<{ id: number; client_id: string; local_uri: string; album: string; caption: string | null; mime_type: string; file_size_bytes: number | null; width: number | null; height: number | null; captured_at: string }>('SELECT id, client_id, local_uri, album, caption, mime_type, file_size_bytes, width, height, captured_at FROM inspection_photo_queue WHERE draft_id = ? AND sync_status IN (?, ?) AND (next_retry_at IS NULL OR next_retry_at <= ?)', draftToSync.id, 'queued', 'retrying', now)
+      const queued = db.getAllSync<{ id: number; client_id: string; local_uri: string; album: string; caption: string | null; mime_type: string; file_size_bytes: number | null; width: number | null; height: number | null; captured_at: string; hover_slot: string | null; blur_score: number | null; light_score: number | null }>('SELECT id, client_id, local_uri, album, caption, mime_type, file_size_bytes, width, height, captured_at, hover_slot, blur_score, light_score FROM inspection_photo_queue WHERE draft_id = ? AND sync_status IN (?, ?) AND (next_retry_at IS NULL OR next_retry_at <= ?)', draftToSync.id, 'queued', 'retrying', now)
       let reviewPacketsCreated = 0
       let manualOnlyPhotos = 0
+      let hoverIngestPending = false
       for (const photo of queued) {
         const extension = photo.mime_type.split('/')[1]?.replace('jpeg', 'jpg') || 'bin'; const objectPath = `${workspaceId}/${session.user.id}/${remoteId}/${photo.client_id}.${extension}`
         let body: Blob | ArrayBuffer
@@ -1119,7 +1120,7 @@ export default function App() {
         }
         const { error: uploadError } = await supabase.storage.from('inspection-photos').upload(objectPath, body, { contentType: photo.mime_type, upsert: false })
         if (uploadError && !/already exists|duplicate/i.test(uploadError.message)) throw uploadError
-        const { data, error: recordError } = await supabase.from('inspection_photos').upsert({ inspection_id: remoteId, client_id: photo.client_id, workspace_id: workspaceId, uploaded_by: session.user.id, bucket_id: 'inspection-photos', object_path: objectPath, album: photo.album, caption: photo.caption, mime_type: photo.mime_type, file_size_bytes: photo.file_size_bytes, width: photo.width, height: photo.height, captured_at: photo.captured_at, upload_status: 'uploaded' }, { onConflict: 'workspace_id,client_id' }).select('id').single()
+        const { data, error: recordError } = await supabase.from('inspection_photos').upsert({ inspection_id: remoteId, client_id: photo.client_id, workspace_id: workspaceId, uploaded_by: session.user.id, bucket_id: 'inspection-photos', object_path: objectPath, album: photo.album, caption: photo.caption, mime_type: photo.mime_type, file_size_bytes: photo.file_size_bytes, width: photo.width, height: photo.height, captured_at: photo.captured_at, upload_status: 'uploaded', hover_slot: photo.hover_slot, blur_score: photo.blur_score, light_score: photo.light_score }, { onConflict: 'workspace_id,client_id' }).select('id').single()
         if (recordError) throw recordError
         // Only the server can certify GPS based on the actual image bytes.
         // Network, EXIF or migration failure leaves this upload manual-only.
@@ -1162,9 +1163,37 @@ export default function App() {
           }
         })
       }
+      // Build/refresh the Hover manifest after the last photo upload. An
+      // incomplete eight-slot capture or a network failure is disclosed here;
+      // it never turns local evidence into a published measurement.
+      try {
+        const localAnchors = db.getAllSync<{ kind: string; observed_value: number; unit: string }>(
+          'SELECT kind, observed_value, unit FROM inspection_hover_anchors WHERE draft_id = ?',
+          draftToSync.id,
+        )
+        const ingestResponse = await fetch(webAppUrl.replace(/\/$/, '') + '/api/hover/ingest', {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+            authorization: 'Bearer ' + session.access_token,
+            'x-workspace-id': workspaceId,
+          },
+          body: JSON.stringify({
+            inspectionDraftId: remoteId,
+            anchors: localAnchors.map((anchor) => ({
+              kind: anchor.kind,
+              observedValue: anchor.observed_value,
+              unit: anchor.unit,
+            })),
+          }),
+        })
+        if (!ingestResponse.ok) hoverIngestPending = true
+      } catch {
+        hoverIngestPending = true
+      }
       if (draftRef.current?.id === draftToSync.id) setPendingUploads(pendingRowCount(draftToSync.id))
       syncSucceeded = true
-      setNotice('Synced securely. ' + reviewPacketsCreated + ' Photo-to-Report property packets created; ' + manualOnlyPhotos + ' manual-only photos. Evidence and estimates remain review-gated.')
+      setNotice('Synced securely. ' + reviewPacketsCreated + ' Photo-to-Report property packets created; ' + manualOnlyPhotos + ' manual-only photos. Evidence and estimates remain review-gated.' + (hoverIngestPending ? ' Hover model manifest is pending until all eight slots, GPS and a reference are uploaded.' : ''))
     } catch (syncError) {
       const message = syncError instanceof Error ? syncError.message : 'Unknown sync error'
       if (isSessionExpiryError(syncError)) {
