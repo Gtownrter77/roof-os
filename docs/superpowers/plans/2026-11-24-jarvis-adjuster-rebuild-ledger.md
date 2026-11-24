@@ -121,18 +121,45 @@ desktop resilience gate, all wired in `.github/workflows/ci.yml` and in the regi
   `dashboard-weather`, cron routes, cron HTTP and release-check all exited 0; `git diff --check`
   exited 0. Second-pass fixes are committed at `86c834a`.
 - Full suite / typecheck / build / release-check / foreman / registry / coverage / final
-  `git diff --check`: see the final verification block appended after the build completes.
-- BUILD_ID: **pending build**.
-- Final checkpoint SHA: `86c834a` (pending any final reviewer fixes).
+  `git diff --check`: all re-run on the final head `dc2bc1f`; exact results in the block below.
+- BUILD_ID: `61scKvSPtwimcH6sygonO`.
+- Final checkpoint SHA: `dc2bc1f37e5cbeb53a8327684707fb28535e9de4`. The final whole-branch reviewer
+  returned **Ready to merge? Yes** on the full range `be190fd..dc2bc1f`, confirming both Important
+  findings from the `86c834a` verdict are closed in code and no new Critical/Important defect was
+  introduced. Its only note was to update this ledger for archiving.
 - Merge SHA: **pending**.
+
+### Final verification block (head `dc2bc1f37e5cbeb53a8327684707fb28535e9de4`)
+Every command was run fresh in the SD1 worktree on the exact head above; each exit code was captured
+and logged to `/mnt/shared/removable/SD1/.cache/final-verification-dc2bc1f.log`.
+
+| Command | Exit | Evidence |
+|---|---|---|
+| `npm run test:all` | 0 | `[test-all] PASS (182 registered gates + 4 build/release checks)` |
+| `npm run test:hover` | 0 | hover schema/capture/manifest/pipeline/scale/topology/measurements/QA/report/exports/viewer/design/estimate |
+| `npm run typecheck` | 0 | `tsc --noEmit` clean |
+| `npm run build` | 0 | Next.js 16.4.6 production build; `BUILD_ID=61scKvSPtwimcH6sygonO` |
+| `npm run release-check` | 0 | 18 protected routes, security headers and secret scan (462 source/config files, 5 patterns) |
+| `npm run test:release-foreman` | 0 | nonduplicated steps, security gate, worker behavior gate, migration baseline 114/112, wired gates |
+| `npm run test:agent-registry` | 0 | `agent-registry-test: PASS` |
+| `npm run test:test-all-coverage` | 0 | 182 gates run, 3 documented waivers |
+| `npm run test:gate-registry-integrity` | 0 | no duplicate gate keys, derived foreman set, evidence-complete release decision |
+| `git diff --check be190fd..HEAD` | 0 | clean |
+
+The first build attempt was interrupted by a harness server restart during its TypeScript phase; it
+was re-run from scratch and exited 0 with the BUILD_ID above. No gate result was accepted from a
+partial run.
 
 ## Still UNVERIFIED (never claimed as production evidence)
 Hosted application of migration 114 (including its revised service-role/RLS and atomic inbound
 RPCs); live Twilio/SMTP/IMAP credentials and external message delivery; a configured outbound
 gateway returning confirmed delivery; paid dedicated phone/email deployment (needs owner cost
 approval); Ollama/agent inference on the owner’s desktop; real device geolocation and Doppler tile
-rendering; staging parity; independent reviewer verdict on the final head. Local green gates
-prove source and deterministic-behavior contracts only.
+rendering; staging parity; hosted/runtime RLS and schema parity; authenticated two-workspace
+checks; passport positive path; backup/restore; deployed SHA; physical-device behavior; live
+two-workspace isolation; and provider execution. The final reviewer's "Yes" verdict covers source
+behavior only, not live deployment. Local green gates prove source and deterministic-behavior
+contracts only.
 
 ## 15-skill audit
 1 `using-superpowers` — performed (skills loaded before action).
@@ -144,9 +171,10 @@ prove source and deterministic-behavior contracts only.
 7 `executing-plans` — performed inline, no implementer subagent per task.
 8 `subagent-driven-development` — not triggered (inline execution chosen).
 9 `dispatching-parallel-agents` — not triggered (shared schema/registry files; sequential).
-10 `requesting-code-review` — performed (reviewer runs at `d7b2fad` and `01c7515`, both verdict No with disposition above; final head `86c834a` re-review pending).
+10 `requesting-code-review` — performed (reviewer runs at `d7b2fad`, `01c7515` and `86c834a`, all verdict No with disposition above; final head `dc2bc1f` verdict Yes).
 11 `receiving-code-review` — performed on the five Critical findings from the lost branch and again on the fresh reviewer's Critical/Important/Minor findings.
-12 `verification-before-completion` — performed on the gates; final full-suite block pending build.
+12 `verification-before-completion` — performed; fresh full-suite, typecheck, build, release, foreman,
+   registry, coverage and diff evidence above, every command exit 0.
 13 `finishing-a-development-branch` — owner already authorized merge; pending push/merge.
 14 `writing-skills` — not triggered (no skill files edited).
 15 `diagnosing-superpowers` — not triggered (no session-failure investigation requested).
