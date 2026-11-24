@@ -4,6 +4,9 @@ import {
   disableDecision, deliveryWording, claimReadScope,
 } from '../lib/jarvis/api/index.ts'
 import { enrollClaim, enqueueJob, writeInbound } from '../lib/jarvis/api/server.ts'
+import { mapJobRow } from '../lib/jarvis/api/row.ts'
+import { resolveConsent } from '../lib/jarvis/api/consent.ts'
+import { isAuthorizedWorkerAuthHeader } from '../lib/jarvis/api/auth.ts'
 import { HANDLERS, processJob } from '../workers/jarvis-worker.ts'
 import { JARVIS_JOB_TYPES } from '../lib/jarvis/types.ts'
 
@@ -160,5 +163,61 @@ await assert.rejects(
   () => processJob({ id: 'job', type: 'unknown', payload: {} }, ctx),
   (error) => error.code === 'adjuster_error',
 )
+
+// Critical (fresh review): real PostgREST rows are snake_case. A wrong cast
+// would leave every job with an undefined claim id and fail closed forever.
+const now = new Date('2026-11-24T12:00:00Z')
+const dbRow = {
+  id: 'job-db', workspace_id: WORKSPACE, type: 'send_message', status: 'queued',
+  payload: { claimId: CLAIM }, payload_hash: 'c'.repeat(64), idempotency_key: 'd'.repeat(64),
+  attempts: 0, claim_id: CLAIM, lead_id: LEAD, run_after: now.toISOString(),
+  locked_by: null, locked_at: null, created_at: now.toISOString(), updated_at: now.toISOString(),
+  last_error: null,
+}
+const mapped = mapJobRow(dbRow)
+assert.equal(mapped.id, 'job-db')
+assert.equal(mapped.workspaceId, WORKSPACE, 'workspace_id must not be lost in the cast')
+assert.equal(mapped.claimId, CLAIM, 'claim_id must reach the runtime as a UUID')
+assert.equal(mapped.leadId, LEAD)
+assert.equal(mapped.payloadHash, 'c'.repeat(64))
+assert.equal(mapped.runAfter, now.toISOString())
+assert.equal(mapped.lastError, null)
+assert.throws(() => mapJobRow({ ...dbRow, workspace_id: undefined }), (error) => error.code === 'adjuster_error')
+assert.throws(() => mapJobRow({ ...dbRow, type: 'teleport' }), (error) => error.code === 'adjuster_error')
+
+// Important (fresh review): revocation wins over older grants, expired grants
+// are ignored, and consent is bound to the normalized contact.
+const consentRows = [
+  { channel: 'sms', state: 'granted', phone: '+15552345678', captured_at: '2026-01-01T00:00:00Z' },
+]
+assert.equal(resolveConsent(consentRows, 'sms', '+15552345678', now).smsConsent, true)
+const revoked = resolveConsent([
+  ...consentRows,
+  { channel: 'sms', state: 'revoked', phone: '(555) 234-5678', captured_at: '2026-02-01T00:00:00Z' },
+], 'sms', '+15552345678', now)
+assert.equal(revoked.smsConsent, false, 'a revocation overrides an older grant')
+assert.equal(revoked.optedOutAt, '2026-02-01T00:00:00Z')
+assert.equal(resolveConsent([
+  { channel: 'sms', state: 'granted', phone: '+15552345678', expires_at: '2026-01-02T00:00:00Z' },
+], 'sms', '+15552345678', now).smsConsent, false, 'expired grants do not authorize a send')
+assert.equal(resolveConsent(consentRows, 'sms', '+15559990000', now).smsConsent, false)
+assert.equal(resolveConsent(consentRows, 'sms', 'not-a-phone', now).smsConsent, false)
+assert.equal(resolveConsent([
+  { channel: 'email', state: 'granted', phone: 'owner@example.com', captured_at: '2026-01-01T00:00:00Z' },
+], 'email', 'OWNER@example.com', now).emailConsent, true)
+assert.equal(resolveConsent([
+  { channel: 'email', state: 'granted', phone: 'owner@example.com' },
+  { channel: 'email', state: 'revoked', phone: 'owner@example.com', captured_at: '2026-02-01T00:00:00Z' },
+], 'email', 'owner@example.com', now).emailConsent, false)
+
+// The daily dispatcher authenticates with CRON_SECRET; direct worker calls may
+// use a dedicated secret. Either configured secret is valid, never neither.
+const workerSecrets = { worker: 'worker-secret', cron: 'cron-secret' }
+assert.equal(isAuthorizedWorkerAuthHeader('Bearer worker-secret', workerSecrets), true)
+assert.equal(isAuthorizedWorkerAuthHeader('Bearer cron-secret', workerSecrets), true)
+assert.equal(isAuthorizedWorkerAuthHeader('Bearer wrong', workerSecrets), false)
+assert.equal(isAuthorizedWorkerAuthHeader(null, workerSecrets), false)
+assert.equal(isAuthorizedWorkerAuthHeader('Bearer cron-secret', { worker: 'worker-secret', cron: '' }), false)
+assert.equal(isAuthorizedWorkerAuthHeader('Bearer worker-secret', { worker: '', cron: 'cron-secret' }), false)
 
 console.log('jarvis-adjuster API and worker contract passed')

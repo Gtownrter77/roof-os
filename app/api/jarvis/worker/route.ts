@@ -1,22 +1,24 @@
+import { randomUUID } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { fetchWithTimeout, isUuid } from '../../../../lib/api-security'
 import { getSupabaseEnv } from '../../../../lib/supabase/env'
 import { canSendNow, isQuietHours } from '../../../../lib/jarvis/guards'
 import { isAllowlisted } from '../../../../lib/adjuster/sandbox'
+import { isAuthorizedWorkerAuthHeader } from '../../../../lib/jarvis/api/auth'
+import { resolveConsent, type ConsentRow } from '../../../../lib/jarvis/api/consent'
+import { mapJobRow } from '../../../../lib/jarvis/api/row'
 import { adjusterError, runJobWithPolicies, type RuntimeDeps, type RuntimePolicy } from '../../../../lib/jarvis/runtime'
 import type { ClaimStatus, JarvisJob } from '../../../../lib/jarvis/types'
 
 const NO_STORE = { 'Cache-Control': 'private, no-store, max-age=0' }
+const LEASE_MS = 5 * 60 * 1000
 
 function requireSecret(request: NextRequest): boolean {
-  const secret = process.env.JARVIS_ADJUSTER_WORKER_SECRET?.trim() ?? process.env.CRON_SECRET?.trim()
-  if (!secret) return false
-  return request.headers.get('authorization') === `Bearer ${secret}`
-}
-
-function consentState(rows: Array<{ channel: string; state: string }>, channel: 'sms' | 'email' | 'voice') {
-  return rows.some((row) => row.channel === channel && row.state === 'granted')
+  return isAuthorizedWorkerAuthHeader(request.headers.get('authorization'), {
+    worker: process.env.JARVIS_ADJUSTER_WORKER_SECRET?.trim() ?? '',
+    cron: process.env.CRON_SECRET?.trim() ?? '',
+  })
 }
 
 /** One job per request. All policy decisions come from DB state. */
@@ -28,6 +30,17 @@ export async function POST(request: NextRequest) {
   if (!serviceKey) return NextResponse.json({ error: 'Service role is not configured.' }, { status: 503, headers: NO_STORE })
   const { url } = getSupabaseEnv()
   const supabase = createServiceClient(url, serviceKey, { auth: { persistSession: false } })
+  const workerId = `jarvis-worker:${randomUUID()}`
+
+  // Recover jobs abandoned by a crashed worker; an old claimant can no longer
+  // finish a job that another lease holder has since picked up.
+  const staleBefore = new Date(Date.now() - LEASE_MS).toISOString()
+  const { error: staleError } = await supabase
+    .from('jarvis_jobs')
+    .update({ status: 'queued', locked_by: null, locked_at: null })
+    .eq('status', 'running')
+    .lt('locked_at', staleBefore)
+  if (staleError) return NextResponse.json({ error: 'Stale job leases could not be recovered.' }, { status: 502, headers: NO_STORE })
 
   const { data: queued, error: claimError } = await supabase
     .from('jarvis_jobs')
@@ -40,10 +53,24 @@ export async function POST(request: NextRequest) {
   if (claimError) return NextResponse.json({ error: 'Queue could not be read.' }, { status: 502, headers: NO_STORE })
   if (!queued) return NextResponse.json({ processed: false }, { headers: NO_STORE })
 
-  const job = queued as JarvisJob
+  // PostgREST rows are snake_case; the runtime contract is camelCase.
+  let job: JarvisJob
+  try {
+    job = mapJobRow(queued as Record<string, unknown>)
+  } catch (cause) {
+    const reason = cause instanceof Error ? cause.message : 'Invalid job row.'
+    await supabase.from('jarvis_jobs').update({ status: 'failed', last_error: reason }).eq('id', (queued as { id?: string }).id)
+    return NextResponse.json({ error: reason }, { status: 502, headers: NO_STORE })
+  }
+
   const { data: claimed, error: lockError } = await supabase
     .from('jarvis_jobs')
-    .update({ status: 'running', locked_by: 'jarvis-worker', locked_at: new Date().toISOString(), attempts: job.attempts + 1 })
+    .update({
+      status: 'running',
+      locked_by: workerId,
+      locked_at: new Date().toISOString(),
+      attempts: job.attempts + 1,
+    })
     .eq('id', job.id)
     .eq('status', 'queued')
     .select('id')
@@ -70,15 +97,19 @@ export async function POST(request: NextRequest) {
       : { data: null }
 
     const channel = current.payload?.channel === 'email' ? 'email' : 'sms'
-    let consentRows: Array<{ channel: string; state: string }> = []
+    const contact = channel === 'email' ? lead?.email ?? '' : lead?.phone ?? ''
+    const now = new Date()
+    let consentRows: readonly ConsentRow[] = []
     if (claim.lead_id) {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('receptionist_consents')
-        .select('channel,state')
+        .select('channel,state,phone,captured_at,expires_at')
         .eq('workspace_id', current.workspaceId)
         .eq('lead_id', claim.lead_id)
-        .limit(100)
-      consentRows = (data ?? []) as Array<{ channel: string; state: string }>
+        .limit(200)
+      // Fail closed: a failed revocation lookup must never look like consent.
+      if (error) throw adjusterError('consent status could not be verified')
+      consentRows = (data ?? []) as readonly ConsentRow[]
     }
     const policy: RuntimePolicy = {
       claimId: claim.id,
@@ -90,14 +121,9 @@ export async function POST(request: NextRequest) {
       authorized: process.env.JARVIS_ADJUSTER_EXECUTION_AUTHORIZED === 'true',
       adjusterEnabled: settings?.adjuster_enabled ?? true,
       channel,
-      contact: (channel === 'email' ? lead?.email ?? '' : lead?.phone ?? ''),
+      contact,
       timeZone: claim.time_zone || 'UTC',
-      consent: {
-        smsConsent: consentState(consentRows, 'sms'),
-        emailConsent: consentState(consentRows, 'email'),
-        voiceConsent: consentState(consentRows, 'voice'),
-        optedOutAt: null,
-      },
+      consent: resolveConsent(consentRows, channel, contact, now),
       leadId: claim.lead_id ?? '',
       identityId: settings?.identity_id ?? '',
     }
@@ -166,12 +192,15 @@ export async function POST(request: NextRequest) {
     lastError = cause instanceof Error ? cause.message : 'Unknown adjuster job failure.'
     unexpected = (cause as { code?: string }).code !== 'adjuster_error'
   }
-  const { error: finishError } = await supabase
+  const { data: finished, error: finishError } = await supabase
     .from('jarvis_jobs')
     .update({ status, last_error: lastError, updated_at: new Date().toISOString() })
     .eq('id', job.id)
-  if (finishError) {
-    return NextResponse.json({ error: 'Job outcome could not be recorded.', jobId: job.id }, { status: 502, headers: NO_STORE })
+    .eq('locked_by', workerId)
+    .select('id')
+    .maybeSingle()
+  if (finishError || !finished) {
+    return NextResponse.json({ error: 'Job outcome could not be recorded or the lease was lost.', jobId: job.id }, { status: 502, headers: NO_STORE })
   }
   if (unexpected) {
     return NextResponse.json({ error: lastError, jobId: job.id, status }, { status: 502, headers: NO_STORE })

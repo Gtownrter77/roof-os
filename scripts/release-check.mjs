@@ -8,6 +8,10 @@ const authMarkerFixture = stripCommentsAndStrings('// getUser()\n// CRON_SECRET\
 if (authMarkerFixture.includes('getUser()') || authMarkerFixture.includes('CRON_SECRET')) {
   throw new Error('comment-only auth markers must not satisfy the release gate')
 }
+const webhookMarkerFixture = stripCommentsAndStrings('// JARVIS_ADJUSTER_WEBHOOK_SECRET\n// authorization !==\nconst x = 1')
+if (webhookMarkerFixture.includes('JARVIS_ADJUSTER_WEBHOOK_SECRET') || webhookMarkerFixture.includes('authorization !==')) {
+  throw new Error('comment-only webhook auth markers must not satisfy the release gate')
+}
 
 const root = new URL('..', import.meta.url).pathname
 const config = readFileSync(join(root, 'next.config.ts'), 'utf8')
@@ -110,12 +114,17 @@ for (const route of routes) {
   const hasCronGuard = code.includes('CRON_SECRET') || usesSharedCronWrapper
   const hasStripeSignatureGuard = source.includes("stripe-signature") && code.includes('constructEvent')
   const hasTwilioSignatureGuard = code.includes('assertTwilioRequest')
+  // The adjuster inbound webhook uses its own deployment secret. Require the
+  // executable secret comparison, not just an env reference in a comment.
+  const hasAdjusterWebhookGuard = code.includes('JARVIS_ADJUSTER_WEBHOOK_SECRET')
+    && code.includes('!secret')
+    && code.includes('authorization !==')
   const isPublicStatusRoute = route === join(root, 'app', 'api', 'status', 'route.ts')
   const isTokenScopedPublicRoute = route === join(root, 'app', 'api', 'passport', 'public', 'route.ts')
     && source.includes(".eq('public_token', token)")
     && source.includes(".eq('public_shared', true)")
     && !/\bexport\s+(async\s+)?function\s+(POST|PUT|PATCH|DELETE)\b/.test(source)
-  if (!hasSessionGuard && !hasCronGuard && !hasStripeSignatureGuard && !hasTwilioSignatureGuard && !isPublicStatusRoute && !isTokenScopedPublicRoute) {
+  if (!hasSessionGuard && !hasCronGuard && !hasStripeSignatureGuard && !hasTwilioSignatureGuard && !hasAdjusterWebhookGuard && !isPublicStatusRoute && !isTokenScopedPublicRoute) {
     throw new Error(`API route has no visible session, cron, or verified provider webhook authentication guard: ${route}`)
   }
   if (source.includes('request.json()')) {

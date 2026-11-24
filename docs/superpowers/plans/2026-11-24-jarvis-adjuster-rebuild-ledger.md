@@ -71,6 +71,24 @@ The reviewer declined to judge live sends/credentials, hosted migration, paid pr
 EXIF implementation, Golden Report rendering, radar tiles, backfill, download endpoint and the
 15-agent product decision; those remain outside local evidence.
 
+## Second whole-branch reviewer (committed head `01c7515`) and disposition
+The follow-up reviewer again returned **Ready to merge? No** before the fixes below. Every finding
+was checked against the code and closed in this working tree:
+
+| Finding | Disposition |
+|---|---|
+| **Critical** — worker cast snake_case PostgREST rows to camelCase `JarvisJob`; `claimId` was undefined and every job failed | `lib/jarvis/api/row.ts::mapJobRow()` maps and validates the real row; the worker uses it and fails malformed rows honestly. Behavior gates feed actual DB-shaped rows through the mapper and the runtime |
+| Important — TCPA revocation ignored when an older grant remained; `expires_at` ignored | `lib/jarvis/api/consent.ts::resolveConsent()` binds by normalized contact/channel, any revocation wins over older grants, expired grants are rejected, and failed consent reads throw so sends fail closed |
+| Important — no lease recovery or ownership check | Stale `running` leases older than five minutes are reset to `queued`; claim and finish update include `locked_by`, so an old claimant cannot complete another worker's job |
+| Important — two of six job types always failed as “not configured” | `generate_document` and `extract_estimate` are rejected by `ENQUEUEABLE_JOB_TYPES` at enqueue time and fail explicitly at the runtime guard with `not configured for this deployment`; no document or estimate is fabricated. Only configured types may be queued by this slice |
+| Important — `/api/jarvis/worker` had no in-repo caller | The existing daily dispatcher imports and drains the single worker (bounded to ten jobs/run) under `CRON_SECRET`; dry-run reports `jarvis_worker` as skipped. Vercel Hobby stays at two crons |
+| Important — auth fallback broke when a dedicated worker secret was set | `isAuthorizedWorkerAuthHeader()` accepts either the dedicated worker secret or `CRON_SECRET`, never an empty value; behavior-tested with both combinations |
+| Important — migration/route gates still source-text only | Added real snake_case row mapping and consent behavior assertions; route gate now asserts the mapper, lease ownership, recovery and consent resolver |
+
+The reviewer declined to judge hosted migration application, live delivery credentials/providers,
+Ollama inference, Doppler tiles, geolocation, EXIF bytes, deployment topology and the 15-role
+business decision. Fixing these findings does not convert local evidence into production evidence.
+
 ## Important items disposition
 - Inbound correlation requires a valid phone **plus** a matching lead phone/email in the same
   workspace (`correlateInbound`).

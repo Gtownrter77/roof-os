@@ -90,4 +90,13 @@ assert.equal(again.added, false)
 assert.equal(again.messages.length, 1)
 assert.equal(again.messages[0].body, 'Your claim plan is ready.')
 
+// Providers that are not part of this deployment must be rejected at enqueue
+// time, not silently queued for a worker that cannot fulfill them.
+for (const type of ['generate_document', 'extract_estimate']) {
+  assert.throws(
+    () => enqueueShape({ workspaceId: WORKSPACE, type, payload: {} }),
+    /not enqueueable for this deployment/,
+  )
+}
+
 console.log('jarvis-adjuster queue and journal contract passed')

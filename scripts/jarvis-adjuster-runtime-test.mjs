@@ -3,6 +3,7 @@ import {
   runJobWithPolicies, agentForJob, eventForJob, adjusterError,
 } from '../lib/jarvis/runtime.ts'
 import { JARVIS_JOB_TYPES } from '../lib/jarvis/types.ts'
+import { mapJobRow } from '../lib/jarvis/api/row.ts'
 
 const WORKSPACE = '44444444-4444-4444-8444-444444444444'
 const CLAIM = '11111111-1111-4111-8111-111111111111'
@@ -57,6 +58,19 @@ const sent = []
 const result = await runJobWithPolicies(job('send_message', { body: 'Plan ready' }), deps(policy(), sent))
 assert.equal(result, 'delivered')
 assert.ok(sent.includes('send'))
+
+// The same guard chain works on a real snake_case database row, not only on a
+// hand-built camelCase fixture.
+const fromDb = mapJobRow({
+  id: 'job-db', workspace_id: WORKSPACE, type: 'send_message', status: 'queued',
+  payload: { claimId: CLAIM, body: 'Plan ready' }, payload_hash: 'c'.repeat(64),
+  idempotency_key: 'd'.repeat(64), attempts: 0, claim_id: CLAIM, lead_id: LEAD,
+  run_after: '2026-11-24T12:00:00Z', locked_by: null, locked_at: null,
+  created_at: '2026-11-24T12:00:00Z', updated_at: '2026-11-24T12:00:00Z', last_error: null,
+})
+const fromDbCalls = []
+assert.equal(await runJobWithPolicies(fromDb, deps(policy(), fromDbCalls)), 'delivered')
+assert.ok(fromDbCalls.includes('send'))
 const noteCall = sent.find((item) => typeof item === 'object' && item.note)
 assert.equal(noteCall.note.leadId, LEAD)
 assert.equal(noteCall.note.identityId, IDENTITY)
@@ -124,7 +138,7 @@ await assert.rejects(
 )
 assert.deepEqual(unscoped, [])
 
-// Sandbox failure is reported honestly; a document failure is never invented.
+// Sandbox failure is reported honestly; unconfigured providers fail explicitly.
 await assert.rejects(
   () => runJobWithPolicies(job('sandbox_action'), {
     ...deps(policy(), []),
@@ -132,13 +146,14 @@ await assert.rejects(
   }),
   (error) => error.code === 'adjuster_error',
 )
-await assert.rejects(
-  () => runJobWithPolicies(job('generate_document'), {
-    ...deps(policy(), []),
-    documents: { generate: async () => { throw new Error('document renderer is not configured') } },
-  }),
-  (error) => error.message.includes('document renderer is not configured'),
-)
+for (const type of ['generate_document', 'extract_estimate']) {
+  const calls = []
+  await assert.rejects(
+    () => runJobWithPolicies(job(type), deps(policy(), calls)),
+    (error) => error.code === 'adjuster_error' && error.message.includes('not configured for this deployment'),
+  )
+  assert.deepEqual(calls, [])
+}
 const sandboxOk = []
 assert.equal(await runJobWithPolicies(job('sandbox_action'), deps(policy(), sandboxOk)), 'ran')
 assert.ok(sandboxOk.includes('sandbox'))

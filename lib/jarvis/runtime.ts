@@ -59,6 +59,16 @@ const EXECUTION_JOB_TYPES = new Set<JarvisJobType>([
   'send_message', 'generate_document', 'extract_estimate',
 ])
 
+/**
+ * Dispatched handlers exist for all six job types, but these two providers are
+ * not part of this deployment. They fail explicitly instead of pretending to
+ * have produced a document or an estimate. Enqueue policy only creates
+ * `run_claim_plan` today.
+ */
+const UNCONFIGURED_JOB_TYPES = new Set<JarvisJobType>([
+  'generate_document', 'extract_estimate',
+])
+
 export function adjusterError(reason: string): Error & { code: string } {
   return Object.assign(new Error(`Adjuster job rejected: ${reason}`), { code: 'adjuster_error' })
 }
@@ -86,6 +96,9 @@ export async function runJobWithPolicies(job: JarvisJob, deps: RuntimeDeps): Pro
   if (!canAgentRun(agentForJob(job), job.type)) throw adjusterError('agent capability not granted')
   if (EXECUTION_JOB_TYPES.has(job.type) && policy.planOnly && !policy.authorized) {
     throw adjusterError('plan_only: execution requires explicit owner authorization')
+  }
+  if (UNCONFIGURED_JOB_TYPES.has(job.type)) {
+    throw adjusterError(`${job.type} is not configured for this deployment`)
   }
 
   const now = deps.now ?? new Date()

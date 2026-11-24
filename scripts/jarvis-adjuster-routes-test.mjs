@@ -36,10 +36,16 @@ assert.match(settings, /maybeSingle\(\)/)
 
 // The worker loads live DB policy and grants itself no implicit authorization.
 assert.match(worker, /runJobWithPolicies/)
+assert.match(worker, /mapJobRow\(queued as Record<string, unknown>\)/, 'snake_case DB rows must be mapped')
+assert.match(worker, /resolveConsent\(consentRows, channel, contact, now\)/)
 assert.match(worker, /planOnly: settings\?\.plan_only \?\? true/)
 assert.match(worker, /authorized: process\.env\.JARVIS_ADJUSTER_EXECUTION_AUTHORIZED === 'true'/)
 assert.match(worker, /receptionist_consents/)
 assert.match(worker, /workspace_adjuster_settings/)
 assert.match(worker, /JARVIS_ADJUSTER_WORKER_SECRET/)
+assert.match(worker, /isAuthorizedWorkerAuthHeader/)
+assert.match(worker, /locked_by: workerId/)
+assert.match(worker, /\.eq\('locked_by', workerId\)/, 'only the lease holder may finish a job')
+assert.match(worker, /\.lt\('locked_at', staleBefore\)/, 'stale leases are recovered')
 
 console.log('jarvis-adjuster HTTP route contract passed')

@@ -16,6 +16,15 @@ export const JARVIS_JOB_TYPES = [
 
 export type JarvisJobType = (typeof JARVIS_JOB_TYPES)[number]
 
+/** Only these types may be queued in this deployment; the other two dispatched
+ * handlers have no configured provider and are explicitly unsupported. */
+export const ENQUEUEABLE_JOB_TYPES: readonly JarvisJobType[] = [
+  'run_claim_plan',
+  'update_claim_status',
+  'send_message',
+  'sandbox_action',
+]
+
 export type JobStatus = 'queued' | 'running' | 'succeeded' | 'failed' | 'cancelled'
 export type ClaimStatus = 'new' | 'planned' | 'contacted' | 'estimating' | 'quoted' | 'won' | 'lost' | 'cancelled'
 export type Channel = 'sms' | 'email' | 'voice'
