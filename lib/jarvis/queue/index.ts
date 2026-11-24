@@ -1,4 +1,5 @@
-// Pure queue contracts for the single existing JARVIS queue. The database
+// Pure queue contracts for the single JARVIS queue established by migration
+// 114 (adjuster jobs are a new job type here, not a second queue). The database
 // adapter lives in the API layer; everything here is deterministic so the
 // NOT NULL hash/key and FK rules can be proven without a live database.
 

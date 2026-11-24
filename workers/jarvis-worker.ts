@@ -1,5 +1,6 @@
-// The single existing JARVIS worker. Every queue job type has a real handler;
-// an unhandled type fails honestly with an adjuster_error note.
+// The single JARVIS worker. Adjuster work is added as job types here, not as a
+// second worker. Every queue job type has a real handler; an unhandled type
+// fails honestly with an adjuster_error note.
 
 import { JARVIS_JOB_TYPES, type JarvisJob, type JarvisJobType } from '../lib/jarvis/types.ts'
 

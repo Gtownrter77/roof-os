@@ -69,11 +69,25 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  const result = await writeInbound(
-    supabase as never,
-    { webhookWorkspaceId: workspaceId, identityId },
-    { claimWorkspaceId: claim.workspace_id, from, body: text, matchedLead },
-  )
+  let result: Awaited<ReturnType<typeof writeInbound>>
+  try {
+    result = await writeInbound(
+      supabase as never,
+      { webhookWorkspaceId: workspaceId, identityId },
+      {
+        claimId: claim.id,
+        claimWorkspaceId: claim.workspace_id,
+        claimLeadId: claim.lead_id,
+        from,
+        body: text,
+        matchedLead,
+      },
+    )
+  } catch {
+    // The RPC writes the message and job in one transaction; a failure here
+    // leaves no durable half-write, so an honest retry signal is safe.
+    return NextResponse.json({ error: 'Inbound message could not be recorded.' }, { status: 502, headers: NO_STORE })
+  }
   if (!result.ok) return NextResponse.json({ error: `Inbound message rejected: ${result.reason}` }, { status: 403, headers: NO_STORE })
   return NextResponse.json({ received: true, jobId: result.jobId }, { headers: NO_STORE })
 }

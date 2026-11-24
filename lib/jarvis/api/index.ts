@@ -31,6 +31,19 @@ export function correlateInbound(input: {
   return false
 }
 
+/**
+ * A sender must match the lead of the specific claim being written. A lead in
+ * the same workspace is not enough: otherwise lead B's message lands on claim A.
+ */
+export function correlateInboundToClaim(
+  claimLeadId: string | null | undefined,
+  matchedLead: { id?: string } | null,
+): boolean {
+  const matchedId = matchedLead?.id ?? null
+  if (!matchedId) return false
+  return (claimLeadId ?? null) === matchedId
+}
+
 /** Stop control always goes through the database RPC, never a local-only flag. */
 export function disableDecision(input: {
   kind: 'claim' | 'workspace'
@@ -49,9 +62,9 @@ export function disableDecision(input: {
   }
 }
 
-/** Only genuinely delivered states may use delivered wording. */
+/** Only a confirmed delivery may use delivered wording; 'sent' is not proof. */
 export function deliveryWording(status: string): 'delivered' | 'unknown' {
-  return status === 'sent' || status === 'delivered' ? 'delivered' : 'unknown'
+  return status === 'delivered' ? 'delivered' : 'unknown'
 }
 
 export function claimReadScope(workspaceId: string): { workspace_id: string } {

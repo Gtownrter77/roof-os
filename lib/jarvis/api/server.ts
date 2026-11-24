@@ -1,13 +1,34 @@
 // Database adapter for the single JARVIS queue and the adjuster message thread.
-// Kept thin: all decisions are made by the pure rules in ./index.ts.
+// Kept thin: all decisions are made by the pure rules in ./index.ts. Every
+// write uses a named RPC so RLS cannot silently reject an authenticated write
+// and inbound writes are atomic instead of half-committed.
 
-import { enqueueShape } from '../queue/index.ts'
-import { prepareNote } from '../journal/index.ts'
-import { correlateInbound, resolveInboundWorkspace } from './index.ts'
+import { enqueueShape, payloadHash, foreignKeysForNote } from '../queue/index.ts'
+import { messageIdempotencyKey } from '../queue/index.ts'
+import { correlateInbound, correlateInboundToClaim, resolveInboundWorkspace } from './index.ts'
 
 type SupabaseLike = {
   rpc: (name: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }>
   from: (table: string) => { insert: (row: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }> }
+}
+
+/** Enroll a verified lead through the RLS-safe enrollment RPC. */
+export async function enrollClaim(
+  supabase: SupabaseLike,
+  input: { workspaceId: string; leadId: string; identityId?: string | null },
+): Promise<unknown> {
+  const identity = foreignKeysForNote({
+    claimId: input.leadId,
+    leadId: null,
+    identityId: input.identityId,
+  }).identityId
+  const { data, error } = await supabase.rpc('adjuster_enroll_claim', {
+    p_workspace_id: input.workspaceId,
+    p_lead_id: input.leadId,
+    p_identity_id: identity,
+  })
+  if (error) throw new Error(`adjuster_enroll_claim failed: ${String(error)}`)
+  return data
 }
 
 /** Enqueue through the RPC with explicit payload_hash and idempotency_key. */
@@ -31,14 +52,17 @@ export async function enqueueJob(
 }
 
 /**
- * Persist an inbound message only after workspace binding and sender
- * correlation both pass. No insert occurs on a rejected message.
+ * Persist an inbound message and its plan job atomically, only after workspace
+ * binding and sender-to-claim correlation both pass. Rejected messages make no
+ * write of any kind.
  */
 export async function writeInbound(
   supabase: SupabaseLike,
   config: { webhookWorkspaceId: string; identityId: string },
   payload: {
+    claimId: string
     claimWorkspaceId?: string | null
+    claimLeadId?: string | null
     from: string
     body: string
     matchedLead: { id?: string; workspaceId: string; phone?: string | null; email?: string | null } | null
@@ -54,37 +78,34 @@ export async function writeInbound(
     from: payload.from,
     matchedLead: payload.matchedLead,
     workspaceId: config.webhookWorkspaceId,
-  })) return { ok: false, reason: 'unmatched_sender' }
+  }) || !correlateInboundToClaim(payload.claimLeadId, payload.matchedLead)) {
+    return { ok: false, reason: 'unmatched_sender' }
+  }
 
-  const note = prepareNote({
-    workspaceId: config.webhookWorkspaceId,
-    claimId: payload.claimWorkspaceId!,
+  const keys = foreignKeysForNote({
+    claimId: payload.claimId,
     leadId: payload.matchedLead?.id ?? null,
     identityId: config.identityId,
+  })
+  const idempotencyKey = messageIdempotencyKey({
+    workspaceId: config.webhookWorkspaceId,
+    claimId: payload.claimId,
     channel: payload.from.includes('@') ? 'email' : 'sms',
     direction: 'inbound',
     body: payload.body,
   })
 
-  const { error } = await supabase.from('adjuster_messages').insert({
-    workspace_id: note.workspaceId,
-    claim_id: note.claimId,
-    identity_id: note.identityId,
-    lead_id: note.leadId,
-    channel: note.channel,
-    direction: note.direction,
-    body: note.body,
-    consent_snapshot: { correlated: true },
-    idempotency_key: note.idempotencyKey,
+  const { data, error } = await supabase.rpc('adjuster_record_inbound', {
+    p_workspace_id: config.webhookWorkspaceId,
+    p_claim_id: payload.claimId,
+    p_identity_id: keys.identityId,
+    p_channel: payload.from.includes('@') ? 'email' : 'sms',
+    p_contact: payload.from,
+    p_body: payload.body,
+    p_matched_lead_id: keys.leadId || null,
+    p_payload_hash: payloadHash({ claimId: payload.claimId, source: 'inbound' }),
+    p_idempotency_key: idempotencyKey,
   })
-  if (error) throw new Error(`adjuster_messages insert failed: ${String(error)}`)
-
-  const jobId = await enqueueJob(supabase, {
-    workspaceId: config.webhookWorkspaceId,
-    type: 'run_claim_plan',
-    payload: { claimId: note.claimId, source: 'inbound' },
-    claimId: note.claimId,
-    leadId: note.leadId || null,
-  })
-  return { ok: true, jobId }
+  if (error) throw new Error(`adjuster_record_inbound failed: ${String(error)}`)
+  return { ok: true, jobId: data }
 }

@@ -49,16 +49,17 @@ export function runSandboxAction(
   } = {},
 ): { ok: true; result: unknown } | { ok: false; errorNote: { code: string; detail: string } } {
   const allowlist = deps.allowlist ?? DEFAULT_SANDBOX_ALLOWLIST
+  if (!deps.perform) {
+    return { ok: false, errorNote: { code: 'adjuster_error', detail: 'Sandbox action blocked: no executable capability' } }
+  }
   if (action.url) {
     const decision = authorizeSandboxUrl(action.url, allowlist, deps.resolveFinalUrl)
     if (!decision.allowed) {
       return { ok: false, errorNote: { code: 'adjuster_error', detail: `Sandbox action blocked: ${decision.reason}` } }
     }
-  } else if (!deps.perform) {
-    return { ok: false, errorNote: { code: 'adjuster_error', detail: 'Sandbox action blocked: no allowlisted capability' } }
   }
   try {
-    return { ok: true, result: deps.perform ? deps.perform(action) : null }
+    return { ok: true, result: deps.perform(action) }
   } catch (cause) {
     return {
       ok: false,

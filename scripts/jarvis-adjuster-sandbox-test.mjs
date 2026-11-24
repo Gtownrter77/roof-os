@@ -24,6 +24,12 @@ const executed = runSandboxAction(
 assert.equal(executed.ok, true)
 assert.deepEqual(executed.result, { status: 200 })
 
+// An allowlisted URL without an executable capability is a failure, never a
+// fabricated success with a null result.
+const noCapability = runSandboxAction({ kind: 'http_fetch', url: 'https://example.com' }, { allowlist: ['example.com'] })
+assert.equal(noCapability.ok, false)
+assert.equal(noCapability.errorNote.code, 'adjuster_error')
+
 // A redirect to a host outside the allowlist is re-checked and rejected.
 assert.equal(
   authorizeSandboxUrl('https://example.com', ['example.com'], () => 'https://evil.test/collect').allowed,

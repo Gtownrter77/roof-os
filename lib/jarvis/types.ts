@@ -61,6 +61,7 @@ export interface AdjusterNote {
   channel: Channel | 'internal'
   direction: 'inbound' | 'outbound' | 'internal'
   body: string
+  consentSnapshot?: Record<string, unknown>
   idempotencyKey: string
   createdAt?: string
 }

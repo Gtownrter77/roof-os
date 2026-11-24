@@ -44,12 +44,39 @@ local git database disappeared during server restarts; GitHub has no adjuster br
    workspace returns `workspace_mismatch` with zero inserts. Workspace comes from deployment
    config (`JARVIS_ADJUSTER_WORKSPACE_ID`), never the request body.
 
+## Fresh whole-branch reviewer (committed head `d7b2fad`) and disposition
+The reviewer returned **Ready to merge? No** before the fixes below were applied. Every Critical and
+Important finding was verified against the code and then closed in this working tree:
+
+| Finding | Disposition |
+|---|---|
+| **Critical** — authenticated enrollment wrote directly to an RLS-protected table | `adjuster_enroll_claim()` is a `security definer` RPC with membership and lead-in-workspace checks; `/api/jarvis/claims` calls it and reads the enrolled claim back |
+| **Critical** — service-role enqueue rejected by `is_workspace_member(all)`; inbound message and job were two separate writes | `jarvis_enqueue_job()` accepts a verified service role for workspace-exists checks; `adjuster_record_inbound()` writes message + job in one transaction after workspace binding, stop controls and claim-lead correlation. Adapter tests assert the RPC payloads and zero writes on rejection |
+| Important — stop flags not durable/effective | `adjuster_claims.disabled` and `workspace_adjuster_settings.adjuster_enabled` are checked inside both mutating RPCs and in the worker's `loadPolicy()`; both stop RPCs cancel queued jobs |
+| Important — workspace kill switch unreachable | Admin-only `/api/jarvis/settings` POST plus a workspace stop/restart button in `AdjusterControl`; `readApiJson()` handles non-JSON errors |
+| Important — guards and PLAN ONLY not wired to execution | `lib/jarvis/runtime.ts` loads DB policy, scopes capabilities, checks consent/quiet hours, blocks all execution jobs while `planOnly && !authorized`, and sends only through a confirmed-delivery provider; `/api/jarvis/worker` runs one job per authorized request |
+| Important — 15-agent roster vs 4 implemented registry keys | Roster stays at exactly 15 product roles; `SCOPED_CAPABILITIES` is keyed by the four real `AgentKey`s in `workers/agent-registry.ts` and the docs state the distinction |
+| Important — source-text-only gates | Added `test:jarvis-adjuster-migration` (SQL/adapter contract), `test:jarvis-adjuster-runtime` (zero-side-effect behavior for consent, quiet hours, plan-only, stop and capability checks) and correlation/enrollment RPC behavior assertions |
+| Important — claim-lead correlation missing | `correlateInboundToClaim()` plus `p_matched_lead_id` in the atomic RPC; a lead in the right workspace but not on the claim is rejected |
+| Important — no auto-enroll trigger | `adjuster_leads_auto_enroll` inserts after every new lead and a replay-safe backfill enrolls existing leads |
+| Important — duplicate quiet-hour semantics | `lib/jarvis/guards.ts` delegates to canonical `isWithinQuietHours()`/`normalizeStrictE164()` in `lib/outbound-policy.ts`; midnight and invalid-timezone behavior is tested in both directions |
+| Important — sandbox reported success without a capability | `runSandboxAction()` fails with `adjuster_error` when no executable capability exists; async provider rejection is normalized by the runtime |
+| Important — request supplied `identity_id` | Claims route reads only `JARVIS_ADJUSTER_IDENTITY_ID`; `'unknown'`/malformed identities normalize to `''` |
+| Minor — `deliveryWording('sent') === 'delivered'` | `'sent'` now reports `unknown`; only confirmed `delivered` uses delivered wording |
+| Minor — `jobQueued: true` on an idempotent conflict | Route now reports `Boolean(jobId)` and returns 200 for a reused key |
+| Minor — migration replay/FK hardening | `if not exists`, `create or replace`, `drop policy/trigger if exists`, claims table created before the FK-bearing jobs table |
+| Minor — comments claiming a pre-existing queue/worker | Corrected to state that migration 114 creates the single queue and the adjuster adds job types to the one worker |
+
+The reviewer declined to judge live sends/credentials, hosted migration, paid procurement, Ollama,
+EXIF implementation, Golden Report rendering, radar tiles, backfill, download endpoint and the
+15-agent product decision; those remain outside local evidence.
+
 ## Important items disposition
 - Inbound correlation requires a valid phone **plus** a matching lead phone/email in the same
   workspace (`correlateInbound`).
-- `createClaim()` verifies the lead exists in the caller workspace before the claim write;
-  an enqueue failure is surfaced with `retry: true`, never hidden and never “compensated” by
-  deleting a durable claim.
+- `adjuster_enroll_claim()` verifies the lead exists in the caller workspace inside the same
+  transaction as the claim write; an enqueue failure is surfaced with `retry: true`, never hidden
+  and never “compensated” by deleting a durable claim.
 - Completion evidence is defined as verified DB rows (`jarvis_jobs.status`, `adjuster_messages`);
   no source-only assertion is presented as runtime proof.
 - journal idempotency key is an explicit column with a deterministic SHA-256, not an implicit key.
@@ -65,25 +92,28 @@ local git database disappeared during server restarts; GitHub has no adjuster br
 - The download endpoint is out of scope for this slice; no metadata-as-PDF behavior is introduced.
 
 ## Gate registry
-`test:all` derives its list from `package.json`; this branch registers **180 gates + 4 build/release
-checks** with 3 documented waivers (`test:all`, `test:runtime-smoke`, `test:two-workspace-isolation`)
-unchanged. Eight new adjuster gates and one desktop resilience gate are wired in
-`.github/workflows/ci.yml` and in the registry.
+`test:all` derives its list from `package.json`; the rebuilt branch adds **nine adjuster gates**
+(guards, queue, orchestrator, sandbox, api-worker, migration, runtime, routes and UI) plus one
+desktop resilience gate, all wired in `.github/workflows/ci.yml` and in the registry. The exact registered count is recorded from `test:all` in the final verification block.
 
 ## Verification
 - Fresh RED→GREEN evidence above for every task.
-- Full suite / typecheck / build / release-check / foreman / registry / coverage / `git diff --check`:
-  see the final verification block appended after the build completes.
+- Reviewer-fix gates re-run against the uncommitted working tree on 2026-11-24: guards, runtime,
+  API/worker, orchestrator, queue, sandbox, migration/adapter, routes, UI, desktop resilience and
+  `dashboard-weather` all exited 0. `git diff --check be190fd..HEAD` exited 0 before these edits.
+- Full suite / typecheck / build / release-check / foreman / registry / coverage / final
+  `git diff --check`: see the final verification block appended after the build completes.
 - BUILD_ID: **pending build**.
 - Final checkpoint SHA: **pending**.
 - Merge SHA: **pending**.
 
 ## Still UNVERIFIED (never claimed as production evidence)
-Hosted application of migration 114; live Twilio/SMTP/IMAP credentials and external message
-delivery; paid dedicated phone/email deployment (needs owner cost approval); Ollama/agent
-inference on the owner’s desktop; real device geolocation and Doppler tile rendering;
-staging parity; independent reviewer verdict on the final head. Local green gates prove source
-and deterministic-behavior contracts only.
+Hosted application of migration 114 (including its revised service-role/RLS and atomic inbound
+RPCs); live Twilio/SMTP/IMAP credentials and external message delivery; a configured outbound
+gateway returning confirmed delivery; paid dedicated phone/email deployment (needs owner cost
+approval); Ollama/agent inference on the owner’s desktop; real device geolocation and Doppler tile
+rendering; staging parity; independent reviewer verdict on the final head. Local green gates
+prove source and deterministic-behavior contracts only.
 
 ## 15-skill audit
 1 `using-superpowers` — performed (skills loaded before action).
@@ -95,9 +125,9 @@ and deterministic-behavior contracts only.
 7 `executing-plans` — performed inline, no implementer subagent per task.
 8 `subagent-driven-development` — not triggered (inline execution chosen).
 9 `dispatching-parallel-agents` — not triggered (shared schema/registry files; sequential).
-10 `requesting-code-review` — pending final fresh reviewer.
-11 `receiving-code-review` — performed on the five Critical findings from the lost branch.
-12 `verification-before-completion` — performed; final block pending build.
-13 `finishing-a-development-branch` — pending push/merge.
+10 `requesting-code-review` — performed (fresh whole-branch reviewer at `d7b2fad`; verdict No, disposition above; final head re-review pending).
+11 `receiving-code-review` — performed on the five Critical findings from the lost branch and again on the fresh reviewer's Critical/Important/Minor findings.
+12 `verification-before-completion` — performed on the gates; final full-suite block pending build.
+13 `finishing-a-development-branch` — owner already authorized merge; pending push/merge.
 14 `writing-skills` — not triggered (no skill files edited).
 15 `diagnosing-superpowers` — not triggered (no session-failure investigation requested).

@@ -2,9 +2,14 @@
 // work; only a transition through here changes a claim. Execution transitions
 // are blocked until an owner explicitly authorizes them (PLAN ONLY default).
 
+import type { AgentKey } from '../../workers/agent-registry.ts'
 import { JARVIS_JOB_TYPES, JARVIS_LOGICAL_AGENT_COUNT, type ClaimStatus, type JarvisJobType } from './types.ts'
 
-/** The existing 15 logical JARVIS agents. The adjuster is folded into them. */
+/**
+ * The owner's 15 logical JARVIS roles. The repo's executable registry currently
+ * implements four of them (workers/agent-registry.ts); the rest are product
+ * roles, not extra workers. This roster is the hard ceiling — no 16th agent.
+ */
 export const JARVIS_AGENT_KEYS = [
   'intake_router',
   'scheduler',
@@ -30,15 +35,15 @@ export type ClaimState = {
   authorized: boolean
 }
 
-export const SCOPED_CAPABILITIES: Record<string, readonly JarvisJobType[]> = {
+/**
+ * Capabilities are granted only to agents that actually exist in the canonical
+ * worker registry. The other eleven logical roles are not invented workers.
+ */
+export const SCOPED_CAPABILITIES: Record<AgentKey, readonly JarvisJobType[]> = {
   intake_router: ['run_claim_plan', 'sandbox_action'],
   scheduler: ['send_message', 'update_claim_status'],
   inspection_quality: ['extract_estimate', 'sandbox_action'],
   office_copilot: ['generate_document', 'extract_estimate'],
-  receptionist: ['send_message'],
-  estimator: ['extract_estimate', 'generate_document'],
-  supplement_specialist: ['generate_document'],
-  report_writer: ['generate_document'],
 }
 
 export function canAgentRun(agentKey: string, jobType: JarvisJobType | string): boolean {

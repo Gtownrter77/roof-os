@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-import { normalizeE164, isWithinQuietHours, hasValidConsent, canSendNow, missingPrice, assertNoFabrication } from '../lib/jarvis/guards.ts'
+import { normalizeE164, isQuietHours, hasValidConsent, canSendNow, missingPrice, assertNoFabrication } from '../lib/jarvis/guards.ts'
+import { isWithinQuietHours, normalizeStrictE164 } from '../lib/outbound-policy.ts'
 import { JARVIS_JOB_TYPES, JARVIS_LOGICAL_AGENT_COUNT } from '../lib/jarvis/types.ts'
 
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8')
@@ -16,10 +17,24 @@ assert.equal(normalizeE164(''), null)
 assert.equal(normalizeE164(null), null)
 
 // Quiet hours are 08:00-20:00 inclusive of 08:00, exclusive of 20:00, in the claim timezone.
-assert.equal(isWithinQuietHours(new Date('2026-11-24T07:59:00Z'), 'UTC'), true)
-assert.equal(isWithinQuietHours(new Date('2026-11-24T08:00:00Z'), 'UTC'), false)
-assert.equal(isWithinQuietHours(new Date('2026-11-24T19:59:59Z'), 'UTC'), false)
-assert.equal(isWithinQuietHours(new Date('2026-11-24T20:00:00Z'), 'UTC'), true)
+assert.equal(isQuietHours(new Date('2026-11-24T07:59:00Z'), 'UTC'), true)
+assert.equal(isQuietHours(new Date('2026-11-24T08:00:00Z'), 'UTC'), false)
+assert.equal(isQuietHours(new Date('2026-11-24T19:59:59Z'), 'UTC'), false)
+assert.equal(isQuietHours(new Date('2026-11-24T20:00:00Z'), 'UTC'), true)
+
+// One hour rule: JARVIS is the complement of the canonical outbound policy,
+// including midnight (Intl renders en-US hour 24) and invalid timezones.
+for (const instant of [
+  '2026-11-24T00:00:00Z', '2026-11-24T07:59:00Z', '2026-11-24T12:00:00Z', '2026-11-24T20:00:00Z',
+]) {
+  const date = new Date(instant)
+  assert.equal(isQuietHours(date, 'UTC'), !isWithinQuietHours(date, 'UTC'))
+}
+for (const instant of ['2026-11-24T03:00:00Z', '2026-11-24T12:00:00Z', '2026-11-24T23:00:00Z']) {
+  const date = new Date(instant)
+  assert.equal(isQuietHours(date, 'Not/AZone'), !isWithinQuietHours(date), 'invalid timezone falls back to the same canonical rule')
+}
+assert.equal(normalizeE164('(415) 555-2671'), normalizeStrictE164('(415) 555-2671'))
 
 const consent = { smsConsent: true, emailConsent: true, optedOutAt: null }
 assert.equal(hasValidConsent(consent, 'sms'), true)

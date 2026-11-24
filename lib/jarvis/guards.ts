@@ -2,27 +2,18 @@
 // deterministic and dependency-free so every send decision can be tested and
 // replayed without a live provider.
 
+import { isWithinQuietHours, normalizeStrictE164 } from '../outbound-policy.ts'
 import type { Channel, ClaimFacts, ConsentRecord } from './types.ts'
 
-const NANP_E164 = /^\+1[2-9]\d{2}[2-9]\d{6}$/
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const UNKNOWN_PRICE = new Set(['', 'unknown', 'n/a', 'na', 'null', 'none', '-'])
 
 /**
- * Strict NANP E.164 normalization. Area and exchange codes may not start with
- * 0 or 1. Returns null when the input cannot be proven valid — never a guess.
+ * Strict NANP E.164 normalization. Delegates to the canonical outbound policy
+ * so there is one phone rule in the repo; returns null when unprovable.
  */
 export function normalizeE164(input: unknown): string | null {
-  if (typeof input !== 'string') return null
-  const trimmed = input.trim()
-  if (!trimmed) return null
-  const stripped = trimmed.replace(/[\s().-]/g, '')
-  let candidate: string
-  if (stripped.startsWith('+')) candidate = stripped
-  else if (/^1\d{10}$/.test(stripped)) candidate = `+${stripped}`
-  else if (/^\d{10}$/.test(stripped)) candidate = `+1${stripped}`
-  else return null
-  return NANP_E164.test(candidate) ? candidate : null
+  return typeof input === 'string' ? normalizeStrictE164(input) : null
 }
 
 export function isValidEmail(input: unknown): string | null {
@@ -33,21 +24,16 @@ export function isValidEmail(input: unknown): string | null {
 
 /**
  * TCPA contact window is 08:00-20:00 local. Returns true when the instant is
- * OUTSIDE that window (i.e. quiet hours). Hour boundaries are evaluated in the
- * claim's IANA timezone with UTC as the safe fallback.
+ * OUTSIDE that window. The hour rule itself lives in lib/outbound-policy.ts so
+ * JARVIS and the existing outbound policy cannot disagree; an invalid timezone
+ * fails closed to the UTC hour.
  */
-export function isWithinQuietHours(now: Date, timeZone = 'UTC'): boolean {
-  let hour: number
+export function isQuietHours(now: Date, timeZone = 'UTC'): boolean {
   try {
-    const parts = new Intl.DateTimeFormat('en-US', {
-      hour: '2-digit', hour12: false, timeZone,
-    }).formatToParts(now)
-    const raw = parts.find((part) => part.type === 'hour')?.value ?? '24'
-    hour = Number(raw) % 24
+    return !isWithinQuietHours(now, timeZone)
   } catch {
-    hour = now.getUTCHours()
+    return !isWithinQuietHours(now, 'UTC')
   }
-  return hour < 8 || hour >= 20
 }
 
 export function hasValidConsent(consent: ConsentRecord | null | undefined, channel: Channel): boolean {
@@ -66,7 +52,7 @@ export function canSendNow(input: {
   timeZone?: string
 }): boolean {
   if (!hasValidConsent(input.consent, input.channel)) return false
-  if (isWithinQuietHours(input.now, input.timeZone ?? 'UTC')) return false
+  if (isQuietHours(input.now, input.timeZone ?? 'UTC')) return false
   if (input.channel === 'email') return isValidEmail(input.contact) !== null
   return normalizeE164(input.contact) !== null
 }

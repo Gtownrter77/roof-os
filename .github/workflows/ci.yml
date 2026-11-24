@@ -45,6 +45,8 @@ jobs:
       - run: npm run test:jarvis-adjuster-orchestrator
       - run: npm run test:jarvis-adjuster-sandbox
       - run: npm run test:jarvis-adjuster-api-worker
+      - run: npm run test:jarvis-adjuster-migration
+      - run: npm run test:jarvis-adjuster-runtime
       - run: npm run test:jarvis-adjuster-routes
       - run: npm run test:jarvis-adjuster-ui
       - run: npm run test:desktop-api-resilience

@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict'
 import {
-  resolveInboundWorkspace, correlateInbound, disableDecision, deliveryWording, claimReadScope,
+  resolveInboundWorkspace, correlateInbound, correlateInboundToClaim,
+  disableDecision, deliveryWording, claimReadScope,
 } from '../lib/jarvis/api/index.ts'
-import { enqueueJob, writeInbound } from '../lib/jarvis/api/server.ts'
+import { enrollClaim, enqueueJob, writeInbound } from '../lib/jarvis/api/server.ts'
 import { HANDLERS, processJob } from '../workers/jarvis-worker.ts'
 import { JARVIS_JOB_TYPES } from '../lib/jarvis/types.ts'
 
@@ -15,15 +16,17 @@ const IDENTITY = '33333333-3333-4333-8333-333333333333'
 // Critical 1: both NOT NULL columns are supplied to the RPC by the adapter.
 const rpcCalls = []
 const supabase = {
-  rpc: async (name, args) => { rpcCalls.push({ name, args }); return { data: 'job-id', error: null } },
+  rpc: async (name, args) => {
+    rpcCalls.push({ name, args })
+    return { data: name === 'adjuster_enroll_claim' ? CLAIM : 'job-id', error: null }
+  },
   from: (table) => ({
     insert: async (row) => {
-      inserted.push({ table, row })
-      return { data: [row], error: null }
+      throw new Error(`unexpected direct insert into ${JSON.stringify(row)}`)
     },
   }),
 }
-const inserted = []
+
 const jobId = await enqueueJob(supabase, {
   workspaceId: WORKSPACE,
   type: 'run_claim_plan',
@@ -38,39 +41,74 @@ assert.match(rpcCalls[0].args.p_idempotency_key, /^[0-9a-f]{64}$/)
 assert.equal(rpcCalls[0].args.p_claim_id, CLAIM)
 assert.equal(rpcCalls[0].args.p_lead_id, LEAD)
 
+// The authenticated enrollment path uses an RPC, not an RLS-blocked direct write.
+const enrolled = await enrollClaim(supabase, { workspaceId: WORKSPACE, leadId: LEAD, identityId: IDENTITY })
+assert.equal(enrolled, CLAIM)
+const enrollCall = rpcCalls.at(-1)
+assert.equal(enrollCall.name, 'adjuster_enroll_claim')
+assert.equal(enrollCall.args.p_lead_id, LEAD)
+assert.equal(enrollCall.args.p_identity_id, IDENTITY)
+await enrollClaim(supabase, { workspaceId: WORKSPACE, leadId: LEAD, identityId: 'unknown' })
+assert.equal(rpcCalls.at(-1).args.p_identity_id, '', 'unknown is never persisted as an identity')
+
 // Critical 5: an inbound webhook never writes to a claim in another workspace.
 const config = { webhookWorkspaceId: WORKSPACE, identityId: IDENTITY }
+const writesBefore = rpcCalls.length
 const cross = await writeInbound(supabase, config, {
+  claimId: CLAIM,
   claimWorkspaceId: OTHER,
+  claimLeadId: LEAD,
   from: '+15552345678',
   body: 'Please call me',
-  matchedLead: { workspaceId: OTHER, phone: '+15552345678' },
+  matchedLead: { id: LEAD, workspaceId: OTHER, phone: '+15552345678' },
 })
 assert.equal(cross.ok, false)
 assert.equal(cross.reason, 'workspace_mismatch')
-assert.equal(inserted.length, 0, 'no cross-workspace message may be written')
+assert.equal(rpcCalls.length, writesBefore, 'no cross-workspace write may be attempted')
 
 const badContact = await writeInbound(supabase, config, {
+  claimId: CLAIM,
   claimWorkspaceId: WORKSPACE,
+  claimLeadId: LEAD,
   from: '+15551234567',
   body: 'Please call me',
-  matchedLead: { workspaceId: WORKSPACE, phone: '+15552345678' },
+  matchedLead: { id: LEAD, workspaceId: WORKSPACE, phone: '+15552345678' },
 })
 assert.equal(badContact.ok, false)
 assert.equal(badContact.reason, 'unmatched_sender')
+assert.equal(rpcCalls.length, writesBefore)
 
-const ok = await writeInbound(supabase, config, {
+// A lead in the right workspace but not attached to this claim is rejected.
+const wrongClaim = await writeInbound(supabase, config, {
+  claimId: CLAIM,
   claimWorkspaceId: WORKSPACE,
+  claimLeadId: OTHER,
   from: '+15552345678',
   body: 'Please call me',
-  matchedLead: { workspaceId: WORKSPACE, phone: '+15552345678' },
+  matchedLead: { id: LEAD, workspaceId: WORKSPACE, phone: '+15552345678' },
+})
+assert.equal(wrongClaim.ok, false)
+assert.equal(wrongClaim.reason, 'unmatched_sender')
+assert.equal(rpcCalls.length, writesBefore)
+
+const ok = await writeInbound(supabase, config, {
+  claimId: CLAIM,
+  claimWorkspaceId: WORKSPACE,
+  claimLeadId: LEAD,
+  from: '+15552345678',
+  body: 'Please call me',
+  matchedLead: { id: LEAD, workspaceId: WORKSPACE, phone: '+15552345678' },
 })
 assert.equal(ok.ok, true)
-assert.equal(inserted.length, 1)
-assert.equal(inserted[0].table, 'adjuster_messages')
-assert.equal(inserted[0].row.lead_id, '', 'claim id is never copied into the lead FK')
-assert.equal(inserted[0].row.identity_id, IDENTITY)
-assert.ok(inserted[0].row.idempotency_key)
+assert.equal(ok.jobId, 'job-id')
+const inboundCall = rpcCalls.at(-1)
+assert.equal(inboundCall.name, 'adjuster_record_inbound', 'message and job are written atomically')
+assert.equal(inboundCall.args.p_claim_id, CLAIM)
+assert.equal(inboundCall.args.p_matched_lead_id, LEAD)
+assert.equal(inboundCall.args.p_identity_id, IDENTITY)
+assert.equal(inboundCall.args.p_channel, 'sms')
+assert.match(inboundCall.args.p_payload_hash, /^[0-9a-f]{64}$/)
+assert.match(inboundCall.args.p_idempotency_key, /^[0-9a-f]{64}$/)
 
 assert.equal(resolveInboundWorkspace({ claimWorkspaceId: WORKSPACE, webhookWorkspaceId: WORKSPACE }).allowed, true)
 assert.equal(resolveInboundWorkspace({ claimWorkspaceId: OTHER, webhookWorkspaceId: WORKSPACE }).allowed, false)
@@ -78,6 +116,9 @@ assert.equal(correlateInbound({ from: '+15552345678', matchedLead: { workspaceId
 assert.equal(correlateInbound({ from: '+15552345678', matchedLead: { workspaceId: WORKSPACE, phone: '+15552349999' }, workspaceId: WORKSPACE }), false)
 assert.equal(correlateInbound({ from: 'owner@example.com', matchedLead: { workspaceId: WORKSPACE, email: 'owner@example.com' }, workspaceId: WORKSPACE }), true)
 assert.equal(correlateInbound({ from: '+15552345678', matchedLead: null, workspaceId: WORKSPACE }), false)
+assert.equal(correlateInboundToClaim(LEAD, { id: LEAD }), true)
+assert.equal(correlateInboundToClaim(OTHER, { id: LEAD }), false)
+assert.equal(correlateInboundToClaim(LEAD, null), false)
 
 // Critical 4: disabling routes through the real stop RPCs, not a UI-only flag.
 const claimDisable = disableDecision({ kind: 'claim', claimId: CLAIM, workspaceId: WORKSPACE })
@@ -89,7 +130,7 @@ assert.equal(workspaceDisable.function, 'adjuster_set_workspace_enabled')
 assert.equal(workspaceDisable.args.p_enabled, false)
 
 assert.deepEqual(claimReadScope(WORKSPACE), { workspace_id: WORKSPACE })
-assert.equal(deliveryWording('sent'), 'delivered')
+assert.equal(deliveryWording('sent'), 'unknown', 'sent is not proof of delivery')
 assert.equal(deliveryWording('delivered'), 'delivered')
 assert.equal(deliveryWording('queued'), 'unknown')
 
