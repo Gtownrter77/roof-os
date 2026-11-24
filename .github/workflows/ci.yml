@@ -46,6 +46,7 @@ jobs:
       - run: npm run test:jarvis-adjuster-sandbox
       - run: npm run test:jarvis-adjuster-api-worker
       - run: npm run test:jarvis-adjuster-routes
+      - run: npm run test:jarvis-adjuster-ui
       - run: node --experimental-strip-types scripts/worker-heartbeat-runtime-test.mjs
       - run: npm run test:braces-mitigation --prefix apps/field
       - run: npm run build
