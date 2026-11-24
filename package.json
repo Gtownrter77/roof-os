@@ -189,7 +189,8 @@
     "test:manual-trace-manual-route": "node scripts/manual-trace-manual-route-test.mjs",
     "test:manual-trace-ui": "node scripts/manual-trace-ui-test.mjs",
     "test:jarvis-adjuster-guards": "node --experimental-strip-types scripts/jarvis-adjuster-guards-test.mjs",
-    "test:jarvis-adjuster-queue": "node --experimental-strip-types scripts/jarvis-adjuster-queue-test.mjs"
+    "test:jarvis-adjuster-queue": "node --experimental-strip-types scripts/jarvis-adjuster-queue-test.mjs",
+    "test:jarvis-adjuster-orchestrator": "node --experimental-strip-types scripts/jarvis-adjuster-orchestrator-test.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.2",
