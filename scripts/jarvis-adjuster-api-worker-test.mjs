@@ -5,7 +5,7 @@ import {
 } from '../lib/jarvis/api/index.ts'
 import { enrollClaim, enqueueJob, writeInbound } from '../lib/jarvis/api/server.ts'
 import { mapJobRow } from '../lib/jarvis/api/row.ts'
-import { resolveConsent } from '../lib/jarvis/api/consent.ts'
+import { consentContactKey, resolveConsent } from '../lib/jarvis/api/consent.ts'
 import { isAuthorizedWorkerAuthHeader } from '../lib/jarvis/api/auth.ts'
 import { HANDLERS, processJob } from '../workers/jarvis-worker.ts'
 import { JARVIS_JOB_TYPES } from '../lib/jarvis/types.ts'
@@ -209,6 +209,13 @@ assert.equal(resolveConsent([
   { channel: 'email', state: 'granted', phone: 'owner@example.com' },
   { channel: 'email', state: 'revoked', phone: 'owner@example.com', captured_at: '2026-02-01T00:00:00Z' },
 ], 'email', 'owner@example.com', now).emailConsent, false)
+
+// Workspace-wide STOP records have no lead id. The worker must query by the
+// normalized contact itself, the same key canonical outbound uses.
+assert.equal(consentContactKey('sms', '(555) 234-5678'), '+15552345678')
+assert.equal(consentContactKey('sms', '+15551234567'), null)
+assert.equal(consentContactKey('email', 'OWNER@Example.com'), 'owner@example.com')
+assert.equal(consentContactKey('email', 'not-an-email'), null)
 
 // The daily dispatcher authenticates with CRON_SECRET; direct worker calls may
 // use a dedicated secret. Either configured secret is valid, never neither.

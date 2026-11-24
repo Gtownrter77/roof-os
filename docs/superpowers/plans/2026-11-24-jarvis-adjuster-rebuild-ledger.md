@@ -116,13 +116,14 @@ desktop resilience gate, all wired in `.github/workflows/ci.yml` and in the regi
 
 ## Verification
 - Fresh RED→GREEN evidence above for every task.
-- Reviewer-fix gates re-run against the uncommitted working tree on 2026-11-24: guards, runtime,
-  API/worker, orchestrator, queue, sandbox, migration/adapter, routes, UI, desktop resilience and
-  `dashboard-weather` all exited 0. `git diff --check be190fd..HEAD` exited 0 before these edits.
+- Reviewer-fix gates re-run on 2026-11-24 after each fix pass: guards, runtime, API/worker,
+  orchestrator, queue, sandbox, migration/adapter, routes, UI, desktop resilience,
+  `dashboard-weather`, cron routes, cron HTTP and release-check all exited 0; `git diff --check`
+  exited 0. Second-pass fixes are committed at `86c834a`.
 - Full suite / typecheck / build / release-check / foreman / registry / coverage / final
   `git diff --check`: see the final verification block appended after the build completes.
 - BUILD_ID: **pending build**.
-- Final checkpoint SHA: **pending**.
+- Final checkpoint SHA: `86c834a` (pending any final reviewer fixes).
 - Merge SHA: **pending**.
 
 ## Still UNVERIFIED (never claimed as production evidence)
@@ -143,7 +144,7 @@ prove source and deterministic-behavior contracts only.
 7 `executing-plans` — performed inline, no implementer subagent per task.
 8 `subagent-driven-development` — not triggered (inline execution chosen).
 9 `dispatching-parallel-agents` — not triggered (shared schema/registry files; sequential).
-10 `requesting-code-review` — performed (fresh whole-branch reviewer at `d7b2fad`; verdict No, disposition above; final head re-review pending).
+10 `requesting-code-review` — performed (reviewer runs at `d7b2fad` and `01c7515`, both verdict No with disposition above; final head `86c834a` re-review pending).
 11 `receiving-code-review` — performed on the five Critical findings from the lost branch and again on the fresh reviewer's Critical/Important/Minor findings.
 12 `verification-before-completion` — performed on the gates; final full-suite block pending build.
 13 `finishing-a-development-branch` — owner already authorized merge; pending push/merge.

@@ -6,7 +6,7 @@ import { getSupabaseEnv } from '../../../../lib/supabase/env'
 import { canSendNow, isQuietHours } from '../../../../lib/jarvis/guards'
 import { isAllowlisted } from '../../../../lib/adjuster/sandbox'
 import { isAuthorizedWorkerAuthHeader } from '../../../../lib/jarvis/api/auth'
-import { resolveConsent, type ConsentRow } from '../../../../lib/jarvis/api/consent'
+import { consentContactKey, resolveConsent, type ConsentRow } from '../../../../lib/jarvis/api/consent'
 import { mapJobRow } from '../../../../lib/jarvis/api/row'
 import { adjusterError, runJobWithPolicies, type RuntimeDeps, type RuntimePolicy } from '../../../../lib/jarvis/runtime'
 import type { ClaimStatus, JarvisJob } from '../../../../lib/jarvis/types'
@@ -87,11 +87,13 @@ export async function POST(request: NextRequest) {
       .eq('workspace_id', current.workspaceId)
       .maybeSingle()
     if (!claim) return null
-    const { data: settings } = await supabase
+    const { data: settings, error: settingsError } = await supabase
       .from('workspace_adjuster_settings')
       .select('adjuster_enabled,plan_only,identity_id')
       .eq('workspace_id', current.workspaceId)
       .maybeSingle()
+    // Fail closed: a transient settings error must not hide an admin stop.
+    if (settingsError) throw adjusterError('workspace adjuster settings could not be verified')
     const { data: lead } = claim.lead_id
       ? await supabase.from('leads').select('phone,email').eq('id', claim.lead_id).maybeSingle()
       : { data: null }
@@ -99,13 +101,17 @@ export async function POST(request: NextRequest) {
     const channel = current.payload?.channel === 'email' ? 'email' : 'sms'
     const contact = channel === 'email' ? lead?.email ?? '' : lead?.phone ?? ''
     const now = new Date()
+    const consentContact = consentContactKey(channel, contact)
     let consentRows: readonly ConsentRow[] = []
-    if (claim.lead_id) {
+    if (consentContact) {
+      // Canonical STOP records a revocation with no lead id, so scope by
+      // workspace + normalized contact + channel, never by lead.
       const { data, error } = await supabase
         .from('receptionist_consents')
         .select('channel,state,phone,captured_at,expires_at')
         .eq('workspace_id', current.workspaceId)
-        .eq('lead_id', claim.lead_id)
+        .eq('channel', channel)
+        .eq('phone', consentContact)
         .limit(200)
       // Fail closed: a failed revocation lookup must never look like consent.
       if (error) throw adjusterError('consent status could not be verified')

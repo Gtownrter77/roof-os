@@ -156,7 +156,7 @@ export async function runJobWithPolicies(job: JarvisJob, deps: RuntimeDeps): Pro
             { kind: 'sandbox_action', url: typeof job.payload?.url === 'string' ? job.payload.url : undefined },
             { perform: () => deps.sandboxPerform(job.payload ?? {}) },
           )
-          if (!result.ok) throw adjusterError(result.errorNote.detail)
+          if (result.ok === false) throw adjusterError(result.errorNote.detail)
           // The provider call may be async; resolve it here so a rejected
           // promise is reported as an adjuster_error, never as a fake success.
           return await result.result

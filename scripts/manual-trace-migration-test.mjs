@@ -34,18 +34,18 @@ assert.match(
 const migrations = readdirSync(new URL('../supabase/migrations', import.meta.url))
   .filter((name) => name.endsWith('.sql'))
   .sort()
-assert.equal(migrations.at(-1), '113_manual_traced_measurements.sql', 'migration head must be 113')
-assert.equal(migrations.length, 111, 'migration count must be 111')
+assert.equal(migrations.at(-1), '114_jarvis_adjuster.sql', 'migration head must be 114')
+assert.equal(migrations.length, 112, 'migration count must be 112')
 const governed = [
-  ['README.md', /113_manual_traced_measurements\.sql/, /111 migration files/],
-  ['DEPLOYMENT.md', /113_manual_traced_measurements\.sql/, /111 migration files/],
-  ['.github/workflows/ci.yml', /test -f supabase\/migrations\/113_manual_traced_measurements\.sql/, null],
-  ['scripts/release-foreman-check.mjs', /113_manual_traced_measurements\.sql/, /111/],
-  ['scripts/field-hover-migration-test.mjs', /113_manual_traced_measurements\\?\.sql/, /111 migration files/],
+  ['README.md', /114_jarvis_adjuster\.sql/, /112 migration files/],
+  ['DEPLOYMENT.md', /114_jarvis_adjuster\.sql/, /112 migration files/],
+  ['.github/workflows/ci.yml', /test -f supabase\/migrations\/114_jarvis_adjuster\.sql/, null],
+  ['scripts/release-foreman-check.mjs', /114_jarvis_adjuster\.sql/, /112/],
+  ['scripts/field-hover-migration-test.mjs', /114_jarvis_adjuster\\?\.sql/, /112 migration files/],
 ]
 for (const [file, headPattern, countPattern] of governed) {
   const source = read('../' + file)
-  assert.match(source, headPattern, `${file} must name migration 113 as the head`)
+  assert.match(source, headPattern, `${file} must name the current migration head`)
   if (countPattern) assert.match(source, countPattern, `${file} must state the new migration count`)
 }
 
@@ -57,4 +57,4 @@ for (const column of ['hover_slot', 'blur_score', 'light_score']) {
   assert.ok(fieldHover.includes(column), `field-hover test must keep the ${column} column assertion`)
 }
 
-console.log('manual-trace-migration-test: PASS (migration 113, six source types, governed head 113/111)')
+console.log('manual-trace-migration-test: PASS (migration 113 contract, six source types, governed head 114/112)')

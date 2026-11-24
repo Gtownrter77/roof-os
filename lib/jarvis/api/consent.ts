@@ -14,9 +14,17 @@ export type ConsentRow = {
   expires_at?: string | null
 }
 
-function normalizedContact(channel: Channel, contact: string): string | null {
-  if (channel === 'email') return isValidEmail(contact)
+/** The exact key stored in receptionist_consents.phone for a channel. */
+export function consentContactKey(channel: Channel, contact: string): string | null {
+  if (channel === 'email') {
+    const email = contact.trim().toLowerCase()
+    return isValidEmail(email) ? email : null
+  }
   return normalizeE164(contact)
+}
+
+function normalizedContact(channel: Channel, contact: string): string | null {
+  return consentContactKey(channel, contact)
 }
 
 function rowMatches(row: ConsentRow, channel: Channel, contact: string | null): boolean {

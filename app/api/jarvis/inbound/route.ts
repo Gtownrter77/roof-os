@@ -88,6 +88,6 @@ export async function POST(request: NextRequest) {
     // leaves no durable half-write, so an honest retry signal is safe.
     return NextResponse.json({ error: 'Inbound message could not be recorded.' }, { status: 502, headers: NO_STORE })
   }
-  if (!result.ok) return NextResponse.json({ error: `Inbound message rejected: ${result.reason}` }, { status: 403, headers: NO_STORE })
+  if (result.ok === false) return NextResponse.json({ error: `Inbound message rejected: ${result.reason}` }, { status: 403, headers: NO_STORE })
   return NextResponse.json({ received: true, jobId: result.jobId }, { headers: NO_STORE })
 }
