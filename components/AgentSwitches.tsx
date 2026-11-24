@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import type { AgentToggleState } from '../lib/agents/agent-toggles'
+import { readApiJson } from '../lib/client/safe-fetch'
 
 // Per-workspace agent switches (automation_rules). Each switch saves on its own; only the
 // system owner can write, so everyone else sees a read-only state with the reason.
@@ -14,12 +15,16 @@ export default function AgentSwitches() {
   const [ownerPhraseConfirm, setOwnerPhraseConfirm] = useState('')
 
   useEffect(() => {
-    fetch('/api/settings/agents')
+    fetch('/api/settings/agents', { cache: 'no-store' })
       .then(async (response) => {
-        const payload = await response.json().catch(() => ({}))
-        if (!response.ok) { setMessage(payload.error ?? 'Could not load agent switches.'); return }
-        setAgents(payload.agents ?? [])
-        setCanEdit(payload.canEdit === true)
+        const parsed = await readApiJson<{ agents?: AgentToggleState[]; canEdit?: boolean }>(response)
+        if (!parsed.ok) { setMessage(parsed.error); return }
+        const loaded = parsed.data.agents ?? []
+        setAgents(loaded)
+        setCanEdit(parsed.data.canEdit === true)
+        if (loaded.some((agent) => agent.enabled === null)) {
+          setMessage('Some agents have no rule row in this workspace yet, so they cannot be toggled until the system owner seeds them.')
+        }
       })
       .catch(() => setMessage('Could not load agent switches.'))
   }, [])
@@ -31,8 +36,8 @@ export default function AgentSwitches() {
     setMessage('')
     try {
       const response = await fetch('/api/settings/agents', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ agent_key: agent.agentKey, enabled, ownerAuthorization: { email: ownerEmailConfirm, confirmation: ownerPhraseConfirm } }) })
-      const payload = await response.json().catch(() => ({}))
-      if (!response.ok) { setMessage(payload.error ?? 'Agent switch save failed.'); return }
+      const parsed = await readApiJson<Record<string, unknown>>(response)
+      if (!parsed.ok) { setMessage(parsed.error); return }
       setAgents((current) => current.map((item) => item.agentKey === agent.agentKey ? { ...item, enabled } : item))
       setMessage(`${agent.label} ${enabled ? 'on' : 'off'}.`)
     } catch {

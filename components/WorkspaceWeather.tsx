@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import WeatherRadarMap from './WeatherRadarMap'
 import { getRadarServiceForPoint } from '../lib/services/radar-source.mjs'
+import { readApiJson } from '../lib/client/safe-fetch'
 import type { Forecast, WeatherAlert } from '../lib/services/weather'
 
 type RadarService = NonNullable<ReturnType<typeof getRadarServiceForPoint>>
@@ -66,9 +67,9 @@ export default function WorkspaceWeather({ variant = 'full', tickerMetrics = [] 
 
   const fetchSummary = useCallback(async (query = '') => {
     const response = await fetch(`/api/weather/summary${query}`, { cache: 'no-store' })
-    const payload = await response.json() as Summary
-    if (!response.ok) throw new Error(payload.error ?? 'Weather could not be verified.')
-    return payload
+    const parsed = await readApiJson<Summary>(response)
+    if (!parsed.ok) throw new Error(parsed.error)
+    return parsed.data
   }, [])
 
   const load = useCallback(async () => {

@@ -194,7 +194,8 @@
     "test:jarvis-adjuster-sandbox": "node --experimental-strip-types scripts/jarvis-adjuster-sandbox-test.mjs",
     "test:jarvis-adjuster-api-worker": "node --experimental-strip-types scripts/jarvis-adjuster-api-worker-test.mjs",
     "test:jarvis-adjuster-routes": "node scripts/jarvis-adjuster-routes-test.mjs",
-    "test:jarvis-adjuster-ui": "node scripts/jarvis-adjuster-ui-test.mjs"
+    "test:jarvis-adjuster-ui": "node scripts/jarvis-adjuster-ui-test.mjs",
+    "test:desktop-api-resilience": "node --experimental-strip-types scripts/desktop-api-resilience-test.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.2",

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { smartBack } from '../../lib/smart-back'
+import { readApiJson } from '../../lib/client/safe-fetch'
 import RoofingWizardNavigator from '../../components/RoofingWizardNavigator'
 
 export default function AIWizardPage() {
@@ -76,7 +77,12 @@ export default function AIWizardPage() {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ message: asked, currentPath: '/ai-wizard' }),
       })
-      const payload = await response.json()
+      const parsed = await readApiJson<{ reply?: string; error?: string }>(response)
+      if (!parsed.ok) {
+        setResponse({ topic: 'general', answer: parsed.error, confidence: null })
+        return
+      }
+      const payload = parsed.data
       const reply = typeof payload.reply === 'string' ? payload.reply : ''
       const lowerQuery = asked.toLowerCase()
       let foundAnswer: { topic: string; answer: string; code?: string; confidence: null } | null = null
@@ -100,7 +106,7 @@ export default function AIWizardPage() {
         }
       }
       setResponse(foundAnswer)
-      setHistory([{ query: asked, response: foundAnswer, time: new Date().toLocaleTimeString() }, ...history])
+      setHistory((current) => [{ query: asked, response: foundAnswer, time: new Date().toLocaleTimeString() }, ...current])
     } catch {
       setResponse({ topic: 'general', answer: 'The assistant could not be reached. The glossary is still on this page.', confidence: null })
     } finally {
