@@ -41,6 +41,7 @@ jobs:
       - run: npm run test:field-hover-upload
       - run: node scripts/release-foreman-check.mjs
       - run: npm run test:jarvis-adjuster-guards
+      - run: npm run test:jarvis-adjuster-queue
       - run: node --experimental-strip-types scripts/worker-heartbeat-runtime-test.mjs
       - run: npm run test:braces-mitigation --prefix apps/field
       - run: npm run build
