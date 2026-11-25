@@ -209,6 +209,7 @@
     "ci:prepare-migrations": "node scripts/ci/prepare-local-migrations.mjs",
     "ci:collect-gates": "node scripts/ci/collect-gate-results.mjs",
     "ci:check-schema-parity": "node scripts/ci/check-schema-parity.mjs",
+    "ci:assert-evidence": "node scripts/ci/assert-generated-evidence.mjs",
     "ci:write-evidence": "node scripts/ci-evidence-writer.mjs"
   },
   "dependencies": {

@@ -110,7 +110,7 @@ jobs:
 
       - name: Resolve synthetic workspace id
         run: |
-          workspace_id="$(psql "$DB_URL" -tAc "select w.id::text from public.workspaces w join public.workspace_members m on m.workspace_id = w.id join auth.users u on u.id = m.user_id where u.email = 'rls-a@roof-os.test' limit 1" | tr -d '\r')"
+          workspace_id="$(psql "$DB_URL" -tAc "select w.id::text from public.workspaces w join public.workspace_members m on m.workspace_id = w.id join auth.users u on u.id = m.user_id where u.email = 'rls-a@roof-os.test' and w.trial_status = 'active' and (w.trial_expires_at is null or w.trial_expires_at > now()) limit 1" | tr -d '\r')"
           test -n "$workspace_id"
           echo "ROOF_CI_WORKSPACE_ID=$workspace_id" >> "$GITHUB_ENV"
 

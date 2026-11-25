@@ -83,4 +83,45 @@ function makeMarkers({ skip = [] } = {}) {
   assert.match(result.stderr, /999/)
 }
 
-console.log('ci-gate-helpers-test: PASS (marker-derived evidence, schema parity set equality)')
+const generated = join(root, 'assert-generated-evidence.mjs')
+
+function checkGenerated(evidence, provenance = null) {
+  const dir = mkdtempSync(join(tmpdir(), 'roof-generated-'))
+  const evidencePath = join(dir, 'release-gates.json')
+  writeFileSync(evidencePath, JSON.stringify(evidence))
+  let provenancePath
+  if (provenance) {
+    provenancePath = join(dir, 'provenance.json')
+    writeFileSync(provenancePath, JSON.stringify(provenance))
+  }
+  return spawnSync(process.execPath, [generated, evidencePath, ...(provenancePath ? [provenancePath] : [])], { encoding: 'utf8' })
+}
+
+{
+  const evidence = Object.fromEntries(canonical.map((gate) => [gate, gate === 'physicalDevice' ? 'UNKNOWN' : 'PASS']))
+  const provenance = {
+    runId: '45556458513',
+    sha,
+    gates: Object.fromEntries(canonical.filter((gate) => gate !== 'physicalDevice').map((gate) => [gate, {
+      runId: '45556458513', sha, check: `free-evidence/${gate}`,
+    }])),
+  }
+  const result = checkGenerated(evidence, provenance)
+  assert.equal(result.status, 0, result.stderr)
+}
+
+{
+  const evidence = Object.fromEntries(canonical.map((gate) => [gate, 'PASS']))
+  const result = checkGenerated(evidence)
+  assert.notEqual(result.status, 0, 'physicalDevice PASS must be rejected')
+  assert.match(result.stderr, /physicalDevice/)
+}
+
+{
+  const evidence = Object.fromEntries(canonical.map((gate) => [gate, gate === 'stagingRls' || gate === 'physicalDevice' ? 'UNKNOWN' : 'PASS']))
+  const result = checkGenerated(evidence)
+  assert.notEqual(result.status, 0, 'a missing PASS gate must be rejected')
+  assert.match(result.stderr, /stagingRls/)
+}
+
+console.log('ci-gate-helpers-test: PASS (marker-derived evidence, schema parity set equality, generated evidence guard)')
