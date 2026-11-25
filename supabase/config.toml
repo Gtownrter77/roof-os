@@ -38,7 +38,7 @@ shadow_port = 54320
 health_timeout = "2m"
 # The database major version to use. This has to be the same as your remote database's. Run `SHOW
 # server_version;` on the remote database to check.
-major_version = 16
+major_version = 17
 # OrioleDB version to use as the Postgres storage engine. Leave empty to use the default engine.
 orioledb_version = ""
 

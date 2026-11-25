@@ -91,7 +91,8 @@ jobs:
           test "$head" = "114"
           server_version="$(psql "$DB_URL" -tAc 'show server_version' | tr -d '\r')"
           echo "postgres: $server_version"
-          echo "$server_version" | grep -q '^16'
+          test "${server_version%%.*}" = "17"
+          echo "Local Supabase CLI v2.122.1 pins PostgreSQL 17; the repository's PG16 SQL authority path remains separate."
           psql "$DB_URL" -tAc "select version from supabase_migrations.schema_migrations order by version" \
             > /tmp/roof-os-applied-versions.txt
           npm run ci:check-schema-parity -- \
