@@ -1705,3 +1705,32 @@ Do not claim the live writer integration gate is complete without non-production
 - Squash merge: PR #500 merged into `main` at `46d54f2e28b78edf6e9aae3120a3b13f00e429ab`.
   Required checks all `success`: `web`, `mobile`, `migration-safety`, `field-security`.
   Local `main`, remote `main` and merge SHA verified equal.
+
+## 2026-11-25 — Free open-source evidence pipeline (PR #504, MERGED)
+
+- Owner replaced hosted hobby-mode gate plans with a free GitHub Actions pipeline: local Supabase
+  CLI/PostgreSQL 17, local Ollama, Mailpit/SMTP, local Twilio mock, real migrations to head `114`,
+  synthetic workspace activation, authenticated read-only/RLS/heartbeat checks, backup/restore
+  rehearsal, schema parity, worker runtime, provider probes, and GHCR image publication. No hosted
+  credentials, hosted inference, paid service, or external delivery was activated; the GHCR image
+  is not a deployment.
+- Branch `feat/free-ci-evidence` from `0f8c77422d72378b8e1e8b02ff7c4f9d197d6c65`; final head
+  `0fe3269b8be5e06f3b853def2bf7456f063d89cb`; PR
+  https://github.com/Gtownrter77/roof-os/pull/504 merged as squash
+  `761fbf1292d024a5ae6cee95691167a9dd06e8b9`. Local `main` fast-forwarded to that exact merge SHA.
+- Reviewer Critical/Important/Minor findings were dispositioned and fixed RED→GREEN before merge.
+  Backup restore was root-caused and fixed through six distinct failures (dangling `auth`
+  references, PG16/PG17 client mismatch, container peer auth, platform internals, default `public`
+  schema collision, and GHCR uppercase tag). A stale release-summary test expectation was corrected
+  after the real artifact was installed.
+- Final exact-head evidence: PR CI run `45566533325` success (all 8 checks green); free-evidence
+  run `45566533324` success. Earlier generation run `45565359177` produced the committed artifact,
+  re-asserted by `ci:assert-evidence`. Fresh local `test:all` PASS (191 gates + 4 build/release
+  checks), all `test:ci-*`, `test:gate-registry-integrity`, `test:release-foreman`,
+  `test:release-gate-summary`, `verify:security`, YAML parse and `git diff --check` exit 0.
+- `docs/evidence/release-gates.json` now has nine marker-backed PASS gates plus
+  `physicalDevice: UNKNOWN`; provenance is in `docs/evidence/release-gates.provenance.json`.
+  Migration, schema parity, RLS, heartbeat, backup/restore and provider execution are locally
+  CI-verified on the free stack, not hosted/live verified. No deployed URL or deployed SHA exists;
+  no physical device or field evidence exists. **Release decision remains NO-GO.** Full detail:
+  `docs/superpowers/plans/2026-11-24-jarvis-adjuster-rebuild-ledger.md`.

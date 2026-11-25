@@ -185,3 +185,63 @@ contracts only.
    verified, PR #502 opened, all seven CI checks green, PR merged to `main`, local main synced.
 14 `writing-skills` — not triggered (no skill files edited).
 15 `diagnosing-superpowers` — not triggered (no session-failure investigation requested).
+
+## 2026-11-25 — Free open-source evidence pipeline closeout (PR #504)
+
+- Owner instructed: use a free open-source/GitHub-based replacement for hosted hobby-mode gates;
+  no paid or hosted fallback, no fabricated approvals, and keep the release NO-GO while physical
+  device and live deploy evidence are absent.
+- Branch `feat/free-ci-evidence` was created from `0f8c77422d72378b8e1e8b02ff7c4f9d197d6c65`.
+  PR: https://github.com/Gtownrter77/roof-os/pull/504. Final PR head:
+  `0fe3269b8be5e06f3b853def2bf7456f063d89cb`. Squash merge SHA:
+  `761fbf1292d024a5ae6cee95691167a9dd06e8b9`; local `main` fast-forwarded to that exact SHA.
+- Implementation: `.github/workflows/free-evidence.yml` runs official Supabase CLI 2.122.1 /
+  PostgreSQL 17 locally, local Ollama, Mailpit/SMTP, a local Twilio mock, real migration
+  application to head `114`, synthetic workspace activation, authenticated read-only/RLS and
+  heartbeat checks, server-matched backup/restore rehearsal, schema parity, worker runtime, and
+  provider probes. GHCR publishes a container image; that image is not a deployment.
+- No Vercel/Supabase hosted credentials, hosted inference, paid service, or external delivery was
+  activated. The raw `supabase status -o env` output is normalized before `GITHUB_ENV` export;
+  generated evidence is fail-closed and provenance-validated against `EXPECTED_SHA`.
+- Review and debugging evidence: an independent reviewer's Critical/Important/Minor findings were
+  fixed before merge. Backup rehearsal root causes, each fixed RED→GREEN with a permanent contract
+  test: public-only dump left dangling `auth` references; runner `pg_dump` was PG16 vs server PG17;
+  `docker exec` restore attempted peer auth as `root`; full-cluster restore hit Supabase platform
+  internals; the fresh database's default `public` schema collided with the dump. GHCR repository
+  names were lowercased before tagging. A stale `release-gate-summary` test expectation was
+  corrected after real evidence was installed.
+- Final GitHub evidence on the exact PR head: PR CI run `45566533325` **success** (all eight
+  check runs green); free-evidence run `45566533324` **success**. The earlier green generation run
+  was `45565359177` at `655dcac041cc0adeb030d089a1ffca3fb48a5890`; its artifact was committed on
+  the branch and re-asserted by `ci:assert-evidence`.
+- Generated canonical evidence: `docs/evidence/release-gates.json` records PASS for
+  `repositoryChecks`, `stagingMigration`, `authenticatedReadOnly`, `stagingRls`,
+  `stagingHeartbeat`, `backupRestore`, `schemaParity`, `workerRuntime`, `providerExecution`, and
+  `UNKNOWN` for `physicalDevice`. Provenance is in
+  `docs/evidence/release-gates.provenance.json`. `npm run ci:assert-evidence` reports
+  "9 marker-backed PASS gates, physicalDevice UNKNOWN"; `release-gate-summary` reports NO-GO.
+- Fresh local verification on the final head: `test:all` PASS (191 registered gates + 4
+  build/release checks), all `test:ci-*`, `test:release-gate-summary`, `test:gate-registry-integrity`,
+  `test:release-foreman`, `test:test-all-coverage`, `verify:security`, YAML parse, and
+  `git diff --check` all exit 0.
+- Boundary update to the earlier "Still UNVERIFIED" list: migration application, schema parity,
+  authenticated RLS, heartbeat, backup/restore and provider execution are now **locally CI-verified
+  on the free OSS stack**, not hosted/live verified. Still UNVERIFIED: hosted application of any
+  migration, live deployed URL/SHA, real-device geolocation and field behavior, external message
+  delivery, hosted runtime RLS/parity, live two-workspace isolation, and physical field acceptance.
+  Release decision remains **NO-GO**; no UNKNOWN was converted to PASS without real evidence.
+- 15-skill disposition for this closeout: `using-superpowers` performed (inventory and stack
+  checked); `brainstorming` performed (owner chose free GitHub Actions approach from options);
+  `writing-plans` performed (workflow/guards planned inline, no new upstream SKILL.md);
+  `using-git-worktrees` performed as a local branch (native linked-worktree availability not
+  claimed); `test-driven-development` performed (RED contract before each workflow fix);
+  `systematic-debugging` performed (six distinct restore/deploy root causes traced from logs);
+  `executing-plans` performed inline; `subagent-driven-development` and
+  `dispatching-parallel-agents` scoped (a reviewer subagent and parallel independent checks were
+  used where independent; all production fixes applied inline);
+  `requesting-code-review`/`receiving-code-review` performed (findings dispositioned and fixed
+  with fresh evidence; final closeout comment posted on PR #504 before merge);
+  `verification-before-completion` performed (fresh local and GitHub green evidence on exact head);
+  `finishing-a-development-branch` performed (PR merged, exact merge SHA verified);
+  `writing-skills` not triggered (no reusable `SKILL.md` authored or edited);
+  `diagnosing-superpowers` not triggered (no superpowers-session failure diagnosis requested).
