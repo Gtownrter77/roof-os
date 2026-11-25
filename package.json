@@ -200,8 +200,14 @@
     "test:desktop-api-resilience": "node --experimental-strip-types scripts/desktop-api-resilience-test.mjs",
     "test:ci-evidence-writer": "node scripts/ci-evidence-writer-test.mjs",
     "test:ci-local-seed": "node scripts/ci-local-supabase-seed-test.mjs",
-    "test:ci-local-heartbeat": "node scripts/ci-local-heartbeat-test.mjs",
+    "test:ci-local-heartbeat": "node --experimental-strip-types scripts/ci-local-heartbeat-test.mjs",
     "test:ci-local-providers": "node scripts/ci-local-providers-test.mjs",
+    "test:ci-local-migrations": "node scripts/ci/prepare-local-migrations-test.mjs",
+    "test:ci-gate-helpers": "node scripts/ci-gate-helpers-test.mjs",
+    "test:ci-workflow-env": "node scripts/ci-workflow-env-contract-test.mjs",
+    "ci:prepare-migrations": "node scripts/ci/prepare-local-migrations.mjs",
+    "ci:collect-gates": "node scripts/ci/collect-gate-results.mjs",
+    "ci:check-schema-parity": "node scripts/ci/check-schema-parity.mjs",
     "ci:write-evidence": "node scripts/ci-evidence-writer.mjs"
   },
   "dependencies": {

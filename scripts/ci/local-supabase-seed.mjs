@@ -6,16 +6,18 @@ export async function seedLocalUsers({
   createClient = supabaseCreateClient,
   url,
   serviceRoleKey,
-  emails,
-  password,
+  credentials,
 }) {
-  assert.ok(url && serviceRoleKey && password, 'url, serviceRoleKey and password are required')
-  assert.ok(Array.isArray(emails) && emails.length > 0, 'at least one synthetic email is required')
+  assert.ok(url && serviceRoleKey, 'url and serviceRoleKey are required')
+  assert.ok(Array.isArray(credentials) && credentials.length > 0, 'at least one synthetic credential is required')
+  for (const credential of credentials) {
+    assert.ok(credential?.email && credential?.password, 'each synthetic credential needs email and password')
+  }
   const admin = createClient(url, serviceRoleKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   })
   const results = []
-  for (const email of emails) {
+  for (const { email, password } of credentials) {
     const { data, error } = await admin.auth.admin.createUser({
       email,
       password,
@@ -28,13 +30,22 @@ export async function seedLocalUsers({
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  const required = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'ROOF_RLS_USER_A_EMAIL', 'ROOF_RLS_USER_B_EMAIL', 'ROOF_RLS_TEST_PASSWORD']
+  const required = [
+    'SUPABASE_URL',
+    'SUPABASE_SERVICE_ROLE_KEY',
+    'ROOF_RLS_USER_A_EMAIL',
+    'ROOF_RLS_USER_A_PASSWORD',
+    'ROOF_RLS_USER_B_EMAIL',
+    'ROOF_RLS_USER_B_PASSWORD',
+  ]
   for (const name of required) assert.ok(process.env[name], `${name} is required`)
   const results = await seedLocalUsers({
     url: process.env.SUPABASE_URL,
     serviceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
-    emails: [process.env.ROOF_RLS_USER_A_EMAIL, process.env.ROOF_RLS_USER_B_EMAIL],
-    password: process.env.ROOF_RLS_TEST_PASSWORD,
+    credentials: [
+      { email: process.env.ROOF_RLS_USER_A_EMAIL, password: process.env.ROOF_RLS_USER_A_PASSWORD },
+      { email: process.env.ROOF_RLS_USER_B_EMAIL, password: process.env.ROOF_RLS_USER_B_PASSWORD },
+    ],
   })
   console.log(`ci-local-supabase-seed: PASS (${results.length} synthetic users ready)`)
 }

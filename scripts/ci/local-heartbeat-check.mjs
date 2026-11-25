@@ -2,17 +2,20 @@
 import assert from 'node:assert/strict'
 import { createClient as supabaseCreateClient } from '@supabase/supabase-js'
 
+export const CI_HEARTBEAT_AGENT_KEY = 'intake_router'
+
 export async function checkLocalHeartbeat({ writeHeartbeats, client, workspaceId }) {
   assert.match(String(workspaceId), /^[0-9a-f-]{36}$/i, 'workspaceId must be a UUID')
-  const result = await writeHeartbeats(client, [workspaceId], 'ci-free-evidence', 'healthy')
+  const result = await writeHeartbeats(client, [workspaceId], CI_HEARTBEAT_AGENT_KEY, 'healthy')
   assert.deepEqual(result, { persisted: 1, errors: false }, 'heartbeat did not persist cleanly')
   const { data, error } = await client
     .from('agent_worker_heartbeats')
     .select('workspace_id,agent_key,status')
     .eq('workspace_id', workspaceId)
-    .eq('agent_key', 'ci-free-evidence')
+    .eq('agent_key', CI_HEARTBEAT_AGENT_KEY)
   assert.ifError(error)
   assert.equal(data?.length, 1, 'no heartbeat row was persisted')
+  assert.equal(data[0].agent_key, CI_HEARTBEAT_AGENT_KEY, 'persisted heartbeat uses the wrong agent key')
   assert.equal(data[0].status, 'healthy', 'persisted heartbeat status is not healthy')
   return data[0]
 }
@@ -23,7 +26,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   }
   process.env.AGENT_WORKER_ID ||= 'ci-free-evidence-worker'
   process.env.AGENT_WORKER_VERSION ||= '0.0.0-ci'
-  const { writeWorkerHeartbeats } = await import('../workers/heartbeat.ts')
+  const { writeWorkerHeartbeats } = await import('../../workers/heartbeat.ts')
   const client = supabaseCreateClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
     auth: { persistSession: false, autoRefreshToken: false },
   })
