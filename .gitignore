@@ -15,3 +15,4 @@ coverage
 .superpowers/
 .claude/
 .worktrees/
+supabase/.temp/

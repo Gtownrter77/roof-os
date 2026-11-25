@@ -1,12 +1,12 @@
 {
   "repositoryChecks": "PASS",
-  "stagingMigration": "UNKNOWN",
-  "authenticatedReadOnly": "UNKNOWN",
-  "stagingRls": "UNKNOWN",
-  "stagingHeartbeat": "UNKNOWN",
+  "stagingMigration": "PASS",
+  "authenticatedReadOnly": "PASS",
+  "stagingRls": "PASS",
+  "stagingHeartbeat": "PASS",
   "physicalDevice": "UNKNOWN",
-  "backupRestore": "UNKNOWN",
-  "schemaParity": "UNKNOWN",
-  "workerRuntime": "UNKNOWN",
-  "providerExecution": "UNKNOWN"
+  "backupRestore": "PASS",
+  "schemaParity": "PASS",
+  "workerRuntime": "PASS",
+  "providerExecution": "PASS"
 }
