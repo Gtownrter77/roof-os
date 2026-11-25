@@ -127,7 +127,13 @@ desktop resilience gate, all wired in `.github/workflows/ci.yml` and in the regi
   returned **Ready to merge? Yes** on the full range `be190fd..dc2bc1f`, confirming both Important
   findings from the `86c834a` verdict are closed in code and no new Critical/Important defect was
   introduced. Its only note was to update this ledger for archiving.
-- Merge SHA: **pending**.
+- Merge SHA: `cf0d117c48225ce6d3ebb93552763f9e7893aa5f` — PR #502 merged with `merge_method: merge`;
+  PR head `fae4d5d144b82c4c929fd6ca21d68d813220277e`. The merged `main` tree SHA
+  `734dd738d5c1fd00c5bd6911eb61842ce03758cf` exactly matches the verified PR-head tree. All seven
+  GitHub CI checks passed on the PR head (`web`, `migration-safety`, `preview-build`, `mobile`,
+  `field-security`, `earthwork-precision`, `Vercel Preview Comments`). The earlier `mobile` failure
+  was pre-existing expo-doctor drift (`expo` 57.0.33 vs expected `~57.0.34`), fixed by bumping
+  `apps/field` to `~57.0.34` and regenerating its lockfile; root gates remained green.
 
 ### Final verification block (head `dc2bc1f37e5cbeb53a8327684707fb28535e9de4`)
 Every command was run fresh in the SD1 worktree on the exact head above; each exit code was captured
@@ -175,6 +181,7 @@ contracts only.
 11 `receiving-code-review` — performed on the five Critical findings from the lost branch and again on the fresh reviewer's Critical/Important/Minor findings.
 12 `verification-before-completion` — performed; fresh full-suite, typecheck, build, release, foreman,
    registry, coverage and diff evidence above, every command exit 0.
-13 `finishing-a-development-branch` — owner already authorized merge; pending push/merge.
+13 `finishing-a-development-branch` — owner pre-authorized merge; branch pushed and remote SHA
+   verified, PR #502 opened, all seven CI checks green, PR merged to `main`, local main synced.
 14 `writing-skills` — not triggered (no skill files edited).
 15 `diagnosing-superpowers` — not triggered (no session-failure investigation requested).
