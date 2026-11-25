@@ -197,7 +197,12 @@
     "test:jarvis-adjuster-runtime": "node --experimental-strip-types scripts/jarvis-adjuster-runtime-test.mjs",
     "test:jarvis-adjuster-routes": "node scripts/jarvis-adjuster-routes-test.mjs",
     "test:jarvis-adjuster-ui": "node scripts/jarvis-adjuster-ui-test.mjs",
-    "test:desktop-api-resilience": "node --experimental-strip-types scripts/desktop-api-resilience-test.mjs"
+    "test:desktop-api-resilience": "node --experimental-strip-types scripts/desktop-api-resilience-test.mjs",
+    "test:ci-evidence-writer": "node scripts/ci-evidence-writer-test.mjs",
+    "test:ci-local-seed": "node scripts/ci-local-supabase-seed-test.mjs",
+    "test:ci-local-heartbeat": "node scripts/ci-local-heartbeat-test.mjs",
+    "test:ci-local-providers": "node scripts/ci-local-providers-test.mjs",
+    "ci:write-evidence": "node scripts/ci-evidence-writer.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.2",

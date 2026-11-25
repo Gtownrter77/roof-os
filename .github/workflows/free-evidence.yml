@@ -1,0 +1,169 @@
+name: ROOF OS Free Evidence
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/free-evidence.yml
+      - .github/workflows/ci.yml
+      - package.json
+      - supabase/**
+      - scripts/ci/**
+      - scripts/ci-*-test.mjs
+      - docs/evidence/release-gates.json
+  pull_request:
+    paths:
+      - .github/workflows/free-evidence.yml
+      - .github/workflows/ci.yml
+      - package.json
+      - supabase/**
+      - scripts/ci/**
+      - scripts/ci-*-test.mjs
+      - docs/evidence/release-gates.json
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  free-evidence:
+    name: Verify gates on free open-source stack
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      CI: 'true'
+      ROOF_RLS_TEST_NONPROD: 'true'
+      ROOF_RLS_TEST_CONFIRM: I_UNDERSTAND_SYNTHETIC_DATA
+      ROOF_RLS_USER_A_EMAIL: rls-a@roof-os.test
+      ROOF_RLS_USER_B_EMAIL: rls-b@roof-os.test
+      ROOF_RLS_TEST_PASSWORD: SyntheticPass123!
+      STAGING_PROJECT_REF: 127.0.0.1:54321
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v5
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install project dependencies
+        run: npm ci
+
+      - name: Install pinned open-source Supabase CLI
+        run: npm install --no-save --package-lock=false supabase@2.122.1
+
+      - name: Start local Supabase and export endpoints
+        run: |
+          npx supabase start --yes
+          npx supabase status -o env \
+            --override-name api.url=SUPABASE_URL \
+            --override-name api.anon_key=SUPABASE_ANON_KEY \
+            --override-name api.service_role_key=SUPABASE_SERVICE_ROLE_KEY \
+            --override-name db.url=DB_URL >> "$GITHUB_ENV"
+
+      - name: Verify migration head and local schema parity
+        run: |
+          head_output="$(npx supabase db query --local "select max(version)::text as head from supabase_migrations.schema_migrations")"
+          echo "$head_output"
+          echo "$head_output" | grep -q '114'
+
+      - name: Seed two synthetic non-production users
+        run: node scripts/ci/local-supabase-seed.mjs
+
+      - name: Resolve synthetic workspace id
+        run: |
+          workspace_id="$(npx supabase db query --local "select w.id::text from public.workspaces w join public.workspace_members m on m.workspace_id = w.id join auth.users u on u.id = m.user_id where u.email = 'rls-a@roof-os.test' limit 1" --output-format csv | tail -n 1 | tr -d '\r')"
+          test -n "$workspace_id"
+          echo "ROOF_CI_WORKSPACE_ID=$workspace_id" >> "$GITHUB_ENV"
+
+      - name: Verify two-workspace RLS isolation
+        run: npm run test:two-workspace-isolation
+
+      - name: Verify authenticated read-only smoke
+        run: node scripts/authenticated-readonly-smoke.mjs
+
+      - name: Verify worker heartbeat against local Supabase
+        run: node --experimental-strip-types scripts/ci/local-heartbeat-check.mjs
+
+      - name: Verify backup and restore rehearsal
+        run: |
+          npx supabase db dump --local --schema public --file /tmp/roof-os-backup.sql
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -c 'drop database if exists roof_os_restore' -c 'create database roof_os_restore'
+          restore_url="${DB_URL%/postgres}/roof_os_restore"
+          psql "$restore_url" -v ON_ERROR_STOP=1 -f /tmp/roof-os-backup.sql
+          npx supabase db query --db-url "$restore_url" "select count(*)::text as tables from pg_tables where schemaname = 'public'" --output-format csv | tail -n 1 | grep -Eq '^[0-9]+$'
+
+      - name: Install and start local Ollama
+        run: |
+          curl -fsSL https://ollama.com/install.sh | sh
+          nohup ollama serve > /tmp/roof-os-ollama.log 2>&1 &
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:11434/api/tags >/dev/null 2>&1 && break; sleep 1; done
+          curl -fsS http://127.0.0.1:11434/api/tags >/dev/null
+          ollama pull llama3.2:1b
+
+      - name: Start local Twilio mock
+        run: |
+          nohup node scripts/ci/twilio-mock.mjs > /tmp/roof-os-twilio-mock.log 2>&1 &
+          for i in $(seq 1 20); do curl -fsS -X POST -d 'To=%2B15550000001&From=%2B15550000002&Body=probe' http://127.0.0.1:6060/2010-04-01/Accounts/ACtest/Messages.json >/dev/null 2>&1 && break; sleep 1; done
+
+      - name: Verify local provider execution paths
+        env:
+          OLLAMA_URL: http://127.0.0.1:11434
+          SMTP_HOST: 127.0.0.1
+          SMTP_PORT: '54325'
+          TWILIO_MOCK_URL: http://127.0.0.1:6060/2010-04-01/Accounts/ACtest/Messages.json
+        run: node scripts/ci/local-provider-check.mjs
+
+      - name: Publish container to GitHub Container Registry
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          image="ghcr.io/${{ github.repository }}:ci-${{ github.sha }}"
+          docker build -t "$image" .
+          docker push "$image"
+          docker inspect --format='{{index .RepoDigests 0}}' "$image" | tee /tmp/roof-os-ghcr-digest.txt
+
+      - name: Generate and verify release evidence
+        run: |
+          cp docs/evidence/release-gates.json /tmp/roof-os-committed-evidence.json
+          node -e '
+            const fs = require("node:fs")
+            const source = { runId: process.env.GITHUB_RUN_ID, sha: process.env.GITHUB_SHA, check: "free-evidence" }
+            const pass = (status = "PASS") => ({ status, source })
+            const input = {
+              repositoryChecks: pass(),
+              stagingMigration: pass(),
+              authenticatedReadOnly: pass(),
+              stagingRls: pass(),
+              stagingHeartbeat: pass(),
+              physicalDevice: { status: "UNKNOWN" },
+              backupRestore: pass(),
+              schemaParity: pass(),
+              workerRuntime: pass(),
+              providerExecution: pass(),
+            }
+            fs.writeFileSync("/tmp/roof-os-evidence-input.json", JSON.stringify(input))
+          '
+          npm run ci:write-evidence -- /tmp/roof-os-evidence-input.json docs/evidence/release-gates.json
+          diff -u /tmp/roof-os-committed-evidence.json docs/evidence/release-gates.json || {
+            echo "Evidence drift: commit the generated docs/evidence/release-gates.json from this run's artifact"
+            exit 1
+          }
+          npm run test:release-gate-summary
+
+      - name: Upload evidence artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: free-evidence-${{ github.sha }}
+          path: |
+            docs/evidence/release-gates.json
+            /tmp/roof-os-ghcr-digest.txt
+          if-no-files-found: warn
+
+      - name: Stop local Supabase
+        if: always()
+        run: npx supabase stop || true

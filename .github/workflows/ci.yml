@@ -40,6 +40,10 @@ jobs:
       - run: npm run test:field-hover-ingest
       - run: npm run test:field-hover-upload
       - run: node scripts/release-foreman-check.mjs
+      - run: npm run test:ci-evidence-writer
+      - run: npm run test:ci-local-seed
+      - run: npm run test:ci-local-heartbeat
+      - run: npm run test:ci-local-providers
       - run: npm run test:jarvis-adjuster-guards
       - run: npm run test:jarvis-adjuster-queue
       - run: npm run test:jarvis-adjuster-orchestrator
