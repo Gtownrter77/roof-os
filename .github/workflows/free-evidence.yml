@@ -142,6 +142,7 @@ jobs:
           docker cp "$DB_CONTAINER:/tmp/roof-os-backup.dump" "$BACKUP_FILE"
           psql "$DB_URL" -v ON_ERROR_STOP=1 -c 'drop database if exists roof_os_restore' -c 'create database roof_os_restore'
           restore_url="${DB_URL%/postgres}/roof_os_restore"
+          psql "$restore_url" -v ON_ERROR_STOP=1 -c 'drop schema if exists public cascade'
           docker cp "$BACKUP_FILE" "$DB_CONTAINER:/tmp/roof-os-restore.dump"
           docker exec "$DB_CONTAINER" pg_restore -U postgres --no-owner --dbname roof_os_restore /tmp/roof-os-restore.dump
           source_tables="$(psql "$DB_URL" -tAc "select count(*)::text from pg_tables where schemaname = 'public'" | tr -d '\r')"
