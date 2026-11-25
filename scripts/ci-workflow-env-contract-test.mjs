@@ -23,4 +23,8 @@ for (const [name, expectedConsumers] of Object.entries(required)) {
   }
 }
 assert.ok(!envNames.has('ROOF_RLS_TEST_PASSWORD'), 'legacy single-password env must not be used by the new pipeline')
+assert.ok(
+  workflow.includes(`| sed -E 's/^([A-Z0-9_]+)="(.*)"$/\\1=\\2/' >> "$GITHUB_ENV"`),
+  'Supabase status env values must be unquoted before export to GITHUB_ENV',
+)
 console.log('ci-workflow-env-contract-test: PASS (workflow env matches seeder and RLS consumers)')
