@@ -8,7 +8,7 @@ assert.ok(step, 'backup rehearsal step must exist')
 for (const check of [
   'DB_CONTAINER="$(docker ps --format \'{{.Names}} {{.Image}}\' | awk \'/supabase\\/postgres:/{print $1; exit}\')"',
   'test -n "$DB_CONTAINER"',
-  'docker exec "$DB_CONTAINER" pg_dump -U postgres --format=custom --file /tmp/roof-os-backup.dump postgres',
+  'docker exec "$DB_CONTAINER" pg_dump -U postgres --format=custom --no-owner --no-privileges --schema=public --schema=auth --schema=storage --schema=extensions --file /tmp/roof-os-backup.dump postgres',
   'docker cp "$DB_CONTAINER:/tmp/roof-os-backup.dump" "$BACKUP_FILE"',
   'psql "$DB_URL" -v ON_ERROR_STOP=1 -c \'drop database if exists roof_os_restore\' -c \'create database roof_os_restore\'',
   'restore_url="${DB_URL%/postgres}/roof_os_restore"',
