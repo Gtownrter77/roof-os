@@ -1,0 +1,51 @@
+{
+  "runId": "45565359177",
+  "sha": "655dcac041cc0adeb030d089a1ffca3fb48a5890",
+  "gates": {
+    "repositoryChecks": {
+      "runId": "45565359177",
+      "sha": "655dcac041cc0adeb030d089a1ffca3fb48a5890",
+      "check": "free-evidence/repositoryChecks"
+    },
+    "stagingMigration": {
+      "runId": "45565359177",
+      "sha": "655dcac041cc0adeb030d089a1ffca3fb48a5890",
+      "check": "free-evidence/stagingMigration"
+    },
+    "authenticatedReadOnly": {
+      "runId": "45565359177",
+      "sha": "655dcac041cc0adeb030d089a1ffca3fb48a5890",
+      "check": "free-evidence/authenticatedReadOnly"
+    },
+    "stagingRls": {
+      "runId": "45565359177",
+      "sha": "655dcac041cc0adeb030d089a1ffca3fb48a5890",
+      "check": "free-evidence/stagingRls"
+    },
+    "stagingHeartbeat": {
+      "runId": "45565359177",
+      "sha": "655dcac041cc0adeb030d089a1ffca3fb48a5890",
+      "check": "free-evidence/stagingHeartbeat"
+    },
+    "backupRestore": {
+      "runId": "45565359177",
+      "sha": "655dcac041cc0adeb030d089a1ffca3fb48a5890",
+      "check": "free-evidence/backupRestore"
+    },
+    "schemaParity": {
+      "runId": "45565359177",
+      "sha": "655dcac041cc0adeb030d089a1ffca3fb48a5890",
+      "check": "free-evidence/schemaParity"
+    },
+    "workerRuntime": {
+      "runId": "45565359177",
+      "sha": "655dcac041cc0adeb030d089a1ffca3fb48a5890",
+      "check": "free-evidence/workerRuntime"
+    },
+    "providerExecution": {
+      "runId": "45565359177",
+      "sha": "655dcac041cc0adeb030d089a1ffca3fb48a5890",
+      "check": "free-evidence/providerExecution"
+    }
+  }
+}
