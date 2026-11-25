@@ -55,4 +55,8 @@ assert.ok(
   workflow.includes('npm run ci:assert-evidence -- docs/evidence/release-gates.json docs/evidence/release-gates.provenance.json'),
   'generated evidence must be asserted for provenance and physicalDevice UNKNOWN',
 )
+assert.ok(
+  workflow.includes('image="ghcr.io/${GITHUB_REPOSITORY,,}:ci-${GITHUB_SHA}"'),
+  'GHCR repository names must be lowercased before tagging',
+)
 console.log('ci-workflow-env-contract-test: PASS (workflow env matches seeder and RLS consumers, generated evidence guarded)')

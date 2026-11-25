@@ -193,7 +193,7 @@ jobs:
         if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
-          image="ghcr.io/${{ github.repository }}:ci-${{ github.sha }}"
+          image="ghcr.io/${GITHUB_REPOSITORY,,}:ci-${GITHUB_SHA}"
           docker build -t "$image" .
           docker push "$image"
           docker inspect --format='{{index .RepoDigests 0}}' "$image" | tee /tmp/roof-os-ghcr-digest.txt
