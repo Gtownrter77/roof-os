@@ -260,6 +260,7 @@ jobs:
           node --experimental-strip-types scripts/mobile-local-db-migration-test.mjs
           node --experimental-strip-types scripts/field-ai-assistance-test.mjs
           node --experimental-strip-types scripts/field-coach-test.mjs
+      - run: cd ../.. && npm run test:mobile-visual-contract
 
   field-security:
     runs-on: ubuntu-24.04

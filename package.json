@@ -89,6 +89,7 @@
     "test:staging-workflows": "node scripts/staging-workflow-contract-test.mjs",
     "test:backup-evidence": "node scripts/backup-evidence-contract-test.mjs",
     "test:mobile-release-contract": "node scripts/mobile-release-contract-test.mjs",
+    "test:mobile-visual-contract": "node scripts/mobile-visual-contract-test.mjs",
     "test:live-release-preflight": "node scripts/live-release-preflight-test.mjs && node scripts/live-release-preflight.mjs",
     "test:authenticated-readonly-smoke": "node scripts/authenticated-readonly-smoke-contract-test.mjs",
     "test:heartbeat-probe": "node scripts/heartbeat-probe-contract-test.mjs",
