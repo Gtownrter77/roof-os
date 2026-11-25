@@ -135,10 +135,11 @@ jobs:
 
       - name: Verify backup and restore rehearsal
         run: |
-          npx supabase db dump --workdir "$CI_SUPABASE_WORKDIR" --local --schema public --file /tmp/roof-os-backup.sql
+          BACKUP_FILE=/tmp/roof-os-backup.dump
+          pg_dump "$DB_URL" --format=custom --no-owner --file "$BACKUP_FILE"
           psql "$DB_URL" -v ON_ERROR_STOP=1 -c 'drop database if exists roof_os_restore' -c 'create database roof_os_restore'
           restore_url="${DB_URL%/postgres}/roof_os_restore"
-          psql "$restore_url" -v ON_ERROR_STOP=1 -f /tmp/roof-os-backup.sql
+          pg_restore --no-owner --dbname "$restore_url" "$BACKUP_FILE"
           source_tables="$(psql "$DB_URL" -tAc "select count(*)::text from pg_tables where schemaname = 'public'" | tr -d '\r')"
           restored_tables="$(psql "$restore_url" -tAc "select count(*)::text from pg_tables where schemaname = 'public'" | tr -d '\r')"
           test "$source_tables" -gt 0
