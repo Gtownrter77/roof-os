@@ -85,6 +85,11 @@ const colors = {
   muted: '#95a5c1',
   white: '#0c1526',
   red: '#ff2c3f',
+  brand: '#f32c33',
+  brandBar: '#f20e22',
+  panel: '#0a1428',
+  line: 'rgba(103, 136, 184, .36)',
+  amber: '#ffb21a',
 }
 
 const supabaseUrl =
@@ -1280,10 +1285,10 @@ export default function App() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <StatusBar style="dark" />
+      <StatusBar style="light" />
       <View style={{ flexDirection: 'row', padding: 8, gap: 12 }}>
-        <Pressable accessibilityRole="button" style={styles.secondary} onPress={() => void Linking.openURL('tel:911').catch(() => Alert.alert('Open your phone dialer and call 911'))}>
-          <Text style={styles.secondaryText}>SOS · Call 911</Text>
+        <Pressable accessibilityRole="button" style={styles.sos} onPress={() => void Linking.openURL('tel:911').catch(() => Alert.alert('Open your phone dialer and call 911'))}>
+          <Text style={styles.sosText}>SOS · Call 911</Text>
         </Pressable>
         <Pressable accessibilityRole="button" style={styles.secondary} onPress={() => void Linking.openURL(webAppUrl + '/foreman').catch(() => Alert.alert('Crew console unavailable', 'Contact your crew and office directly.'))}>
           <Text style={styles.secondaryText}>Foreman · Stop job</Text>
@@ -1294,7 +1299,13 @@ export default function App() {
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={styles.header}>
           <View>
-            <Text style={styles.eyebrow}>ROOF/OS INSPECTOR</Text>
+            <View style={styles.brandLockup}>
+              <BrandMark />
+              <View>
+                <Text style={styles.brandName}>ROOF<Text style={styles.brandAccent}>OS</Text></Text>
+                <Text style={styles.brandSub}>FIELD OPERATIONS</Text>
+              </View>
+            </View>
             <Text style={styles.title}>Owner / inspector</Text>
             <Text style={styles.subtitle}>{online ? 'Linked to desktop workspace' : 'Working offline · will sync to desktop'}</Text>
           </View>
@@ -1369,9 +1380,11 @@ export default function App() {
                 ? 'No jobs on the schedule today. Start a fresh inspection.'
                 : address.trim() || 'Capture the property. The photo stays on the phone until it syncs.'}
           </Text>
-          <Text style={styles.syncChip}>
-            {syncing ? 'Syncing' : online === null ? 'Checking connection…' : !online ? 'Offline · saved on the phone' : pendingUploads > 0 ? `${pendingUploads} item${pendingUploads === 1 ? '' : 's'} waiting` : lastSyncedAt ? `Last synced at ${new Date(lastSyncedAt).toLocaleTimeString()}` : draft?.remoteId ? 'Synced' : 'Not uploaded yet'}
-          </Text>
+          <View style={[styles.statusChip, syncStatusTone(syncing, online, pendingUploads)]}>
+            <Text style={[styles.syncChip, styles.statusChipText]}>
+              {syncing ? 'Syncing' : online === null ? 'Checking connection…' : !online ? 'Offline · saved on the phone' : pendingUploads > 0 ? `${pendingUploads} item${pendingUploads === 1 ? '' : 's'} waiting` : lastSyncedAt ? `Last synced at ${new Date(lastSyncedAt).toLocaleTimeString()}` : draft?.remoteId ? 'Synced' : 'Not uploaded yet'}
+            </Text>
+          </View>
           {agenda[0]?.location ? (
             <Pressable
               style={[styles.secondary, { marginBottom: 10 }]}
@@ -1461,7 +1474,7 @@ export default function App() {
               disabled={!fieldAiPreferencesLoaded}
               accessibilityLabel="Enable AI caption and album suggestion requests"
               accessibilityState={{ checked: fieldAiPreferences.photoCaptionAlbumEnabled, disabled: !fieldAiPreferencesLoaded }}
-              trackColor={{ false: '#aeb9c7', true: '#78a8eb' }}
+              trackColor={{ false: '#26344a', true: '#0c85e8' }}
               thumbColor={fieldAiPreferences.photoCaptionAlbumEnabled ? colors.blue : '#f4f6f8'}
             />
           </View>
@@ -1476,7 +1489,7 @@ export default function App() {
               disabled={!fieldAiPreferencesLoaded}
               accessibilityLabel="Enable AI photo completeness requests"
               accessibilityState={{ checked: fieldAiPreferences.photoCompletenessEnabled, disabled: !fieldAiPreferencesLoaded }}
-              trackColor={{ false: '#aeb9c7', true: '#78a8eb' }}
+              trackColor={{ false: '#26344a', true: '#0c85e8' }}
               thumbColor={fieldAiPreferences.photoCompletenessEnabled ? colors.blue : '#f4f6f8'}
             />
           </View>
@@ -1890,6 +1903,13 @@ function AuthScreen({
   return (
     <SafeAreaView style={styles.center}>
       <View style={styles.authCard}>
+        <View style={styles.brandLockup}>
+          <BrandMark />
+          <View>
+            <Text style={styles.brandName}>ROOF<Text style={styles.brandAccent}>OS</Text></Text>
+            <Text style={styles.brandSub}>FIELD OPERATIONS</Text>
+          </View>
+        </View>
         <Text style={styles.eyebrow}>ROOF/OS FIELD</Text>
         <Text style={styles.authTitle}>
           {authMode === 'forgot' ? 'Reset password' : 'Secure field access'}
@@ -2062,6 +2082,24 @@ function AuthScreen({
   )
 }
 
+function BrandMark({ size = 30 }: { size?: number }) {
+  return (
+    <View style={[styles.brandMark, { width: size, height: size }]}>
+      <View style={[styles.brandBar, { width: size * 0.92, top: size * 0.08, left: 0 }]} />
+      <View style={[styles.brandBar, { width: size * 0.62, top: size * 0.4, left: size * 0.15 }]} />
+      <View style={[styles.brandBar, { width: size * 0.34, top: size * 0.72, left: size * 0.3 }]} />
+    </View>
+  )
+}
+
+function syncStatusTone(syncing: boolean, online: boolean | null, pendingUploads: number) {
+  if (syncing) return styles.statusBlue
+  if (online === null) return styles.statusBlue
+  if (online === false) return styles.statusRed
+  if (pendingUploads > 0) return styles.statusAmber
+  return styles.statusGreen
+}
+
 function Metric({ value, label }: { value: string; label: string }) {
   return (
     <View style={styles.metric}>
@@ -2103,7 +2141,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 22,
   },
-  eyebrow: { color: colors.blue, fontSize: 12, fontWeight: '800', letterSpacing: 1.5 },
+  eyebrow: { color: colors.blue, fontSize: 10, fontWeight: '800', letterSpacing: 1.8 },
+  brandMark: { position: 'relative', marginRight: 10 },
+  brandBar: { position: 'absolute', height: 6, backgroundColor: colors.brandBar, transform: [{ skewY: '-28deg' }] },
+  brandLockup: { flexDirection: 'row', alignItems: 'center', marginBottom: 2 },
+  brandName: { color: colors.ink, fontSize: 22, fontWeight: '900', letterSpacing: -1 },
+  brandAccent: { color: colors.brand },
+  brandSub: { color: colors.muted, fontSize: 8, fontWeight: '800', letterSpacing: 1.7, marginTop: 3 },
   title: { color: colors.ink, fontSize: 30, fontWeight: '800', marginTop: 4 },
   subtitle: { color: colors.muted, marginTop: 4, fontSize: 14 },
   avatar: {
@@ -2115,32 +2159,88 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   avatarText: { color: '#050812', fontWeight: '800' },
-  hero: { backgroundColor: '#0c1526', borderColor: colors.border, borderWidth: 1, borderRadius: 22, padding: 22, marginBottom: 14 },
-  heroLabel: { color: colors.blue, fontWeight: '800', fontSize: 11, letterSpacing: 1.4 },
+  hero: {
+    backgroundColor: colors.panel,
+    borderColor: colors.line,
+    borderWidth: 1,
+    borderRadius: 22,
+    padding: 22,
+    marginBottom: 14,
+    shadowColor: '#000',
+    shadowOpacity: 0.24,
+    shadowRadius: 18,
+    elevation: 5,
+  },
+  heroLabel: { color: colors.blue, fontWeight: '800', fontSize: 10, letterSpacing: 1.6 },
   heroTitle: { color: colors.ink, fontSize: 24, fontWeight: '800', marginTop: 8 },
   heroText: { color: colors.muted, lineHeight: 21, marginTop: 8, marginBottom: 18 },
-  syncChip: { color: '#d7e6ff', fontSize: 13, fontWeight: '700', marginBottom: 12 },
-  cameraButton: { backgroundColor: colors.blue, borderRadius: 16, minHeight: 64, alignItems: 'center', justifyContent: 'center' },
+  syncChip: { color: '#d7e6ff', fontSize: 13, fontWeight: '700' },
+  statusChip: {
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingVertical: 5,
+    paddingHorizontal: 9,
+    marginBottom: 12,
+  },
+  statusChipText: { fontSize: 12, fontWeight: '800', letterSpacing: 0.3 },
+  statusGreen: { borderColor: colors.green, backgroundColor: 'rgba(25, 235, 119, .12)' },
+  statusAmber: { borderColor: colors.amber, backgroundColor: 'rgba(255, 178, 26, .12)' },
+  statusRed: { borderColor: colors.red, backgroundColor: 'rgba(255, 44, 63, .12)' },
+  statusBlue: { borderColor: colors.blue, backgroundColor: 'rgba(22, 184, 255, .12)' },
+  sos: {
+    flex: 1,
+    borderColor: colors.red,
+    borderWidth: 1,
+    backgroundColor: 'rgba(255, 44, 63, .12)',
+    shadowColor: colors.red,
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 3,
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  sosText: { color: '#ff6b74', fontWeight: '800' },
+  cameraButton: {
+    backgroundColor: colors.brand,
+    borderRadius: 16,
+    minHeight: 64,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: 'rgba(255, 22, 37, .35)',
+    shadowOpacity: 0.6,
+    shadowRadius: 12,
+    elevation: 6,
+  },
   queueRow: { flexDirection: 'row', gap: 10, alignItems: 'center', paddingVertical: 8 },
   evidencePrompt: { minHeight: 56, justifyContent: 'center', paddingVertical: 8, borderTopWidth: 1, borderTopColor: colors.border },
   aiPreferenceRow: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 64, borderTopWidth: 1, borderTopColor: colors.border },
   aiPreferenceCopy: { flex: 1, paddingVertical: 8 },
   thumb: { width: 56, height: 56, borderRadius: 8, backgroundColor: '#dbe4ef' },
   primary: {
-    backgroundColor: '#3e8cff',
+    backgroundColor: colors.brand,
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: 'center',
+    shadowColor: 'rgba(255, 22, 37, .35)',
+    shadowOpacity: 0.6,
+    shadowRadius: 10,
+    elevation: 5,
   },
-  primaryText: { color: colors.white, fontWeight: '800', fontSize: 16 },
+  primaryText: { color: colors.ink, fontWeight: '800', fontSize: 16 },
   metrics: { flexDirection: 'row', gap: 10, marginBottom: 22 },
   metric: {
     flex: 1,
-    backgroundColor: colors.white,
+    backgroundColor: colors.panel,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.line,
     borderRadius: 14,
     padding: 14,
+    shadowColor: '#000',
+    shadowOpacity: 0.18,
+    shadowRadius: 10,
+    elevation: 3,
   },
   metricValue: { color: colors.ink, fontSize: 20, fontWeight: '800' },
   metricLabel: { color: colors.muted, fontSize: 12, marginTop: 3 },
@@ -2150,30 +2250,47 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     marginBottom: 10,
     marginTop: 6,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.brand,
+    paddingLeft: 10,
   },
   card: {
-    backgroundColor: colors.white,
-    borderColor: colors.border,
+    backgroundColor: colors.panel,
+    borderColor: colors.line,
     borderWidth: 1,
     borderRadius: 16,
     padding: 16,
     marginBottom: 18,
+    shadowColor: '#000',
+    shadowOpacity: 0.22,
+    shadowRadius: 14,
+    elevation: 4,
   },
   authCard: {
-    backgroundColor: colors.white,
-    borderColor: colors.border,
+    backgroundColor: colors.panel,
+    borderColor: colors.line,
     borderWidth: 1,
     borderRadius: 18,
     padding: 22,
+    shadowColor: '#000',
+    shadowOpacity: 0.28,
+    shadowRadius: 20,
+    elevation: 6,
   },
   authTitle: { color: colors.ink, fontSize: 28, fontWeight: '800', marginVertical: 8 },
   authTabRow: {
     flexDirection: 'row',
-    backgroundColor: '#10192c',
+    backgroundColor: colors.panel,
+    borderColor: colors.line,
+    borderWidth: 1,
     borderRadius: 10,
     padding: 4,
     marginBottom: 16,
     marginTop: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.18,
+    shadowRadius: 10,
+    elevation: 3,
   },
   authTab: { flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 8 },
   authTabActive: {
@@ -2198,11 +2315,15 @@ const styles = StyleSheet.create({
   passwordContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderColor: colors.border,
+    borderColor: colors.line,
     borderWidth: 1,
     borderRadius: 10,
     marginBottom: 14,
-    backgroundColor: colors.white,
+    backgroundColor: colors.panel,
+    shadowColor: '#000',
+    shadowOpacity: 0.14,
+    shadowRadius: 8,
+    elevation: 2,
   },
   passwordInput: { flex: 1, padding: 12, color: colors.ink },
   passwordToggle: { paddingHorizontal: 14, paddingVertical: 12 },
@@ -2234,24 +2355,42 @@ const styles = StyleSheet.create({
     color: colors.muted,
     textDecorationLine: 'underline',
   },
-  cardTitle: { color: colors.ink, fontSize: 16, fontWeight: '700', marginBottom: 10 },
+  cardTitle: {
+    color: colors.ink,
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 10,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.brand,
+    paddingLeft: 10,
+  },
   input: {
-    borderColor: colors.border,
+    borderColor: colors.line,
+    backgroundColor: colors.panel,
     borderWidth: 1,
     borderRadius: 10,
     padding: 12,
     color: colors.ink,
     marginBottom: 10,
+    shadowColor: '#000',
+    shadowOpacity: 0.14,
+    shadowRadius: 8,
+    elevation: 2,
   },
   row: { flexDirection: 'row', gap: 10 },
   inputHalf: {
     flex: 1,
-    borderColor: colors.border,
+    borderColor: colors.line,
+    backgroundColor: colors.panel,
     borderWidth: 1,
     borderRadius: 10,
     padding: 12,
     color: colors.ink,
     marginBottom: 10,
+    shadowColor: '#000',
+    shadowOpacity: 0.14,
+    shadowRadius: 8,
+    elevation: 2,
   },
   secondary: {
     backgroundColor: colors.pale,
