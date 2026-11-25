@@ -47,6 +47,7 @@ jobs:
       - run: npm run test:ci-local-migrations
       - run: npm run test:ci-gate-helpers
       - run: npm run test:ci-workflow-env
+      - run: npm run test:ci-env-normalizer
       - run: npm run test:jarvis-adjuster-guards
       - run: npm run test:jarvis-adjuster-queue
       - run: npm run test:jarvis-adjuster-orchestrator

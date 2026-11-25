@@ -205,6 +205,7 @@
     "test:ci-local-migrations": "node scripts/ci/prepare-local-migrations-test.mjs",
     "test:ci-gate-helpers": "node scripts/ci-gate-helpers-test.mjs",
     "test:ci-workflow-env": "node scripts/ci-workflow-env-contract-test.mjs",
+    "test:ci-env-normalizer": "node scripts/ci-env-normalizer-test.mjs",
     "ci:prepare-migrations": "node scripts/ci/prepare-local-migrations.mjs",
     "ci:collect-gates": "node scripts/ci/collect-gate-results.mjs",
     "ci:check-schema-parity": "node scripts/ci/check-schema-parity.mjs",

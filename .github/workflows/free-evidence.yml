@@ -74,7 +74,7 @@ jobs:
             --override-name api.anon_key=SUPABASE_ANON_KEY \
             --override-name api.service_role_key=SUPABASE_SERVICE_ROLE_KEY \
             --override-name db.url=DB_URL \
-            | sed -E 's/^([A-Z0-9_]+)="(.*)"$/\1=\2/' >> "$GITHUB_ENV"
+            | node scripts/ci/normalize-env-output.mjs >> "$GITHUB_ENV"
 
       - name: Verify repository checks and CLI contract
         run: |
