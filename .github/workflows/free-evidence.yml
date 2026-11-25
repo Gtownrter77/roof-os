@@ -74,6 +74,7 @@ jobs:
 
       - name: Map Supabase endpoint env names
         run: |
+          echo "SUPABASE_URL=$API_URL" >> "$GITHUB_ENV"
           echo "SUPABASE_ANON_KEY=$ANON_KEY" >> "$GITHUB_ENV"
           echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY" >> "$GITHUB_ENV"
 
@@ -138,8 +139,13 @@ jobs:
           psql "$DB_URL" -v ON_ERROR_STOP=1 -c 'drop database if exists roof_os_restore' -c 'create database roof_os_restore'
           restore_url="${DB_URL%/postgres}/roof_os_restore"
           psql "$restore_url" -v ON_ERROR_STOP=1 -f /tmp/roof-os-backup.sql
-          npx supabase db query --db-url "$restore_url" -o csv \
-            "select count(*)::text as tables from pg_tables where schemaname = 'public'" | tail -n 1 | grep -Eq '^[0-9]+$'
+          source_tables="$(psql "$DB_URL" -tAc "select count(*)::text from pg_tables where schemaname = 'public'" | tr -d '\r')"
+          restored_tables="$(psql "$restore_url" -tAc "select count(*)::text from pg_tables where schemaname = 'public'" | tr -d '\r')"
+          test "$source_tables" -gt 0
+          test "$restored_tables" = "$source_tables"
+          source_data_hash="$(pg_dump "$DB_URL" --data-only --no-owner --schema public | sha256sum | cut -d' ' -f1)"
+          restored_data_hash="$(pg_dump "$restore_url" --data-only --no-owner --schema public | sha256sum | cut -d' ' -f1)"
+          test "$source_data_hash" = "$restored_data_hash"
           mkdir -p "$CI_GATE_DIR"
           touch "$CI_GATE_DIR/backupRestore.pass"
 
@@ -191,7 +197,10 @@ jobs:
             docs/evidence/release-gates.json \
             docs/evidence/release-gates.provenance.json
           git status --short -- docs/evidence || true
-          npm run test:release-gate-summary
+          node scripts/release-gate-summary.mjs docs/evidence/release-gates.json /tmp/roof-os-release-summary.md
+          grep -q '| physicalDevice | UNKNOWN |' /tmp/roof-os-release-summary.md
+          grep -q '\*\*Release decision: NO-GO\*\*' /tmp/roof-os-release-summary.md
+          npm run ci:assert-evidence -- docs/evidence/release-gates.json docs/evidence/release-gates.provenance.json
 
       - name: Upload evidence artifact
         if: always()

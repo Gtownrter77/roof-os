@@ -28,6 +28,7 @@ assert.ok(
   'Supabase status env values must be normalized before export to GITHUB_ENV',
 )
 for (const line of [
+  'echo "SUPABASE_URL=$API_URL" >> "$GITHUB_ENV"',
   'echo "SUPABASE_ANON_KEY=$ANON_KEY" >> "$GITHUB_ENV"',
   'echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY" >> "$GITHUB_ENV"',
 ]) {
