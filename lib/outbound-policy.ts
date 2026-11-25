@@ -2,9 +2,20 @@ export const QUIET_HOURS_START_HOUR = 8
 export const QUIET_HOURS_END_HOUR = 20
 
 export function isWithinQuietHours(now: Date = new Date(), timeZone?: string): boolean {
-  const hour = timeZone
-    ? Number(new Intl.DateTimeFormat('en-US', { hour: '2-digit', hour12: false, timeZone }).format(now))
-    : now.getHours()
+  let hour: number
+  if (timeZone) {
+    try {
+      const parts = new Intl.DateTimeFormat('en-US', {
+        hour: '2-digit', hour12: false, timeZone,
+      }).formatToParts(now)
+      // en-US hour12:false renders midnight as 24; normalize it to 0.
+      hour = Number(parts.find((part) => part.type === 'hour')?.value ?? '24') % 24
+    } catch {
+      hour = now.getHours()
+    }
+  } else {
+    hour = now.getHours()
+  }
   return hour >= QUIET_HOURS_START_HOUR && hour < QUIET_HOURS_END_HOUR
 }
 

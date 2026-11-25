@@ -21,14 +21,14 @@ assert.ok(
 assert.ok(!/scan_jobs|scan_images|scale_anchors/gi.test(migration), 'migration 112 must not redefine Hover pipeline tables')
 
 const governed = [
-  ['README.md', /113_manual_traced_measurements\.sql/, /111 migration files/],
-  ['DEPLOYMENT.md', /113_manual_traced_measurements\.sql/, /111 migration files/],
-  ['.github/workflows/ci.yml', /test -f supabase\/migrations\/113_manual_traced_measurements\.sql/, null],
-  ['scripts/release-foreman-check.mjs', /113_manual_traced_measurements\.sql/, /111/],
+  ['README.md', /114_jarvis_adjuster\.sql/, /112 migration files/],
+  ['DEPLOYMENT.md', /114_jarvis_adjuster\.sql/, /112 migration files/],
+  ['.github/workflows/ci.yml', /test -f supabase\/migrations\/114_jarvis_adjuster\.sql/, null],
+  ['scripts/release-foreman-check.mjs', /114_jarvis_adjuster\.sql/, /112/],
 ]
 for (const [file, headPattern, countPattern] of governed) {
   const source = readFileSync(new URL(`../${file}`, import.meta.url), 'utf8')
-  assert.match(source, headPattern, `${file} must name migration 112 as the head`)
+  assert.match(source, headPattern, `${file} must name the current migration head`)
   if (countPattern) assert.match(source, countPattern, `${file} must state the new migration count`)
 }
 

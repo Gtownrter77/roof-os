@@ -5,12 +5,34 @@ import { POST as runOfficeCopilot } from '../office-copilot/route'
 import { POST as runReceptionistFollowups } from '../receptionist-followups/route'
 import { POST as runWarrantyExpiry } from '../warranty-expiry/route'
 import { POST as runAgentAlerts } from '../agent-alerts/route'
+import { POST as runJarvisWorker } from '../../jarvis/worker/route'
 import { readCronDryRun } from '../../../../lib/agents/cron-route'
 import { CRON_ALERTS_TIMEOUT_MS, cronJobTimeoutMs } from '../../../../lib/agents/cron-batch-config'
 
 export const runtime = 'nodejs'
 
 type JobResult = { status: number; body: unknown }
+
+// Vercel Hobby allows only two crons, so the single JARVIS queue is drained from
+// this dispatcher. The worker processes one job per request; a bounded loop
+// avoids letting one cron invocation run forever.
+const JARVIS_WORKER_DRAIN_BATCH = 10
+
+async function drainJarvisWorker(request: NextRequest): Promise<[string, JobResult]> {
+  let processed = 0
+  let failed = 0
+  for (let index = 0; index < JARVIS_WORKER_DRAIN_BATCH; index += 1) {
+    const [, result] = await invoke('jarvis_worker', runJarvisWorker, request)
+    if (result.status >= 400) failed += 1
+    const body = result.body as { processed?: boolean } | null
+    if (body?.processed !== true) break
+    processed += 1
+  }
+  return ['jarvis_worker', {
+    status: failed ? 207 : 200,
+    body: { processed, failed, batchLimit: JARVIS_WORKER_DRAIN_BATCH },
+  }]
+}
 
 // Each job gets its own deadline so one slow agent cannot hold back the rest or the alerts.
 // The timer only stops waiting; it does not cancel the job, which is idempotent per run key.
@@ -56,7 +78,7 @@ async function run(request: NextRequest) {
     const [dryAlertName, dryAlertResult] = await invoke('agent_alerts', runAgentAlerts, request, CRON_ALERTS_TIMEOUT_MS)
     dryResults[dryAlertName] = dryAlertResult
     const dispatched = Object.keys(dryResults).length
-    const skippedJobs = ['inspection_quality', 'receptionist_followups', 'warranty_expiry']
+    const skippedJobs = ['inspection_quality', 'receptionist_followups', 'warranty_expiry', 'jarvis_worker']
     for (const job of skippedJobs) dryResults[job] = { status: 204, body: { skipped: 'dry_run_unsupported' } }
     const dryFailed = Object.values(dryResults).filter((result) => result.status >= 500).length
     return NextResponse.json({ dryRun: true, processed: dispatched, failed: dryFailed, results: dryResults }, { status: dryFailed ? 207 : 200 })
@@ -69,6 +91,8 @@ async function run(request: NextRequest) {
     ['receptionist_followups', invoke('receptionist_followups', runReceptionistFollowups, request)],
     ['warranty_expiry', invoke('warranty_expiry', runWarrantyExpiry, request)],
   ])
+  const [jarvisName, jarvisResult] = await drainJarvisWorker(request)
+  results[jarvisName] = jarvisResult
   // Alerts run after the agent jobs so they see this run's heartbeats.
   const [alertName, alertResult] = await invoke('agent_alerts', runAgentAlerts, request, CRON_ALERTS_TIMEOUT_MS)
   results[alertName] = alertResult

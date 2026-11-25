@@ -187,7 +187,17 @@
     "test:manual-trace-recompute": "node --experimental-strip-types scripts/manual-trace-recompute-test.mjs",
     "test:manual-trace-persistence": "node scripts/manual-trace-persistence-test.mjs",
     "test:manual-trace-manual-route": "node scripts/manual-trace-manual-route-test.mjs",
-    "test:manual-trace-ui": "node scripts/manual-trace-ui-test.mjs"
+    "test:manual-trace-ui": "node scripts/manual-trace-ui-test.mjs",
+    "test:jarvis-adjuster-guards": "node --experimental-strip-types scripts/jarvis-adjuster-guards-test.mjs",
+    "test:jarvis-adjuster-queue": "node --experimental-strip-types scripts/jarvis-adjuster-queue-test.mjs",
+    "test:jarvis-adjuster-orchestrator": "node --experimental-strip-types scripts/jarvis-adjuster-orchestrator-test.mjs",
+    "test:jarvis-adjuster-sandbox": "node --experimental-strip-types scripts/jarvis-adjuster-sandbox-test.mjs",
+    "test:jarvis-adjuster-api-worker": "node --experimental-strip-types scripts/jarvis-adjuster-api-worker-test.mjs",
+    "test:jarvis-adjuster-migration": "node scripts/jarvis-adjuster-migration-test.mjs",
+    "test:jarvis-adjuster-runtime": "node --experimental-strip-types scripts/jarvis-adjuster-runtime-test.mjs",
+    "test:jarvis-adjuster-routes": "node scripts/jarvis-adjuster-routes-test.mjs",
+    "test:jarvis-adjuster-ui": "node scripts/jarvis-adjuster-ui-test.mjs",
+    "test:desktop-api-resilience": "node --experimental-strip-types scripts/desktop-api-resilience-test.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.2",

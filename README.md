@@ -1,7 +1,7 @@
 # Current repository audit — 2026-11-18
 
 **Current GitHub main (verified 2026-11-22):** `764976f209f9c4167b4df3a862712bd335a844a4` — exact-head CI [run `44984769341`](https://github.com/Gtownrter77/roof-os/actions/runs/44984769341) passed all five required jobs. Field code `9979295` PR #485; Metro parent `7008e22` PR #483. The local `weak-links` work-package branch is not part of this baseline until pushed.
-**Current source migration head:** `113_manual_traced_measurements.sql` (111 migration files total); see `supabase/migrations/` for the ordered ledger
+**Current source migration head:** `114_jarvis_adjuster.sql` (112 migration files total); see `supabase/migrations/` for the ordered ledger
 **APK:** GitHub Release [field-apk-main-9979295](https://github.com/Gtownrter77/roof-os/releases/tag/field-apk-main-9979295) from [run 44406863550](https://github.com/Gtownrter77/roof-os/actions/runs/44406863550), version code `43`, SHA-256 `6d31895824bf36b1c04245b314dedd7cfd2a1ae14122a79f5d672ff1fc782b61`. Direct APK: https://github.com/Gtownrter77/roof-os/releases/download/field-apk-main-9979295/roof-os-field-preview.apk. Prior Metro artifact is run `44404219619` from `7008e22`, version code `42`.
 **Current audit boundary:** source, CI, and APK-artifact evidence only; production schema parity, deployed SHA, provider execution, physical-device behavior, live two-workspace isolation, and backup/restore remain unverified.
 

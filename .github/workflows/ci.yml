@@ -40,6 +40,16 @@ jobs:
       - run: npm run test:field-hover-ingest
       - run: npm run test:field-hover-upload
       - run: node scripts/release-foreman-check.mjs
+      - run: npm run test:jarvis-adjuster-guards
+      - run: npm run test:jarvis-adjuster-queue
+      - run: npm run test:jarvis-adjuster-orchestrator
+      - run: npm run test:jarvis-adjuster-sandbox
+      - run: npm run test:jarvis-adjuster-api-worker
+      - run: npm run test:jarvis-adjuster-migration
+      - run: npm run test:jarvis-adjuster-runtime
+      - run: npm run test:jarvis-adjuster-routes
+      - run: npm run test:jarvis-adjuster-ui
+      - run: npm run test:desktop-api-resilience
       - run: node --experimental-strip-types scripts/worker-heartbeat-runtime-test.mjs
       - run: npm run test:braces-mitigation --prefix apps/field
       - run: npm run build
@@ -298,6 +308,7 @@ jobs:
           test "$(find supabase/migrations -maxdepth 1 -name '*.sql' | wc -l)" -ge 24
           test -f supabase/migrations/112_inspection_photos_hover_fields.sql
           test -f supabase/migrations/113_manual_traced_measurements.sql
+          test -f supabase/migrations/114_jarvis_adjuster.sql
           grep -q "enable row level security" supabase/migrations/008_claims_line_items_agent_readiness.sql
           grep -q "enable row level security" supabase/migrations/009_agent_runtime_claims_imports.sql
           grep -q "monthly_limit" supabase/migrations/010_retailer_price_cache.sql

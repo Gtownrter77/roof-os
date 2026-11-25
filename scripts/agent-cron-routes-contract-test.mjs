@@ -120,6 +120,12 @@ assert.ok(registry.includes("heartbeatSource: 'app/api/cron/office-copilot/route
 const daily = readFileSync('app/api/cron/daily/route.ts', 'utf8')
 assert.ok(daily.includes("invoke('intake_router', runIntakeRouter, request)"))
 assert.ok(daily.includes("invoke('office_copilot', runOfficeCopilot, request)"))
+// The single JARVIS queue must be drained from the existing daily dispatcher;
+// Vercel Hobby stays at two crons and there is no second scheduler.
+assert.ok(daily.includes("import { POST as runJarvisWorker } from '../../jarvis/worker/route'"), 'daily dispatcher must import the single JARVIS worker')
+assert.ok(daily.includes('drainJarvisWorker(request)'), 'daily dispatcher must drain the JARVIS queue')
+assert.ok(daily.includes("'jarvis_worker'"), 'jarvis_worker must appear in the dispatcher results')
+assert.ok(daily.includes('dry_run_unsupported') && daily.includes('jarvis_worker'), 'dry-run must report jarvis_worker as skipped')
 const vercel = JSON.parse(readFileSync('vercel.json', 'utf8'))
 for (const path of ['/api/cron/intake-router', '/api/cron/office-copilot']) {
   assert.ok(!(vercel.crons ?? []).some((cron) => cron.path === path), `${path} must run through the daily dispatcher`)
