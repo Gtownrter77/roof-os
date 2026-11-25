@@ -13,7 +13,7 @@ for (const check of [
   'psql "$DB_URL" -v ON_ERROR_STOP=1 -c \'drop database if exists roof_os_restore\' -c \'create database roof_os_restore\'',
   'restore_url="${DB_URL%/postgres}/roof_os_restore"',
   'docker cp "$BACKUP_FILE" "$DB_CONTAINER:/tmp/roof-os-restore.dump"',
-  'docker exec "$DB_CONTAINER" pg_restore --no-owner --dbname roof_os_restore /tmp/roof-os-restore.dump',
+  'docker exec "$DB_CONTAINER" pg_restore -U postgres --no-owner --dbname roof_os_restore /tmp/roof-os-restore.dump',
   'source_tables="$(psql "$DB_URL" -tAc "select count(*)::text from pg_tables where schemaname = \'public\'" | tr -d \'\\r\')"',
   'restored_tables="$(psql "$restore_url" -tAc "select count(*)::text from pg_tables where schemaname = \'public\'" | tr -d \'\\r\')"',
   'test "$source_tables" -gt 0',
