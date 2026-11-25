@@ -70,11 +70,12 @@ jobs:
         run: |
           npx supabase start --workdir "$CI_SUPABASE_WORKDIR" --yes
           npx supabase status -o env --workdir "$CI_SUPABASE_WORKDIR" \
-            --override-name api.url=SUPABASE_URL \
-            --override-name api.anon_key=SUPABASE_ANON_KEY \
-            --override-name api.service_role_key=SUPABASE_SERVICE_ROLE_KEY \
-            --override-name db.url=DB_URL \
             | node scripts/ci/normalize-env-output.mjs >> "$GITHUB_ENV"
+
+      - name: Map Supabase endpoint env names
+        run: |
+          echo "SUPABASE_ANON_KEY=$ANON_KEY" >> "$GITHUB_ENV"
+          echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY" >> "$GITHUB_ENV"
 
       - name: Verify repository checks and CLI contract
         run: |

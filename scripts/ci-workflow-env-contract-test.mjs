@@ -27,4 +27,10 @@ assert.ok(
   workflow.includes('| node scripts/ci/normalize-env-output.mjs >> "$GITHUB_ENV"'),
   'Supabase status env values must be normalized before export to GITHUB_ENV',
 )
+for (const line of [
+  'echo "SUPABASE_ANON_KEY=$ANON_KEY" >> "$GITHUB_ENV"',
+  'echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY" >> "$GITHUB_ENV"',
+]) {
+  assert.ok(workflow.includes(line), `workflow must export ${line}`)
+}
 console.log('ci-workflow-env-contract-test: PASS (workflow env matches seeder and RLS consumers)')
